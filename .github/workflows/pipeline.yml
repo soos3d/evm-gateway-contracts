@@ -44,4 +44,3 @@ jobs:
     steps:
       - run: |
           [ "${{ needs.ci.result }}" = "success" ] || [ "${{ needs.ci.result }}" = "skipped" ]
-          
