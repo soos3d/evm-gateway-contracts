@@ -1,0 +1,22 @@
+{
+    "extends": "solhint:recommended",
+    "rules": {
+      "compiler-version": ["error", "0.8.28"],
+      "func-visibility": [
+        "warn",
+        {
+          "ignoreConstructors": true
+        }
+      ],
+      "func-name-mixedcase": "off",
+      "immutable-vars-naming": [
+        "warn",
+        {
+          "immutablesAsConstants": false
+        }
+      ],
+      "no-console": "off",
+      "no-empty-blocks": "off",
+      "one-contract-per-file": "off"
+    }
+  }
