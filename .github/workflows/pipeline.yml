@@ -1,0 +1,46 @@
+name: pipeline
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+
+      - name: Install Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22.10.0'
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Install Solhint
+        run: yarn install
+
+      # TODO: Enable once code changes are merged.
+      # - name: Run Linter
+      #   run: yarn lint
+
+      # - name: Run Forge fmt
+      #   run: forge fmt --check
+
+      # - name: Run Unit Tests
+      #   run: forge test -vv
+
+  rollup_results:
+    runs-on: small
+    name: Build Success Rollup
+    if: ${{ always() }}
+    needs:
+      - ci
+    steps:
+      - run: |
+          [ "${{ needs.ci.result }}" = "success" ] || [ "${{ needs.ci.result }}" = "skipped" ]
