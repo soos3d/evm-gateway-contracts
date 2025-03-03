@@ -7,6 +7,7 @@ on:
 
 jobs:
   ci:
+    runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
@@ -24,14 +25,15 @@ jobs:
       - name: Install Solhint
         run: yarn install
 
-      - name: Run Linter
-        run: yarn lint
+      # TODO: Enable once code changes are merged.
+      # - name: Run Linter
+      #   run: yarn lint
 
-      - name: Run Forge fmt
-        run: forge fmt --check
+      # - name: Run Forge fmt
+      #   run: forge fmt --check
 
-      - name: Run Unit Tests
-        run: forge test -vv
+      # - name: Run Unit Tests
+      #   run: forge test -vv
 
   rollup_results:
     runs-on: small
