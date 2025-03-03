@@ -34,10 +34,6 @@ contract ERC1967ProxyHarness is ERC1967Proxy {
     receive() external payable {}
 }
 
-contract ContractOwnerMock {
-// This is an empty contract used to test contract ownership restrictions
-}
-
 contract UpgradeablePlaceholderTest is Test {
     address private owner = makeAddr("owner");
 
@@ -45,11 +41,7 @@ contract UpgradeablePlaceholderTest is Test {
     ERC1967ProxyHarness private proxy;
 
     function setUp() public {
-        UpgradeablePlaceholder placeholderImpl = new UpgradeablePlaceholder();
-        proxy = new ERC1967ProxyHarness(
-            address(placeholderImpl), abi.encodeCall(UpgradeablePlaceholder.initialize, (owner))
-        );
-        placeholder = UpgradeablePlaceholder(payable(address(proxy)));
+        placeholder = deployProxy(owner, true);
     }
 
     function test_owner() public view {
@@ -92,19 +84,28 @@ contract UpgradeablePlaceholderTest is Test {
     }
 
     function test_initialize_revertIfOwnerAddrIsZero() public {
-        UpgradeablePlaceholder upgradeablePlaceholderImpl = new UpgradeablePlaceholder();
-        ERC1967ProxyHarness proxyHarness = new ERC1967ProxyHarness(address(upgradeablePlaceholderImpl), "");
-        UpgradeablePlaceholder upgradeablePlaceholder = UpgradeablePlaceholder(payable(address(proxyHarness)));
+        UpgradeablePlaceholder upgradeablePlaceholderImpl = deployProxy(address(0), false);
         vm.expectRevert(UpgradeablePlaceholder.InvalidOwnerAddress.selector);
-        upgradeablePlaceholder.initialize(address(0));
+        upgradeablePlaceholderImpl.initialize(address(0));
     }
 
     function test_initialize_revertIfOwnerIsContract() public {
-        ContractOwnerMock contractOwner = new ContractOwnerMock();
-        UpgradeablePlaceholder implementation = new UpgradeablePlaceholder();
-        ERC1967ProxyHarness proxyHarness = new ERC1967ProxyHarness(address(implementation), "");
-        UpgradeablePlaceholder freshPlaceholder = UpgradeablePlaceholder(payable(address(proxyHarness)));
+        address contractAddress = makeAddr("fakeContract");
+        vm.etch(contractAddress, hex"100000");
+        address random = makeAddr("random");
+
+        UpgradeablePlaceholder upgradeablePlaceholderImpl = deployProxy(random, false);
+
         vm.expectRevert(UpgradeablePlaceholder.UnauthorizedCaller.selector);
-        freshPlaceholder.initialize(address(contractOwner));
+        upgradeablePlaceholderImpl.initialize(contractAddress);
+    }
+
+    function deployProxy(address newOwner, bool shouldInitialize) internal returns (UpgradeablePlaceholder) {
+        UpgradeablePlaceholder implementation = new UpgradeablePlaceholder();
+        bytes memory initData =
+            shouldInitialize ? abi.encodeCall(UpgradeablePlaceholder.initialize, (newOwner)) : bytes("");
+
+        ERC1967ProxyHarness proxyInstance = new ERC1967ProxyHarness(address(implementation), initData);
+        return UpgradeablePlaceholder(payable(address(proxyInstance)));
     }
 }
