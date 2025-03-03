@@ -33,6 +33,8 @@ contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepU
     }
 
     function initialize(address newOwner) public initializer {
+        require(newOwner != address(0), "Invalid owner address");
+        
         __UUPSUpgradeable_init();
         __Ownable_init(newOwner);
         __Ownable2Step_init();
