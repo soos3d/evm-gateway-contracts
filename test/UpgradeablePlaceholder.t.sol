@@ -34,6 +34,10 @@ contract ERC1967ProxyHarness is ERC1967Proxy {
     receive() external payable {}
 }
 
+contract ContractOwnerMock {
+// This is an empty contract used to test contract ownership restrictions
+}
+
 contract UpgradeablePlaceholderTest is Test {
     address private owner = makeAddr("owner");
 
@@ -93,5 +97,14 @@ contract UpgradeablePlaceholderTest is Test {
         UpgradeablePlaceholder upgradeablePlaceholder = UpgradeablePlaceholder(payable(address(proxyHarness)));
         vm.expectRevert(UpgradeablePlaceholder.InvalidOwnerAddress.selector);
         upgradeablePlaceholder.initialize(address(0));
+    }
+
+    function test_initialize_revertIfOwnerIsContract() public {
+        ContractOwnerMock contractOwner = new ContractOwnerMock();
+        UpgradeablePlaceholder implementation = new UpgradeablePlaceholder();
+        ERC1967ProxyHarness proxyHarness = new ERC1967ProxyHarness(address(implementation), "");
+        UpgradeablePlaceholder freshPlaceholder = UpgradeablePlaceholder(payable(address(proxyHarness)));
+        vm.expectRevert(UpgradeablePlaceholder.UnauthorizedCaller.selector);
+        freshPlaceholder.initialize(address(contractOwner));
     }
 }
