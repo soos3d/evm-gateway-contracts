@@ -21,7 +21,7 @@ pragma solidity ^0.8.28;
 import {Test} from "forge-std/src/Test.sol";
 
 contract TestFoundryVersion is Test {
-    string constant EXPECTED_VERSION = "1.0.0";
+    string private constant EXPECTED_VERSION = "1.0.0";
 
     function test() external view {
         // Returns something like "1.0.0-v1.0.0+8692e92619.1739178359.maxperf"
