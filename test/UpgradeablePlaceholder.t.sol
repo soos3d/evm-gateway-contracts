@@ -86,4 +86,12 @@ contract UpgradeablePlaceholderTest is Test {
         placeholder.transferOwnership(random);
         vm.stopPrank();
     }
+
+    function test_initialize_revertIfOwnerAddrIsZero() public {
+        UpgradeablePlaceholder upgradeablePlaceholderImpl = new UpgradeablePlaceholder();
+        ERC1967ProxyHarness proxyHarness = new ERC1967ProxyHarness(address(upgradeablePlaceholderImpl), "");
+        UpgradeablePlaceholder upgradeablePlaceholder = UpgradeablePlaceholder(payable(address(proxyHarness)));
+        vm.expectRevert(UpgradeablePlaceholder.InvalidOwnerAddress.selector);
+        upgradeablePlaceholder.initialize(address(0));
+    }
 }
