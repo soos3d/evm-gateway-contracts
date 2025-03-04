@@ -28,6 +28,5 @@ interface ISpendDestinationUser {
     ///
     /// @param authorizations   The byte-encoded spend authorization(s)
     /// @param signature        The signature from the operator
-    function spend(bytes memory authorizations, bytes memory signature)
-        external;
+    function spend(bytes memory authorizations, bytes memory signature) external;
 }

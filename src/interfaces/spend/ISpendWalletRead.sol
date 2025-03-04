@@ -33,10 +33,7 @@ interface ISpendWalletRead is IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function totalBalance(address token, address depositor)
-        external
-        view
-        returns (uint256);
+    function totalBalance(address token, address depositor) external view returns (uint256);
 
     /// The balance that is spendable by the depositor, subject to deposits
     ///      having been observed by the API in a finalized block and no spend
@@ -45,29 +42,20 @@ interface ISpendWalletRead is IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function spendableBalance(address token, address depositor)
-        external
-        view
-        returns (uint256);
+    function spendableBalance(address token, address depositor) external view returns (uint256);
 
     /// The balance that is in the process of being withdrawn
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function withdrawingBalance(address token, address depositor)
-        external
-        view
-        returns (uint256);
+    function withdrawingBalance(address token, address depositor) external view returns (uint256);
 
     /// The balance that is withdrawable as of the current block. This will
     ///      either be 0 or equal to `withdrawingBalance`.
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function withdrawableBalance(address token, address depositor)
-        external
-        view
-        returns (uint256);
+    function withdrawableBalance(address token, address depositor) external view returns (uint256);
 
     /// The balance of a depositor for a particular balance specifier,
     ///      compatible with ERC-1155
@@ -79,11 +67,7 @@ interface ISpendWalletRead is IERC1155Balance {
     ///
     /// @param depositor   The depositor of the requested balance
     /// @param id          The packed token and balance id specifier
-    function balanceOf(address depositor, uint256 id)
-        external
-        view
-        override
-        returns (uint256);
+    function balanceOf(address depositor, uint256 id) external view override returns (uint256);
 
     /// The batch version of `balanceOf`, compatible with ERC-1155
     ///
@@ -107,28 +91,19 @@ interface ISpendWalletRead is IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function withdrawalBlock(address token, address depositor)
-        external
-        view
-        returns (uint256);
+    function withdrawalBlock(address token, address depositor) external view returns (uint256);
 
     /// Returns the byte encoding of a single burn authorization
     ///
     /// @param authorization   The burn authorization to encode
-    function encodeBurnAuthorization(BurnAuthorization memory authorization)
-        external
-        pure
-        returns (bytes memory);
+    function encodeBurnAuthorization(BurnAuthorization memory authorization) external pure returns (bytes memory);
 
     /// Returns the byte encoding of a set of burn authorizations
     ///
     /// @dev The burn authorizations must be sorted by domain
     ///
     /// @param authorizations   The burn authorizations to encode
-    function encodeBurnAuthorization(BurnAuthorization[] memory authorizations)
-        external
-        pure
-        returns (bytes memory);
+    function encodeBurnAuthorization(BurnAuthorization[] memory authorizations) external pure returns (bytes memory);
 
     /// Allows anyone to validate whether a set of burn authorizations is valid
     /// along with a signature from the depositor or an authorized spender
@@ -138,8 +113,8 @@ interface ISpendWalletRead is IERC1155Balance {
     ///
     /// @param authorizations   A byte-encoded (set of) burn authorization(s)
     /// @param signature        The signature from the spender
-    function validateBurnAuthorizations(
-        bytes memory authorizations,
-        bytes memory signature
-    ) external view returns (bool);
+    function validateBurnAuthorizations(bytes memory authorizations, bytes memory signature)
+        external
+        view
+        returns (bool);
 }

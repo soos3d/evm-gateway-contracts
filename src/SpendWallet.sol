@@ -18,14 +18,10 @@
  */
 pragma solidity ^0.8.28;
 
-import {Initializable} from
-    "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {Ownable2StepUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import {PausableUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {UUPSUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import {ISpendWallet} from "src/interfaces/spend/ISpendWallet.sol";
 
@@ -78,17 +74,14 @@ abstract contract SpendWallet is
 
     /// The balances that have been deposited and are available for spending
     ///      (after finalization)
-    mapping(address token => mapping(address user => uint256 value)) internal
-        spendableBalances;
+    mapping(address token => mapping(address user => uint256 value)) internal spendableBalances;
 
     /// The balances that are in the process of being withdrawn and are no
     ///      longer spendable
-    mapping(address token => mapping(address user => uint256 value)) internal
-        withdrawingBalances;
+    mapping(address token => mapping(address user => uint256 value)) internal withdrawingBalances;
 
     /// The block numbers at which in-progress withdrawals will be withdrawable
-    mapping(address token => mapping(address user => uint256 block)) internal
-        withdrawableAtBlocks;
+    mapping(address token => mapping(address user => uint256 block)) internal withdrawableAtBlocks;
 
     /// Whether or not a given spend hash (the keccak256 hash of a `SpendSpec`)
     ///      has been used for a burn or same-chain spend, preventing replay

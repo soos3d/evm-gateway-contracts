@@ -25,27 +25,21 @@ interface ISpendWalletEvents {
     /// @param token       The token that was deposited
     /// @param depositor   The address that deposited the funds
     /// @param value       The amount that was deposited
-    event Deposited(
-        address indexed token, address indexed depositor, uint256 value
-    );
+    event Deposited(address indexed token, address indexed depositor, uint256 value);
 
     /// Emitted when a spender is authorized to spend a depositor's balance
     ///
     /// @param token       The token that the spender is now authorized for
     /// @param depositor   The depositor who added the spender
     /// @param spender     The spender that was added
-    event SpenderAdded(
-        address indexed token, address indexed depositor, address spender
-    );
+    event SpenderAdded(address indexed token, address indexed depositor, address spender);
 
     /// Emitted when a spender's authorization is revoked
     ///
     /// @param token       The token the spender is no longer authorized for
     /// @param depositor   The depositor who removed the spender
     /// @param spender     The spender that was removed
-    event SpenderRemoved(
-        address indexed token, address indexed depositor, address spender
-    );
+    event SpenderRemoved(address indexed token, address indexed depositor, address spender);
 
     /// Emitted when a withdrawal is initiated
     ///
@@ -72,12 +66,7 @@ interface ISpendWalletEvents {
     /// @param depositor   The owner and recipient of the withdrawn funds
     /// @param spender     The spender that authorized the withdrawal
     /// @param value       The value that was withdrawn
-    event WithdrawalCompleted(
-        address indexed token,
-        address indexed depositor,
-        address spender,
-        uint256 value
-    );
+    event WithdrawalCompleted(address indexed token, address indexed depositor, address spender, uint256 value);
 
     /// Emitted when the operator burns tokens that have been spent on another
     ///      domain

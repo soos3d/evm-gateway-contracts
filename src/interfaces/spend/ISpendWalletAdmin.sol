@@ -39,11 +39,7 @@ interface ISpendWalletAdmin {
     ///                         burns on other domains are ignored and may be
     ///                         passed as zero. Each fee must be no more than
     ///                         `maxFee` of the corresponding burn authorization.
-    function burnSpent(
-        bytes[] memory authorizations,
-        bytes[] memory signatures,
-        uint256[][] memory fees
-    ) external;
+    function burnSpent(bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) external;
 
     /// Marks a token as supported. Once supported, tokens can not be
     ///      un-supported.
@@ -70,8 +66,7 @@ interface ISpendWalletAdmin {
     /// @dev Always refers to the destination contract on the same chain
     ///
     /// @param newDestinationContract   The new destination contract address
-    function updateDestinationContract(address newDestinationContract)
-        external;
+    function updateDestinationContract(address newDestinationContract) external;
 
     /// Sets the number of blocks that must pass before a withdrawal can be
     ///      completed

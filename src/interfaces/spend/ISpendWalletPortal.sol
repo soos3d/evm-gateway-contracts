@@ -33,6 +33,5 @@ interface ISpendWalletPortal {
     /// @param authorization   The spend authorization that was passed to the
     ///                        destination contract
     /// @param signature       The signature from the operator
-    function sameChainSpend(bytes memory authorization, bytes memory signature)
-        external;
+    function sameChainSpend(bytes memory authorization, bytes memory signature) external;
 }

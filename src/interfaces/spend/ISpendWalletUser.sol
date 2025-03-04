@@ -67,13 +67,8 @@ interface ISpendWalletUser {
     ///                    or max uint256 value to signal no expiration
     /// @param signature   Signature bytes signed by an EOA wallet or a contract
     ///                    wallet
-    function depositWithPermit(
-        address token,
-        address owner,
-        uint256 value,
-        uint256 deadline,
-        bytes memory signature
-    ) external;
+    function depositWithPermit(address token, address owner, uint256 value, uint256 deadline, bytes memory signature)
+        external;
 
     /// Deposit tokens with an ERC-3009 authorization
     ///
@@ -169,8 +164,7 @@ interface ISpendWalletUser {
     /// @param depositor   The owner of the balance from which the withdrawal
     ///                    should come
     /// @param value       The amount to be withdrawn
-    function initiateWithdrawal(address token, address depositor, uint256 value)
-        external;
+    function initiateWithdrawal(address token, address depositor, uint256 value) external;
 
     /// Completes a withdrawal that was initiated at least `withdrawalDelay`
     ///      blocks ago.
