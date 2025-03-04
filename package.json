@@ -1,0 +1,13 @@
+{
+  "name": "evm-spend-contracts-private",
+  "version": "1.0.0",
+  "scripts": {
+    "lint": "solhint -c .solhint-src.json './src/**/*.sol' && solhint -c .solhint-test.json './test/**/*.sol'"
+  },
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "devDependencies": {
+    "solhint": "^5.0.5"
+  },
+  "packageManager": "yarn@4.6.0"
+}
