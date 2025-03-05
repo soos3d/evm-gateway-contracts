@@ -1,0 +1,5 @@
+# These files will impact Terraform deployments and are owned by designated approvers
+deploy/tf @circlefin/techops
+deploy/tf_application @circlefin/techops
+atlantis.yaml @circlefin/techops
+.github/workflows @circlefin/techops
