@@ -1,0 +1,5 @@
+# Other unmentioned files must be approved by engineering-vertical-protocols-approvers
+* @circlefin/engineering-vertical-protocols-approvers
+
+# CODEOWNERS must be approved by techops
+CODEOWNERS @circlefin/techops
