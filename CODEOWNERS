@@ -1,5 +1,10 @@
-# These files will impact Terraform deployments and are owned by designated approvers
-deploy/tf @circlefin/techops
-deploy/tf_application @circlefin/techops
+# CODEOWNERS must be approved by techops
+CODEOWNERS @circlefin/techops
+
+# Terraform code must be approved by techops
+*.tf @circlefin/techops
+.terraform-version @circlefin/techops
+*.hcl @circlefin/techops
+
+# CI config for Terraform must be approved by techops
 atlantis.yaml @circlefin/techops
-.github/workflows @circlefin/techops
