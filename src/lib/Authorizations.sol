@@ -59,12 +59,11 @@ struct SpendSpec {
 ///
 /// @dev Magic: bytes4(keccak256("circle.spend.SpendAuthorization")) or
 ///             bytes4(keccak256("circle.spend.SpendAuthorization[]"))
-/// @dev In addition to a byte encoding for a single spend authorization, there
-///      is also an encoding for several authorizations packed together. This
-///      allows the operator to sign them as a group and enforce that they are
-///      all used together.
-/// @dev A keccak256 hash of each encoded SpendSpec is emitted as part of an
-///      event on the destination chain, to be used as a cross-chain identifier
+/// @dev In addition to a byte encoding for a single spend authorization, there is also an encoding for several
+///      authorizations packed together. This allows the operator to sign them as a group and enforce that they are all
+///      used together.
+/// @dev A keccak256 hash of each encoded SpendSpec is emitted as part of an event on the destination chain, to be used
+///      as a cross-chain identifier
 ///
 /// Byte encoding (single):
 ///     FIELD                     BYTES   NOTES
@@ -87,12 +86,11 @@ struct SpendAuthorization {
 ///
 /// @dev Magic: bytes4(keccak256("circle.spend.BurnAuthorization")) or
 ///             bytes4(keccak256("circle.spend.BurnAuthorization[]"))
-/// @dev In addition to a byte encoding for a single burn authorization, there
-///      is also an encoding for several authorizations packed together. This
-///      allows a wallet to sign a single payload for a set of burns from
-///      multiple domains, as long as the signature scheme is shared.
-/// @dev A keccak256 hash of each encoded SpendSpec is emitted as part of an
-///      event on the source chain, to be used as a cross-chain identifier
+/// @dev In addition to a byte encoding for a single burn authorization, there is also an encoding for several
+///      authorizations packed together. This allows a wallet to sign a single payload for a set of burns from multiple
+///      domains, as long as the signature scheme is shared.
+/// @dev A keccak256 hash of each encoded SpendSpec is emitted as part of an event on the source chain, to be used as a
+///      cross-chain identifier
 ///
 /// Byte encoding (single):
 ///     FIELD                     BYTES   NOTES

@@ -27,10 +27,9 @@ import {ISpendMinter} from "src/interfaces/spend/ISpendMinter.sol";
 
 /// @title Spend Minter
 ///
-/// This contract allows the spending of funds from the SpendWallet contract,
-/// either on the same chain or on a different chain. Spending requires a
-/// signed authorization from the operator. See the documentation for the
-/// SpendWallet contract for more details.
+/// This contract allows the spending of funds from the SpendWallet contract, either on the same chain or on a different
+/// chain. Spending requires a signed authorization from the operator. See the documentation for the SpendWallet
+/// contract for more details.
 abstract contract SpendMinter is
     ISpendMinter,
     Initializable,
@@ -38,8 +37,8 @@ abstract contract SpendMinter is
     Ownable2StepUpgradeable,
     PausableUpgradeable
 {
-    /// Whether or not a given spend hash (the keccak256 hash of a `SpendSpec`)
-    ///      has been used for a spend, preventing replay
+    /// Whether or not a given spend hash (the keccak256 hash of a `SpendSpec`) has been used for a spend, preventing
+    /// replay
     mapping(bytes32 spendHash => bool used) public usedSpendHashes;
 
     /// Whether or not a given recipient should be rejected from receiving funds

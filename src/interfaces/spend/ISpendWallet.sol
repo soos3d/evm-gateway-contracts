@@ -24,8 +24,7 @@ import {ISpendWalletAdmin} from "src/interfaces/spend/ISpendWalletAdmin.sol";
 import {ISpendWalletRead} from "src/interfaces/spend/ISpendWalletRead.sol";
 import {ISpendWalletEvents} from "src/interfaces/spend/ISpendWalletEvents.sol";
 
-/// The interface for the `SpendWallet` contract where funds are deposited for
-///      spending
+/// The interface for the `SpendWallet` contract where funds are deposited for spending
 interface ISpendWallet is
     ISpendWalletUser,
     ISpendWalletPortal,

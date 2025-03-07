@@ -18,39 +18,32 @@
  */
 pragma solidity ^0.8.28;
 
-/// Methods for the SpendWallet contract that are only callable by various
-///      admin roles
+/// Methods for the SpendWallet contract that are only callable by various admin roles
 interface ISpendWalletAdmin {
-    /// Debit the depositor's balance and burn the tokens after a spend was
-    ///      authorized
+    /// Debit the depositor's balance and burn the tokens after a spend was authorized
     ///
     /// @dev May only be called by the `burner` role
     /// @dev `authorizations` and `signatures` must be the same length
-    /// @dev Will revert if `destinationDomain` is the same as `sourceDomain`
-    ///      (since no burn is required)
-    /// @dev For a set of burn authorizations, authorizations from other domains
-    ///      are ignored. The whole set is still needed to verify the signature.
+    /// @dev Will revert if `destinationDomain` is the same as `sourceDomain` (since no burn is required)
+    /// @dev For a set of burn authorizations, authorizations from other domains are ignored. The whole set is still
+    ///      needed to verify the signature.
     /// @dev See the docs for `BurnAuthorization` for encoding details
     ///
     /// @param authorizations   An array of byte-encoded burn authorizations
-    /// @param signatures       One signature from the spender of each burn
-    ///                         authorization
-    /// @param fees             The fees to be collected for each burn. Fees for
-    ///                         burns on other domains are ignored and may be
-    ///                         passed as zero. Each fee must be no more than
-    ///                         `maxFee` of the corresponding burn authorization.
+    /// @param signatures       One signature from the spender of each burn authorization
+    /// @param fees             The fees to be collected for each burn. Fees for burns on other domains are ignored and
+    ///                         may be passed as zero. Each fee must be no more than `maxFee` of the corresponding burn
+    ///                         authorization.
     function burnSpent(bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) external;
 
-    /// Marks a token as supported. Once supported, tokens can not be
-    ///      un-supported.
+    /// Marks a token as supported. Once supported, tokens can not be un-supported.
     ///
     /// @dev May only be called by the `owner` role
     ///
     /// @param token   The token to be added
     function addSupportedToken(address token) external;
 
-    /// Rejects a depositor from future spends, forcing them to withdraw instead.
-    ///      Used to deny service for legal reasons.
+    /// Rejects a depositor from future spends, forcing them to withdraw instead. Used to deny service.
     ///
     /// @param depositor   The depositor to be rejected
     function rejectDepositor(address depositor) external;
@@ -68,8 +61,7 @@ interface ISpendWalletAdmin {
     /// @param newMinterContract   The new minter contract address
     function updateMinterContract(address newMinterContract) external;
 
-    /// Sets the number of blocks that must pass before a withdrawal can be
-    ///      completed
+    /// Sets the number of blocks that must pass before a withdrawal can be completed
     ///
     /// @dev May only be called by the `owner` role
     ///

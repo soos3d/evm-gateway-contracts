@@ -59,8 +59,7 @@ interface ISpendWalletEvents {
         uint256 withdrawableAt
     );
 
-    /// Emitted when a withdrawal is completed and funds have been transferred
-    ///      to the depositor
+    /// Emitted when a withdrawal is completed and funds have been transferred to the depositor
     ///
     /// @param token       The token that was withdrawn
     /// @param depositor   The owner and recipient of the withdrawn funds
@@ -68,8 +67,7 @@ interface ISpendWalletEvents {
     /// @param value       The value that was withdrawn
     event WithdrawalCompleted(address indexed token, address indexed depositor, address spender, uint256 value);
 
-    /// Emitted when the operator burns tokens that have been spent on another
-    ///      domain
+    /// Emitted when the operator burns tokens that have been spent on another domain
     ///
     /// @param token               The token that was spent
     /// @param depositor           The depositor who owned the spent balance
@@ -98,9 +96,8 @@ interface ISpendWalletEvents {
         bytes burnAuthorization
     );
 
-    /// Emitted when a spend authorization is used on the same chain as its
-    ///      source, resulting in a same-chain spend that transfers funds to the
-    ///      recipient instead of minting and burning them
+    /// Emitted when a spend authorization is used on the same chain as its source, resulting in a same-chain spend that
+    /// transfers funds to the recipient instead of minting and burning them
     ///
     /// @param token                The token that was spent
     /// @param depositor            The depositor who owned the spent balance

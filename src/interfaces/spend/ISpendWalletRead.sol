@@ -28,17 +28,16 @@ interface ISpendWalletRead is IERC1155Balance {
     /// @param token   The token to check
     function isTokenSupported(address token) external view returns (bool);
 
-    /// The total balance of a depositor for a token. This will always be equal
-    ///      to the sum of `spendableBalance` and `withdrawingBalance`.
+    /// The total balance of a depositor for a token. This will always be equal to the sum of `spendableBalance` and
+    /// `withdrawingBalance`.
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
     function totalBalance(address token, address depositor) external view returns (uint256);
 
-    /// The balance that is spendable by the depositor, subject to deposits
-    ///      having been observed by the API in a finalized block and no spend
-    ///      authorizations having been issued but not yet burned by the
-    ///      operator or used on the same chain
+    /// The balance that is spendable by the depositor, subject to deposits having been observed by the API in a
+    /// finalized block and no spend authorizations having been issued but not yet burned by the operator or used on the
+    /// same chain
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
@@ -50,20 +49,16 @@ interface ISpendWalletRead is IERC1155Balance {
     /// @param depositor   The depositor of the requested balance
     function withdrawingBalance(address token, address depositor) external view returns (uint256);
 
-    /// The balance that is withdrawable as of the current block. This will
-    ///      either be 0 or equal to `withdrawingBalance`.
+    /// The balance that is withdrawable as of the current block. This will either be 0 or `withdrawingBalance`.
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
     function withdrawableBalance(address token, address depositor) external view returns (uint256);
 
-    /// The balance of a depositor for a particular balance specifier,
-    ///      compatible with ERC-1155
+    /// The balance of a depositor for a particular balance specifier, compatible with ERC-1155
     ///
-    /// @dev The token `id` should be encoded as
-    ///      `uint256(abi.encodePacked(uint12(BALANCE_TYPE), address(token)))`
-    ///      where `BALANCE_TYPE` is 0 for total, 1 for spendable,
-    ///      2 for withdrawing, and 3 for withdrawable
+    /// @dev The token `id` should be encoded as `uint256(abi.encodePacked(uint12(BALANCE_TYPE), address(token)))`,
+    ///      where `BALANCE_TYPE` is 0 for total, 1 for spendable, 2 for withdrawing, and 3 for withdrawable.
     ///
     /// @param depositor   The depositor of the requested balance
     /// @param id          The packed token and balance id specifier
@@ -72,10 +67,8 @@ interface ISpendWalletRead is IERC1155Balance {
     /// The batch version of `balanceOf`, compatible with ERC-1155
     ///
     /// @dev `depositors` and `ids` must be the same length
-    /// @dev Each token `id` should be encoded as
-    ///      `uint256(abi.encodePacked(uint12(BALANCE_TYPE), address(token)))`
-    ///      where `BALANCE_TYPE` is 0 for total, 1 for spendable,
-    ///      2 for withdrawing, and 3 for withdrawable
+    /// @dev The token `id` should be encoded as `uint256(abi.encodePacked(uint12(BALANCE_TYPE), address(token)))`,
+    ///      where `BALANCE_TYPE` is 0 for total, 1 for spendable, 2 for withdrawing, and 3 for withdrawable.
     ///
     /// @param depositors   The depositor of the requested balance
     /// @param ids          The packed token and balance id specifier
@@ -105,8 +98,8 @@ interface ISpendWalletRead is IERC1155Balance {
     /// @param authorizations   The burn authorizations to encode
     function encodeBurnAuthorization(BurnAuthorization[] memory authorizations) external pure returns (bytes memory);
 
-    /// Allows anyone to validate whether a set of burn authorizations is valid
-    /// along with a signature from the depositor or an authorized spender
+    /// Allows anyone to validate whether a set of burn authorizations is valid along with a signature from the
+    /// depositor or an authorized spender
     ///
     /// @dev Returns true if the authorizations and signature are valid
     /// @dev See the docs for `BurnAuthorization` for encoding details

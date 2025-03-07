@@ -18,11 +18,9 @@
  */
 pragma solidity ^0.8.28;
 
-/// Methods for the SpendMinter contract that are only callable by various
-///      admin roles
+/// Methods for the SpendMinter contract that are only callable by various admin roles
 interface ISpendMinterAdmin {
-    /// Rejects a recipient from receiving funds from future spends.
-    ///      Used to deny service for legal reasons.
+    /// Rejects a recipient from receiving funds from future spends. Used to deny service for legal reasons.
     ///
     /// @param recipient   The recipient to be rejected
     function rejectRecipient(address recipient) external;
@@ -32,8 +30,7 @@ interface ISpendMinterAdmin {
     /// @param recipient   The recipient to be allowed
     function allowRecipient(address recipient) external;
 
-    /// Sets the address of the corresponding wallet contract on this chain,
-    ///      in order to call `sameChainSpend`
+    /// Sets the address of the corresponding wallet contract on this chain, in order to call `sameChainSpend`
     ///
     /// @dev May only be called by the `owner` role
     ///
