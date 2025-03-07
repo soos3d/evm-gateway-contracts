@@ -18,8 +18,8 @@
  */
 pragma solidity ^0.8.28;
 
-/// Events emitted by the SpendDestination contract
-interface ISpendDestinationEvents {
+/// Events emitted by the SpendMinter contract
+interface ISpendMinterEvents {
     /// Emitted when the a spend authorization is used
     ///
     /// @param token                The token that was spent
@@ -39,12 +39,12 @@ interface ISpendDestinationEvents {
         bytes spendAuthorization
     );
 
-    /// Emitted when a recipient is added to the denylist
+    /// Emitted when a recipient is added to the rejection list
     ///
-    /// @param recipient   The address that is denied from receiving funds
-    event RecipientDenied(address recipient);
+    /// @param recipient   The address that is rejected from receiving funds
+    event RecipientRejected(address recipient);
 
-    /// Emitted when a recipient is removed from the denylist
+    /// Emitted when a recipient is removed from the rejection list
     ///
     /// @param recipient   The address that is allowed to receive funds again
     event RecipientAllowed(address recipient);

@@ -130,20 +130,20 @@ interface ISpendWalletEvents {
     /// @param token   The token that is now supported
     event TokenSupported(address token);
 
-    /// Emitted when a depositor is added to the denylist
+    /// Emitted when a depositor is added to the rejection list
     ///
-    /// @param depositor   The address that is denied from spending
-    event DepositorDenied(address depositor);
+    /// @param depositor   The address that is rejected from spending
+    event DepositorRejected(address depositor);
 
-    /// Emitted when a depositor is removed from the denylist
+    /// Emitted when a depositor is removed from the rejection list
     ///
     /// @param depositor   The address that is allowed to spend again
     event DepositorAllowed(address depositor);
 
-    /// Emitted when the destination contract is updated
+    /// Emitted when the minter contract is updated
     ///
-    /// @param newDestinationContract   The new destination contract address
-    event DestinationContractUpdated(address newDestinationContract);
+    /// @param newMinterContract   The new minter contract address
+    event MinterContractUpdated(address newMinterContract);
 
     /// Emitted when the withdrawal delay is updated
     ///

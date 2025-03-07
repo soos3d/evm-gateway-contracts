@@ -41,14 +41,14 @@ import {ISpendWallet} from "src/interfaces/spend/ISpendWallet.sol";
 /// chain.
 ///
 /// To spend funds on another chain, the user may request an authorization from
-/// the API and then use it to call `spend` on the SpendDestination contract on
+/// the API and then use it to call `spend` on the SpendMinter contract on
 /// the desired chain. This will mint the funds to the requested destination,
 /// and may be composed with other actions via a multicall contract or SCA
 /// implementation.
 ///
 /// To withdraw funds on the same chain, the user may request an authorization
 /// from the API just like any other spend authorization. If the source and
-/// destination domains of the spend authorization are the same, the destination
+/// destination domains of the spend authorization are the same, the minter
 /// contract will call `sameChainSpend` on this contract to transfer the funds
 /// to the recipient instead of minting. No fee is charged for these spends.
 ///
@@ -87,17 +87,17 @@ abstract contract SpendWallet is
     ///      has been used for a burn or same-chain spend, preventing replay
     mapping(bytes32 spendHash => bool used) public usedSpendHashes;
 
-    /// Whether or not a given depositor should be denied from spending and must
+    /// Whether or not a given depositor should be rejected from spending and must
     ///      withdraw instead
-    mapping(address depositor => bool denied) public deniedDepositors;
+    mapping(address depositor => bool rejected) public rejectedDepositors;
 
     /// The number of blocks a user must wait after initiating a withdrawal
     ///      before that amount is withdrawable. Updating this value does not
     ///      affect existing withdrawals, just future ones.
     uint256 public withdrawalDelay;
 
-    /// The address of the corresponding SpendDestination contract
-    address public destinationContract;
+    /// The address of the corresponding SpendMinter contract
+    address public minterContract;
 
     /// The address that is allowed to burn tokens that have been spent
     address public burner;

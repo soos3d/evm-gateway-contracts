@@ -49,13 +49,13 @@ interface ISpendWalletAdmin {
     /// @param token   The token to be added
     function addSupportedToken(address token) external;
 
-    /// Denies a depositor from future spends, forcing them to withdraw instead.
+    /// Rejects a depositor from future spends, forcing them to withdraw instead.
     ///      Used to deny service for legal reasons.
     ///
-    /// @param depositor   The depositor to be denied
-    function denyDepositor(address depositor) external;
+    /// @param depositor   The depositor to be rejected
+    function rejectDepositor(address depositor) external;
 
-    /// Allows a previously-denied depositor to spend again
+    /// Allows a previously-rejected depositor to spend again
     ///
     /// @param depositor   The depositor to be allowed
     function allowDepositor(address depositor) external;
@@ -63,10 +63,10 @@ interface ISpendWalletAdmin {
     /// Sets the address that may call `sameChainSpend`
     ///
     /// @dev May only be called by the `owner` role
-    /// @dev Always refers to the destination contract on the same chain
+    /// @dev Always refers to the minter contract on the same chain
     ///
-    /// @param newDestinationContract   The new destination contract address
-    function updateDestinationContract(address newDestinationContract) external;
+    /// @param newMinterContract   The new minter contract address
+    function updateMinterContract(address newMinterContract) external;
 
     /// Sets the number of blocks that must pass before a withdrawal can be
     ///      completed

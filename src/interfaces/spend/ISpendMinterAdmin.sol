@@ -18,16 +18,16 @@
  */
 pragma solidity ^0.8.28;
 
-/// Methods for the SpendDestination contract that are only callable by various
+/// Methods for the SpendMinter contract that are only callable by various
 ///      admin roles
-interface ISpendDestinationAdmin {
-    /// Denies a recipient from receiving funds from future spends.
+interface ISpendMinterAdmin {
+    /// Rejects a recipient from receiving funds from future spends.
     ///      Used to deny service for legal reasons.
     ///
-    /// @param recipient   The recipient to be denied
-    function denyRecipient(address recipient) external;
+    /// @param recipient   The recipient to be rejected
+    function rejectRecipient(address recipient) external;
 
-    /// Allows a previously-denied recipient to receive funds again
+    /// Allows a previously-rejected recipient to receive funds again
     ///
     /// @param recipient   The recipient to be allowed
     function allowRecipient(address recipient) external;
