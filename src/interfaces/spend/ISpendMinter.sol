@@ -20,9 +20,17 @@ pragma solidity ^0.8.28;
 
 import {ISpendMinterUser} from "src/interfaces/spend/ISpendMinterUser.sol";
 import {ISpendMinterAdmin} from "src/interfaces/spend/ISpendMinterAdmin.sol";
+import {ISpendMinterRead} from "src/interfaces/spend/ISpendMinterRead.sol";
 import {ISpendMinterEvents} from "src/interfaces/spend/ISpendMinterEvents.sol";
 import {ISpendMinterErrors} from "src/interfaces/spend/ISpendMinterErrors.sol";
 import {ISpendErrors} from "src/interfaces/spend/ISpendErrors.sol";
 
 /// The interface for the SpendMinter contract where funds are spent
-interface ISpendMinter is ISpendMinterUser, ISpendMinterAdmin, ISpendMinterEvents, ISpendMinterErrors, ISpendErrors {}
+interface ISpendMinter is
+    ISpendMinterUser,
+    ISpendMinterAdmin,
+    ISpendMinterRead,
+    ISpendMinterEvents,
+    ISpendMinterErrors,
+    ISpendErrors
+{}

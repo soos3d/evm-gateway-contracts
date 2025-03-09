@@ -96,7 +96,7 @@ interface ISpendWalletRead is IERC1155Balance {
     /// @dev The burn authorizations must be sorted by domain
     ///
     /// @param authorizations   The burn authorizations to encode
-    function encodeBurnAuthorization(BurnAuthorization[] memory authorizations) external pure returns (bytes memory);
+    function encodeBurnAuthorizations(BurnAuthorization[] memory authorizations) external pure returns (bytes memory);
 
     /// Allows anyone to validate whether a set of burn authorizations is valid along with a signature from the
     /// depositor or an authorized spender

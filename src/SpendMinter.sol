@@ -30,13 +30,10 @@ import {ISpendMinter} from "src/interfaces/spend/ISpendMinter.sol";
 /// This contract allows the spending of funds from the SpendWallet contract, either on the same chain or on a different
 /// chain. Spending requires a signed authorization from the operator. See the documentation for the SpendWallet
 /// contract for more details.
-abstract contract SpendMinter is
-    ISpendMinter,
-    Initializable,
-    UUPSUpgradeable,
-    Ownable2StepUpgradeable,
-    PausableUpgradeable
-{
+contract SpendMinter is ISpendMinter, Initializable, UUPSUpgradeable, Ownable2StepUpgradeable, PausableUpgradeable {
+    /// Whether or not a token is supported
+    mapping(address token => bool supported) internal supportedTokens;
+
     /// Whether or not a given spend hash (the keccak256 hash of a `SpendSpec`) has been used for a spend, preventing
     /// replay
     mapping(bytes32 spendHash => bool used) public usedSpendHashes;
@@ -50,5 +47,51 @@ abstract contract SpendMinter is
     /// The address that is allowed to pause and unpause the contract
     address public pauser;
 
-    // ...
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Spending
+
+    function spend(bytes memory authorizations, bytes memory signature) external override whenNotPaused {}
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Informational
+
+    function isTokenSupported(address) external pure override returns (bool) {
+        return false;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Admin
+
+    function addSupportedToken(address token) external override onlyOwner {}
+
+    function updateWalletContract(address newWalletContract) external override onlyOwner {}
+
+    function rejectRecipient(address recipient) external override onlyOwner {}
+
+    function allowRecipient(address recipient) external override onlyOwner {}
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// Pausing and unpausing
+
+    modifier onlyPauser() {
+        if (pauser != _msgSender()) {
+            revert UnauthorizedPauser(_msgSender());
+        }
+        _;
+    }
+
+    function pause() external onlyPauser {
+        _pause();
+    }
+
+    function unpause() external onlyPauser {
+        _unpause();
+    }
+
+    function updatePauser(address newPauser) external override onlyOwner {}
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Upgrades
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }

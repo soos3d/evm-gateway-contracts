@@ -24,6 +24,7 @@ import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Pau
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import {ISpendWallet} from "src/interfaces/spend/ISpendWallet.sol";
+import {BurnAuthorization} from "src/lib/Authorizations.sol";
 
 /// @title Spend Wallet
 ///
@@ -52,13 +53,7 @@ import {ISpendWallet} from "src/interfaces/spend/ISpendWallet.sol";
 /// the process of being withdrawn will no longer be spendable as soon as the withdrawal initiation is observed by the
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
 /// `spendable` and `withdrawing` balances.
-abstract contract SpendWallet is
-    ISpendWallet,
-    Initializable,
-    UUPSUpgradeable,
-    Ownable2StepUpgradeable,
-    PausableUpgradeable
-{
+contract SpendWallet is Initializable, UUPSUpgradeable, Ownable2StepUpgradeable, PausableUpgradeable, ISpendWallet {
     /// Whether or not a token is supported
     mapping(address token => bool supported) internal supportedTokens;
 
@@ -78,12 +73,12 @@ abstract contract SpendWallet is
     /// Whether or not a given depositor should be rejected from spending and must withdraw instead
     mapping(address depositor => bool rejected) public rejectedDepositors;
 
+    /// The address of the corresponding SpendMinter contract
+    address public minterContract;
+
     /// The number of blocks a user must wait after initiating a withdrawal before that amount is withdrawable. Updating
     /// this value does not affect existing withdrawals, just future ones.
     uint256 public withdrawalDelay;
-
-    /// The address of the corresponding SpendMinter contract
-    address public minterContract;
 
     /// The address that is allowed to burn tokens that have been spent
     address public burner;
@@ -91,5 +86,164 @@ abstract contract SpendWallet is
     /// The address that is allowed to pause and unpause the contract
     address public pauser;
 
-    // ...
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Deposits
+
+    function deposit(address token, uint256 value) external override whenNotPaused {}
+
+    function depositWithPermit(
+        address token,
+        address owner,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external override {}
+
+    function depositWithPermit(address token, address owner, uint256 value, uint256 deadline, bytes memory signature)
+        external
+        override
+    {}
+
+    function depositWithAuthorization(
+        address token,
+        address from,
+        uint256 value,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external override {}
+
+    function depositWithAuthorization(
+        address token,
+        address from,
+        uint256 value,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        bytes memory signature
+    ) external override {}
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Spender authorization
+
+    function addSpender(address token, address spender) external override {}
+
+    function removeSpender(address token, address spender) external override {}
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Withdrawals
+
+    function initiateWithdrawal(address token, uint256 value) external override {}
+
+    function initiateWithdrawal(address token, address depositor, uint256 value) external override {}
+
+    function withdraw(address token) external override {}
+
+    function withdraw(address token, address depositor) external override {}
+
+    function withdrawalBlock(address, address) external pure override returns (uint256) {
+        return 0;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Balances
+
+    function totalBalance(address, address) external pure override returns (uint256) {
+        return 0;
+    }
+
+    function spendableBalance(address, address) external pure override returns (uint256) {
+        return 0;
+    }
+
+    function withdrawingBalance(address, address) external pure override returns (uint256) {
+        return 0;
+    }
+
+    function withdrawableBalance(address, address) external pure override returns (uint256) {
+        return 0;
+    }
+
+    function balanceOf(address, uint256) external pure override returns (uint256) {
+        return 0;
+    }
+
+    function balanceOfBatch(address[] calldata, uint256[] memory) external pure override returns (uint256[] memory) {
+        return new uint256[](0);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Informational
+
+    function isTokenSupported(address) external pure override returns (bool) {
+        return false;
+    }
+
+    function encodeBurnAuthorization(BurnAuthorization memory) external pure override returns (bytes memory) {
+        return new bytes(0);
+    }
+
+    function encodeBurnAuthorizations(BurnAuthorization[] memory) external pure override returns (bytes memory) {
+        return new bytes(0);
+    }
+
+    function validateBurnAuthorizations(bytes memory, bytes memory) external pure override returns (bool) {
+        return false;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Burning and transferring
+
+    function burnSpent(bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees)
+        external
+        override
+        whenNotPaused
+    {}
+
+    function sameChainSpend(bytes memory authorization, bytes memory signature) external override whenNotPaused {}
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Admin
+
+    function addSupportedToken(address token) external override onlyOwner {}
+
+    function updateWithdrawalDelay(uint256 newDelay) external override onlyOwner {}
+
+    function updateBurner(address newBurner) external override onlyOwner {}
+
+    function updateMinterContract(address newMinterContract) external override onlyOwner {}
+
+    function rejectDepositor(address depositor) external override onlyOwner {}
+
+    function allowDepositor(address depositor) external override onlyOwner {}
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// Pausing and unpausing
+
+    modifier onlyPauser() {
+        if (pauser != _msgSender()) {
+            revert UnauthorizedPauser(_msgSender());
+        }
+        _;
+    }
+
+    function pause() external onlyPauser {
+        _pause();
+    }
+
+    function unpause() external onlyPauser {
+        _unpause();
+    }
+
+    function updatePauser(address newPauser) external override onlyOwner {}
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Upgrades
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }

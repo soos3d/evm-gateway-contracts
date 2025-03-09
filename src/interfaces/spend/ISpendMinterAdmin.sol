@@ -20,6 +20,13 @@ pragma solidity ^0.8.28;
 
 /// Methods for the SpendMinter contract that are only callable by various admin roles
 interface ISpendMinterAdmin {
+    /// Marks a token as supported. Once supported, tokens can not be un-supported.
+    ///
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param token   The token to be added
+    function addSupportedToken(address token) external;
+
     /// Rejects a recipient from receiving funds from future spends. Used to deny service for legal reasons.
     ///
     /// @param recipient   The recipient to be rejected
