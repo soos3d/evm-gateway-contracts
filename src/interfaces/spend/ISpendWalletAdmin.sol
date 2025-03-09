@@ -74,11 +74,4 @@ interface ISpendWalletAdmin {
     ///
     /// @param newBurner   The new burner address
     function updateBurner(address newBurner) external;
-
-    /// Sets the address that may call `pause` and `unpause`
-    ///
-    /// @dev May only be called by the `owner` role
-    ///
-    /// @param newPauser   The new pauser address
-    function updatePauser(address newPauser) external;
 }

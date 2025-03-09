@@ -43,11 +43,4 @@ interface ISpendMinterAdmin {
     ///
     /// @param newWalletContract   The new wallet contract address
     function updateWalletContract(address newWalletContract) external;
-
-    /// Sets the address that may call `pause` and `unpause`
-    ///
-    /// @dev May only be called by the `owner` role
-    ///
-    /// @param newPauser   The new pauser address
-    function updatePauser(address newPauser) external;
 }

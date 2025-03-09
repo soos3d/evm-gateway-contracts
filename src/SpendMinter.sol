@@ -20,17 +20,17 @@ pragma solidity ^0.8.28;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import {ISpendMinter} from "src/interfaces/spend/ISpendMinter.sol";
+import {Pausing} from "src/lib/Pausing.sol";
 
 /// @title Spend Minter
 ///
 /// This contract allows the spending of funds from the SpendWallet contract, either on the same chain or on a different
 /// chain. Spending requires a signed authorization from the operator. See the documentation for the SpendWallet
 /// contract for more details.
-contract SpendMinter is ISpendMinter, Initializable, UUPSUpgradeable, Ownable2StepUpgradeable, PausableUpgradeable {
+contract SpendMinter is ISpendMinter, Initializable, UUPSUpgradeable, Ownable2StepUpgradeable, Pausing {
     /// Whether or not a token is supported
     mapping(address token => bool supported) internal supportedTokens;
 
@@ -43,9 +43,6 @@ contract SpendMinter is ISpendMinter, Initializable, UUPSUpgradeable, Ownable2St
 
     /// The address of the corresponding SpendWallet contract
     address public walletContract;
-
-    /// The address that is allowed to pause and unpause the contract
-    address public pauser;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Spending
@@ -69,26 +66,6 @@ contract SpendMinter is ISpendMinter, Initializable, UUPSUpgradeable, Ownable2St
     function rejectRecipient(address recipient) external override onlyOwner {}
 
     function allowRecipient(address recipient) external override onlyOwner {}
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Pausing and unpausing
-
-    modifier onlyPauser() {
-        if (pauser != _msgSender()) {
-            revert UnauthorizedPauser(_msgSender());
-        }
-        _;
-    }
-
-    function pause() external onlyPauser {
-        _pause();
-    }
-
-    function unpause() external onlyPauser {
-        _unpause();
-    }
-
-    function updatePauser(address newPauser) external override onlyOwner {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Upgrades

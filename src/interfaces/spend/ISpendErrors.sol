@@ -19,9 +19,4 @@
 pragma solidity ^0.8.28;
 
 /// Custom errors for both the SpendWallet and SpendMinter contracts
-interface ISpendErrors {
-    /// Reverts when the pauser is expected, but an unauthorized caller is used
-    ///
-    /// @param account   The unauthorized caller
-    error UnauthorizedPauser(address account);
-}
+interface ISpendErrors {}

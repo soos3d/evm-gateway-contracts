@@ -20,10 +20,10 @@ pragma solidity ^0.8.28;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import {ISpendWallet} from "src/interfaces/spend/ISpendWallet.sol";
+import {Pausing} from "src/lib/Pausing.sol";
 import {BurnAuthorization} from "src/lib/Authorizations.sol";
 
 /// @title Spend Wallet
@@ -53,7 +53,7 @@ import {BurnAuthorization} from "src/lib/Authorizations.sol";
 /// the process of being withdrawn will no longer be spendable as soon as the withdrawal initiation is observed by the
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
 /// `spendable` and `withdrawing` balances.
-contract SpendWallet is Initializable, UUPSUpgradeable, Ownable2StepUpgradeable, PausableUpgradeable, ISpendWallet {
+contract SpendWallet is ISpendWallet, Initializable, UUPSUpgradeable, Ownable2StepUpgradeable, Pausing {
     /// Whether or not a token is supported
     mapping(address token => bool supported) internal supportedTokens;
 
@@ -82,9 +82,6 @@ contract SpendWallet is Initializable, UUPSUpgradeable, Ownable2StepUpgradeable,
 
     /// The address that is allowed to burn tokens that have been spent
     address public burner;
-
-    /// The address that is allowed to pause and unpause the contract
-    address public pauser;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Deposits
@@ -221,26 +218,6 @@ contract SpendWallet is Initializable, UUPSUpgradeable, Ownable2StepUpgradeable,
     function rejectDepositor(address depositor) external override onlyOwner {}
 
     function allowDepositor(address depositor) external override onlyOwner {}
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Pausing and unpausing
-
-    modifier onlyPauser() {
-        if (pauser != _msgSender()) {
-            revert UnauthorizedPauser(_msgSender());
-        }
-        _;
-    }
-
-    function pause() external onlyPauser {
-        _pause();
-    }
-
-    function unpause() external onlyPauser {
-        _unpause();
-    }
-
-    function updatePauser(address newPauser) external override onlyOwner {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Upgrades
