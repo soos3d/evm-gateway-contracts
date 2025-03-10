@@ -27,6 +27,7 @@ import {Pausing} from "src/lib/Pausing.sol";
 import {Rejection} from "src/lib/Rejection.sol";
 import {Counterpart} from "src/lib/Counterpart.sol";
 import {TokenSupport} from "src/lib/TokenSupport.sol";
+import {SpendHashes} from "src/lib/SpendHashes.sol";
 import {BurnAuthorization} from "src/lib/Authorizations.sol";
 
 /// @title Spend Wallet
@@ -64,7 +65,8 @@ contract SpendWallet is
     Pausing,
     Rejection,
     Counterpart,
-    TokenSupport
+    TokenSupport,
+    SpendHashes
 {
     /// The balances that have been deposited and are available for spending (after finalization)
     mapping(address token => mapping(address user => uint256 value)) internal spendableBalances;
@@ -74,10 +76,6 @@ contract SpendWallet is
 
     /// The block numbers at which in-progress withdrawals will be withdrawable
     mapping(address token => mapping(address user => uint256 block)) internal withdrawableAtBlocks;
-
-    /// Whether or not a given spend hash (the keccak256 hash of a `SpendSpec`) has been used for a burn or same-chain
-    /// spend, preventing replay
-    mapping(bytes32 spendHash => bool used) public usedSpendHashes;
 
     /// The number of blocks a user must wait after initiating a withdrawal before that amount is withdrawable. Updating
     /// this value does not affect existing withdrawals, just future ones.

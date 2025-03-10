@@ -27,6 +27,7 @@ import {Pausing} from "src/lib/Pausing.sol";
 import {Counterpart} from "src/lib/Counterpart.sol";
 import {Rejection} from "src/lib/Rejection.sol";
 import {TokenSupport} from "src/lib/TokenSupport.sol";
+import {SpendHashes} from "src/lib/SpendHashes.sol";
 
 /// @title Spend Minter
 ///
@@ -41,12 +42,9 @@ contract SpendMinter is
     Pausing,
     Rejection,
     Counterpart,
-    TokenSupport
+    TokenSupport,
+    SpendHashes
 {
-    /// Whether or not a given spend hash (the keccak256 hash of a `SpendSpec`) has been used for a spend, preventing
-    /// replay
-    mapping(bytes32 spendHash => bool used) public usedSpendHashes;
-
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Spending
 
