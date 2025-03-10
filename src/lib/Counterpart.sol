@@ -64,10 +64,20 @@ contract Counterpart is Ownable2StepUpgradeable {
         }
     }
 
-    /// Sets the counterpart contract address
+    /// Sets the counterpart contract address, and calls `updateCounterpart` with this contract's address on the new
+    /// counterpart
+    ///
+    /// @dev Checks that `tx.origin` is the owner (rather than `msg.sender` as in `onlyOwner`), to allow the
+    ///      counterparts to call each other to update in tandem (but only if the owner was the caller of the first
+    ///      one). We already require the owner to be an EOA in `SpendCommon` by disallowing contract code on the owner.
     ///
     /// @param newCounterpart   The new counterpart contract address
-    function updateCounterpart(address newCounterpart) external onlyOwner {
+    function updateCounterpart(address newCounterpart) external {
+        if (tx.origin != owner()) {
+            revert OwnableUnauthorizedAccount(tx.origin);
+        }
+
         _getCounterpartStorage().counterpart = newCounterpart;
+        Counterpart(newCounterpart).updateCounterpart(address(this));
     }
 }
