@@ -24,9 +24,17 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 
 /// A no-op, upgradeable implementation contract for UUPS proxies
 contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepUpgradeable {
-    error InvalidOwnerAddress();
-    error UnauthorizedCaller();
+    /// Thrown if the owner address is the zero address
+    error NullOwnerNotAllowed();
 
+    /// Thrown if the new owner address is a contract
+    ///
+    /// @param owner   The address of the owner
+    error ContractOwnerNotAllowed(address owner);
+
+    /// Implements the UUPS upgrade pattern by restricting upgrades to the owner
+    ///
+    /// @param newImplementation   The address of the new implementation
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -34,13 +42,16 @@ contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepU
         _disableInitializers();
     }
 
+    /// Initializes the contract with the given owner address
+    ///
+    /// @param newOwner   The address of the new owner
     function initialize(address newOwner) public initializer {
         if (newOwner == address(0)) {
-            revert InvalidOwnerAddress();
+            revert NullOwnerNotAllowed();
         }
 
         if (newOwner.code.length > 0) {
-            revert UnauthorizedCaller();
+            revert ContractOwnerNotAllowed(newOwner);
         }
 
         __UUPSUpgradeable_init();

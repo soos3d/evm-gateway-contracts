@@ -85,7 +85,7 @@ contract UpgradeablePlaceholderTest is Test {
 
     function test_initialize_revertIfOwnerAddrIsZero() public {
         UpgradeablePlaceholder upgradeablePlaceholderImpl = deployProxy(address(0), false);
-        vm.expectRevert(UpgradeablePlaceholder.InvalidOwnerAddress.selector);
+        vm.expectRevert(UpgradeablePlaceholder.NullOwnerNotAllowed.selector);
         upgradeablePlaceholderImpl.initialize(address(0));
     }
 
@@ -96,7 +96,9 @@ contract UpgradeablePlaceholderTest is Test {
 
         UpgradeablePlaceholder upgradeablePlaceholderImpl = deployProxy(random, false);
 
-        vm.expectRevert(UpgradeablePlaceholder.UnauthorizedCaller.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(UpgradeablePlaceholder.ContractOwnerNotAllowed.selector, contractAddress)
+        );
         upgradeablePlaceholderImpl.initialize(contractAddress);
     }
 
