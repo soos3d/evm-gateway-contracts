@@ -41,8 +41,39 @@ contract SpendCommon is
     TokenSupport,
     SpendHashes
 {
+    /// Thrown if the owner address is the zero address
+    error NullOwnerNotAllowed();
+
+    /// Thrown if the new owner address is a contract
+    ///
+    /// @param owner   The address of the owner
+    error ContractOwnerNotAllowed(address owner);
+
     /// Implements the UUPS upgrade pattern by restricting upgrades to the owner
     ///
     /// @param newImplementation   The address of the new implementation
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    /// Initializes the contract with the given owner address
+    ///
+    /// @param newOwner   The address of the new owner
+    function initialize(address newOwner) public initializer {
+        if (newOwner == address(0)) {
+            revert NullOwnerNotAllowed();
+        }
+
+        if (newOwner.code.length > 0) {
+            revert ContractOwnerNotAllowed(newOwner);
+        }
+
+        __UUPSUpgradeable_init();
+        __Ownable_init(newOwner);
+        __Ownable2Step_init();
+        __Pausing_init();
+    }
 }
