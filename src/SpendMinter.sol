@@ -32,15 +32,15 @@ import {Rejection} from "src/lib/Rejection.sol";
 /// chain. Spending requires a signed authorization from the operator. See the documentation for the SpendWallet
 /// contract for more details.
 contract SpendMinter is ISpendMinter, Initializable, UUPSUpgradeable, Ownable2StepUpgradeable, Pausing, Rejection {
+    /// The address of the corresponding SpendWallet contract
+    address public walletContract;
+
     /// Whether or not a token is supported
     mapping(address token => bool supported) internal supportedTokens;
 
     /// Whether or not a given spend hash (the keccak256 hash of a `SpendSpec`) has been used for a spend, preventing
     /// replay
     mapping(bytes32 spendHash => bool used) public usedSpendHashes;
-
-    /// The address of the corresponding SpendWallet contract
-    address public walletContract;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Spending
@@ -57,9 +57,9 @@ contract SpendMinter is ISpendMinter, Initializable, UUPSUpgradeable, Ownable2St
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Admin
 
-    function addSupportedToken(address token) external override onlyOwner {}
-
     function updateWalletContract(address newWalletContract) external override onlyOwner {}
+
+    function addSupportedToken(address token) external override onlyOwner {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Upgrades

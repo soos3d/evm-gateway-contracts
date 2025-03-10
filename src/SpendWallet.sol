@@ -55,6 +55,9 @@ import {BurnAuthorization} from "src/lib/Authorizations.sol";
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
 /// `spendable` and `withdrawing` balances.
 contract SpendWallet is ISpendWallet, Initializable, UUPSUpgradeable, Ownable2StepUpgradeable, Pausing, Rejection {
+    /// The address of the corresponding SpendMinter contract
+    address public minterContract;
+
     /// Whether or not a token is supported
     mapping(address token => bool supported) internal supportedTokens;
 
@@ -70,9 +73,6 @@ contract SpendWallet is ISpendWallet, Initializable, UUPSUpgradeable, Ownable2St
     /// Whether or not a given spend hash (the keccak256 hash of a `SpendSpec`) has been used for a burn or same-chain
     /// spend, preventing replay
     mapping(bytes32 spendHash => bool used) public usedSpendHashes;
-
-    /// The address of the corresponding SpendMinter contract
-    address public minterContract;
 
     /// The number of blocks a user must wait after initiating a withdrawal before that amount is withdrawable. Updating
     /// this value does not affect existing withdrawals, just future ones.
@@ -205,13 +205,13 @@ contract SpendWallet is ISpendWallet, Initializable, UUPSUpgradeable, Ownable2St
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Admin
 
+    function updateMinterContract(address newMinterContract) external override onlyOwner {}
+
     function addSupportedToken(address token) external override onlyOwner {}
 
     function updateWithdrawalDelay(uint256 newDelay) external override onlyOwner {}
 
     function updateBurner(address newBurner) external override onlyOwner {}
-
-    function updateMinterContract(address newMinterContract) external override onlyOwner {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Upgrades
