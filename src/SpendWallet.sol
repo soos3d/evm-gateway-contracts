@@ -67,6 +67,18 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     address public burner;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Initialization
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize() public initializer {
+        __SpendCommon_init();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Deposits
 
     /// Emitted when a deposit is made

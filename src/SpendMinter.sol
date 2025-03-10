@@ -26,6 +26,21 @@ import {SpendCommon} from "src/SpendCommon.sol";
 /// chain. Spending requires a signed authorization from the operator. See the documentation for the SpendWallet
 /// contract for more details.
 contract SpendMinter is SpendCommon {
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Initialization
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize() public initializer {
+        __SpendCommon_init();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Spending
+
     /// Emitted when the a spend authorization is used
     ///
     /// @param token                The token that was spent
