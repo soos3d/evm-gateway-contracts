@@ -77,7 +77,15 @@ contract Counterpart is Ownable2StepUpgradeable {
             revert OwnableUnauthorizedAccount(tx.origin);
         }
 
+        // Update the counterpart address
         _getCounterpartStorage().counterpart = newCounterpart;
+
+        // If this was the call from the counterpart, we're done
+        if (newCounterpart == _msgSender()) {
+            return;
+        }
+
+        // Otherwise, this came from the owner, so we need to call the counterpart to update it
         Counterpart(newCounterpart).updateCounterpart(address(this));
     }
 }
