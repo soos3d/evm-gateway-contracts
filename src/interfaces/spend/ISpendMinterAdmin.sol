@@ -19,11 +19,4 @@
 pragma solidity ^0.8.28;
 
 /// Methods for the SpendMinter contract that are only callable by various admin roles
-interface ISpendMinterAdmin {
-    /// Sets the address of the corresponding wallet contract on this chain, in order to call `sameChainSpend`
-    ///
-    /// @dev May only be called by the `owner` role
-    ///
-    /// @param newWalletContract   The new wallet contract address
-    function updateWalletContract(address newWalletContract) external;
-}
+interface ISpendMinterAdmin {}

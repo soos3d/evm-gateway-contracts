@@ -24,6 +24,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 
 import {ISpendMinter} from "src/interfaces/spend/ISpendMinter.sol";
 import {Pausing} from "src/lib/Pausing.sol";
+import {Counterpart} from "src/lib/Counterpart.sol";
 import {Rejection} from "src/lib/Rejection.sol";
 import {TokenSupport} from "src/lib/TokenSupport.sol";
 
@@ -39,11 +40,9 @@ contract SpendMinter is
     Ownable2StepUpgradeable,
     Pausing,
     Rejection,
+    Counterpart,
     TokenSupport
 {
-    /// The address of the corresponding SpendWallet contract
-    address public walletContract;
-
     /// Whether or not a given spend hash (the keccak256 hash of a `SpendSpec`) has been used for a spend, preventing
     /// replay
     mapping(bytes32 spendHash => bool used) public usedSpendHashes;
@@ -52,11 +51,6 @@ contract SpendMinter is
     // Spending
 
     function spend(bytes memory authorizations, bytes memory signature) external override whenNotPaused {}
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Admin
-
-    function updateWalletContract(address newWalletContract) external override onlyOwner {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Upgrades

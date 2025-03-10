@@ -36,14 +36,6 @@ interface ISpendWalletAdmin {
     ///                         authorization.
     function burnSpent(bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) external;
 
-    /// Sets the address that may call `sameChainSpend`
-    ///
-    /// @dev May only be called by the `owner` role
-    /// @dev Always refers to the minter contract on the same chain
-    ///
-    /// @param newMinterContract   The new minter contract address
-    function updateMinterContract(address newMinterContract) external;
-
     /// Sets the number of blocks that must pass before a withdrawal can be completed
     ///
     /// @dev May only be called by the `owner` role
