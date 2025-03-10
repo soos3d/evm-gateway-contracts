@@ -22,11 +22,11 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import {Pausing} from "src/lib/Pausing.sol";
-import {Counterpart} from "src/lib/Counterpart.sol";
-import {Rejection} from "src/lib/Rejection.sol";
-import {TokenSupport} from "src/lib/TokenSupport.sol";
-import {SpendHashes} from "src/lib/SpendHashes.sol";
+import {Pausing} from "src/lib/common/Pausing.sol";
+import {Counterpart} from "src/lib/common/Counterpart.sol";
+import {Rejection} from "src/lib/common/Rejection.sol";
+import {TokenSupport} from "src/lib/common/TokenSupport.sol";
+import {SpendHashes} from "src/lib/common/SpendHashes.sol";
 
 /// @title SpendCommon
 ///
