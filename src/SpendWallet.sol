@@ -18,13 +18,9 @@
  */
 pragma solidity ^0.8.28;
 
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-
-import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
 import {BurnAuthorization} from "src/lib/Authorizations.sol";
+import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
 
 /// @title Spend Wallet
 ///

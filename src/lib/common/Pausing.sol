@@ -65,6 +65,7 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
     }
 
     /// Initializes the underlying `Pausable` contract
+    // solhint-disable-next-line func-name-mixedcase
     function __Pausing_init() internal onlyInitializing {
         __Pausable_init();
     }

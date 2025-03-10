@@ -78,9 +78,11 @@ contract Counterpart is Ownable2StepUpgradeable {
     ///
     /// @param newCounterpart   The new counterpart contract address
     function updateCounterpart(address newCounterpart) external {
+        // solhint-disable avoid-tx-origin
         if (tx.origin != owner()) {
             revert OwnableUnauthorizedAccount(tx.origin);
         }
+        // solhint-enable avoid-tx-origin
 
         // Update the counterpart address
         _getCounterpartStorage().counterpart = newCounterpart;
