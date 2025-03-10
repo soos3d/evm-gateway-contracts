@@ -43,16 +43,6 @@ interface ISpendWalletAdmin {
     /// @param token   The token to be added
     function addSupportedToken(address token) external;
 
-    /// Rejects a depositor from future spends, forcing them to withdraw instead. Used to deny service.
-    ///
-    /// @param depositor   The depositor to be rejected
-    function rejectDepositor(address depositor) external;
-
-    /// Allows a previously-rejected depositor to spend again
-    ///
-    /// @param depositor   The depositor to be allowed
-    function allowDepositor(address depositor) external;
-
     /// Sets the address that may call `sameChainSpend`
     ///
     /// @dev May only be called by the `owner` role

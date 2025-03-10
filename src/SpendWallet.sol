@@ -24,6 +24,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 
 import {ISpendWallet} from "src/interfaces/spend/ISpendWallet.sol";
 import {Pausing} from "src/lib/Pausing.sol";
+import {Rejection} from "src/lib/Rejection.sol";
 import {BurnAuthorization} from "src/lib/Authorizations.sol";
 
 /// @title Spend Wallet
@@ -53,7 +54,7 @@ import {BurnAuthorization} from "src/lib/Authorizations.sol";
 /// the process of being withdrawn will no longer be spendable as soon as the withdrawal initiation is observed by the
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
 /// `spendable` and `withdrawing` balances.
-contract SpendWallet is ISpendWallet, Initializable, UUPSUpgradeable, Ownable2StepUpgradeable, Pausing {
+contract SpendWallet is ISpendWallet, Initializable, UUPSUpgradeable, Ownable2StepUpgradeable, Pausing, Rejection {
     /// Whether or not a token is supported
     mapping(address token => bool supported) internal supportedTokens;
 
@@ -69,9 +70,6 @@ contract SpendWallet is ISpendWallet, Initializable, UUPSUpgradeable, Ownable2St
     /// Whether or not a given spend hash (the keccak256 hash of a `SpendSpec`) has been used for a burn or same-chain
     /// spend, preventing replay
     mapping(bytes32 spendHash => bool used) public usedSpendHashes;
-
-    /// Whether or not a given depositor should be rejected from spending and must withdraw instead
-    mapping(address depositor => bool rejected) public rejectedDepositors;
 
     /// The address of the corresponding SpendMinter contract
     address public minterContract;
@@ -214,10 +212,6 @@ contract SpendWallet is ISpendWallet, Initializable, UUPSUpgradeable, Ownable2St
     function updateBurner(address newBurner) external override onlyOwner {}
 
     function updateMinterContract(address newMinterContract) external override onlyOwner {}
-
-    function rejectDepositor(address depositor) external override onlyOwner {}
-
-    function allowDepositor(address depositor) external override onlyOwner {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Upgrades

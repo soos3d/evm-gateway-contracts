@@ -27,16 +27,6 @@ interface ISpendMinterAdmin {
     /// @param token   The token to be added
     function addSupportedToken(address token) external;
 
-    /// Rejects a recipient from receiving funds from future spends. Used to deny service for legal reasons.
-    ///
-    /// @param recipient   The recipient to be rejected
-    function rejectRecipient(address recipient) external;
-
-    /// Allows a previously-rejected recipient to receive funds again
-    ///
-    /// @param recipient   The recipient to be allowed
-    function allowRecipient(address recipient) external;
-
     /// Sets the address of the corresponding wallet contract on this chain, in order to call `sameChainSpend`
     ///
     /// @dev May only be called by the `owner` role
