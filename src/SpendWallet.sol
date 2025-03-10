@@ -23,11 +23,7 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import {ISpendWallet} from "src/interfaces/spend/ISpendWallet.sol";
-import {Pausing} from "src/lib/Pausing.sol";
-import {Rejection} from "src/lib/Rejection.sol";
-import {Counterpart} from "src/lib/Counterpart.sol";
-import {TokenSupport} from "src/lib/TokenSupport.sol";
-import {SpendHashes} from "src/lib/SpendHashes.sol";
+import {SpendCommon} from "src/SpendCommon.sol";
 import {BurnAuthorization} from "src/lib/Authorizations.sol";
 
 /// @title Spend Wallet
@@ -57,17 +53,7 @@ import {BurnAuthorization} from "src/lib/Authorizations.sol";
 /// the process of being withdrawn will no longer be spendable as soon as the withdrawal initiation is observed by the
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
 /// `spendable` and `withdrawing` balances.
-contract SpendWallet is
-    ISpendWallet,
-    Initializable,
-    UUPSUpgradeable,
-    Ownable2StepUpgradeable,
-    Pausing,
-    Rejection,
-    Counterpart,
-    TokenSupport,
-    SpendHashes
-{
+contract SpendWallet is ISpendWallet, SpendCommon {
     /// The balances that have been deposited and are available for spending (after finalization)
     mapping(address token => mapping(address user => uint256 value)) internal spendableBalances;
 
@@ -207,9 +193,4 @@ contract SpendWallet is
     function updateWithdrawalDelay(uint256 newDelay) external override onlyOwner {}
 
     function updateBurner(address newBurner) external override onlyOwner {}
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Upgrades
-
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }

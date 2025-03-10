@@ -18,40 +18,14 @@
  */
 pragma solidity ^0.8.28;
 
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-
 import {ISpendMinter} from "src/interfaces/spend/ISpendMinter.sol";
-import {Pausing} from "src/lib/Pausing.sol";
-import {Counterpart} from "src/lib/Counterpart.sol";
-import {Rejection} from "src/lib/Rejection.sol";
-import {TokenSupport} from "src/lib/TokenSupport.sol";
-import {SpendHashes} from "src/lib/SpendHashes.sol";
+import {SpendCommon} from "src/SpendCommon.sol";
 
 /// @title Spend Minter
 ///
 /// This contract allows the spending of funds from the SpendWallet contract, either on the same chain or on a different
 /// chain. Spending requires a signed authorization from the operator. See the documentation for the SpendWallet
 /// contract for more details.
-contract SpendMinter is
-    ISpendMinter,
-    Initializable,
-    UUPSUpgradeable,
-    Ownable2StepUpgradeable,
-    Pausing,
-    Rejection,
-    Counterpart,
-    TokenSupport,
-    SpendHashes
-{
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Spending
-
+contract SpendMinter is ISpendMinter, SpendCommon {
     function spend(bytes memory authorizations, bytes memory signature) external override whenNotPaused {}
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Upgrades
-
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
