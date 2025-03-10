@@ -45,6 +45,11 @@ contract TokenSupport is Ownable2StepUpgradeable {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /// Emitted when a token is added to the set of supported tokens
+    ///
+    /// @param token   The token that is now supported
+    event TokenSupported(address token);
+
     /// Thrown when an unsupported token is used
     ///
     /// @param token   The unsupported token
@@ -81,5 +86,6 @@ contract TokenSupport is Ownable2StepUpgradeable {
     /// @param token   The token to be added
     function addSupportedToken(address token) external onlyOwner {
         _getTokenSupportStorage().supportedTokens[token] = true;
+        emit TokenSupported(token);
     }
 }

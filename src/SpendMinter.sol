@@ -18,7 +18,6 @@
  */
 pragma solidity ^0.8.28;
 
-import {ISpendMinter} from "src/interfaces/spend/ISpendMinter.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
 
 /// @title Spend Minter
@@ -26,6 +25,31 @@ import {SpendCommon} from "src/SpendCommon.sol";
 /// This contract allows the spending of funds from the SpendWallet contract, either on the same chain or on a different
 /// chain. Spending requires a signed authorization from the operator. See the documentation for the SpendWallet
 /// contract for more details.
-contract SpendMinter is ISpendMinter, SpendCommon {
-    function spend(bytes memory authorizations, bytes memory signature) external override whenNotPaused {}
+contract SpendMinter is SpendCommon {
+    /// Emitted when the a spend authorization is used
+    ///
+    /// @param token                The token that was spent
+    /// @param recipient            The recipient of the funds
+    /// @param spendHash            The keccak256 hash of the `SpendSpec`
+    /// @param sourceDomain         The domain the funds came from
+    /// @param depositor            The depositor on the source domain
+    /// @param value                The amount that was minted/transferred
+    /// @param spendAuthorization   The entire spend authorization that was used
+    event Spent(
+        address indexed token,
+        address indexed recipient,
+        bytes32 indexed spendHash,
+        uint32 sourceDomain,
+        bytes32 depositor,
+        uint256 value,
+        bytes spendAuthorization
+    );
+
+    /// Spend funds via a signed spend authorization from the operator. Accepts either a single encoded
+    /// `SpendAuthorization` or an encoded set of them. Emits an event containing the keccak256 hash of the encoded
+    /// `SpendSpec` (which is the same for the burn), to be used as a cross-chain identifier.
+    ///
+    /// @param authorizations   The byte-encoded spend authorization(s)
+    /// @param signature        The signature from the operator
+    function spend(bytes memory authorizations, bytes memory signature) external whenNotPaused {}
 }

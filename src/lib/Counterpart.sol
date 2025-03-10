@@ -46,6 +46,11 @@ contract Counterpart is Ownable2StepUpgradeable {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /// Emitted when the counterpart is updated
+    ///
+    /// @param newCounterpart   The new counterpart address
+    event CounterpartUpdated(address newCounterpart);
+
     /// Thrown when the counterpart is expected, but an unauthorized caller is used
     error UnauthorizedCounterpart(address caller);
 
@@ -79,6 +84,7 @@ contract Counterpart is Ownable2StepUpgradeable {
 
         // Update the counterpart address
         _getCounterpartStorage().counterpart = newCounterpart;
+        emit CounterpartUpdated(newCounterpart);
 
         // If this was the call from the counterpart, we're done
         if (newCounterpart == _msgSender()) {

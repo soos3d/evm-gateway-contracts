@@ -46,6 +46,11 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /// Emitted when the pauser address is updated
+    ///
+    /// @param newPauser   The new pauser address
+    event PauserUpdated(address newPauser);
+
     /// Thrown when the pauser is expected, but an unauthorized caller is used
     ///
     /// @param caller   The unauthorized caller
@@ -83,5 +88,8 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
     /// @dev May only be called by the `owner` role
     ///
     /// @param newPauser   The new pauser address
-    function updatePauser(address newPauser) external onlyOwner {}
+    function updatePauser(address newPauser) external onlyOwner {
+        _getPausingStorage().pauser = newPauser;
+        emit PauserUpdated(newPauser);
+    }
 }

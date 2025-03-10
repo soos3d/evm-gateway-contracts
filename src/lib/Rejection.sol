@@ -44,6 +44,16 @@ contract Rejection is Ownable2StepUpgradeable {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /// Emitted when an address is added to the rejection list
+    ///
+    /// @param addr   The address that is now rejected from interacting with the contract
+    event AddressRejected(address addr);
+
+    /// Emitted when an address is removed from the rejection list
+    ///
+    /// @param addr   The address that is allowed to interact with the contract again
+    event AddressAllowed(address addr);
+
     /// Thrown when an address is rejected from interacting with the contract
     ///
     /// @param addr   The rejected address
