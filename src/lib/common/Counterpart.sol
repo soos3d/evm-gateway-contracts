@@ -20,32 +20,29 @@ pragma solidity ^0.8.28;
 
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
-/// @title Counterpart
-///
-/// Manages pairs of contracts that each need to know the address of the other, namely the `SpendWallet` and
-/// `SpendMinter` contracts.
-contract Counterpart is Ownable2StepUpgradeable {
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // EIP-7201 Storage
-
+/// Implements the EIP-7201 storage pattern for the Counterpart module
+library CounterpartStorage {
     /// @custom:storage-location 7201:circle.spend.Counterpart
-    struct CounterpartStorage {
+    struct Data {
         /// The address of the counterpart contract on the same chain
         address counterpart;
     }
 
     /// keccak256(abi.encode(uint256(keccak256("circle.spend.Counterpart")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant COUNTERPART_STORAGE_SLOT =
-        0x70565df7873d79606231fdb63c2348309f93e2c30a5f9f935737851220372500;
+    bytes32 private constant SLOT = 0x70565df7873d79606231fdb63c2348309f93e2c30a5f9f935737851220372500;
 
-    function _getCounterpartStorage() private pure returns (CounterpartStorage storage $) {
+    function get() internal pure returns (Data storage $) {
         assembly {
-            $.slot := COUNTERPART_STORAGE_SLOT
+            $.slot := SLOT
         }
     }
+}
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/// @title Counterpart
+///
+/// Manages pairs of contracts that each need to know the address of the other, namely the `SpendWallet` and
+/// `SpendMinter` contracts.
+contract Counterpart is Ownable2StepUpgradeable {
     /// Emitted when the counterpart is updated
     ///
     /// @param newCounterpart   The new counterpart address
@@ -64,7 +61,7 @@ contract Counterpart is Ownable2StepUpgradeable {
     ///
     /// @param addr   The address to check
     function _ensureIsCounterpart(address addr) internal view {
-        if (_getCounterpartStorage().counterpart != addr) {
+        if (CounterpartStorage.get().counterpart != addr) {
             revert UnauthorizedCounterpart(addr);
         }
     }
@@ -85,7 +82,7 @@ contract Counterpart is Ownable2StepUpgradeable {
         // solhint-enable avoid-tx-origin
 
         // Update the counterpart address
-        _getCounterpartStorage().counterpart = newCounterpart;
+        CounterpartStorage.get().counterpart = newCounterpart;
         emit CounterpartUpdated(newCounterpart);
 
         // If this was the call from the counterpart, we're done

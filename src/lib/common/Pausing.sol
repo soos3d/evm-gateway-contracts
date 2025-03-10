@@ -22,30 +22,28 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-/// @title Pausing
-///
-/// Defines a `pauser` role that may pause and unpause the contract
-contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable {
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // EIP-7201 Storage
-
+/// Implements the EIP-7201 storage pattern for the Pausing module
+library PausingStorage {
     /// @custom:storage-location 7201:circle.spend.Pausing
-    struct PausingStorage {
+    struct Data {
         /// The address that is allowed to pause and unpause the contract
         address pauser;
     }
 
     /// keccak256(abi.encode(uint256(keccak256("circle.spend.Pausing")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant PAUSING_STORAGE_SLOT = 0xf07f35b87760c15d28aad27fd9f57f1a9aaded4bd55a711c0b6e1bc98d257100;
+    bytes32 private constant SLOT = 0xf07f35b87760c15d28aad27fd9f57f1a9aaded4bd55a711c0b6e1bc98d257100;
 
-    function _getPausingStorage() private pure returns (PausingStorage storage $) {
+    function get() internal pure returns (Data storage $) {
         assembly {
-            $.slot := PAUSING_STORAGE_SLOT
+            $.slot := SLOT
         }
     }
+}
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/// @title Pausing
+///
+/// Defines a `pauser` role that may pause and unpause the contract
+contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable {
     /// Emitted when the pauser address is updated
     ///
     /// @param newPauser   The new pauser address
@@ -58,7 +56,7 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
 
     /// Restricts the caller to the `pauser` role, reverting with an error for other callers
     modifier onlyPauser() {
-        if (_getPausingStorage().pauser != _msgSender()) {
+        if (PausingStorage.get().pauser != _msgSender()) {
             revert UnauthorizedPauser(_msgSender());
         }
         _;
@@ -90,7 +88,7 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
     ///
     /// @param newPauser   The new pauser address
     function updatePauser(address newPauser) external onlyOwner {
-        _getPausingStorage().pauser = newPauser;
+        PausingStorage.get().pauser = newPauser;
         emit PauserUpdated(newPauser);
     }
 }

@@ -20,30 +20,28 @@ pragma solidity ^0.8.28;
 
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
-/// @title Rejection
-///
-/// Rejection of services for specific addresses
-contract Rejection is Ownable2StepUpgradeable {
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // EIP-7201 Storage
-
+/// Implements the EIP-7201 storage pattern for the Rejection module
+library RejectionStorage {
     /// @custom:storage-location 7201:circle.spend.Rejection
-    struct RejectionStorage {
+    struct Data {
         /// Whether or not a given address should be rejected from interacting with the contract
         mapping(address addr => bool rejected) rejectedAddresses;
     }
 
     /// keccak256(abi.encode(uint256(keccak256("circle.spend.Rejection")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant REJECTION_STORAGE_SLOT = 0x1f77a9ebc6439acf5242590b1d7a06bf8312dd6281b5df39cd80eeafa76b8900;
+    bytes32 private constant SLOT = 0x1f77a9ebc6439acf5242590b1d7a06bf8312dd6281b5df39cd80eeafa76b8900;
 
-    function _getRejectionStorage() private pure returns (RejectionStorage storage $) {
+    function get() internal pure returns (Data storage $) {
         assembly {
-            $.slot := REJECTION_STORAGE_SLOT
+            $.slot := SLOT
         }
     }
+}
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/// @title Rejection
+///
+/// Rejection of services for specific addresses
+contract Rejection is Ownable2StepUpgradeable {
     /// Emitted when an address is added to the rejection list
     ///
     /// @param addr   The address that is now rejected from interacting with the contract
@@ -71,7 +69,7 @@ contract Rejection is Ownable2StepUpgradeable {
     ///
     /// @param addr   The address to check
     function _ensureNotRejected(address addr) internal view {
-        if (_getRejectionStorage().rejectedAddresses[addr]) {
+        if (RejectionStorage.get().rejectedAddresses[addr]) {
             revert RejectedAddress(addr);
         }
     }
@@ -80,20 +78,20 @@ contract Rejection is Ownable2StepUpgradeable {
     ///
     /// @param addr   The address to check
     function isRejected(address addr) external view returns (bool) {
-        return _getRejectionStorage().rejectedAddresses[addr];
+        return RejectionStorage.get().rejectedAddresses[addr];
     }
 
     /// Rejects an address from interacting with the contract
     ///
     /// @param addr   The address to be rejected
     function rejectAddress(address addr) external onlyOwner {
-        _getRejectionStorage().rejectedAddresses[addr] = true;
+        RejectionStorage.get().rejectedAddresses[addr] = true;
     }
 
     /// Allows a previously-rejected address to interact with the contract again
     ///
     /// @param addr   The address to be allowed
     function allowAddress(address addr) external onlyOwner {
-        _getRejectionStorage().rejectedAddresses[addr] = false;
+        RejectionStorage.get().rejectedAddresses[addr] = false;
     }
 }

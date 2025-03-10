@@ -18,32 +18,29 @@
  */
 pragma solidity ^0.8.28;
 
-/// @title SpendHashes
-///
-/// Manages a set of "spend hashes" that have been used, in order to prevent replay. A "spend hash" is the `keccak256`
-/// hash of a `SpendSpec` struct, which is common to both `BurnAuthorization` and `SpendAuthorization`.
-contract SpendHashes {
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // EIP-7201 Storage
-
+/// Implements the EIP-7201 storage pattern for the SpendHashes module
+library SpendHashesStorage {
     /// @custom:storage-location 7201:circle.spend.SpendHashes
-    struct SpendHashesStorage {
+    struct Data {
         /// Whether or not a given spend hash has been used
         mapping(bytes32 spendHash => bool used) usedSpendHashes;
     }
 
     /// keccak256(abi.encode(uint256(keccak256("circle.spend.SpendHashes")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant SPEND_HASHES_STORAGE_SLOT =
-        0xd40ed81e80275907a36da4125aa85b969c2d499c973b74ef2c642080726ad800;
+    bytes32 private constant SLOT = 0xd40ed81e80275907a36da4125aa85b969c2d499c973b74ef2c642080726ad800;
 
-    function _getSpendHashesStorage() private pure returns (SpendHashesStorage storage $) {
+    function get() internal pure returns (Data storage $) {
         assembly {
-            $.slot := SPEND_HASHES_STORAGE_SLOT
+            $.slot := SLOT
         }
     }
+}
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+/// @title SpendHashes
+///
+/// Manages a set of "spend hashes" that have been used, in order to prevent replay. A "spend hash" is the `keccak256`
+/// hash of a `SpendSpec` struct, which is common to both `BurnAuthorization` and `SpendAuthorization`.
+contract SpendHashes {
     /// Thrown when a given spend hash has already been used, to prevent replay
     ///
     /// @param spendHash   The spend hash that was used
@@ -53,7 +50,7 @@ contract SpendHashes {
     ///
     /// @param spendHash   The spend hash to check
     function _ensureSpendHashNotUsed(bytes32 spendHash) internal view {
-        if (_getSpendHashesStorage().usedSpendHashes[spendHash]) {
+        if (SpendHashesStorage.get().usedSpendHashes[spendHash]) {
             revert SpendHashUsed(spendHash);
         }
     }
