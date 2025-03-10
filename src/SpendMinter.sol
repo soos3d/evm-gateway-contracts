@@ -25,18 +25,24 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {ISpendMinter} from "src/interfaces/spend/ISpendMinter.sol";
 import {Pausing} from "src/lib/Pausing.sol";
 import {Rejection} from "src/lib/Rejection.sol";
+import {TokenSupport} from "src/lib/TokenSupport.sol";
 
 /// @title Spend Minter
 ///
 /// This contract allows the spending of funds from the SpendWallet contract, either on the same chain or on a different
 /// chain. Spending requires a signed authorization from the operator. See the documentation for the SpendWallet
 /// contract for more details.
-contract SpendMinter is ISpendMinter, Initializable, UUPSUpgradeable, Ownable2StepUpgradeable, Pausing, Rejection {
+contract SpendMinter is
+    ISpendMinter,
+    Initializable,
+    UUPSUpgradeable,
+    Ownable2StepUpgradeable,
+    Pausing,
+    Rejection,
+    TokenSupport
+{
     /// The address of the corresponding SpendWallet contract
     address public walletContract;
-
-    /// Whether or not a token is supported
-    mapping(address token => bool supported) internal supportedTokens;
 
     /// Whether or not a given spend hash (the keccak256 hash of a `SpendSpec`) has been used for a spend, preventing
     /// replay
@@ -48,18 +54,9 @@ contract SpendMinter is ISpendMinter, Initializable, UUPSUpgradeable, Ownable2St
     function spend(bytes memory authorizations, bytes memory signature) external override whenNotPaused {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Informational
-
-    function isTokenSupported(address) external pure override returns (bool) {
-        return false;
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Admin
 
     function updateWalletContract(address newWalletContract) external override onlyOwner {}
-
-    function addSupportedToken(address token) external override onlyOwner {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Upgrades

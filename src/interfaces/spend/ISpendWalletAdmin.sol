@@ -36,13 +36,6 @@ interface ISpendWalletAdmin {
     ///                         authorization.
     function burnSpent(bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) external;
 
-    /// Marks a token as supported. Once supported, tokens can not be un-supported.
-    ///
-    /// @dev May only be called by the `owner` role
-    ///
-    /// @param token   The token to be added
-    function addSupportedToken(address token) external;
-
     /// Sets the address that may call `sameChainSpend`
     ///
     /// @dev May only be called by the `owner` role

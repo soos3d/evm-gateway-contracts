@@ -23,11 +23,6 @@ import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
 
 /// Read-only methods for the SpendWallet contract that are callable by anyone
 interface ISpendWalletRead is IERC1155Balance {
-    /// Whether or not a token is supported
-    ///
-    /// @param token   The token to check
-    function isTokenSupported(address token) external view returns (bool);
-
     /// The total balance of a depositor for a token. This will always be equal to the sum of `spendableBalance` and
     /// `withdrawingBalance`.
     ///

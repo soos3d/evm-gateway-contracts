@@ -25,6 +25,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {ISpendWallet} from "src/interfaces/spend/ISpendWallet.sol";
 import {Pausing} from "src/lib/Pausing.sol";
 import {Rejection} from "src/lib/Rejection.sol";
+import {TokenSupport} from "src/lib/TokenSupport.sol";
 import {BurnAuthorization} from "src/lib/Authorizations.sol";
 
 /// @title Spend Wallet
@@ -54,12 +55,17 @@ import {BurnAuthorization} from "src/lib/Authorizations.sol";
 /// the process of being withdrawn will no longer be spendable as soon as the withdrawal initiation is observed by the
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
 /// `spendable` and `withdrawing` balances.
-contract SpendWallet is ISpendWallet, Initializable, UUPSUpgradeable, Ownable2StepUpgradeable, Pausing, Rejection {
+contract SpendWallet is
+    ISpendWallet,
+    Initializable,
+    UUPSUpgradeable,
+    Ownable2StepUpgradeable,
+    Pausing,
+    Rejection,
+    TokenSupport
+{
     /// The address of the corresponding SpendMinter contract
     address public minterContract;
-
-    /// Whether or not a token is supported
-    mapping(address token => bool supported) internal supportedTokens;
 
     /// The balances that have been deposited and are available for spending (after finalization)
     mapping(address token => mapping(address user => uint256 value)) internal spendableBalances;
@@ -175,10 +181,6 @@ contract SpendWallet is ISpendWallet, Initializable, UUPSUpgradeable, Ownable2St
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Informational
 
-    function isTokenSupported(address) external pure override returns (bool) {
-        return false;
-    }
-
     function encodeBurnAuthorization(BurnAuthorization memory) external pure override returns (bytes memory) {
         return new bytes(0);
     }
@@ -206,8 +208,6 @@ contract SpendWallet is ISpendWallet, Initializable, UUPSUpgradeable, Ownable2St
     // Admin
 
     function updateMinterContract(address newMinterContract) external override onlyOwner {}
-
-    function addSupportedToken(address token) external override onlyOwner {}
 
     function updateWithdrawalDelay(uint256 newDelay) external override onlyOwner {}
 
