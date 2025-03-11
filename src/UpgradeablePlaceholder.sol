@@ -21,10 +21,17 @@ pragma solidity ^0.8.28;
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {NullOwnerNotAllowed, ContractOwnerNotAllowed} from "src/lib/Ownership.sol";
 
 /// A no-op, upgradeable implementation contract for UUPS proxies
 contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepUpgradeable {
+    /// Thrown if the owner address is the zero address
+    error NullOwnerNotAllowed();
+
+    /// Thrown if the new owner address is a contract
+    ///
+    /// @param owner   The address of the owner
+    error ContractOwnerNotAllowed(address owner);
+
     /// Implements the UUPS upgrade pattern by restricting upgrades to the owner
     ///
     /// @param newImplementation   The address of the new implementation

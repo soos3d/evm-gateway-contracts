@@ -20,10 +20,10 @@ pragma solidity ^0.8.28;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
-import {NullOwnerNotAllowed, ContractOwnerNotAllowed} from "src/lib/Ownership.sol";
+import {OwnershipTest} from "test/util/OwnershipTest.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
-import {OwnershipTest} from "test/common/OwnershipTest.sol";
 
+/// Tests ownership and initialization functionality of SpendMinter
 contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
     SpendMinter private minter;
 

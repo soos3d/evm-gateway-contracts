@@ -32,6 +32,7 @@ contract SpendMinter is SpendCommon {
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
+        // Ensure that the implementation contract cannot be initialized, only the proxy
         _disableInitializers();
     }
 

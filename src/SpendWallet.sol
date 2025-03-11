@@ -72,6 +72,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
+        // Ensure that the implementation contract cannot be initialized, only the proxy
         _disableInitializers();
     }
 
@@ -293,9 +294,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function withdrawalBlock(address token, address depositor) external pure returns (uint256) {
-        return 0;
-    }
+    function withdrawalBlock(address token, address depositor) external pure returns (uint256) {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Balances
@@ -305,9 +304,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function totalBalance(address token, address depositor) external pure returns (uint256) {
-        return 0;
-    }
+    function totalBalance(address token, address depositor) external pure returns (uint256) {}
 
     /// The balance that is spendable by the depositor, subject to deposits having been observed by the API in a
     /// finalized block and no spend authorizations having been issued but not yet burned by the operator or used on the
@@ -315,25 +312,19 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function spendableBalance(address token, address depositor) external pure returns (uint256) {
-        return 0;
-    }
+    function spendableBalance(address token, address depositor) external pure returns (uint256) {}
 
     /// The balance that is in the process of being withdrawn
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function withdrawingBalance(address token, address depositor) external pure returns (uint256) {
-        return 0;
-    }
+    function withdrawingBalance(address token, address depositor) external pure returns (uint256) {}
 
     /// The balance that is withdrawable as of the current block. This will either be 0 or `withdrawingBalance`.
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function withdrawableBalance(address token, address depositor) external pure returns (uint256) {
-        return 0;
-    }
+    function withdrawableBalance(address token, address depositor) external pure returns (uint256) {}
 
     /// The balance of a depositor for a particular balance specifier, compatible with ERC-1155
     ///
@@ -342,9 +333,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param depositor   The depositor of the requested balance
     /// @param id          The packed token and balance id specifier
-    function balanceOf(address depositor, uint256 id) external pure override returns (uint256) {
-        return 0;
-    }
+    function balanceOf(address depositor, uint256 id) external pure override returns (uint256) {}
 
     /// The batch version of `balanceOf`, compatible with ERC-1155
     ///
@@ -359,9 +348,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         pure
         override
         returns (uint256[] memory)
-    {
-        return new uint256[](0);
-    }
+    {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Informational
@@ -373,18 +360,14 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// Returns the byte encoding of a single burn authorization
     ///
     /// @param authorization   The burn authorization to encode
-    function encodeBurnAuthorization(BurnAuthorization memory authorization) external pure returns (bytes memory) {
-        return new bytes(0);
-    }
+    function encodeBurnAuthorization(BurnAuthorization memory authorization) external pure returns (bytes memory) {}
 
     /// Returns the byte encoding of a set of burn authorizations
     ///
     /// @dev The burn authorizations must be sorted by domain
     ///
     /// @param authorizations   The burn authorizations to encode
-    function encodeBurnAuthorizations(BurnAuthorization[] memory authorizations) external pure returns (bytes memory) {
-        return new bytes(0);
-    }
+    function encodeBurnAuthorizations(BurnAuthorization[] memory authorizations) external pure returns (bytes memory) {}
 
     /// Allows anyone to validate whether a set of burn authorizations is valid along with a signature from the
     /// depositor or an authorized spender
@@ -398,9 +381,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         external
         pure
         returns (bool)
-    {
-        return false;
-    }
+    {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Burning and transferring

@@ -18,10 +18,25 @@
  */
 pragma solidity ^0.8.28;
 
-/// Thrown if the owner address is the zero address
-error NullOwnerNotAllowed();
+import {SpendCommon} from "src/SpendCommon.sol";
+import {Test} from "forge-std/src/Test.sol";
 
-/// Thrown if the new owner address is a contract
-///
-/// @param owner   The address of the owner
-error ContractOwnerNotAllowed(address owner);
+contract Sample is SpendCommon {
+    /// The answer to life, the universe, and everything
+    uint256 private answer = 42;
+
+    /// Loads the first storage slot
+    function getSlotZero() public view returns (uint256 val) {
+        assembly {
+            val := sload(0)
+        }
+    }
+}
+
+contract SpendCommonStorageLayout is Test {
+    /// Ensures that `SpendCommon` uses up no sequential storage slots and uses EIP-7201 for all modules
+    function test_storage_conflicts() external {
+        Sample sample = new Sample();
+        assertEq(sample.getSlotZero(), 42, "At least one module in SpendCommon has declared sequential storage slots");
+    }
+}

@@ -24,21 +24,8 @@ import {SpendWallet} from "src/SpendWallet.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {CommonBase} from "forge-std/src/Base.sol";
 
+/// Helpers for deploying the contracts during tests
 abstract contract DeployUtils is CommonBase {
-    function deployPlaceholder(address owner) public returns (UpgradeablePlaceholder) {
-        return _deployPlaceholder(abi.encodeCall(UpgradeablePlaceholder.initialize, owner));
-    }
-
-    function deployPlaceholderWithoutInitializing() public returns (UpgradeablePlaceholder) {
-        return _deployPlaceholder(new bytes(0));
-    }
-
-    function _deployPlaceholder(bytes memory initData) private returns (UpgradeablePlaceholder) {
-        UpgradeablePlaceholder placeholder = new UpgradeablePlaceholder();
-        ERC1967Proxy proxy = new ERC1967Proxy(address(placeholder), initData);
-        return UpgradeablePlaceholder(address(proxy));
-    }
-
     function deploy(address owner) public returns (SpendWallet, SpendMinter) {
         // Deploy both placeholders
         UpgradeablePlaceholder walletProxy = deployPlaceholder(owner);
@@ -75,5 +62,19 @@ abstract contract DeployUtils is CommonBase {
         vm.prank(owner);
         minterProxy.upgradeToAndCall(address(minterImpl), abi.encodeCall(SpendMinter.initialize, address(0)));
         return SpendMinter(address(minterProxy));
+    }
+
+    function deployPlaceholder(address owner) public returns (UpgradeablePlaceholder) {
+        return _deployPlaceholder(abi.encodeCall(UpgradeablePlaceholder.initialize, owner));
+    }
+
+    function deployPlaceholderWithoutInitializing() public returns (UpgradeablePlaceholder) {
+        return _deployPlaceholder(new bytes(0));
+    }
+
+    function _deployPlaceholder(bytes memory initData) private returns (UpgradeablePlaceholder) {
+        UpgradeablePlaceholder placeholder = new UpgradeablePlaceholder();
+        ERC1967Proxy proxy = new ERC1967Proxy(address(placeholder), initData);
+        return UpgradeablePlaceholder(address(proxy));
     }
 }

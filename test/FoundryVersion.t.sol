@@ -20,6 +20,7 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/src/Test.sol";
 
+/// Ensures the correct version of Foundry is installed
 contract TestFoundryVersion is Test {
     string private constant EXPECTED_VERSION = "1.0.0";
 

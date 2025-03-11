@@ -20,11 +20,10 @@ pragma solidity ^0.8.28;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
-import {NullOwnerNotAllowed, ContractOwnerNotAllowed} from "src/lib/Ownership.sol";
+import {OwnershipTest} from "test/util/OwnershipTest.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
-import {OwnershipTest} from "test/common/OwnershipTest.sol";
 
-contract UpgradeablePlaceholderTest is OwnershipTest, DeployUtils {
+contract UpgradeablePlaceholderBasicsTest is OwnershipTest, DeployUtils {
     UpgradeablePlaceholder private placeholder;
 
     /// Used by OwnershipTest
@@ -45,7 +44,7 @@ contract UpgradeablePlaceholderTest is OwnershipTest, DeployUtils {
     function test_initialize_revertIfOwnerAddressIsZero() public {
         placeholder = deployPlaceholderWithoutInitializing();
 
-        vm.expectRevert(NullOwnerNotAllowed.selector);
+        vm.expectRevert(UpgradeablePlaceholder.NullOwnerNotAllowed.selector);
         placeholder.initialize(address(0));
     }
 
@@ -54,7 +53,9 @@ contract UpgradeablePlaceholderTest is OwnershipTest, DeployUtils {
 
         address contractAddress = makeAddr("fakeContract");
         vm.etch(contractAddress, hex"100000");
-        vm.expectRevert(abi.encodeWithSelector(ContractOwnerNotAllowed.selector, contractAddress));
+        vm.expectRevert(
+            abi.encodeWithSelector(UpgradeablePlaceholder.ContractOwnerNotAllowed.selector, contractAddress)
+        );
         placeholder.initialize(contractAddress);
     }
 }

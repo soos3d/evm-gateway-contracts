@@ -20,6 +20,55 @@ pragma solidity ^0.8.28;
 
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
+/// @title TokenSupport
+///
+/// Manages a set of tokens that are supported, and allows the owner to mark new tokens as supported
+contract TokenSupport is Ownable2StepUpgradeable {
+    /// Emitted when a token is added to the set of supported tokens
+    ///
+    /// @param token   The token that is now supported
+    event TokenSupported(address token);
+
+    /// Thrown when an unsupported token is used
+    ///
+    /// @param token   The unsupported token
+    error UnsupportedToken(address token);
+
+    /// Whether or not a token is supported
+    ///
+    /// @param token   The token to check
+    function isTokenSupported(address token) public view returns (bool) {
+        return TokenSupportStorage.get().supportedTokens[token];
+    }
+
+    /// Ensures that the given token is supported
+    ///
+    /// @param token   The token to check
+    modifier tokenSupported(address token) {
+        _ensureTokenSupported(token);
+        _;
+    }
+
+    /// Reverts if the given token is not supported
+    ///
+    /// @param token   The token to check
+    function _ensureTokenSupported(address token) private view {
+        if (!isTokenSupported(token)) {
+            revert UnsupportedToken(token);
+        }
+    }
+
+    /// Marks a token as supported. Once supported, tokens can not be un-supported.
+    ///
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param token   The token to be added
+    function addSupportedToken(address token) external onlyOwner {
+        TokenSupportStorage.get().supportedTokens[token] = true;
+        emit TokenSupported(token);
+    }
+}
+
 /// Implements the EIP-7201 storage pattern for the TokenSupport module
 library TokenSupportStorage {
     /// @custom:storage-location 7201:circle.spend.TokenSupport
@@ -35,54 +84,5 @@ library TokenSupportStorage {
         assembly {
             $.slot := SLOT
         }
-    }
-}
-
-/// @title TokenSupport
-///
-/// Manages a set of tokens that are supported, and allows the owner to mark new tokens as supported
-contract TokenSupport is Ownable2StepUpgradeable {
-    /// Emitted when a token is added to the set of supported tokens
-    ///
-    /// @param token   The token that is now supported
-    event TokenSupported(address token);
-
-    /// Thrown when an unsupported token is used
-    ///
-    /// @param token   The unsupported token
-    error UnsupportedToken(address token);
-
-    /// Ensures that the given token is supported
-    ///
-    /// @param token   The token to check
-    modifier tokenSupported(address token) {
-        _ensureTokenSupported(token);
-        _;
-    }
-
-    /// Reverts if the given token is not supported
-    ///
-    /// @param token   The token to check
-    function _ensureTokenSupported(address token) private view {
-        if (!TokenSupportStorage.get().supportedTokens[token]) {
-            revert UnsupportedToken(token);
-        }
-    }
-
-    /// Whether or not a token is supported
-    ///
-    /// @param token   The token to check
-    function isTokenSupported(address token) external view returns (bool) {
-        return TokenSupportStorage.get().supportedTokens[token];
-    }
-
-    /// Marks a token as supported. Once supported, tokens can not be un-supported.
-    ///
-    /// @dev May only be called by the `owner` role
-    ///
-    /// @param token   The token to be added
-    function addSupportedToken(address token) external onlyOwner {
-        TokenSupportStorage.get().supportedTokens[token] = true;
-        emit TokenSupported(token);
     }
 }

@@ -26,7 +26,6 @@ import {Counterpart} from "src/lib/common/Counterpart.sol";
 import {Rejection} from "src/lib/common/Rejection.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {SpendHashes} from "src/lib/common/SpendHashes.sol";
-import {ContractOwnerNotAllowed} from "src/lib/Ownership.sol";
 
 /// @title SpendCommon
 ///
@@ -48,12 +47,15 @@ contract SpendCommon is
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
+        // Ensure that the implementation contract cannot be initialized, only the proxy
         _disableInitializers();
     }
 
-    /// Initializes the contract
+    /// Initializes the contract, setting the counterpart to the given address and the pauser to the owner initially
+    ///
+    /// @param counterpart   The address of the counterpart contract (either `SpendWallet` or `SpendMinter`)
     function __SpendCommon_init(address counterpart) public onlyInitializing {
-        __Pausing_init();
+        __Pausing_init(owner());
         __Counterpart_init(counterpart);
     }
 }

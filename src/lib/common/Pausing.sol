@@ -22,24 +22,6 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-/// Implements the EIP-7201 storage pattern for the Pausing module
-library PausingStorage {
-    /// @custom:storage-location 7201:circle.spend.Pausing
-    struct Data {
-        /// The address that is allowed to pause and unpause the contract
-        address pauser;
-    }
-
-    /// keccak256(abi.encode(uint256(keccak256("circle.spend.Pausing")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant SLOT = 0xf07f35b87760c15d28aad27fd9f57f1a9aaded4bd55a711c0b6e1bc98d257100;
-
-    function get() internal pure returns (Data storage $) {
-        assembly {
-            $.slot := SLOT
-        }
-    }
-}
-
 /// @title Pausing
 ///
 /// Defines a `pauser` role that may pause and unpause the contract
@@ -54,18 +36,28 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
     /// @param caller   The unauthorized caller
     error UnauthorizedPauser(address caller);
 
+    /// Initializes the underlying `Pausable` contract and sets the initial pauser
+    ///
+    /// @param newPauser   The initial pauser address
+    function __Pausing_init(address newPauser) internal onlyInitializing {
+        __Pausable_init();
+        _setPauser(newPauser);
+    }
+
+    /// Sets the pauser in storage and emits an event
+    ///
+    /// @param newPauser   The new pauser address
+    function _setPauser(address newPauser) private {
+        PausingStorage.get().pauser = newPauser;
+        emit PauserUpdated(newPauser);
+    }
+
     /// Restricts the caller to the `pauser` role, reverting with an error for other callers
     modifier onlyPauser() {
         if (PausingStorage.get().pauser != _msgSender()) {
             revert UnauthorizedPauser(_msgSender());
         }
         _;
-    }
-
-    /// Initializes the underlying `Pausable` contract
-    // solhint-disable-next-line func-name-mixedcase
-    function __Pausing_init() internal onlyInitializing {
-        __Pausable_init();
     }
 
     /// Pauses the contract
@@ -88,7 +80,25 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
     ///
     /// @param newPauser   The new pauser address
     function updatePauser(address newPauser) external onlyOwner {
-        PausingStorage.get().pauser = newPauser;
-        emit PauserUpdated(newPauser);
+        _setPauser(newPauser);
+    }
+}
+
+/// Implements the EIP-7201 storage pattern for the Pausing module
+library PausingStorage {
+    /// @custom:storage-location 7201:circle.spend.Pausing
+    struct Data {
+        /// The address that is allowed to pause and unpause the contract
+        address pauser;
+    }
+
+    /// keccak256(abi.encode(uint256(keccak256("circle.spend.Pausing")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant SLOT = 0xf07f35b87760c15d28aad27fd9f57f1a9aaded4bd55a711c0b6e1bc98d257100;
+
+    /// EIP-7201 getter for the storage slot
+    function get() internal pure returns (Data storage $) {
+        assembly {
+            $.slot := SLOT
+        }
     }
 }

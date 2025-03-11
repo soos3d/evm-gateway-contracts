@@ -20,15 +20,15 @@ pragma solidity ^0.8.28;
 
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {NullOwnerNotAllowed, ContractOwnerNotAllowed} from "src/lib/Ownership.sol";
 import {Test} from "forge-std/src/Test.sol";
 
 abstract contract OwnershipTest is Test {
     address internal owner = makeAddr("owner");
 
+    /// Implement this to return the subject of the test
     function _subject() internal virtual returns (address);
 
+    /// Returns the subject as an Ownable2StepUpgradeable
     function _ownableSubject() private returns (Ownable2StepUpgradeable) {
         return Ownable2StepUpgradeable(_subject());
     }

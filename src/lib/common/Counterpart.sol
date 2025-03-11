@@ -21,24 +21,6 @@ pragma solidity ^0.8.28;
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
-/// Implements the EIP-7201 storage pattern for the Counterpart module
-library CounterpartStorage {
-    /// @custom:storage-location 7201:circle.spend.Counterpart
-    struct Data {
-        /// The address of the counterpart contract on the same chain
-        address counterpart;
-    }
-
-    /// keccak256(abi.encode(uint256(keccak256("circle.spend.Counterpart")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant SLOT = 0x70565df7873d79606231fdb63c2348309f93e2c30a5f9f935737851220372500;
-
-    function get() internal pure returns (Data storage $) {
-        assembly {
-            $.slot := SLOT
-        }
-    }
-}
-
 /// @title Counterpart
 ///
 /// Manages pairs of contracts that each need to know the address of the other, namely the `SpendWallet` and
@@ -52,26 +34,6 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
     /// Thrown when the counterpart is expected, but an unauthorized caller is used
     error UnauthorizedCounterpart(address caller);
 
-    /// Restricts the caller to the `counterpart` role, reverting with an error for other callers
-    modifier onlyCounterpart() {
-        _ensureIsCounterpart(_msgSender());
-        _;
-    }
-
-    /// Returns the counterpart address
-    function _counterpart() internal view returns (address) {
-        return CounterpartStorage.get().counterpart;
-    }
-
-    /// Ensures that the given address is the counterpart contract
-    ///
-    /// @param addr   The address to check
-    function _ensureIsCounterpart(address addr) internal view {
-        if (CounterpartStorage.get().counterpart != addr) {
-            revert UnauthorizedCounterpart(addr);
-        }
-    }
-
     /// Sets the counterpart during initialization
     ///
     /// @param counterpart   The counterpart address
@@ -79,11 +41,9 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
         _setCounterpart(counterpart);
     }
 
-    /// Updates the counterpart. Only callable by the owner.
-    ///
-    /// @param newCounterpart   The new counterpart contract address
-    function updateCounterpart(address newCounterpart) external onlyOwner {
-        _setCounterpart(newCounterpart);
+    /// Returns the counterpart address
+    function _counterpart() internal view returns (address) {
+        return CounterpartStorage.get().counterpart;
     }
 
     /// Sets the counterpart in storage and emits an event
@@ -92,5 +52,46 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
     function _setCounterpart(address newCounterpart) private {
         CounterpartStorage.get().counterpart = newCounterpart;
         emit CounterpartUpdated(newCounterpart);
+    }
+
+    /// Restricts the caller to the `counterpart` role, reverting with an error for other callers
+    modifier onlyCounterpart() {
+        _ensureIsCounterpart(_msgSender());
+        _;
+    }
+
+    /// Ensures that the given address is the counterpart contract
+    ///
+    /// @param addr   The address to check
+    function _ensureIsCounterpart(address addr) internal view {
+        if (_counterpart() != addr) {
+            revert UnauthorizedCounterpart(addr);
+        }
+    }
+
+    /// Updates the counterpart (only callable by the owner)
+    ///
+    /// @param newCounterpart   The new counterpart contract address
+    function updateCounterpart(address newCounterpart) external onlyOwner {
+        _setCounterpart(newCounterpart);
+    }
+}
+
+/// Implements the EIP-7201 storage pattern for the Counterpart module
+library CounterpartStorage {
+    /// @custom:storage-location 7201:circle.spend.Counterpart
+    struct Data {
+        /// The address of the counterpart contract on the same chain
+        address counterpart;
+    }
+
+    /// keccak256(abi.encode(uint256(keccak256("circle.spend.Counterpart")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant SLOT = 0x70565df7873d79606231fdb63c2348309f93e2c30a5f9f935737851220372500;
+
+    /// EIP-7201 getter for the storage slot
+    function get() internal pure returns (Data storage $) {
+        assembly {
+            $.slot := SLOT
+        }
     }
 }

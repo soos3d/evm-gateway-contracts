@@ -20,24 +20,6 @@ pragma solidity ^0.8.28;
 
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
-/// Implements the EIP-7201 storage pattern for the Rejection module
-library RejectionStorage {
-    /// @custom:storage-location 7201:circle.spend.Rejection
-    struct Data {
-        /// Whether or not a given address should be rejected from interacting with the contract
-        mapping(address addr => bool rejected) rejectedAddresses;
-    }
-
-    /// keccak256(abi.encode(uint256(keccak256("circle.spend.Rejection")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant SLOT = 0x1f77a9ebc6439acf5242590b1d7a06bf8312dd6281b5df39cd80eeafa76b8900;
-
-    function get() internal pure returns (Data storage $) {
-        assembly {
-            $.slot := SLOT
-        }
-    }
-}
-
 /// @title Rejection
 ///
 /// Rejection of services for specific addresses
@@ -57,6 +39,21 @@ contract Rejection is Ownable2StepUpgradeable {
     /// @param addr   The rejected address
     error RejectedAddress(address addr);
 
+    /// Whether or not a given address is rejected from interacting with the contract
+    ///
+    /// @param addr   The address to check
+    function isRejected(address addr) public view returns (bool) {
+        return RejectionStorage.get().rejectedAddresses[addr];
+    }
+
+    /// Sets the rejection status of an address
+    ///
+    /// @param addr       The address to set the rejection status for
+    /// @param rejected   Whether or not the address should be rejected
+    function _setRejected(address addr, bool rejected) internal {
+        RejectionStorage.get().rejectedAddresses[addr] = rejected;
+    }
+
     /// Restricts access to a function to addresses that are not rejected
     ///
     /// @param addr   The address to check
@@ -69,29 +66,43 @@ contract Rejection is Ownable2StepUpgradeable {
     ///
     /// @param addr   The address to check
     function _ensureNotRejected(address addr) internal view {
-        if (RejectionStorage.get().rejectedAddresses[addr]) {
+        if (isRejected(addr)) {
             revert RejectedAddress(addr);
         }
-    }
-
-    /// Whether or not a given address is rejected from interacting with the contract
-    ///
-    /// @param addr   The address to check
-    function isRejected(address addr) external view returns (bool) {
-        return RejectionStorage.get().rejectedAddresses[addr];
     }
 
     /// Rejects an address from interacting with the contract
     ///
     /// @param addr   The address to be rejected
     function rejectAddress(address addr) external onlyOwner {
-        RejectionStorage.get().rejectedAddresses[addr] = true;
+        _setRejected(addr, true);
+        emit AddressRejected(addr);
     }
 
     /// Allows a previously-rejected address to interact with the contract again
     ///
     /// @param addr   The address to be allowed
     function allowAddress(address addr) external onlyOwner {
-        RejectionStorage.get().rejectedAddresses[addr] = false;
+        _setRejected(addr, false);
+        emit AddressAllowed(addr);
+    }
+}
+
+/// Implements the EIP-7201 storage pattern for the Rejection module
+library RejectionStorage {
+    /// @custom:storage-location 7201:circle.spend.Rejection
+    struct Data {
+        /// Whether or not a given address should be rejected from interacting with the contract
+        mapping(address addr => bool rejected) rejectedAddresses;
+    }
+
+    /// keccak256(abi.encode(uint256(keccak256("circle.spend.Rejection")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant SLOT = 0x1f77a9ebc6439acf5242590b1d7a06bf8312dd6281b5df39cd80eeafa76b8900;
+
+    /// EIP-7201 getter for the storage slot
+    function get() internal pure returns (Data storage $) {
+        assembly {
+            $.slot := SLOT
+        }
     }
 }

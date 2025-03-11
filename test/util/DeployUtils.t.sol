@@ -27,20 +27,6 @@ import {Test} from "forge-std/src/Test.sol";
 contract TestDeployUtils is Test, DeployUtils {
     address private owner = makeAddr("owner");
 
-    function test_deployPlaceholder() external {
-        UpgradeablePlaceholder placeholder = deployPlaceholder(owner);
-
-        assertNotEq(address(placeholder), address(0));
-        assertEq(placeholder.owner(), owner);
-    }
-
-    function test_deployPlaceholderWithoutInitializing() external {
-        UpgradeablePlaceholder placeholder = deployPlaceholderWithoutInitializing();
-
-        assertNotEq(address(placeholder), address(0));
-        assertEq(placeholder.owner(), address(0));
-    }
-
     function test_deploy() external {
         (SpendWallet wallet, SpendMinter minter) = deploy(owner);
 
@@ -70,5 +56,19 @@ contract TestDeployUtils is Test, DeployUtils {
         assertEq(minter.owner(), owner);
         assert(!minter.paused());
         assertEq(address(minter.walletContract()), address(0));
+    }
+
+    function test_deployPlaceholder() external {
+        UpgradeablePlaceholder placeholder = deployPlaceholder(owner);
+
+        assertNotEq(address(placeholder), address(0));
+        assertEq(placeholder.owner(), owner);
+    }
+
+    function test_deployPlaceholderWithoutInitializing() external {
+        UpgradeablePlaceholder placeholder = deployPlaceholderWithoutInitializing();
+
+        assertNotEq(address(placeholder), address(0));
+        assertEq(placeholder.owner(), address(0));
     }
 }
