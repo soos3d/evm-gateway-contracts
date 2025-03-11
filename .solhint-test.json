@@ -17,6 +17,7 @@
     ],
     "no-console": "off",
     "no-empty-blocks": "off",
-    "one-contract-per-file": "off"
+    "one-contract-per-file": "off",
+    "no-inline-assembly": "off"
   }
 }
