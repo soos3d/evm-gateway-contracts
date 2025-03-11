@@ -8,6 +8,7 @@
     "format:fix": "forge fmt",
     "lint": "solhint -c .solhint-src.json './src/**/*.sol' && solhint -c .solhint-test.json './test/**/*.sol'",
     "lint:fix": "solhint --fix -c .solhint-src.json './src/**/*.sol' && solhint --fix -c .solhint-test.json './test/**/*.sol'",
+    "sizes": "forge build --sizes; ./scripts/contract_sizes.sh",
     "ci": "yarn format && yarn lint && yarn test:all"
   },
   "license": "GPL-3.0-or-later",
