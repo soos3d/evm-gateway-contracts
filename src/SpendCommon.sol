@@ -26,6 +26,7 @@ import {Counterpart} from "src/lib/common/Counterpart.sol";
 import {Rejection} from "src/lib/common/Rejection.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {SpendHashes} from "src/lib/common/SpendHashes.sol";
+import {ContractOwnerNotAllowed} from "src/lib/Ownership.sol";
 
 /// @title SpendCommon
 ///
@@ -53,5 +54,14 @@ contract SpendCommon is
     /// Initializes the contract
     function __SpendCommon_init() public initializer {
         __Pausing_init();
+    }
+
+    /// Prevent ownership from being transferred to a contract. Ownable2StepUpgradeable already prevents it from being
+    /// transferred to the null address.
+    function transferOwnership(address newOwner) public override onlyOwner {
+        if (newOwner.code.length > 0) {
+            revert ContractOwnerNotAllowed(newOwner);
+        }
+        super.transferOwnership(newOwner);
     }
 }
