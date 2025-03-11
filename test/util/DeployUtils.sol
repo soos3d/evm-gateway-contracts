@@ -39,19 +39,41 @@ abstract contract DeployUtils is CommonBase {
         return UpgradeablePlaceholder(address(proxy));
     }
 
-    function deployWallet(address owner) public returns (SpendWallet) {
-        UpgradeablePlaceholder proxy = deployPlaceholder(owner);
-        SpendWallet wallet = new SpendWallet();
+    function deploy(address owner) public returns (SpendWallet, SpendMinter) {
+        // Deploy both placeholders
+        UpgradeablePlaceholder walletProxy = deployPlaceholder(owner);
+        UpgradeablePlaceholder minterProxy = deployPlaceholder(owner);
+
+        // Deploy both implementation contracts
+        SpendWallet walletImpl = new SpendWallet();
+        SpendMinter minterImpl = new SpendMinter();
+
+        // Upgrade both placeholders and tell them about each other
         vm.prank(owner);
-        proxy.upgradeToAndCall(address(wallet), new bytes(0));
-        return SpendWallet(address(proxy));
+        walletProxy.upgradeToAndCall(address(walletImpl), abi.encodeCall(SpendWallet.initialize, address(minterProxy)));
+        vm.prank(owner);
+        minterProxy.upgradeToAndCall(address(minterImpl), abi.encodeCall(SpendMinter.initialize, address(walletProxy)));
+        vm.stopPrank();
+
+        // Return the upgraded proxies
+        SpendWallet wallet = SpendWallet(address(walletProxy));
+        SpendMinter minter = SpendMinter(address(minterProxy));
+        return (wallet, minter);
     }
 
-    function deployMinter(address owner) public returns (SpendMinter) {
-        UpgradeablePlaceholder proxy = deployPlaceholder(owner);
-        SpendMinter wallet = new SpendMinter();
+    function deployWalletOnly(address owner) public returns (SpendWallet) {
+        UpgradeablePlaceholder walletProxy = deployPlaceholder(owner);
+        SpendWallet walletImpl = new SpendWallet();
         vm.prank(owner);
-        proxy.upgradeToAndCall(address(wallet), new bytes(0));
-        return SpendMinter(address(proxy));
+        walletProxy.upgradeToAndCall(address(walletImpl), abi.encodeCall(SpendWallet.initialize, address(0)));
+        return SpendWallet(address(walletProxy));
+    }
+
+    function deployMinterOnly(address owner) public returns (SpendMinter) {
+        UpgradeablePlaceholder minterProxy = deployPlaceholder(owner);
+        SpendMinter minterImpl = new SpendMinter();
+        vm.prank(owner);
+        minterProxy.upgradeToAndCall(address(minterImpl), abi.encodeCall(SpendMinter.initialize, address(0)));
+        return SpendMinter(address(minterProxy));
     }
 }

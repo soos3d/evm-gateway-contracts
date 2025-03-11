@@ -52,8 +52,9 @@ contract SpendCommon is
     }
 
     /// Initializes the contract
-    function __SpendCommon_init() public initializer {
+    function __SpendCommon_init(address counterpart) public onlyInitializing {
         __Pausing_init();
+        __Counterpart_init(counterpart);
     }
 
     /// Prevent ownership from being transferred to a contract. Ownable2StepUpgradeable already prevents it from being

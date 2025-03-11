@@ -19,6 +19,7 @@
 pragma solidity ^0.8.28;
 
 import {SpendCommon} from "src/SpendCommon.sol";
+import {SpendMinter} from "src/SpendMinter.sol";
 import {BurnAuthorization} from "src/lib/Authorizations.sol";
 import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
 
@@ -74,8 +75,11 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         _disableInitializers();
     }
 
-    function initialize() public initializer {
-        __SpendCommon_init();
+    /// Initializes the contract with the counterpart minter address
+    ///
+    /// @param minter   The address of the minter contract on the same chain
+    function initialize(address minter) public reinitializer(2) {
+        __SpendCommon_init(minter);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -361,6 +365,10 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Informational
+
+    function minterContract() external view returns (SpendMinter) {
+        return SpendMinter(_counterpart());
+    }
 
     /// Returns the byte encoding of a single burn authorization
     ///

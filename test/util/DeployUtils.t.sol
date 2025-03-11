@@ -27,27 +27,48 @@ import {Test} from "forge-std/src/Test.sol";
 contract TestDeployUtils is Test, DeployUtils {
     address private owner = makeAddr("owner");
 
-    function test_deploy_placeholder() external {
+    function test_deployPlaceholder() external {
         UpgradeablePlaceholder placeholder = deployPlaceholder(owner);
 
         assertNotEq(address(placeholder), address(0));
+        assertEq(placeholder.owner(), owner);
     }
 
-    function test_deploy_wallet() external {
-        SpendWallet wallet = deployWallet(owner);
+    function test_deployPlaceholderWithoutInitializing() external {
+        UpgradeablePlaceholder placeholder = deployPlaceholderWithoutInitializing();
+
+        assertNotEq(address(placeholder), address(0));
+        assertEq(placeholder.owner(), address(0));
+    }
+
+    function test_deploy() external {
+        (SpendWallet wallet, SpendMinter minter) = deploy(owner);
 
         assertNotEq(address(wallet), address(0));
-
-        // The placeholder is not pausable, so this checks that the implementation uses SpendCommon
+        assertNotEq(address(minter), address(0));
+        assertEq(wallet.owner(), owner);
+        assertEq(minter.owner(), owner);
         assert(!wallet.paused());
+        assert(!minter.paused());
+        assertEq(address(wallet.minterContract()), address(minter));
+        assertEq(address(minter.walletContract()), address(wallet));
     }
 
-    function test_deploy_minter() external {
-        SpendMinter minter = deployMinter(owner);
+    function test_deployWalletOnly() external {
+        SpendWallet wallet = deployWalletOnly(owner);
+
+        assertNotEq(address(wallet), address(0));
+        assertEq(wallet.owner(), owner);
+        assert(!wallet.paused());
+        assertEq(address(wallet.minterContract()), address(0));
+    }
+
+    function test_deployMinterOnly() external {
+        SpendMinter minter = deployMinterOnly(owner);
 
         assertNotEq(address(minter), address(0));
-
-        // The placeholder is not pausable, so this checks that the implementation uses SpendCommon
+        assertEq(minter.owner(), owner);
         assert(!minter.paused());
+        assertEq(address(minter.walletContract()), address(0));
     }
 }

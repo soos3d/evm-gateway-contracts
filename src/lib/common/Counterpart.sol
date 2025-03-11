@@ -18,6 +18,7 @@
  */
 pragma solidity ^0.8.28;
 
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 /// Implements the EIP-7201 storage pattern for the Counterpart module
@@ -42,7 +43,7 @@ library CounterpartStorage {
 ///
 /// Manages pairs of contracts that each need to know the address of the other, namely the `SpendWallet` and
 /// `SpendMinter` contracts.
-contract Counterpart is Ownable2StepUpgradeable {
+contract Counterpart is Initializable, Ownable2StepUpgradeable {
     /// Emitted when the counterpart is updated
     ///
     /// @param newCounterpart   The new counterpart address
@@ -57,6 +58,11 @@ contract Counterpart is Ownable2StepUpgradeable {
         _;
     }
 
+    /// Returns the counterpart address
+    function _counterpart() internal view returns (address) {
+        return CounterpartStorage.get().counterpart;
+    }
+
     /// Ensures that the given address is the counterpart contract
     ///
     /// @param addr   The address to check
@@ -66,31 +72,25 @@ contract Counterpart is Ownable2StepUpgradeable {
         }
     }
 
-    /// Sets the counterpart contract address, and calls `updateCounterpart` with this contract's address on the new
-    /// counterpart
+    /// Sets the counterpart during initialization
     ///
-    /// @dev Checks that `tx.origin` is the owner (rather than `msg.sender` as in `onlyOwner`), to allow the
-    ///      counterparts to call each other to update in tandem (but only if the owner was the caller of the first
-    ///      one). We already require the owner to be an EOA in `SpendCommon` by disallowing contract code on the owner.
+    /// @param counterpart   The counterpart address
+    function __Counterpart_init(address counterpart) internal onlyInitializing {
+        _setCounterpart(counterpart);
+    }
+
+    /// Updates the counterpart. Only callable by the owner.
     ///
     /// @param newCounterpart   The new counterpart contract address
-    function updateCounterpart(address newCounterpart) external {
-        // solhint-disable avoid-tx-origin
-        if (tx.origin != owner()) {
-            revert OwnableUnauthorizedAccount(tx.origin);
-        }
-        // solhint-enable avoid-tx-origin
+    function updateCounterpart(address newCounterpart) external onlyOwner {
+        _setCounterpart(newCounterpart);
+    }
 
-        // Update the counterpart address
+    /// Sets the counterpart in storage and emits an event
+    ///
+    /// @param newCounterpart   The new counterpart contract address
+    function _setCounterpart(address newCounterpart) private {
         CounterpartStorage.get().counterpart = newCounterpart;
         emit CounterpartUpdated(newCounterpart);
-
-        // If this was the call from the counterpart, we're done
-        if (newCounterpart == _msgSender()) {
-            return;
-        }
-
-        // Otherwise, this came from the owner, so we need to call the counterpart to update it
-        Counterpart(newCounterpart).updateCounterpart(address(this));
     }
 }

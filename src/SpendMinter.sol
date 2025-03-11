@@ -19,6 +19,7 @@
 pragma solidity ^0.8.28;
 
 import {SpendCommon} from "src/SpendCommon.sol";
+import {SpendWallet} from "src/SpendWallet.sol";
 
 /// @title Spend Minter
 ///
@@ -34,8 +35,11 @@ contract SpendMinter is SpendCommon {
         _disableInitializers();
     }
 
-    function initialize() public initializer {
-        __SpendCommon_init();
+    /// Initializes the contract with the counterpart wallet address
+    ///
+    /// @param wallet   The address of the wallet contract on the same chain
+    function initialize(address wallet) public reinitializer(2) {
+        __SpendCommon_init(wallet);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,4 +71,11 @@ contract SpendMinter is SpendCommon {
     /// @param authorizations   The byte-encoded spend authorization(s)
     /// @param signature        The signature from the operator
     function spend(bytes memory authorizations, bytes memory signature) external whenNotPaused {}
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Informational
+
+    function walletContract() external view returns (SpendWallet) {
+        return SpendWallet(_counterpart());
+    }
 }
