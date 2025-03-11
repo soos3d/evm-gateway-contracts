@@ -56,13 +56,4 @@ contract SpendCommon is
         __Pausing_init();
         __Counterpart_init(counterpart);
     }
-
-    /// Prevent ownership from being transferred to a contract. Ownable2StepUpgradeable already prevents it from being
-    /// transferred to the null address.
-    function transferOwnership(address newOwner) public override onlyOwner {
-        if (newOwner.code.length > 0) {
-            revert ContractOwnerNotAllowed(newOwner);
-        }
-        super.transferOwnership(newOwner);
-    }
 }
