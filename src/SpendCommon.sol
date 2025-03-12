@@ -18,20 +18,28 @@
  */
 pragma solidity ^0.8.28;
 
-import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Pausing} from "src/lib/common/Pausing.sol";
+import {Counterpart} from "src/lib/common/Counterpart.sol";
+import {Rejection} from "src/lib/common/Rejection.sol";
+import {TokenSupport} from "src/lib/common/TokenSupport.sol";
+import {SpendHashes} from "src/lib/common/SpendHashes.sol";
 
-/// A no-op, upgradeable implementation contract for UUPS proxies
-contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepUpgradeable {
-    /// Thrown if the owner address is the zero address
-    error NullOwnerNotAllowed();
-
-    /// Thrown if the new owner address is a contract
-    ///
-    /// @param owner   The address of the owner
-    error ContractOwnerNotAllowed(address owner);
-
+/// @title SpendCommon
+///
+/// This contract contains functionality that is common between `SpendWallet` and `SpendMinter`.
+contract SpendCommon is
+    Initializable,
+    UUPSUpgradeable,
+    Ownable2StepUpgradeable,
+    Pausing,
+    Rejection,
+    Counterpart,
+    TokenSupport,
+    SpendHashes
+{
     /// Implements the UUPS upgrade pattern by restricting upgrades to the owner
     ///
     /// @param newImplementation   The address of the new implementation
@@ -39,23 +47,15 @@ contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepU
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
+        // Ensure that the implementation contract cannot be initialized, only the proxy
         _disableInitializers();
     }
 
-    /// Initializes the contract with the given owner address
+    /// Initializes the contract, setting the counterpart to the given address and the pauser to the owner initially
     ///
-    /// @param newOwner   The address of the new owner
-    function initialize(address newOwner) public initializer {
-        if (newOwner == address(0)) {
-            revert NullOwnerNotAllowed();
-        }
-
-        if (newOwner.code.length > 0) {
-            revert ContractOwnerNotAllowed(newOwner);
-        }
-
-        __UUPSUpgradeable_init();
-        __Ownable_init(newOwner);
-        __Ownable2Step_init();
+    /// @param counterpart   The address of the counterpart contract (either `SpendWallet` or `SpendMinter`)
+    function __SpendCommon_init(address counterpart) public onlyInitializing {
+        __Pausing_init(owner());
+        __Counterpart_init(counterpart);
     }
 }
