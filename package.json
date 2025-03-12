@@ -2,7 +2,14 @@
   "name": "evm-spend-contracts-private",
   "version": "1.0.0",
   "scripts": {
-    "lint": "solhint -c .solhint-src.json './src/**/*.sol' && solhint -c .solhint-test.json './test/**/*.sol'"
+    "test": "forge test",
+    "test:all": "./scripts/test_all_forks.sh",
+    "format": "forge fmt --check",
+    "format:fix": "forge fmt",
+    "lint": "solhint --disc -c .solhint-src.json './src/**/*.sol' && solhint --disc -c .solhint-test.json './test/**/*.sol'",
+    "lint:fix": "solhint --disc --fix -c .solhint-src.json './src/**/*.sol' && solhint --disc --fix -c .solhint-test.json './test/**/*.sol'",
+    "sizes": "forge build --sizes; ./scripts/contract_sizes.sh",
+    "ci": "yarn format && yarn lint && yarn test:all"
   },
   "license": "GPL-3.0-or-later",
   "type": "module",

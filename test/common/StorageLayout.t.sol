@@ -18,15 +18,25 @@
  */
 pragma solidity ^0.8.28;
 
-/// User-facing methods for the SpendDestination contract
-interface ISpendDestinationUser {
-    /// Spend funds via a signed spend authorization from the operator. Accepts
-    ///      either a single encoded `SpendAuthorization` or an encoded set of
-    ///      them. Emits an event containing the keccak256 hash of the encoded
-    ///      `SpendSpec` (which is the same for the burn), to be used as a
-    ///      cross-chain identifier.
-    ///
-    /// @param authorizations   The byte-encoded spend authorization(s)
-    /// @param signature        The signature from the operator
-    function spend(bytes memory authorizations, bytes memory signature) external;
+import {SpendCommon} from "src/SpendCommon.sol";
+import {Test} from "forge-std/src/Test.sol";
+
+contract Sample is SpendCommon {
+    /// The answer to life, the universe, and everything
+    uint256 private answer = 42;
+
+    /// Loads the first storage slot
+    function getSlotZero() public view returns (uint256 val) {
+        assembly {
+            val := sload(0)
+        }
+    }
+}
+
+contract SpendCommonStorageLayout is Test {
+    /// Ensures that `SpendCommon` uses up no sequential storage slots and uses EIP-7201 for all modules
+    function test_storage_conflicts() external {
+        Sample sample = new Sample();
+        assertEq(sample.getSlotZero(), 42, "At least one module in SpendCommon has declared sequential storage slots");
+    }
 }
