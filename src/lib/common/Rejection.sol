@@ -34,10 +34,20 @@ contract Rejection is Ownable2StepUpgradeable {
     /// @param addr   The address that is allowed to interact with the contract again
     event AddressAllowed(address addr);
 
+    /// Emitted when the rejecter address is updated
+    ///
+    /// @param newRejecter   The new rejecter address
+    event RejecterUpdated(address newRejecter);
+
     /// Thrown when an address is rejected from interacting with the contract
     ///
     /// @param addr   The rejected address
-    error RejectedAddress(address addr);
+    error NotAllowed(address addr);
+
+    /// Thrown when an unauthorized address attempts to reject or allow addresses
+    ///
+    /// @param addr   The unauthorized address
+    error UnauthorizedRejecter(address addr);
 
     /// Whether or not a given address is rejected from interacting with the contract
     ///
@@ -54,6 +64,13 @@ contract Rejection is Ownable2StepUpgradeable {
         RejectionStorage.get().rejectedAddresses[addr] = rejected;
     }
 
+    /// Sets the address that is allowed to reject and allow addresses
+    ///
+    /// @param newRejecter   The new rejecter address
+    function _setRejecter(address newRejecter) internal {
+        RejectionStorage.get().rejecter = newRejecter;
+    }
+
     /// Restricts access to a function to addresses that are not rejected
     ///
     /// @param addr   The address to check
@@ -62,29 +79,51 @@ contract Rejection is Ownable2StepUpgradeable {
         _;
     }
 
+    /// Restricts the caller to the `rejecter` role, reverting with an error for other callers
+    modifier onlyRejecter() {
+        if (_msgSender() != RejectionStorage.get().rejecter) {
+            revert UnauthorizedRejecter(_msgSender());
+        }
+        _;
+    }
+
     /// Reverts if the given address is rejected
     ///
     /// @param addr   The address to check
     function _ensureNotRejected(address addr) internal view {
         if (isRejected(addr)) {
-            revert RejectedAddress(addr);
+            revert NotAllowed(addr);
         }
     }
 
     /// Rejects an address from interacting with the contract
     ///
+    /// @dev May only be called by the `rejecter` role
+    ///
     /// @param addr   The address to be rejected
-    function rejectAddress(address addr) external onlyOwner {
+    function rejectAddress(address addr) external onlyRejecter {
         _setRejected(addr, true);
         emit AddressRejected(addr);
     }
 
     /// Allows a previously-rejected address to interact with the contract again
     ///
+    /// @dev May only be called by the `owner` role
+    ///
     /// @param addr   The address to be allowed
-    function allowAddress(address addr) external onlyOwner {
+    function allowAddress(address addr) external onlyRejecter {
         _setRejected(addr, false);
         emit AddressAllowed(addr);
+    }
+
+    /// Sets the address that is allowed to reject and allow addresses
+    ///
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param newRejecter   The new burner address
+    function updateRejecter(address newRejecter) external onlyOwner {
+        _setRejecter(newRejecter);
+        emit RejecterUpdated(newRejecter);
     }
 }
 
@@ -94,6 +133,8 @@ library RejectionStorage {
     struct Data {
         /// Whether or not a given address should be rejected from interacting with the contract
         mapping(address addr => bool rejected) rejectedAddresses;
+        /// The address that is allowed to reject and allow addresses
+        address rejecter;
     }
 
     /// keccak256(abi.encode(uint256(keccak256("circle.spend.Rejection")) - 1)) & ~bytes32(uint256(0xff))
