@@ -18,7 +18,7 @@
 
 pragma solidity 0.6.12;
 
-import { SafeMathWrapper } from "../../SafeMathWrapper.sol";
+import { SafeMathWrapper } from "../../../SafeMathWrapper.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "../../v1/Ownable.sol";
 import { FiatTokenProxy } from "../../v1/FiatTokenProxy.sol";

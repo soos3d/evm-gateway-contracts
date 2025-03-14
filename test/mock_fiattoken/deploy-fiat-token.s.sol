@@ -21,9 +21,9 @@ pragma solidity 0.6.12;
 import "forge-std/console.sol"; // solhint-disable no-global-import, no-console
 import { Script } from "forge-std/Script.sol";
 import { DeployImpl } from "./DeployImpl.sol";
-import { FiatTokenProxy } from "../../contracts/v1/FiatTokenProxy.sol";
-import { FiatTokenV2_2 } from "../../contracts/v2/FiatTokenV2_2.sol";
-import { MasterMinter } from "../../contracts/minting/MasterMinter.sol";
+import { FiatTokenProxy } from "./contracts/v1/FiatTokenProxy.sol";
+import { FiatTokenV2_2 } from "./contracts/v2/FiatTokenV2_2.sol";
+import { MasterMinter } from "./contracts/minting/MasterMinter.sol";
 
 /**
  * A utility script to directly deploy Fiat Token contract with the latest implementation

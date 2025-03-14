@@ -18,7 +18,7 @@
 
 pragma solidity 0.6.12;
 
-import { SafeMathWrapper } from "../../SafeMathWrapper.sol";
+import { SafeMathWrapper } from "../../../SafeMathWrapper.sol";
 import { FiatTokenV2_2 } from "../FiatTokenV2_2.sol";
 import { FiatTokenProxy } from "../../v1/FiatTokenProxy.sol";
 import { V2_2UpgraderHelper } from "./helpers/V2_2UpgraderHelper.sol";

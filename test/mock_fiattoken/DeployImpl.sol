@@ -18,10 +18,10 @@
 
 pragma solidity 0.6.12;
 
-import { FiatTokenV2_2 } from "../../contracts/v2/FiatTokenV2_2.sol";
+import { FiatTokenV2_2 } from "./contracts/v2/FiatTokenV2_2.sol";
 import {
     FiatTokenCeloV2_2
-} from "../../contracts/v2/celo/FiatTokenCeloV2_2.sol";
+} from "./contracts/v2/celo/FiatTokenCeloV2_2.sol";
 
 /**
  * @notice A utility contract that exposes a re-useable getOrDeployImpl function.
