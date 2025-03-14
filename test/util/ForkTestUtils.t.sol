@@ -19,7 +19,7 @@
 pragma solidity ^0.8.28;
 
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
-import {Test} from "forge-std/src/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 contract TestForkTestUtils is Test {
     function test_forkVars_ethereum() external {

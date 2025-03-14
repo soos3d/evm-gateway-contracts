@@ -22,7 +22,7 @@ import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
-import {Test} from "forge-std/src/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 contract TestDeployUtils is Test, DeployUtils {
     address private owner = makeAddr("owner");
