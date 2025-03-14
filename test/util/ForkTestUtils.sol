@@ -18,6 +18,10 @@
  */
 pragma solidity ^0.8.28;
 
+import {DeployMockFiatToken} from "./DeployMockFiatToken.sol";
+import { FiatTokenProxy} from "../mock_fiattoken/contracts/v1/FiatTokenProxy.sol";
+
+
 /// Helpers for managing values and dependencies between forks
 library ForkTestUtils {
     error UnknownChain(uint256 id);
@@ -34,7 +38,7 @@ library ForkTestUtils {
         address usdc;
     }
 
-    function forkVars() public view returns (ForkVars memory) {
+    function forkVars() public returns (ForkVars memory) {
         if (block.chainid == LOCAL_CHAIN_ID) {
             return deployLocalDependencies();
         }
@@ -66,8 +70,9 @@ library ForkTestUtils {
         revert UnknownChain(block.chainid);
     }
 
-    function deployLocalDependencies() public pure returns (ForkVars memory) {
-        // TODO: deploy mock version of USDC and return its address
-        return ForkVars({usdc: address(0)});
+    function deployLocalDependencies() public returns (ForkVars memory) {
+        DeployMockFiatToken mockTokenDeployer = new DeployMockFiatToken();
+        (,,FiatTokenProxy proxy) = mockTokenDeployer.deploy();
+        return ForkVars({usdc: address(proxy)});
     }
 }
