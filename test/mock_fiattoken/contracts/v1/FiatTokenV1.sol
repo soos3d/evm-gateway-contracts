@@ -18,7 +18,7 @@
 
 pragma solidity 0.6.12;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMathWrapper } from "../../SafeMathWrapper.sol";
 import { AbstractFiatTokenV1 } from "./AbstractFiatTokenV1.sol";
 import { Ownable } from "./Ownable.sol";
 import { Pausable } from "./Pausable.sol";
@@ -29,7 +29,7 @@ import { Blacklistable } from "./Blacklistable.sol";
  * @dev ERC20 Token backed by fiat reserves
  */
 contract FiatTokenV1 is AbstractFiatTokenV1, Ownable, Pausable, Blacklistable {
-    using SafeMath for uint256;
+    using SafeMathWrapper for uint256;
 
     string public name;
     string public symbol;

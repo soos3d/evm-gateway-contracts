@@ -18,12 +18,12 @@
 
 pragma solidity 0.6.12;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMathWrapper } from "../../../SafeMathWrapper.sol";
 import { FiatTokenV2_2 } from "../FiatTokenV2_2.sol";
 import { ICeloGasToken } from "../../interface/celo/ICeloGasToken.sol";
 
 contract FiatTokenCeloV2_2 is FiatTokenV2_2, ICeloGasToken {
-    using SafeMath for uint256;
+    using SafeMathWrapper for uint256;
     event FeeCallerChanged(address indexed newAddress);
 
     /**

@@ -18,7 +18,7 @@
 
 pragma solidity 0.6.12;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMathWrapper } from "../../SafeMathWrapper.sol";
 import { FiatTokenV2 } from "../FiatTokenV2.sol";
 import { FiatTokenProxy } from "../../v1/FiatTokenProxy.sol";
 import { V2UpgraderHelper } from "./helpers/V2UpgraderHelper.sol";
@@ -33,7 +33,7 @@ import { AbstractV2Upgrader } from "./AbstractV2Upgrader.sol";
  * @dev Read doc/v2_upgrade.md
  */
 contract V2Upgrader is AbstractV2Upgrader {
-    using SafeMath for uint256;
+    using SafeMathWrapper for uint256;
 
     string private _newName;
 

@@ -20,7 +20,7 @@ pragma solidity 0.6.12;
 
 import { Controller } from "./Controller.sol";
 import { MinterManagementInterface } from "./MinterManagementInterface.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMathWrapper } from "../../SafeMathWrapper.sol";
 
 // solhint-disable func-name-mixedcase
 
@@ -36,7 +36,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
  * Controller workers as minters.
  */
 contract MintController is Controller {
-    using SafeMath for uint256;
+    using SafeMathWrapper for uint256;
 
     /**
      * @dev MintController calls the minterManager to execute/record minter

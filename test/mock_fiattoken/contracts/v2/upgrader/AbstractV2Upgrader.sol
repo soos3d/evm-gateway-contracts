@@ -18,7 +18,7 @@
 
 pragma solidity 0.6.12;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMathWrapper } from "../../SafeMathWrapper.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Ownable } from "../../v1/Ownable.sol";
 import { FiatTokenProxy } from "../../v1/FiatTokenProxy.sol";
@@ -29,7 +29,7 @@ import { AbstractUpgraderHelper } from "./helpers/AbstractUpgraderHelper.sol";
  * for any V2+ Upgrader contracts.
  */
 abstract contract AbstractV2Upgrader is Ownable {
-    using SafeMath for uint256;
+    using SafeMathWrapper for uint256;
 
     FiatTokenProxy internal _proxy;
     address internal _implementation;
