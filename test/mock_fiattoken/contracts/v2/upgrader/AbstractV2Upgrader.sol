@@ -46,7 +46,7 @@ abstract contract AbstractV2Upgrader is Ownable {
         FiatTokenProxy proxy,
         address implementation,
         address newProxyAdmin
-    ) public Ownable() {
+    ) Ownable() {
         _proxy = proxy;
         _implementation = implementation;
         _newProxyAdmin = newProxyAdmin;
@@ -115,6 +115,6 @@ abstract contract AbstractV2Upgrader is Ownable {
      */
     function tearDown() internal {
         _helper.tearDown();
-        selfdestruct(msg.sender);
+        selfdestruct(payable(msg.sender));
     }
 }

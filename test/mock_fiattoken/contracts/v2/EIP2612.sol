@@ -82,7 +82,7 @@ abstract contract EIP2612 is AbstractFiatTokenV2, EIP712Domain {
         bytes memory signature
     ) internal {
         require(
-            deadline == type(uint256).max || deadline >= now,
+            deadline == type(uint256).max || deadline >= block.timestamp,
             "FiatTokenV2: permit is expired"
         );
 

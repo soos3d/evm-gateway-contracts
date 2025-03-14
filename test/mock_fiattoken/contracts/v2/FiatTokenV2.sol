@@ -18,6 +18,7 @@
 
 pragma solidity ^0.8.28;
 
+import {SafeMathWrapper} from "../../SafeMathWrapper.sol";
 import { FiatTokenV1_1 } from "../v1.1/FiatTokenV1_1.sol";
 import { EIP712 } from "../util/EIP712.sol";
 import { EIP3009 } from "./EIP3009.sol";
@@ -28,6 +29,7 @@ import { EIP2612 } from "./EIP2612.sol";
  * @notice ERC20 Token backed by fiat reserves, version 2
  */
 contract FiatTokenV2 is FiatTokenV1_1, EIP3009, EIP2612 {
+    using SafeMathWrapper for uint256;
     uint8 internal _initializedVersion;
 
     /**
@@ -230,10 +232,7 @@ contract FiatTokenV2 is FiatTokenV1_1, EIP3009, EIP2612 {
         _approve(
             owner,
             spender,
-            allowed[owner][spender].sub(
-                decrement,
-                "ERC20: decreased allowance below zero"
-            )
+            allowed[owner][spender].sub(decrement)
         );
     }
 }

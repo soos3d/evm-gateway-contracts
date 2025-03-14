@@ -84,7 +84,7 @@ contract UpgradeabilityProxy is Proxy {
      */
     function _setImplementation(address newImplementation) private {
         require(
-            Address.isContract(newImplementation),
+            newImplementation.code.length > 0,
             "Cannot set a proxy implementation to a non-contract address"
         );
 

@@ -31,7 +31,7 @@ abstract contract AbstractUpgraderHelper is Ownable {
      * @notice Constructor
      * @param fiatTokenProxy    Address of the FiatTokenProxy contract
      */
-    constructor(address fiatTokenProxy) public Ownable() {
+    constructor(address fiatTokenProxy) Ownable() {
         _proxy = fiatTokenProxy;
     }
 
@@ -47,6 +47,6 @@ abstract contract AbstractUpgraderHelper is Ownable {
      * @notice Tear down the contract (self-destruct)
      */
     function tearDown() external onlyOwner {
-        selfdestruct(msg.sender);
+        selfdestruct(payable(msg.sender));
     }
 }
