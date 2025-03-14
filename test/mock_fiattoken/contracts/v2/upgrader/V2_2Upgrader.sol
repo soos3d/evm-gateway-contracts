@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-pragma solidity 0.6.12;
+pragma solidity ^0.8.28;
 
 import { SafeMathWrapper } from "../../../SafeMathWrapper.sol";
 import { FiatTokenV2_2 } from "../FiatTokenV2_2.sol";
