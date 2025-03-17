@@ -15,15 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity ^0.8.28;
 
 import "forge-std/console.sol"; // solhint-disable no-global-import, no-console
-import { Script } from "forge-std/Script.sol";
-import { DeployImpl } from "./DeployImpl.sol";
-import { FiatTokenProxy } from "./contracts/v1/FiatTokenProxy.sol";
-import { FiatTokenV2_2 } from "./contracts/v2/FiatTokenV2_2.sol";
-import { MasterMinter } from "./contracts/minting/MasterMinter.sol";
+import {Script} from "forge-std/Script.sol";
+import {DeployImpl} from "./DeployImpl.sol";
+import {FiatTokenProxy} from "./contracts/v1/FiatTokenProxy.sol";
+import {FiatTokenV2_2} from "./contracts/v2/FiatTokenV2_2.sol";
+import {MasterMinter} from "./contracts/minting/MasterMinter.sol";
 
 /**
  * A utility script to directly deploy Fiat Token contract with the latest implementation
@@ -83,14 +82,7 @@ contract DeployFiatToken is Script, DeployImpl {
     /**
      * @dev For testing only: splitting deploy logic into an internal function to expose for testing
      */
-    function _deploy(address _impl)
-        internal
-        returns (
-            FiatTokenV2_2,
-            MasterMinter,
-            FiatTokenProxy
-        )
-    {
+    function _deploy(address _impl) internal returns (FiatTokenV2_2, MasterMinter, FiatTokenProxy) {
         vm.startBroadcast(deployerPrivateKey);
 
         // If there is an existing implementation contract,
@@ -117,14 +109,7 @@ contract DeployFiatToken is Script, DeployImpl {
         // The master minter contract's owner is a separate address.
         FiatTokenV2_2 proxyAsV2_2 = FiatTokenV2_2(address(proxy));
         proxyAsV2_2.initialize(
-            tokenName,
-            tokenSymbol,
-            tokenCurrency,
-            tokenDecimals,
-            address(masterMinter),
-            pauser,
-            blacklister,
-            owner
+            tokenName, tokenSymbol, tokenCurrency, tokenDecimals, address(masterMinter), pauser, blacklister, owner
         );
 
         // Do the V2 initialization
@@ -144,28 +129,14 @@ contract DeployFiatToken is Script, DeployImpl {
     /**
      * @dev For testing only: Helper function that runs deploy script with a specific implementation address
      */
-    function deploy(address _impl)
-        external
-        returns (
-            FiatTokenV2_2,
-            MasterMinter,
-            FiatTokenProxy
-        )
-    {
+    function deploy(address _impl) external returns (FiatTokenV2_2, MasterMinter, FiatTokenProxy) {
         return _deploy(_impl);
     }
 
     /**
      * @notice main function that will be run by forge
      */
-    function run()
-        external
-        returns (
-            FiatTokenV2_2,
-            MasterMinter,
-            FiatTokenProxy
-        )
-    {
+    function run() external returns (FiatTokenV2_2, MasterMinter, FiatTokenProxy) {
         return _deploy(impl);
     }
 }

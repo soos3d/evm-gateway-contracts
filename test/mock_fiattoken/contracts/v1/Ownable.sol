@@ -22,7 +22,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 pragma solidity ^0.8.28;
 
 /**
@@ -80,10 +79,7 @@ contract Ownable {
      * @param newOwner The address to transfer ownership to.
      */
     function transferOwnership(address newOwner) external onlyOwner {
-        require(
-            newOwner != address(0),
-            "Ownable: new owner is the zero address"
-        );
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
         emit OwnershipTransferred(_owner, newOwner);
         setOwner(newOwner);
     }

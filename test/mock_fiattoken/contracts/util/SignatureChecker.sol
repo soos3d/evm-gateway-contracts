@@ -15,11 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity ^0.8.28;
 
-import { ECRecover } from "./ECRecover.sol";
-import { IERC1271 } from "../interface/IERC1271.sol";
+import {ECRecover} from "./ECRecover.sol";
+import {IERC1271} from "../interface/IERC1271.sol";
 
 /**
  * @dev Signature verification helper that can be used instead of `ECRecover.recover` to seamlessly support both ECDSA
@@ -35,11 +34,7 @@ library SignatureChecker {
      * @param digest        Keccak-256 hash digest of the signed message
      * @param signature     Signature byte array associated with hash
      */
-    function isValidSignatureNow(
-        address signer,
-        bytes32 digest,
-        bytes memory signature
-    ) external view returns (bool) {
+    function isValidSignatureNow(address signer, bytes32 digest, bytes memory signature) external view returns (bool) {
         if (!isContract(signer)) {
             return ECRecover.recover(digest, signature) == signer;
         }
@@ -56,22 +51,17 @@ library SignatureChecker {
      * NOTE: Unlike ECDSA signatures, contract signatures are revocable, and the outcome of this function can thus
      * change through time. It could return true at block N and false at block N+1 (or the opposite).
      */
-    function isValidERC1271SignatureNow(
-        address signer,
-        bytes32 digest,
-        bytes memory signature
-    ) internal view returns (bool) {
-        (bool success, bytes memory result) = signer.staticcall(
-            abi.encodeWithSelector(
-                IERC1271.isValidSignature.selector,
-                digest,
-                signature
-            )
+    function isValidERC1271SignatureNow(address signer, bytes32 digest, bytes memory signature)
+        internal
+        view
+        returns (bool)
+    {
+        (bool success, bytes memory result) =
+            signer.staticcall(abi.encodeWithSelector(IERC1271.isValidSignature.selector, digest, signature));
+        return (
+            success && result.length >= 32
+                && abi.decode(result, (bytes32)) == bytes32(IERC1271.isValidSignature.selector)
         );
-        return (success &&
-            result.length >= 32 &&
-            abi.decode(result, (bytes32)) ==
-            bytes32(IERC1271.isValidSignature.selector));
     }
 
     /**

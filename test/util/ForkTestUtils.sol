@@ -19,8 +19,7 @@
 pragma solidity ^0.8.28;
 
 import {DeployMockFiatToken} from "./DeployMockFiatToken.sol";
-import { FiatTokenProxy} from "../mock_fiattoken/contracts/v1/FiatTokenProxy.sol";
-
+import {FiatTokenProxy} from "../mock_fiattoken/contracts/v1/FiatTokenProxy.sol";
 
 /// Helpers for managing values and dependencies between forks
 library ForkTestUtils {
@@ -72,7 +71,7 @@ library ForkTestUtils {
 
     function deployLocalDependencies() public returns (ForkVars memory) {
         DeployMockFiatToken mockTokenDeployer = new DeployMockFiatToken();
-        (,,FiatTokenProxy proxy) = mockTokenDeployer.deploy();
+        (,, FiatTokenProxy proxy) = mockTokenDeployer.deploy();
         return ForkVars({usdc: address(proxy)});
     }
 }

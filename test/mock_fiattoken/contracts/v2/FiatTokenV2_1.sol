@@ -15,10 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity ^0.8.28;
 
-import { FiatTokenV2 } from "./FiatTokenV2.sol";
+import {FiatTokenV2} from "./FiatTokenV2.sol";
 
 // solhint-disable func-name-mixedcase
 

@@ -22,10 +22,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 pragma solidity ^0.8.28;
 
-import { Ownable } from "./Ownable.sol";
+import {Ownable} from "./Ownable.sol";
 
 /**
  * @notice Base contract which allows children to implement an emergency stop
@@ -85,10 +84,7 @@ contract Pausable is Ownable {
      * @param _newPauser The address of the new pauser.
      */
     function updatePauser(address _newPauser) external onlyOwner {
-        require(
-            _newPauser != address(0),
-            "Pausable: new pauser is the zero address"
-        );
+        require(_newPauser != address(0), "Pausable: new pauser is the zero address");
         pauser = _newPauser;
         emit PauserChanged(pauser);
     }

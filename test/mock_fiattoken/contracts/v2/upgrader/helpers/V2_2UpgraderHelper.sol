@@ -15,11 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity ^0.8.28;
 
-import { FiatTokenV2_1 } from "../../../v2/FiatTokenV2_1.sol";
-import { V2UpgraderHelper } from "./V2UpgraderHelper.sol";
+import {FiatTokenV2_1} from "../../../v2/FiatTokenV2_1.sol";
+import {V2UpgraderHelper} from "./V2UpgraderHelper.sol";
 
 /**
  * @title V2.2 Upgrader Helper
@@ -32,10 +31,7 @@ contract V2_2UpgraderHelper is V2UpgraderHelper {
      * @notice Constructor
      * @param fiatTokenProxy    Address of the FiatTokenProxy contract
      */
-    constructor(address fiatTokenProxy)
-        public
-        V2UpgraderHelper(fiatTokenProxy)
-    {}
+    constructor(address fiatTokenProxy) public V2UpgraderHelper(fiatTokenProxy) {}
 
     /**
      * @notice Call version()

@@ -31,21 +31,17 @@ contract TestDeployMockFiatToken is Test {
     function setUp() public {
         mockTokenDeployer = new DeployMockFiatToken();
     }
-    
+
     function test_deployMockFiatToken() public {
         vm.skip(block.chainid != ForkTestUtils.LOCAL_CHAIN_ID);
-        (
-            FiatTokenV2_2 v2_2,
-            MasterMinter masterMinter,
-            FiatTokenProxy proxy
-        ) = mockTokenDeployer.deploy();
+        (FiatTokenV2_2 v2_2, MasterMinter masterMinter, FiatTokenProxy proxy) = mockTokenDeployer.deploy();
 
         validateImpl(v2_2);
         validateMasterMinter(masterMinter, address(proxy));
         validateProxy(proxy, address(v2_2), address(masterMinter));
     }
 
-    function validateImpl(FiatTokenV2_2 impl) view internal {
+    function validateImpl(FiatTokenV2_2 impl) internal view {
         assertEq(impl.name(), "");
         assertEq(impl.symbol(), "");
         assertEq(impl.currency(), "");
@@ -56,11 +52,7 @@ contract TestDeployMockFiatToken is Test {
         assertEq(impl.blacklister(), address(1));
     }
 
-    function validateProxy(
-        FiatTokenProxy proxy,
-        address _impl,
-        address _masterMinter
-    ) view internal {
+    function validateProxy(FiatTokenProxy proxy, address _impl, address _masterMinter) internal view {
         assertEq(proxy.admin(), mockTokenDeployer.proxyAdmin());
         assertEq(proxy.implementation(), _impl);
 
@@ -75,7 +67,7 @@ contract TestDeployMockFiatToken is Test {
         assertEq(proxyAsV2_2.masterMinter(), _masterMinter);
     }
 
-    function validateMasterMinter(MasterMinter masterMinter, address _proxy) view internal {
+    function validateMasterMinter(MasterMinter masterMinter, address _proxy) internal view {
         assertEq(masterMinter.owner(), mockTokenDeployer.masterMinterOwner());
         assertEq(address(masterMinter.getMinterManager()), _proxy);
     }

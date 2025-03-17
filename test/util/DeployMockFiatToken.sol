@@ -18,17 +18,11 @@
  */
 pragma solidity ^0.8.28;
 
-import { CommonBase } from "forge-std/Base.sol";
-import { MasterMinter } from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
-import { FiatTokenProxy } from "../mock_fiattoken/contracts/v1/FiatTokenProxy.sol";
-import { FiatTokenV2_2 } from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
-import {
-    AbstractV2Upgrader
-} from "../mock_fiattoken/contracts/v2/upgrader/AbstractV2Upgrader.sol";
-import {
-    FiatTokenCeloV2_2
-} from "../mock_fiattoken/contracts/v2/celo/FiatTokenCeloV2_2.sol";
-import { DeployFiatToken } from "../mock_fiattoken/deploy-fiat-token.s.sol";
+import {CommonBase} from "forge-std/Base.sol";
+import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
+import {FiatTokenProxy} from "../mock_fiattoken/contracts/v1/FiatTokenProxy.sol";
+import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
+import {DeployFiatToken} from "../mock_fiattoken/deploy-fiat-token.s.sol";
 
 // Contract to deploy mock FiatToken (USDC) contract for local testing. Copied with minor modification from @circlefin/stablecoin-evm/test/scripts/deploy/TestUtils.sol
 contract DeployMockFiatToken is CommonBase {
@@ -60,10 +54,7 @@ contract DeployMockFiatToken is CommonBase {
         vm.setEnv("TOKEN_DECIMALS", "6");
         vm.setEnv("DEPLOYER_PRIVATE_KEY", vm.toString(deployerPrivateKey));
         vm.setEnv("PROXY_ADMIN_ADDRESS", vm.toString(proxyAdmin));
-        vm.setEnv(
-            "MASTER_MINTER_OWNER_ADDRESS",
-            vm.toString(masterMinterOwner)
-        );
+        vm.setEnv("MASTER_MINTER_OWNER_ADDRESS", vm.toString(masterMinterOwner));
         vm.setEnv("OWNER_ADDRESS", vm.toString(owner));
         vm.setEnv("PAUSER_ADDRESS", vm.toString(pauser));
         vm.setEnv("BLACKLISTER_ADDRESS", vm.toString(blacklister));

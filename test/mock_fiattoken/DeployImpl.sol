@@ -15,13 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity ^0.8.28;
 
-import { FiatTokenV2_2 } from "./contracts/v2/FiatTokenV2_2.sol";
-import {
-    FiatTokenCeloV2_2
-} from "./contracts/v2/celo/FiatTokenCeloV2_2.sol";
+import {FiatTokenV2_2} from "./contracts/v2/FiatTokenV2_2.sol";
+import {FiatTokenCeloV2_2} from "./contracts/v2/celo/FiatTokenCeloV2_2.sol";
 
 /**
  * @notice A utility contract that exposes a re-useable getOrDeployImpl function.
@@ -48,14 +45,7 @@ contract DeployImpl {
             // Dummy values can be used here as the proxy contract will store the actual values
             // for the deployed token.
             fiatTokenV2_2.initialize(
-                "",
-                "",
-                "",
-                0,
-                THROWAWAY_ADDRESS,
-                THROWAWAY_ADDRESS,
-                THROWAWAY_ADDRESS,
-                THROWAWAY_ADDRESS
+                "", "", "", 0, THROWAWAY_ADDRESS, THROWAWAY_ADDRESS, THROWAWAY_ADDRESS, THROWAWAY_ADDRESS
             );
             fiatTokenV2_2.initializeV2("");
             fiatTokenV2_2.initializeV2_1(THROWAWAY_ADDRESS);
@@ -75,10 +65,7 @@ contract DeployImpl {
      * @param impl configured of the implementation contract, where address(0) represents a new instance should be deployed
      * @return FiatTokenCeloV2_2 newly deployed or loaded instance
      */
-    function getOrDeployImplCelo(address impl)
-        internal
-        returns (FiatTokenCeloV2_2)
-    {
+    function getOrDeployImplCelo(address impl) internal returns (FiatTokenCeloV2_2) {
         FiatTokenCeloV2_2 fiatTokenCeloV2_2;
 
         if (impl == address(0)) {
@@ -89,14 +76,7 @@ contract DeployImpl {
             // Dummy values can be used here as the proxy contract will store the actual values
             // for the deployed token.
             fiatTokenCeloV2_2.initialize(
-                "",
-                "",
-                "",
-                0,
-                THROWAWAY_ADDRESS,
-                THROWAWAY_ADDRESS,
-                THROWAWAY_ADDRESS,
-                THROWAWAY_ADDRESS
+                "", "", "", 0, THROWAWAY_ADDRESS, THROWAWAY_ADDRESS, THROWAWAY_ADDRESS, THROWAWAY_ADDRESS
             );
             fiatTokenCeloV2_2.initializeV2("");
             fiatTokenCeloV2_2.initializeV2_1(THROWAWAY_ADDRESS);

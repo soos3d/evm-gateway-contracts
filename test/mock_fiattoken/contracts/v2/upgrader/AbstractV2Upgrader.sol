@@ -15,14 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity ^0.8.28;
 
-import { SafeMathWrapper } from "../../../SafeMathWrapper.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "../../v1/Ownable.sol";
-import { FiatTokenProxy } from "../../v1/FiatTokenProxy.sol";
-import { AbstractUpgraderHelper } from "./helpers/AbstractUpgraderHelper.sol";
+import {SafeMathWrapper} from "../../../SafeMathWrapper.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Ownable} from "../../v1/Ownable.sol";
+import {FiatTokenProxy} from "../../v1/FiatTokenProxy.sol";
+import {AbstractUpgraderHelper} from "./helpers/AbstractUpgraderHelper.sol";
 
 /**
  * @dev An abstract contract to encapsulate any common logic
@@ -42,11 +41,7 @@ abstract contract AbstractV2Upgrader is Ownable {
      * @param implementation    Address of the implementation contract
      * @param newProxyAdmin     Grantee of proxy admin role after upgrade
      */
-    constructor(
-        FiatTokenProxy proxy,
-        address implementation,
-        address newProxyAdmin
-    ) Ownable() {
+    constructor(FiatTokenProxy proxy, address implementation, address newProxyAdmin) Ownable() {
         _proxy = proxy;
         _implementation = implementation;
         _newProxyAdmin = newProxyAdmin;
@@ -92,10 +87,7 @@ abstract contract AbstractV2Upgrader is Ownable {
         IERC20 fiatToken = IERC20(address(_proxy));
         uint256 balance = fiatToken.balanceOf(address(this));
         if (balance > 0) {
-            require(
-                fiatToken.transfer(msg.sender, balance),
-                "Failed to withdraw FiatToken"
-            );
+            require(fiatToken.transfer(msg.sender, balance), "Failed to withdraw FiatToken");
         }
     }
 

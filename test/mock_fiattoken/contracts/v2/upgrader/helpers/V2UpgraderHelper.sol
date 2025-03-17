@@ -15,11 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity ^0.8.28;
 
-import { FiatTokenV1 } from "../../../v1/FiatTokenV1.sol";
-import { AbstractUpgraderHelper } from "./AbstractUpgraderHelper.sol";
+import {FiatTokenV1} from "../../../v1/FiatTokenV1.sol";
+import {AbstractUpgraderHelper} from "./AbstractUpgraderHelper.sol";
 
 /**
  * @title V2 Upgrader Helper
@@ -32,10 +31,7 @@ contract V2UpgraderHelper is AbstractUpgraderHelper {
      * @notice Constructor
      * @param fiatTokenProxy    Address of the FiatTokenProxy contract
      */
-    constructor(address fiatTokenProxy)
-        public
-        AbstractUpgraderHelper(fiatTokenProxy)
-    {}
+    constructor(address fiatTokenProxy) public AbstractUpgraderHelper(fiatTokenProxy) {}
 
     /**
      * @notice Call name()
@@ -118,11 +114,7 @@ contract V2UpgraderHelper is AbstractUpgraderHelper {
      * @param value    Amount
      * @return result
      */
-    function transferFrom(
-        address from,
-        address to,
-        uint256 value
-    ) external returns (bool) {
+    function transferFrom(address from, address to, uint256 value) external returns (bool) {
         return FiatTokenV1(_proxy).transferFrom(from, to, value);
     }
 }

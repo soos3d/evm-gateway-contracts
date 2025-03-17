@@ -15,15 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity ^0.8.28;
 
-import {
-    IFiatTokenFeeAdapter
-} from "../../interface/celo/IFiatTokenFeeAdapter.sol";
-import { ICeloGasToken } from "../../interface/celo/ICeloGasToken.sol";
-import { IDecimals } from "../../interface/celo/IDecimals.sol";
-import { SafeMathWrapper } from "../../../SafeMathWrapper.sol";
+import {IFiatTokenFeeAdapter} from "../../interface/celo/IFiatTokenFeeAdapter.sol";
+import {ICeloGasToken} from "../../interface/celo/ICeloGasToken.sol";
+import {IDecimals} from "../../interface/celo/IDecimals.sol";
+import {SafeMathWrapper} from "../../../SafeMathWrapper.sol";
 
 contract FiatTokenFeeAdapterV1 is IFiatTokenFeeAdapter {
     using SafeMathWrapper for uint256;
@@ -39,25 +36,16 @@ contract FiatTokenFeeAdapterV1 is IFiatTokenFeeAdapter {
     uint256 internal _debitedValue = 0;
 
     modifier onlyCeloVm() virtual {
-        require(
-            msg.sender == address(0),
-            "FiatTokenFeeAdapterV1: caller is not VM"
-        );
+        require(msg.sender == address(0), "FiatTokenFeeAdapterV1: caller is not VM");
         _;
     }
 
-    function initializeV1(address _adaptedToken, uint8 _adapterDecimals)
-        public
-        virtual
-    {
+    function initializeV1(address _adaptedToken, uint8 _adapterDecimals) public virtual {
         // solhint-disable-next-line reason-string
         require(_initializedVersion == 0);
 
         tokenDecimals = IDecimals(_adaptedToken).decimals();
-        require(
-            tokenDecimals < _adapterDecimals,
-            "FiatTokenFeeAdapterV1: Token decimals must be < adapter decimals"
-        );
+        require(tokenDecimals < _adapterDecimals, "FiatTokenFeeAdapterV1: Token decimals must be < adapter decimals");
         require(
             // uint256 supports a max value of ~1.1579e77. Having the upscale
             // factor be 1e78 would overflow, but SafeMath does not implement
@@ -65,7 +53,7 @@ contract FiatTokenFeeAdapterV1 is IFiatTokenFeeAdapter {
             _adapterDecimals - tokenDecimals < 78,
             "FiatTokenFeeAdapterV1: Digit difference too large"
         );
-        upscaleFactor = uint256(10)**uint256(_adapterDecimals - tokenDecimals);
+        upscaleFactor = uint256(10) ** uint256(_adapterDecimals - tokenDecimals);
 
         adapterDecimals = _adapterDecimals;
         adaptedToken = ICeloGasToken(_adaptedToken);
@@ -73,24 +61,12 @@ contract FiatTokenFeeAdapterV1 is IFiatTokenFeeAdapter {
         _initializedVersion = 1;
     }
 
-    function balanceOf(address account)
-        external
-        override
-        view
-        returns (uint256)
-    {
+    function balanceOf(address account) external view override returns (uint256) {
         return _upscale(adaptedToken.balanceOf(account));
     }
 
-    function debitGasFees(address from, uint256 value)
-        external
-        override
-        onlyCeloVm
-    {
-        require(
-            _debitedValue == 0,
-            "FiatTokenFeeAdapterV1: Must fully credit before debit"
-        );
+    function debitGasFees(address from, uint256 value) external override onlyCeloVm {
+        require(_debitedValue == 0, "FiatTokenFeeAdapterV1: Must fully credit before debit");
         uint256 valueScaled = _downscale(value);
         adaptedToken.debitGasFees(from, valueScaled);
         _debitedValue = valueScaled;
@@ -119,14 +95,9 @@ contract FiatTokenFeeAdapterV1 is IFiatTokenFeeAdapter {
         uint256 refundScaled = _downscale(refund);
         uint256 tipTxFeeScaled = _downscale(tipTxFee);
         uint256 baseTxFeeScaled = _downscale(baseTxFee);
-        uint256 creditValueScaled = refundScaled.add(tipTxFeeScaled).add(
-            baseTxFeeScaled
-        );
+        uint256 creditValueScaled = refundScaled.add(tipTxFeeScaled).add(baseTxFeeScaled);
 
-        require(
-            creditValueScaled <= _debitedValue,
-            "FiatTokenFeeAdapterV1: Cannot credit more than debited"
-        );
+        require(creditValueScaled <= _debitedValue, "FiatTokenFeeAdapterV1: Cannot credit more than debited");
 
         // When downscaling, data can be lost, leading to inaccurate sums.
         uint256 roundingError = _debitedValue.sub(creditValueScaled);
@@ -139,14 +110,7 @@ contract FiatTokenFeeAdapterV1 is IFiatTokenFeeAdapter {
         }
 
         adaptedToken.creditGasFees(
-            refundRecipient,
-            feeRecipient,
-            address(0),
-            communityFund,
-            refundScaled,
-            tipTxFeeScaled,
-            0,
-            baseTxFeeScaled
+            refundRecipient, feeRecipient, address(0), communityFund, refundScaled, tipTxFeeScaled, 0, baseTxFeeScaled
         );
 
         _debitedValue = 0;

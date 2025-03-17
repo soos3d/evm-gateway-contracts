@@ -17,7 +17,7 @@
  */
 pragma solidity ^0.8.28;
 
-import { Ownable } from "../../../v1/Ownable.sol";
+import {Ownable} from "../../../v1/Ownable.sol";
 
 /**
  * @dev An abstract contract to encapsulate any common logic for any V2+ Upgrader Helper contracts.

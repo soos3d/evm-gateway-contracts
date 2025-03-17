@@ -15,13 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity ^0.8.28;
 
-import { AbstractFiatTokenV2 } from "./AbstractFiatTokenV2.sol";
-import { EIP712Domain } from "./EIP712Domain.sol";
-import { MessageHashUtils } from "../util/MessageHashUtils.sol";
-import { SignatureChecker } from "../util/SignatureChecker.sol";
+import {AbstractFiatTokenV2} from "./AbstractFiatTokenV2.sol";
+import {EIP712Domain} from "./EIP712Domain.sol";
+import {MessageHashUtils} from "../util/MessageHashUtils.sol";
+import {SignatureChecker} from "../util/SignatureChecker.sol";
 
 /**
  * @title EIP-2612
@@ -29,8 +28,7 @@ import { SignatureChecker } from "../util/SignatureChecker.sol";
  */
 abstract contract EIP2612 is AbstractFiatTokenV2, EIP712Domain {
     // keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)")
-    bytes32
-        public constant PERMIT_TYPEHASH = 0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
+    bytes32 public constant PERMIT_TYPEHASH = 0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
 
     mapping(address => uint256) private _permitNonces;
 
@@ -53,15 +51,9 @@ abstract contract EIP2612 is AbstractFiatTokenV2, EIP712Domain {
      * @param r         r of the signature
      * @param s         s of the signature
      */
-    function _permit(
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) internal {
+    function _permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
+        internal
+    {
         _permit(owner, spender, value, deadline, abi.encodePacked(r, s, v));
     }
 
@@ -74,39 +66,16 @@ abstract contract EIP2612 is AbstractFiatTokenV2, EIP712Domain {
      * @param deadline   The time at which the signature expires (unix time), or max uint256 value to signal no expiration
      * @param signature  Signature byte array signed by an EOA wallet or a contract wallet
      */
-    function _permit(
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        bytes memory signature
-    ) internal {
-        require(
-            deadline == type(uint256).max || deadline >= block.timestamp,
-            "FiatTokenV2: permit is expired"
-        );
+    function _permit(address owner, address spender, uint256 value, uint256 deadline, bytes memory signature)
+        internal
+    {
+        require(deadline == type(uint256).max || deadline >= block.timestamp, "FiatTokenV2: permit is expired");
 
         bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(
             _domainSeparator(),
-            keccak256(
-                abi.encode(
-                    PERMIT_TYPEHASH,
-                    owner,
-                    spender,
-                    value,
-                    _permitNonces[owner]++,
-                    deadline
-                )
-            )
+            keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, _permitNonces[owner]++, deadline))
         );
-        require(
-            SignatureChecker.isValidSignatureNow(
-                owner,
-                typedDataHash,
-                signature
-            ),
-            "EIP2612: invalid signature"
-        );
+        require(SignatureChecker.isValidSignatureNow(owner, typedDataHash, signature), "EIP2612: invalid signature");
 
         _approve(owner, spender, value);
     }

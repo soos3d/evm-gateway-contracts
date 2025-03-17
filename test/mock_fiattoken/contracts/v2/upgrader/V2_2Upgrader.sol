@@ -15,14 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity ^0.8.28;
 
-import { SafeMathWrapper } from "../../../SafeMathWrapper.sol";
-import { FiatTokenV2_2 } from "../FiatTokenV2_2.sol";
-import { FiatTokenProxy } from "../../v1/FiatTokenProxy.sol";
-import { V2_2UpgraderHelper } from "./helpers/V2_2UpgraderHelper.sol";
-import { AbstractV2Upgrader } from "./AbstractV2Upgrader.sol";
+import {SafeMathWrapper} from "../../../SafeMathWrapper.sol";
+import {FiatTokenV2_2} from "../FiatTokenV2_2.sol";
+import {FiatTokenProxy} from "../../v1/FiatTokenProxy.sol";
+import {V2_2UpgraderHelper} from "./helpers/V2_2UpgraderHelper.sol";
+import {AbstractV2Upgrader} from "./AbstractV2Upgrader.sol";
 
 /**
  * @title V2.2 Upgrader
@@ -140,39 +139,26 @@ contract V2_2Upgrader is AbstractV2Upgrader {
             v2_2.paused(),
             v2_2.totalSupply()
         );
-        require(
-            checkFiatTokenMetadataEqual(originalMetadata, upgradedMetadata),
-            "V2_2Upgrader: metadata test failed"
-        );
+        require(checkFiatTokenMetadataEqual(originalMetadata, upgradedMetadata), "V2_2Upgrader: metadata test failed");
 
         // Check symbol is updated
-        require(
-            keccak256(bytes(v2_2.symbol())) == keccak256(bytes(_newSymbol)),
-            "V2_2Upgrader: symbol not updated"
-        );
+        require(keccak256(bytes(v2_2.symbol())) == keccak256(bytes(_newSymbol)), "V2_2Upgrader: symbol not updated");
 
         // Test balanceOf
-        require(
-            v2_2.balanceOf(address(this)) == contractBal,
-            "V2_2Upgrader: balanceOf test failed"
-        );
+        require(v2_2.balanceOf(address(this)) == contractBal, "V2_2Upgrader: balanceOf test failed");
 
         // Test transfer
         require(
-            v2_2.transfer(msg.sender, 1e5) &&
-                v2_2.balanceOf(msg.sender) == callerBal.add(1e5) &&
-                v2_2.balanceOf(address(this)) == contractBal.sub(1e5),
+            v2_2.transfer(msg.sender, 1e5) && v2_2.balanceOf(msg.sender) == callerBal.add(1e5)
+                && v2_2.balanceOf(address(this)) == contractBal.sub(1e5),
             "V2_2Upgrader: transfer test failed"
         );
 
         // Test approve/transferFrom
         require(
-            v2_2.approve(address(v2_2Helper), 1e5) &&
-                v2_2.allowance(address(this), address(v2_2Helper)) == 1e5 &&
-                v2_2Helper.transferFrom(address(this), msg.sender, 1e5) &&
-                v2_2.allowance(address(this), msg.sender) == 0 &&
-                v2_2.balanceOf(msg.sender) == callerBal.add(2e5) &&
-                v2_2.balanceOf(address(this)) == contractBal.sub(2e5),
+            v2_2.approve(address(v2_2Helper), 1e5) && v2_2.allowance(address(this), address(v2_2Helper)) == 1e5
+                && v2_2Helper.transferFrom(address(this), msg.sender, 1e5) && v2_2.allowance(address(this), msg.sender) == 0
+                && v2_2.balanceOf(msg.sender) == callerBal.add(2e5) && v2_2.balanceOf(address(this)) == contractBal.sub(2e5),
             "V2_2Upgrader: approve/transferFrom test failed"
         );
 
@@ -187,22 +173,16 @@ contract V2_2Upgrader is AbstractV2Upgrader {
      * @dev Checks whether two FiatTokenMetadata are equal.
      * @return true if the two metadata are equal, false otherwise.
      */
-    function checkFiatTokenMetadataEqual(
-        FiatTokenMetadata memory a,
-        FiatTokenMetadata memory b
-    ) private pure returns (bool) {
-        return
-            keccak256(bytes(a.name)) == keccak256(bytes(b.name)) &&
-            a.decimals == b.decimals &&
-            keccak256(bytes(a.currency)) == keccak256(bytes(b.currency)) &&
-            keccak256(bytes(a.version)) == keccak256(bytes(b.version)) &&
-            a.domainSeparator == b.domainSeparator &&
-            a.masterMinter == b.masterMinter &&
-            a.owner == b.owner &&
-            a.pauser == b.pauser &&
-            a.blacklister == b.blacklister &&
-            a.rescuer == b.rescuer &&
-            a.paused == b.paused &&
-            a.totalSupply == b.totalSupply;
+    function checkFiatTokenMetadataEqual(FiatTokenMetadata memory a, FiatTokenMetadata memory b)
+        private
+        pure
+        returns (bool)
+    {
+        return keccak256(bytes(a.name)) == keccak256(bytes(b.name)) && a.decimals == b.decimals
+            && keccak256(bytes(a.currency)) == keccak256(bytes(b.currency))
+            && keccak256(bytes(a.version)) == keccak256(bytes(b.version)) && a.domainSeparator == b.domainSeparator
+            && a.masterMinter == b.masterMinter && a.owner == b.owner && a.pauser == b.pauser
+            && a.blacklister == b.blacklister && a.rescuer == b.rescuer && a.paused == b.paused
+            && a.totalSupply == b.totalSupply;
     }
 }

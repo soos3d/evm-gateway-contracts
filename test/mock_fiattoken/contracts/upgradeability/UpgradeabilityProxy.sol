@@ -15,11 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity ^0.8.28;
 
-import { Proxy } from "./Proxy.sol";
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import {Proxy} from "./Proxy.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 /**
  * @notice This contract implements a proxy that allows to change the
@@ -42,18 +41,14 @@ contract UpgradeabilityProxy is Proxy {
      * This is the keccak-256 hash of "org.zeppelinos.proxy.implementation", and is
      * validated in the constructor.
      */
-    bytes32
-        private constant IMPLEMENTATION_SLOT = 0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3;
+    bytes32 private constant IMPLEMENTATION_SLOT = 0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3;
 
     /**
      * @dev Contract constructor.
      * @param implementationContract Address of the initial implementation.
      */
     constructor(address implementationContract) public {
-        assert(
-            IMPLEMENTATION_SLOT ==
-                keccak256("org.zeppelinos.proxy.implementation")
-        );
+        assert(IMPLEMENTATION_SLOT == keccak256("org.zeppelinos.proxy.implementation"));
 
         _setImplementation(implementationContract);
     }
@@ -62,7 +57,7 @@ contract UpgradeabilityProxy is Proxy {
      * @dev Returns the current implementation.
      * @return impl Address of the current implementation
      */
-    function _implementation() internal override view returns (address impl) {
+    function _implementation() internal view override returns (address impl) {
         bytes32 slot = IMPLEMENTATION_SLOT;
         assembly {
             impl := sload(slot)
@@ -83,10 +78,7 @@ contract UpgradeabilityProxy is Proxy {
      * @param newImplementation Address of the new implementation.
      */
     function _setImplementation(address newImplementation) private {
-        require(
-            newImplementation.code.length > 0,
-            "Cannot set a proxy implementation to a non-contract address"
-        );
+        require(newImplementation.code.length > 0, "Cannot set a proxy implementation to a non-contract address");
 
         bytes32 slot = IMPLEMENTATION_SLOT;
 

@@ -15,15 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 pragma solidity ^0.8.28;
 
-import { SafeMathWrapper } from "../../../SafeMathWrapper.sol";
-import { FiatTokenV2_2 } from "../FiatTokenV2_2.sol";
-import { ICeloGasToken } from "../../interface/celo/ICeloGasToken.sol";
+import {SafeMathWrapper} from "../../../SafeMathWrapper.sol";
+import {FiatTokenV2_2} from "../FiatTokenV2_2.sol";
+import {ICeloGasToken} from "../../interface/celo/ICeloGasToken.sol";
 
 contract FiatTokenCeloV2_2 is FiatTokenV2_2, ICeloGasToken {
     using SafeMathWrapper for uint256;
+
     event FeeCallerChanged(address indexed newAddress);
 
     /**
@@ -37,8 +37,7 @@ contract FiatTokenCeloV2_2 is FiatTokenV2_2, ICeloGasToken {
      * so that the Celo variant of FiatToken can accommodate new state variables that may be
      * added in future FiatToken versions.
      */
-    bytes32
-        private constant FEE_CALLER_SLOT = 0xdca914aef3e4e19727959ebb1e70b58822e2c7b796d303902adc19513fcb4af5;
+    bytes32 private constant FEE_CALLER_SLOT = 0xdca914aef3e4e19727959ebb1e70b58822e2c7b796d303902adc19513fcb4af5;
 
     /**
      * @notice Returns the current fee caller address allowed on `debitGasFees` and `creditGasFees`.
@@ -53,10 +52,7 @@ contract FiatTokenCeloV2_2 is FiatTokenV2_2, ICeloGasToken {
     }
 
     modifier onlyFeeCaller() virtual {
-        require(
-            msg.sender == feeCaller(),
-            "FiatTokenCeloV2_2: caller is not the fee caller"
-        );
+        require(msg.sender == feeCaller(), "FiatTokenCeloV2_2: caller is not the fee caller");
         _;
     }
 
@@ -82,8 +78,7 @@ contract FiatTokenCeloV2_2 is FiatTokenV2_2, ICeloGasToken {
      * so that the Celo variant of FiatToken can accommodate new state variables that may be
      * added in future FiatToken versions.
      */
-    bytes32
-        private constant DEBITED_VALUE_SLOT = 0xd90dccaa76fe7208f2f477143b6adabfeb5d4a5136982894dfc51177fa8eda28;
+    bytes32 private constant DEBITED_VALUE_SLOT = 0xd90dccaa76fe7208f2f477143b6adabfeb5d4a5136982894dfc51177fa8eda28;
 
     function _debitedValue() internal view returns (uint256 value) {
         assembly {
@@ -92,12 +87,8 @@ contract FiatTokenCeloV2_2 is FiatTokenV2_2, ICeloGasToken {
     }
 
     constructor() public {
-        assert(
-            DEBITED_VALUE_SLOT == keccak256("com.circle.fiattoken.celo.debit")
-        );
-        assert(
-            FEE_CALLER_SLOT == keccak256("com.circle.fiattoken.celo.feecaller")
-        );
+        assert(DEBITED_VALUE_SLOT == keccak256("com.circle.fiattoken.celo.debit"));
+        assert(FEE_CALLER_SLOT == keccak256("com.circle.fiattoken.celo.feecaller"));
     }
 
     function debitGasFees(address from, uint256 value)
@@ -107,10 +98,7 @@ contract FiatTokenCeloV2_2 is FiatTokenV2_2, ICeloGasToken {
         whenNotPaused
         notBlacklisted(from)
     {
-        require(
-            _debitedValue() == 0,
-            "FiatTokenCeloV2_2: Must fully credit before debit"
-        );
+        require(_debitedValue() == 0, "FiatTokenCeloV2_2: Must fully credit before debit");
         require(from != address(0), "ERC20: transfer from the zero address");
 
         _transferReservedGas(from, address(0), value);
@@ -145,10 +133,7 @@ contract FiatTokenCeloV2_2 is FiatTokenV2_2, ICeloGasToken {
         // 3) credit atomically as part of a single on-chain transaction,
         // we must ensure that the credit step attempts to credit pre-
         // cisely what was debited prior.
-        require(
-            _debitedValue() == creditValue,
-            "FiatTokenCeloV2_2: Either no debit or mismatched debit"
-        );
+        require(_debitedValue() == creditValue, "FiatTokenCeloV2_2: Either no debit or mismatched debit");
 
         // The credit portion of the gas lifecycle can be summarized
         // by the three Transfer events emitted here:
@@ -172,16 +157,9 @@ contract FiatTokenCeloV2_2 is FiatTokenV2_2, ICeloGasToken {
      * Further, this function validates that _value is > 0. For a comparison,
      * see the FiatTokenV1#_transfer function.
      */
-    function _transferReservedGas(
-        address _from,
-        address _to,
-        uint256 _value
-    ) internal {
+    function _transferReservedGas(address _from, address _to, uint256 _value) internal {
         require(_value > 0, "FiatTokenCeloV2_2: Must reserve > 0 gas");
-        require(
-            _value <= _balanceOf(_from),
-            "ERC20: transfer amount exceeds balance"
-        );
+        require(_value <= _balanceOf(_from), "ERC20: transfer amount exceeds balance");
 
         _setBalance(_from, _balanceOf(_from).sub(_value));
         _setBalance(_to, _balanceOf(_to).add(_value));
