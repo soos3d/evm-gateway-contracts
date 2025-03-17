@@ -23,6 +23,7 @@ import {DeployMockFiatToken} from "./DeployMockFiatToken.sol";
 import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
 import {FiatTokenProxy} from "../mock_fiattoken/contracts/v1/FiatTokenProxy.sol";
+import {ForkTestUtils} from "./ForkTestUtils.sol";
 
 contract TestDeployMockFiatToken is Test {
     DeployMockFiatToken private mockTokenDeployer;
@@ -32,6 +33,7 @@ contract TestDeployMockFiatToken is Test {
     }
     
     function test_deployMockFiatToken() public {
+        vm.skip(block.chainid != ForkTestUtils.LOCAL_CHAIN_ID);
         (
             FiatTokenV2_2 v2_2,
             MasterMinter masterMinter,
