@@ -1,0 +1,2 @@
+# Ignore mock FiatToken contracts ported from stablecoin-evm repo for local testing
+./test/mock_fiattoken

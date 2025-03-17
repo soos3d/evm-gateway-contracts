@@ -34,11 +34,11 @@ contract TestDeployMockFiatToken is Test {
 
     function test_deployMockFiatToken() public {
         vm.skip(block.chainid != ForkTestUtils.LOCAL_CHAIN_ID);
-        (FiatTokenV2_2 v2_2, MasterMinter masterMinter, FiatTokenProxy proxy) = mockTokenDeployer.deploy();
+        (FiatTokenV2_2 fiatToken, MasterMinter masterMinter, FiatTokenProxy proxy) = mockTokenDeployer.deploy();
 
-        validateImpl(v2_2);
+        validateImpl(fiatToken);
         validateMasterMinter(masterMinter, address(proxy));
-        validateProxy(proxy, address(v2_2), address(masterMinter));
+        validateProxy(proxy, address(fiatToken), address(masterMinter));
     }
 
     function validateImpl(FiatTokenV2_2 impl) internal view {
@@ -56,15 +56,15 @@ contract TestDeployMockFiatToken is Test {
         assertEq(proxy.admin(), mockTokenDeployer.proxyAdmin());
         assertEq(proxy.implementation(), _impl);
 
-        FiatTokenV2_2 proxyAsV2_2 = FiatTokenV2_2(address(proxy));
-        assertEq(proxyAsV2_2.name(), "USDC");
-        assertEq(proxyAsV2_2.symbol(), "USDC");
-        assertEq(proxyAsV2_2.currency(), "USD");
-        assert(proxyAsV2_2.decimals() == 6);
-        assertEq(proxyAsV2_2.owner(), mockTokenDeployer.owner());
-        assertEq(proxyAsV2_2.pauser(), mockTokenDeployer.pauser());
-        assertEq(proxyAsV2_2.blacklister(), mockTokenDeployer.blacklister());
-        assertEq(proxyAsV2_2.masterMinter(), _masterMinter);
+        FiatTokenV2_2 proxyAsFiatToken = FiatTokenV2_2(address(proxy));
+        assertEq(proxyAsFiatToken.name(), "USDC");
+        assertEq(proxyAsFiatToken.symbol(), "USDC");
+        assertEq(proxyAsFiatToken.currency(), "USD");
+        assert(proxyAsFiatToken.decimals() == 6);
+        assertEq(proxyAsFiatToken.owner(), mockTokenDeployer.owner());
+        assertEq(proxyAsFiatToken.pauser(), mockTokenDeployer.pauser());
+        assertEq(proxyAsFiatToken.blacklister(), mockTokenDeployer.blacklister());
+        assertEq(proxyAsFiatToken.masterMinter(), _masterMinter);
     }
 
     function validateMasterMinter(MasterMinter masterMinter, address _proxy) internal view {

@@ -25,6 +25,7 @@ import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {DeployFiatToken} from "../mock_fiattoken/deploy-fiat-token.s.sol";
 
 // Contract to deploy mock FiatToken (USDC) contract for local testing. Copied with minor modification from @circlefin/stablecoin-evm/test/scripts/deploy/TestUtils.sol
+// solhint-disable-next-line max-states-count
 contract DeployMockFiatToken is CommonBase {
     uint256 internal deployerPrivateKey = 1;
     uint256 internal proxyAdminPrivateKey = 2;
@@ -61,18 +62,18 @@ contract DeployMockFiatToken is CommonBase {
 
         // Deploy an instance of proxy contract to configure contract address in env
         vm.prank(deployer);
-        FiatTokenV2_2 v2_2 = new FiatTokenV2_2();
+        FiatTokenV2_2 fiatToken = new FiatTokenV2_2();
 
         vm.prank(proxyAdmin);
-        FiatTokenProxy proxy = new FiatTokenProxy(address(v2_2));
+        FiatTokenProxy proxy = new FiatTokenProxy(address(fiatToken));
 
         vm.startPrank(deployer);
         MasterMinter masterMinter = new MasterMinter(address(proxy));
         masterMinter.transferOwnership(masterMinterOwner);
 
-        FiatTokenV2_2 proxyAsV2_2 = FiatTokenV2_2(address(proxy));
+        FiatTokenV2_2 proxyAsFiatToken = FiatTokenV2_2(address(proxy));
 
-        proxyAsV2_2.initialize(
+        proxyAsFiatToken.initialize(
             tokenName,
             tokenSymbol,
             "USD",
@@ -82,9 +83,9 @@ contract DeployMockFiatToken is CommonBase {
             blacklister,
             vm.addr(ownerPrivateKey)
         );
-        proxyAsV2_2.initializeV2(tokenName);
-        proxyAsV2_2.initializeV2_1(owner);
-        proxyAsV2_2.initializeV2_2(new address[](0), tokenSymbol);
+        proxyAsFiatToken.initializeV2(tokenName);
+        proxyAsFiatToken.initializeV2_1(owner);
+        proxyAsFiatToken.initializeV2_2(new address[](0), tokenSymbol);
         vm.setEnv("FIAT_TOKEN_PROXY_ADDRESS", vm.toString(address(proxy)));
 
         vm.stopPrank();
