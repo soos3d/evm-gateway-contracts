@@ -30,6 +30,15 @@ Or to run a single test contract
 forge test -vv --match-contract UpgradeablePlaceholderTest
 ```
 
+### Mock FiatToken port
+
+To simplify local development and testing we have a local port of the FiatToken contracts from the https://github.com/circlefin/stablecoin-evm repo. The port is based on commit [0642db6](https://github.com/circlefin/stablecoin-evm/commit/0642db65d656a51d4df21b8d03dd38124ad0e7b3). When there are essential changes to the FiatToken contracts (e.g., new version release), we'll need to:
+
+1) Go through the diff between the above commit and the latest version, applying the latest changes into `test/mock_fiattoken`
+2) Update dependency imports and relative imports
+3) Bump solidity version and fix resulting compiler errors
+4) Update `test/util/DeployMockFiatToken.sol` if necessary
+
 ### Linting
 
 Run `yarn lint` to lint all `.sol` files in the `src` and `test` directories.
