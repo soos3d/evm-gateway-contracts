@@ -6,6 +6,7 @@ solc_version = "0.8.28"
 test = 'test'
 auto_detect_remappings = false
 auto_detect_solc = false
+ignored_warnings_from = ["test/mock_fiattoken"]
 
 [rpc_endpoints]
 ethereum = "https://gateway.tenderly.co/public/mainnet"

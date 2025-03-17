@@ -22,7 +22,7 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
-import {CommonBase} from "forge-std/src/Base.sol";
+import {CommonBase} from "forge-std/Base.sol";
 
 /// Helpers for deploying the contracts during tests
 abstract contract DeployUtils is CommonBase {

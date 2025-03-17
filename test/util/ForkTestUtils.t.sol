@@ -19,7 +19,7 @@
 pragma solidity ^0.8.28;
 
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
-import {Test} from "forge-std/src/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 contract TestForkTestUtils is Test {
     function test_forkVars_ethereum() external {
@@ -29,9 +29,10 @@ contract TestForkTestUtils is Test {
     }
 
     function test_forkVars_local() external {
+        vm.skip(block.chainid != ForkTestUtils.LOCAL_CHAIN_ID);
         vm.chainId(ForkTestUtils.LOCAL_CHAIN_ID);
         ForkTestUtils.ForkVars memory vars = ForkTestUtils.forkVars();
-        assertEq(vars.usdc, address(0));
+        assertEq(vars.usdc, 0x63f58053c9499E1104a6f6c6d2581d6D83067EEB);
     }
 
     function test_forkVars_unknown() external {
