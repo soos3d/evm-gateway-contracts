@@ -70,6 +70,28 @@ contract TokenSupportTest is Test {
         vm.stopPrank();
     }
 
+    function testAddSupportedToken_addDuplicateToken() public {
+        vm.startPrank(owner);
+        tokenSupport.addSupportedToken(usdc);
+        assertTrue(tokenSupport.isTokenSupported(usdc));
+
+        tokenSupport.addSupportedToken(usdc);
+        assertTrue(tokenSupport.isTokenSupported(usdc));
+        vm.stopPrank();
+    }
+
+    function testAddSupportedToken_addMultipleTokens() public {
+        vm.startPrank(owner);
+        tokenSupport.addSupportedToken(usdc);
+        tokenSupport.addSupportedToken(eurc);
+        assertTrue(tokenSupport.isTokenSupported(usdc));
+        assertTrue(tokenSupport.isTokenSupported(eurc));
+
+        tokenSupport.mint(usdc);
+        tokenSupport.mint(eurc);
+        vm.stopPrank();
+    }
+
     function testIsTokenSupported_IfTokenNotAdded() public view {
         assertFalse(tokenSupport.isTokenSupported(eurc));
     }
