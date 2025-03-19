@@ -112,13 +112,13 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         IERC20(usdc).approve(address(wallet), initialUsdcBalance);
 
         // Deposit half of the allowance
-        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, false, true);
         emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.deposit(usdc, initialUsdcBalance / 2);
         assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Deposit the other half
-        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, false, true);
         emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.deposit(usdc, initialUsdcBalance / 2);
         assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
@@ -169,7 +169,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
 
     function test_depositWith2612Permit_spendableBalanceUpdatedAfterTransfer() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance);
-        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, false, true);
         emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
         assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
@@ -177,7 +177,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
 
     function test_depositWith2612Permit_revertIfPermitReplayed() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance / 2);
-        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, false, true);
         emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, v, r, s);
         assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
@@ -283,7 +283,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
     function test_depositWith3009Authorization_spendableBalanceUpdatedAfterTransfer() public {
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
         skip(activeTimeOffset);
-        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, false, true);
         emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance);
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
@@ -294,7 +294,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
     function test_depositWith3009Authorization_revertIfAuthorizationReplayed() public {
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance / 2);
         skip(activeTimeOffset);
-        vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, false, true);
         emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance / 2, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
