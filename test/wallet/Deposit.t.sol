@@ -115,13 +115,13 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         vm.expectEmit(true, true, true, true);
         emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.deposit(usdc, initialUsdcBalance / 2);
-        assertEq(wallet.spendableBalance(usdc, address(depositor)), initialUsdcBalance / 2);
+        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Deposit the other half
         vm.expectEmit(true, true, true, true);
         emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.deposit(usdc, initialUsdcBalance / 2);
-        assertEq(wallet.spendableBalance(usdc, address(depositor)), initialUsdcBalance);
+        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
 
         vm.stopPrank();
     }
@@ -172,7 +172,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         vm.expectEmit(true, true, true, true);
         emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
-        assertEq(wallet.spendableBalance(usdc, address(depositor)), initialUsdcBalance);
+        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
     }
 
     function test_depositWith2612Permit_revertIfPermitReplayed() public {
@@ -180,7 +180,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         vm.expectEmit(true, true, true, true);
         emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, v, r, s);
-        assertEq(wallet.spendableBalance(usdc, address(depositor)), initialUsdcBalance / 2);
+        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Attempt to replay the same permit signature
         vm.expectRevert(bytes(EIP2612_INVALID_SIGNATURE));
@@ -288,7 +288,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
-        assertEq(wallet.spendableBalance(usdc, address(depositor)), initialUsdcBalance);
+        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
     }
 
     function test_depositWith3009Authorization_revertIfAuthorizationReplayed() public {
@@ -299,7 +299,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance / 2, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
-        assertEq(wallet.spendableBalance(usdc, address(depositor)), initialUsdcBalance / 2);
+        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Attempt to replay the same authorization
         vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_USED_OR_CANCELED));
