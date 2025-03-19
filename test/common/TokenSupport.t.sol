@@ -47,19 +47,22 @@ contract TokenSupportTest is Test {
     }
 
     function testAddSupportedToken_onlyOwner() public {
-        vm.startPrank(owner);
         vm.expectEmit(false, false, false, true);
         emit TokenSupported(usdc);
+
+        vm.startPrank(owner);
         tokenSupport.addSupportedToken(usdc);
-        assertTrue(tokenSupport.isTokenSupported(usdc));
         vm.stopPrank();
+
+        assertTrue(tokenSupport.isTokenSupported(usdc));
     }
 
     function testAddSupportedToken_revertIfNotOwner() public {
         address random = makeAddr("random");
 
-        vm.startPrank(random);
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, random));
+
+        vm.startPrank(random);
         tokenSupport.addSupportedToken(usdc);
         vm.stopPrank();
     }
@@ -67,23 +70,23 @@ contract TokenSupportTest is Test {
     function testAddSupportedToken_addDuplicateToken() public {
         vm.startPrank(owner);
         tokenSupport.addSupportedToken(usdc);
+        vm.stopPrank();
         assertTrue(tokenSupport.isTokenSupported(usdc));
 
+        vm.startPrank(owner);
         tokenSupport.addSupportedToken(usdc);
-        assertTrue(tokenSupport.isTokenSupported(usdc));
         vm.stopPrank();
+        assertTrue(tokenSupport.isTokenSupported(usdc));
     }
 
     function testAddSupportedToken_addMultipleTokens() public {
         vm.startPrank(owner);
         tokenSupport.addSupportedToken(usdc);
         tokenSupport.addSupportedToken(eurc);
+        vm.stopPrank();
+
         assertTrue(tokenSupport.isTokenSupported(usdc));
         assertTrue(tokenSupport.isTokenSupported(eurc));
-
-        tokenSupport.mint(usdc);
-        tokenSupport.mint(eurc);
-        vm.stopPrank();
     }
 
     function testIsTokenSupported_IfTokenNotAdded() public view {
@@ -93,9 +96,10 @@ contract TokenSupportTest is Test {
     function testIfTokenIsSupportedWithModifier() public {
         vm.startPrank(owner);
         tokenSupport.addSupportedToken(eurc);
+        vm.stopPrank();
+
         assertTrue(tokenSupport.isTokenSupported(eurc));
         tokenSupport.mint(eurc);
-        vm.stopPrank();
     }
 
     function testIfTokenNotSupportedWithModifier() public {
