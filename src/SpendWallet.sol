@@ -22,6 +22,10 @@ import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {BurnAuthorization} from "src/lib/Authorizations.sol";
 import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
+import {IERC3009} from "src/interfaces/IERC3009.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title Spend Wallet
 ///
@@ -51,6 +55,10 @@ import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
 /// `spendable` and `withdrawing` balances.
 contract SpendWallet is SpendCommon, IERC1155Balance {
+    using SafeERC20 for IERC20;
+
+    error DepositValueMustBePositive();
+
     /// The balances that have been deposited and are available for spending (after finalization)
     mapping(address token => mapping(address user => uint256 value)) internal spendableBalances;
 
@@ -99,7 +107,18 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token   The token to deposit
     /// @param value   The amount to be deposited
-    function deposit(address token, uint256 value) external whenNotPaused {}
+    function deposit(address token, uint256 value)
+        external
+        whenNotPaused
+        notRejected(msg.sender)
+        tokenSupported(token) {
+        if (value == 0) {
+            revert DepositValueMustBePositive();
+        }
+        spendableBalances[token][msg.sender] += value;
+        IERC20(token).safeTransferFrom(msg.sender, address(this), value);
+        emit Deposited(token, msg.sender, value);
+    }
 
     /// Deposit tokens with an EIP-2612 permit
     ///
@@ -122,7 +141,15 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external {}
+    ) external whenNotPaused notRejected(msg.sender) notRejected(owner) tokenSupported(token) {
+        if (value == 0) {
+            revert DepositValueMustBePositive();
+        }
+        spendableBalances[token][owner] += value;
+        IERC20Permit(token).permit(owner, address(this), value, deadline, v, r, s);
+        IERC20(token).safeTransferFrom(owner, address(this), value);
+        emit Deposited(token, owner, value);
+    }
 
     /// Deposit tokens with an EIP-2612 permit, passing the signature as bytes to allow for SCA deposits
     ///
@@ -165,7 +192,14 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external {}
+    ) external whenNotPaused notRejected(msg.sender) notRejected(from) tokenSupported(token) {
+        if (value == 0) {
+            revert DepositValueMustBePositive();
+        }
+        spendableBalances[token][from] += value;
+        IERC3009(token).receiveWithAuthorization(from, address(this), value, validAfter, validBefore, nonce, v, r, s);
+        emit Deposited(token, from, value);
+    }
 
     /// Deposit tokens with an ERC-3009 authorization, passing the signature as bytes to allow for SCA deposits
     ///
@@ -312,7 +346,9 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function spendableBalance(address token, address depositor) external pure returns (uint256) {}
+    function spendableBalance(address token, address depositor) external view returns (uint256) {
+        return spendableBalances[token][depositor];
+    }
 
     /// The balance that is in the process of being withdrawn
     ///
