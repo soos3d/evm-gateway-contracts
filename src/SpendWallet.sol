@@ -111,7 +111,8 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         external
         whenNotPaused
         notRejected(msg.sender)
-        tokenSupported(token) {
+        tokenSupported(token)
+    {
         if (value == 0) {
             revert DepositValueMustBePositive();
         }

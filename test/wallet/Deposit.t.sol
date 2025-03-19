@@ -47,15 +47,19 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     // ERC-3009 typehashes
-    bytes32 private constant RECEIVE_WITH_AUTHORIZATION_TYPEHASH = keccak256("ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)");
-    bytes32 private constant CANCEL_AUTHORIZATION_TYPEHASH = keccak256("CancelAuthorization(address authorizer,bytes32 nonce)");
+    bytes32 private constant RECEIVE_WITH_AUTHORIZATION_TYPEHASH = keccak256(
+        "ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
+    );
+    bytes32 private constant CANCEL_AUTHORIZATION_TYPEHASH =
+        keccak256("CancelAuthorization(address authorizer,bytes32 nonce)");
 
     // Revert error strings
     string private constant ERC20_TRANSFER_AMOUNT_EXCEEDS_BALANCE = "ERC20: transfer amount exceeds balance";
     string private constant EIP2612_INVALID_SIGNATURE = "EIP2612: invalid signature";
     string private constant ECRECOVER_INVALID_SIGNATURE = "ECRecover: invalid signature";
     string private constant FIATTOKENV2_INVALID_SIGNATURE = "FiatTokenV2: invalid signature";
-    string private constant FIATTOKENV2_AUTHORIZATION_USED_OR_CANCELED = "FiatTokenV2: authorization is used or canceled";
+    string private constant FIATTOKENV2_AUTHORIZATION_USED_OR_CANCELED =
+        "FiatTokenV2: authorization is used or canceled";
     string private constant FIATTOKENV2_AUTHORIZATION_IS_EXPIRED = "FiatTokenV2: authorization is expired";
     string private constant FIATTOKENV2_AUTHORIZATION_IS_NOT_YET_VALID = "FiatTokenV2: authorization is not yet valid";
 
@@ -205,7 +209,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
 
     function test_depositWith3009Authorization_revertIfAuthorizationIsNotYetValid() public {
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
-        assert (block.timestamp == erc3009ValidAfter);
+        assert(block.timestamp == erc3009ValidAfter);
         vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_IS_NOT_YET_VALID));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
@@ -249,7 +253,8 @@ contract SpendWalletDepositTest is Test, DeployUtils {
     }
 
     function test_depositWith3009Authorization_revertIfAuthorizationCancelled() public {
-        (uint8 authorizationV, bytes32 authorizationR, bytes32 authorizationS) = _create3009AuthorizationSignature(initialUsdcBalance);
+        (uint8 authorizationV, bytes32 authorizationR, bytes32 authorizationS) =
+            _create3009AuthorizationSignature(initialUsdcBalance);
         (uint8 cancellationV, bytes32 cancellationR, bytes32 cancellationS) = _create3009CancellationSignature();
         IERC3009(usdc).cancelAuthorization(depositor, erc3009Nonce, cancellationV, cancellationR, cancellationS);
 
@@ -257,7 +262,15 @@ contract SpendWalletDepositTest is Test, DeployUtils {
 
         vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_USED_OR_CANCELED));
         wallet.depositWithAuthorization(
-            usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, authorizationV, authorizationR, authorizationS
+            usdc,
+            depositor,
+            initialUsdcBalance,
+            erc3009ValidAfter,
+            erc3009ValidBefore,
+            erc3009Nonce,
+            authorizationV,
+            authorizationR,
+            authorizationS
         );
     }
 
