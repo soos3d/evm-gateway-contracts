@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Circle Internet Group, Inc. All rights reserved.
+ * Copyright 2025 Circle Internet Group, Inc. All rights reserved.
 
  * SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -47,6 +47,8 @@ contract TokenSupportTest is Test {
 
     function testAddSupportedToken_onlyOwner() public {
         vm.startPrank(owner);
+        vm.expectEmit(true, true, false, true);
+        emit TokenSupported(usdc);
         tokenSupport.addSupportedToken(usdc);
         assertTrue(tokenSupport.isTokenSupported(usdc));
         vm.stopPrank();
@@ -58,15 +60,6 @@ contract TokenSupportTest is Test {
         vm.startPrank(random);
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, random));
         tokenSupport.addSupportedToken(usdc);
-        vm.stopPrank();
-    }
-
-    function testAddSupportedToken_emitEvent() public {
-        vm.startPrank(owner);
-        vm.expectEmit(true, true, false, true);
-        emit TokenSupported(usdc);
-        tokenSupport.addSupportedToken(usdc);
-        assertTrue(tokenSupport.isTokenSupported(usdc));
         vm.stopPrank();
     }
 
