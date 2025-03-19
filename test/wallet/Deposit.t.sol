@@ -295,7 +295,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         );
         assertEq(wallet.spendableBalance(usdc, address(depositor)), initialUsdcBalance / 2);
 
-        // Attemp to replay the same authorization
+        // Attempt to replay the same authorization
         vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_USED_OR_CANCELED));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance / 2, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
