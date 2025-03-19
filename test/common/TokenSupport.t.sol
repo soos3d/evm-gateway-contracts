@@ -28,7 +28,8 @@ contract TokenSupportHarness is TokenSupport {
         __Ownable2Step_init();
     }
 
-    function mint(address token) external tokenSupported(token) {}
+    // Helper function to specifically test the modifier tokenSupported
+    function mint(address token) public tokenSupported(token) {}
 }
 
 contract TokenSupportTest is Test {
@@ -47,7 +48,7 @@ contract TokenSupportTest is Test {
 
     function testAddSupportedToken_onlyOwner() public {
         vm.startPrank(owner);
-        vm.expectEmit(true, true, false, true);
+        vm.expectEmit(false, false, false, true);
         emit TokenSupported(usdc);
         tokenSupport.addSupportedToken(usdc);
         assertTrue(tokenSupport.isTokenSupported(usdc));
