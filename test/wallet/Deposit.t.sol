@@ -127,7 +127,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
 
     function test_depositWith2612Permit_revertIfSignatureInvalid() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance);
-        r = bytes32(uint256(r) + 1);
+        r = 0;
         vm.expectRevert(bytes(ECRECOVER_INVALID_SIGNATURE));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
     }
@@ -196,8 +196,8 @@ contract SpendWalletDepositTest is Test, DeployUtils {
     function test_depositWith3009Authorization_revertIfSignatureInvalid() public {
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
         skip(1 minutes);
-        r = bytes32(uint256(r) + 1);
-        vm.expectRevert(bytes(FIATTOKENV2_INVALID_SIGNATURE));
+        r = 0;
+        vm.expectRevert(bytes(ECRECOVER_INVALID_SIGNATURE));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
