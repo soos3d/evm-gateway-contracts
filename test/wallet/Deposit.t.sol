@@ -54,6 +54,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         keccak256("CancelAuthorization(address authorizer,bytes32 nonce)");
 
     // Revert error strings
+    string private constant ERC20_TRANSFER_AMOUNT_EXCEEDS_ALLOWANCE = "ERC20: transfer amount exceeds allowance";
     string private constant ERC20_TRANSFER_AMOUNT_EXCEEDS_BALANCE = "ERC20: transfer amount exceeds balance";
     string private constant EIP2612_INVALID_SIGNATURE = "EIP2612: invalid signature";
     string private constant ECRECOVER_INVALID_SIGNATURE = "ECRecover: invalid signature";
@@ -81,7 +82,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
 
     function test_deposit_revertIfWalletNotApproved() public {
         vm.startPrank(depositor);
-        vm.expectRevert("ERC20: transfer amount exceeds allowance");
+        vm.expectRevert(bytes(ERC20_TRANSFER_AMOUNT_EXCEEDS_ALLOWANCE));
         wallet.deposit(usdc, initialUsdcBalance);
         vm.stopPrank();
     }
@@ -96,7 +97,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
     function test_deposit_revertIfValueMoreThanApproved() public {
         vm.startPrank(depositor);
         IERC20(usdc).approve(address(wallet), initialUsdcBalance);
-        vm.expectRevert("ERC20: transfer amount exceeds allowance");
+        vm.expectRevert(bytes(ERC20_TRANSFER_AMOUNT_EXCEEDS_ALLOWANCE));
         wallet.deposit(usdc, 2 * initialUsdcBalance);
         vm.stopPrank();
     }
@@ -156,7 +157,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
 
     function test_depositWith2612Permit_revertIfValueExceedsBalance() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(2 * initialUsdcBalance);
-        vm.expectRevert("ERC20: transfer amount exceeds balance");
+        vm.expectRevert(bytes(ERC20_TRANSFER_AMOUNT_EXCEEDS_BALANCE));
         wallet.depositWithPermit(usdc, depositor, 2 * initialUsdcBalance, eip2612PermitDeadline, v, r, s);
     }
 
