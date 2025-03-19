@@ -36,11 +36,11 @@ contract SpendWalletDepositTest is Test, DeployUtils {
 
     uint256 private initialUsdcBalance = 1000 * 10 ** 6;
 
-    uint256 eip2612PermitDeadline;
-    uint256 erc3009ValidAfter;
-    uint256 erc3009ValidBefore;
+    uint256 private eip2612PermitDeadline;
+    uint256 private erc3009ValidAfter;
+    uint256 private erc3009ValidBefore;
 
-    bytes32 erc3009Nonce = keccak256("erc3009TestNonce");
+    bytes32 private erc3009Nonce = keccak256("erc3009TestNonce");
 
     // EIP-2612 typehash
     bytes32 private constant PERMIT_TYPEHASH =
