@@ -236,7 +236,6 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         );
     }
 
-    // TODO revisit
     function test_depositWith3009Authorization_revertIfValueExceedsBalance() public {
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance * 2);
         skip(1 minutes);
