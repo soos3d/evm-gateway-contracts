@@ -521,7 +521,10 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @dev May only be called by the `owner` role
     ///
     /// @param newDelay   The new value of the delay, in blocks
-    function updateWithdrawalDelay(uint256 newDelay) external onlyOwner {}
+    function updateWithdrawalDelay(uint256 newDelay) external onlyOwner {
+        withdrawalDelay = newDelay;
+        emit WithdrawalDelayUpdated(newDelay);
+    }
 
     /// Emitted when the burner address is updated
     ///
