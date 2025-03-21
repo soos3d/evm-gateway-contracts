@@ -59,7 +59,10 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
 
     error DepositValueMustBePositive();
 
-    error AddressCannotBeZero();
+    /**
+     * @notice Reverts if an invalid address is set.
+     */
+    error InvalidAddress();
 
     error CannotAddSelfAsSpender();
 
@@ -72,7 +75,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// The block numbers at which in-progress withdrawals will be withdrawable
     mapping(address token => mapping(address user => uint256 block)) internal withdrawableAtBlocks;
 
-    /// The block numbers at which in-progress withdrawals will be withdrawable
+    /// The mapping to track authorized spenders for each depositor per token
     mapping(address depositor => mapping(address token => mapping(address spender => bool isAuthorized))) private
         spenderAuthorizations;
 
@@ -237,6 +240,15 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Spender authorization
 
+    /// Validates that an address is not the zero address
+    ///
+    /// @param addr   The address being authorized to spend
+    function _checkNotZeroAddress(address addr) internal virtual {
+        if (addr == address(0)) {
+            revert InvalidAddress();
+        }
+    }
+
     /// Emitted when a spender is authorized to spend a depositor's balance
     ///
     /// @param token       The token that the spender is now authorized for
@@ -254,9 +266,10 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         external
         whenNotPaused
         notRejected(msg.sender)
+        notRejected(spender)
         tokenSupported(token)
     {
-        if (spender == address(0)) revert AddressCannotBeZero();
+        _checkNotZeroAddress(spender);
         if (spender == msg.sender) revert CannotAddSelfAsSpender();
 
         spenderAuthorizations[msg.sender][token][spender] = true;
@@ -280,11 +293,12 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         external
         whenNotPaused
         notRejected(msg.sender)
+        notRejected(spender)
         tokenSupported(token)
     {
-        if (spender == address(0)) revert AddressCannotBeZero();
+        _checkNotZeroAddress(spender);
 
-        spenderAuthorizations[msg.sender][token][spender] = true;
+        spenderAuthorizations[msg.sender][token][spender] = false;
         emit SpenderRemoved(token, msg.sender, spender);
     }
 
@@ -296,13 +310,13 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param spender   The address being authorized to spend
     function isSpender(address token, address spender, address depositor)
         external
-        view
         whenNotPaused
         notRejected(msg.sender)
+        notRejected(spender)
         tokenSupported(token)
         returns (bool)
     {
-        if (spender == address(0)) revert AddressCannotBeZero();
+        _checkNotZeroAddress(spender);
 
         return spenderAuthorizations[depositor][token][spender];
     }
