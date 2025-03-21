@@ -59,6 +59,10 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
 
     error DepositValueMustBePositive();
 
+    error AddressCannotBeZero();
+
+    error CannotAddSelfAsSpender();
+
     /// The balances that have been deposited and are available for spending (after finalization)
     mapping(address token => mapping(address user => uint256 value)) internal spendableBalances;
 
@@ -67,6 +71,10 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
 
     /// The block numbers at which in-progress withdrawals will be withdrawable
     mapping(address token => mapping(address user => uint256 block)) internal withdrawableAtBlocks;
+
+    /// The block numbers at which in-progress withdrawals will be withdrawable
+    mapping(address depositor => mapping(address token => mapping(address spender => bool isAuthorized))) private
+        spenderAuthorizations;
 
     /// The number of blocks a user must wait after initiating a withdrawal before that amount is withdrawable. Updating
     /// this value does not affect existing withdrawals, just future ones.
@@ -242,7 +250,18 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token     The token that `spender` should be allowed to spend
     /// @param spender   The address being authorized to spend
-    function addSpender(address token, address spender) external {}
+    function addSpender(address token, address spender)
+        external
+        whenNotPaused
+        notRejected(msg.sender)
+        tokenSupported(token)
+    {
+        if (spender == address(0)) revert AddressCannotBeZero();
+        if (spender == msg.sender) revert CannotAddSelfAsSpender();
+
+        spenderAuthorizations[msg.sender][token][spender] = true;
+        emit SpenderAdded(token, msg.sender, spender);
+    }
 
     /// Emitted when a spender's authorization is revoked
     ///
@@ -257,7 +276,36 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token     The token that `spender` should be allowed to spend
     /// @param spender   The address being authorized to spend
-    function removeSpender(address token, address spender) external {}
+    function removeSpender(address token, address spender)
+        external
+        whenNotPaused
+        notRejected(msg.sender)
+        tokenSupported(token)
+    {
+        if (spender == address(0)) revert AddressCannotBeZero();
+
+        spenderAuthorizations[msg.sender][token][spender] = true;
+        emit SpenderRemoved(token, msg.sender, spender);
+    }
+
+    /// Check if an spender is authorized to spend tokens on behalf of a depositor
+    ///
+    /// @dev This verifies if a spender is authorized or not for spending tokens on behalf of depositor
+    ///
+    /// @param token     The token that `spender` should be allowed to spend
+    /// @param spender   The address being authorized to spend
+    function isSpender(address token, address spender, address depositor)
+        external
+        view
+        whenNotPaused
+        notRejected(msg.sender)
+        tokenSupported(token)
+        returns (bool)
+    {
+        if (spender == address(0)) revert AddressCannotBeZero();
+
+        return spenderAuthorizations[depositor][token][spender];
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Withdrawals
