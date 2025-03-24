@@ -67,16 +67,16 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     error CannotAddSelfAsSpender();
 
     /// The balances that have been deposited and are available for spending (after finalization)
-    mapping(address token => mapping(address user => uint256 value)) internal spendableBalances;
+    mapping(address token => mapping(address depositor => uint256 value)) internal spendableBalances;
 
     /// The balances that are in the process of being withdrawn and are no longer spendable
-    mapping(address token => mapping(address user => uint256 value)) internal withdrawingBalances;
+    mapping(address token => mapping(address depositor => uint256 value)) internal withdrawingBalances;
 
     /// The block numbers at which in-progress withdrawals will be withdrawable
-    mapping(address token => mapping(address user => uint256 block)) internal withdrawableAtBlocks;
+    mapping(address token => mapping(address depositor => uint256 block)) internal withdrawableAtBlocks;
 
     /// The mapping to track authorized spenders for each depositor per token
-    mapping(address depositor => mapping(address token => mapping(address spender => bool isAuthorized))) private
+    mapping(address token => mapping(address depositor => mapping(address spender => bool isAuthorized))) private
         spenderAuthorizations;
 
     /// The number of blocks a user must wait after initiating a withdrawal before that amount is withdrawable. Updating
@@ -274,7 +274,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
             revert CannotAddSelfAsSpender();
         }
 
-        spenderAuthorizations[msg.sender][token][spender] = true;
+        spenderAuthorizations[token][msg.sender][spender] = true;
         emit SpenderAdded(token, msg.sender, spender);
     }
 
@@ -295,12 +295,11 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         external
         whenNotPaused
         notRejected(msg.sender)
-        notRejected(spender)
         tokenSupported(token)
     {
         _checkNotZeroAddress(spender);
 
-        spenderAuthorizations[msg.sender][token][spender] = false;
+        spenderAuthorizations[token][msg.sender][spender] = false;
         emit SpenderRemoved(token, msg.sender, spender);
     }
 
@@ -310,18 +309,12 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token     The token that `spender` should be allowed to spend
     /// @param spender   The address being authorized to spend
-    function isSpender(address token, address spender, address depositor)
-        external
-        view
-        whenNotPaused
-        notRejected(msg.sender)
-        notRejected(spender)
-        tokenSupported(token)
-        returns (bool)
-    {
-        _checkNotZeroAddress(spender);
+    function isSpender(address token, address spender, address depositor) public view returns (bool) {
+        if (spender == depositor) {
+            return true;
+        }
 
-        return spenderAuthorizations[depositor][token][spender];
+        return spenderAuthorizations[token][depositor][spender];
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

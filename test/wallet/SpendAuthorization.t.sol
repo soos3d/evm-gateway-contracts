@@ -25,7 +25,6 @@ import {Test} from "forge-std/Test.sol";
 /// Tests Spend Authorization functionality of SpendWallet
 contract SpendAuthorizationTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
-    address private depositor = makeAddr("depositor");
     address private usdc = makeAddr("usdc");
 
     SpendWallet private wallet;
@@ -87,12 +86,9 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    function testIsSpender_revertsWhenSpenderIsZeroAddress() public {
-        address spender = address(0);
-
+    function testIsSpender_returnsTrueWhenSpenderAndDepositorSame() public {
         vm.startPrank(owner);
-        vm.expectRevert(abi.encodeWithSelector(SpendWallet.InvalidAddress.selector));
-        wallet.isSpender(usdc, spender, owner);
+        assertTrue(wallet.isSpender(usdc, owner, owner));
         vm.stopPrank();
     }
 
