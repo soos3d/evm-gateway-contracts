@@ -29,9 +29,8 @@ import {Test} from "forge-std/Test.sol";
 /// Tests deposit functionality of SpendWallet
 contract SpendWalletDepositTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
-
-    uint256 private depositorPrivateKey = 1;
-    address private depositor = vm.addr(depositorPrivateKey);
+    uint256 private depositorPrivateKey;
+    address private depositor;
     address private usdc;
 
     uint256 private initialUsdcBalance = 1000 * 10 ** 6;
@@ -70,6 +69,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
     SpendWallet private wallet;
 
     function setUp() public {
+        (depositor, depositorPrivateKey) = makeAddrAndKey("spendWalletDepositor");
         wallet = deployWalletOnly(owner);
 
         usdc = ForkTestUtils.forkVars().usdc;
