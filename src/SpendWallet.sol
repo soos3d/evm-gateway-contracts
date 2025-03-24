@@ -243,7 +243,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// Validates that an address is not the zero address
     ///
     /// @param addr   The address being authorized to spend
-    function _checkNotZeroAddress(address addr) internal virtual {
+    function _checkNotZeroAddress(address addr) internal pure {
         if (addr == address(0)) {
             revert InvalidAddress();
         }
@@ -270,7 +270,9 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         tokenSupported(token)
     {
         _checkNotZeroAddress(spender);
-        if (spender == msg.sender) revert CannotAddSelfAsSpender();
+        if (spender == msg.sender) {
+            revert CannotAddSelfAsSpender();
+        }
 
         spenderAuthorizations[msg.sender][token][spender] = true;
         emit SpenderAdded(token, msg.sender, spender);
@@ -310,6 +312,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param spender   The address being authorized to spend
     function isSpender(address token, address spender, address depositor)
         external
+        view
         whenNotPaused
         notRejected(msg.sender)
         notRejected(spender)
