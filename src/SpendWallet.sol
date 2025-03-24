@@ -58,6 +58,10 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     using SafeERC20 for IERC20;
 
     error DepositValueMustBePositive();
+    error WithdrawalValueMustBePositive();
+    error WithdrawalValueExceedsSpendableBalance();
+    error WithdrawalNotYetAvailable();
+    error NoWithdrawingBalance();
 
     /// The balances that have been deposited and are available for spending (after finalization)
     mapping(address token => mapping(address user => uint256 value)) internal spendableBalances;
@@ -286,7 +290,32 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token   The token to initiate a withdrawal for
     /// @param value   The amount to be withdrawn
-    function initiateWithdrawal(address token, uint256 value) external {}
+    function initiateWithdrawal(address token, uint256 value) external tokenSupported(token) {
+        if (value == 0) {
+            revert WithdrawalValueMustBePositive();
+        }
+        if (value > spendableBalances[token][msg.sender]) {
+            revert WithdrawalValueExceedsSpendableBalance();
+        }
+        
+        uint256 currentWithdrawableAtBlock = withdrawableAtBlocks[token][msg.sender];
+        if (currentWithdrawableAtBlock > block.number) {
+            withdrawableAtBlocks[token][msg.sender] = currentWithdrawableAtBlock + withdrawalDelay;
+        } else {
+            withdrawableAtBlocks[token][msg.sender] = block.number + withdrawalDelay;
+        }
+
+        spendableBalances[token][msg.sender] -= value;
+        withdrawingBalances[token][msg.sender] += value;
+        emit WithdrawalInitiated(
+            token,
+            msg.sender,
+            msg.sender,
+            value,
+            withdrawingBalances[token][msg.sender],
+            withdrawableAtBlocks[token][msg.sender]
+        );
+    }
 
     /// Starts the withdrawal process on behalf of a depositor who has authorized the caller. After `withdrawalDelay`,
     /// `withdraw` may be called to complete the withdrawal. Once a withdrawal has been initiated, that amount can no
@@ -312,7 +341,19 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @dev The full amount that was initiated is always withdrawn
     ///
     /// @param token   The token to withdraw
-    function withdraw(address token) external {}
+    function withdraw(address token) external tokenSupported(token) {
+        uint256 balanceToWithdraw = withdrawingBalances[token][msg.sender];
+        if (balanceToWithdraw == 0) {
+            revert NoWithdrawingBalance();
+        }
+        if (withdrawableAtBlocks[token][msg.sender] > block.number) {
+            revert WithdrawalNotYetAvailable();
+        }
+        withdrawingBalances[token][msg.sender] = 0;
+        withdrawableAtBlocks[token][msg.sender] = 0;
+        IERC20(token).safeTransfer(msg.sender, balanceToWithdraw);
+        emit WithdrawalCompleted(token, msg.sender, msg.sender, balanceToWithdraw);
+    }
 
     /// Completes a withdrawal that was initiated at least `withdrawalDelay` blocks ago. The funds are sent to the
     /// caller of this method, who must be an authorized spender of `depositor` for `token`.
@@ -329,7 +370,9 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function withdrawalBlock(address token, address depositor) external pure returns (uint256) {}
+    function withdrawalBlock(address token, address depositor) external view returns (uint256) {
+        return withdrawableAtBlocks[token][depositor];
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Balances
@@ -355,13 +398,21 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function withdrawingBalance(address token, address depositor) external pure returns (uint256) {}
+    function withdrawingBalance(address token, address depositor) external view tokenSupported(token) returns (uint256) {
+        return withdrawingBalances[token][depositor];
+    }
 
     /// The balance that is withdrawable as of the current block. This will either be 0 or `withdrawingBalance`.
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function withdrawableBalance(address token, address depositor) external pure returns (uint256) {}
+    function withdrawableBalance(address token, address depositor) external view tokenSupported(token) returns (uint256) {
+        uint256 balanceToWithdraw = withdrawingBalances[token][depositor];
+        if (balanceToWithdraw == 0 || withdrawableAtBlocks[token][depositor] > block.number) {
+            return 0;
+        }
+        return balanceToWithdraw;
+    }
 
     /// The balance of a depositor for a particular balance specifier, compatible with ERC-1155
     ///
