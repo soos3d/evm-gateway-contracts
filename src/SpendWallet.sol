@@ -59,14 +59,25 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
 
     error DepositValueMustBePositive();
 
+    /**
+     * @notice Reverts if an invalid address is set.
+     */
+    error InvalidAddress();
+
+    error CannotAddSelfAsSpender();
+
     /// The balances that have been deposited and are available for spending (after finalization)
-    mapping(address token => mapping(address user => uint256 value)) internal spendableBalances;
+    mapping(address token => mapping(address depositor => uint256 value)) internal spendableBalances;
 
     /// The balances that are in the process of being withdrawn and are no longer spendable
-    mapping(address token => mapping(address user => uint256 value)) internal withdrawingBalances;
+    mapping(address token => mapping(address depositor => uint256 value)) internal withdrawingBalances;
 
     /// The block numbers at which in-progress withdrawals will be withdrawable
-    mapping(address token => mapping(address user => uint256 block)) internal withdrawableAtBlocks;
+    mapping(address token => mapping(address depositor => uint256 block)) internal withdrawableAtBlocks;
+
+    /// The mapping to track authorized spenders for each depositor per token
+    mapping(address token => mapping(address depositor => mapping(address spender => bool isAuthorized))) private
+        spenderAuthorizations;
 
     /// The number of blocks a user must wait after initiating a withdrawal before that amount is withdrawable. Updating
     /// this value does not affect existing withdrawals, just future ones.
@@ -229,6 +240,15 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Spender authorization
 
+    /// Validates that an address is not the zero address
+    ///
+    /// @param addr   The address being authorized to spend
+    function _checkNotZeroAddress(address addr) internal pure {
+        if (addr == address(0)) {
+            revert InvalidAddress();
+        }
+    }
+
     /// Emitted when a spender is authorized to spend a depositor's balance
     ///
     /// @param token       The token that the spender is now authorized for
@@ -242,7 +262,21 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token     The token that `spender` should be allowed to spend
     /// @param spender   The address being authorized to spend
-    function addSpender(address token, address spender) external {}
+    function addSpender(address token, address spender)
+        external
+        whenNotPaused
+        notRejected(msg.sender)
+        notRejected(spender)
+        tokenSupported(token)
+    {
+        _checkNotZeroAddress(spender);
+        if (spender == msg.sender) {
+            revert CannotAddSelfAsSpender();
+        }
+
+        spenderAuthorizations[token][msg.sender][spender] = true;
+        emit SpenderAdded(token, msg.sender, spender);
+    }
 
     /// Emitted when a spender's authorization is revoked
     ///
@@ -257,7 +291,31 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token     The token that `spender` should be allowed to spend
     /// @param spender   The address being authorized to spend
-    function removeSpender(address token, address spender) external {}
+    function removeSpender(address token, address spender)
+        external
+        whenNotPaused
+        notRejected(msg.sender)
+        tokenSupported(token)
+    {
+        _checkNotZeroAddress(spender);
+
+        spenderAuthorizations[token][msg.sender][spender] = false;
+        emit SpenderRemoved(token, msg.sender, spender);
+    }
+
+    /// Check if an spender is authorized to spend tokens on behalf of a depositor
+    ///
+    /// @dev This verifies if a spender is authorized or not for spending tokens on behalf of depositor
+    ///
+    /// @param token     The token that `spender` should be allowed to spend
+    /// @param spender   The address being authorized to spend
+    function isSpender(address token, address spender, address depositor) public view returns (bool) {
+        if (spender == depositor) {
+            return true;
+        }
+
+        return spenderAuthorizations[token][depositor][spender];
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Withdrawals
