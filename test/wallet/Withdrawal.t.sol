@@ -214,7 +214,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     ///    - Initiate second withdrawal of 1/2 initialUsdcBalance
     ///    - spendable balance decreases by second withdrawal amount
     ///    - withdrawing balance increases by second withdrawal amount
-    ///    - withdrawal block resets to current block + withdrawalDelay
+    ///    - withdrawal block resets to current block + withdrawalDelay (new delay starts from this point)
     /// 4. After delay:
     ///    - total withdrawing balance transfers to depositor
     ///    - withdrawing balance and withdrawal block reset to 0
@@ -245,7 +245,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedWithdrawableBalance = 0;
-        uint256 expectedSecondBlockHeightWhenWithdrawable = expectedFirstBlockHeightWhenWithdrawable + wallet.withdrawalDelay();
+        uint256 expectedSecondBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
         _initiateWithdrawalByDepositorAndVerifyState(
             secondWithdrawalAmount, 
             expectedTotalWithdrawalAmount,
@@ -339,7 +339,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     /// 3. Immediately initiate second withdrawal of 1/2 initialUsdcBalance:
     ///    - spendable balance decreases by second withdrawal amount
     ///    - withdrawing balance increases by second withdrawal amount
-    ///    - withdrawal block set to current block + 2 * withdrawalDelay
+    ///    - withdrawal block remains at current block + withdrawalDelay (both withdrawals share same delay)
     /// 4. After delay:
     ///    - total withdrawing balance transfers to depositor
     ///    - withdrawing balance and withdrawal block reset to 0
@@ -367,17 +367,16 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedWithdrawableBalance = 0;
-        uint256 expectedSecondBlockHeightWhenWithdrawable = vm.getBlockNumber() + 2 * wallet.withdrawalDelay();
         _initiateWithdrawalByDepositorAndVerifyState(
             secondWithdrawalAmount, 
             expectedTotalWithdrawalAmount,
             expectedSpendableBalance, 
             expectedWithdrawingBalance, 
             expectedWithdrawableBalance,
-            expectedSecondBlockHeightWhenWithdrawable);
+            expectedFirstBlockHeightWhenWithdrawable /* Both withdrawals should be available at the same time */);
 
         // Jump to when both withdrawals are ready
-        vm.roll(expectedSecondBlockHeightWhenWithdrawable);
+        vm.roll(expectedFirstBlockHeightWhenWithdrawable);
         expectedWithdrawingBalance = 0;
         expectedWithdrawableBalance = 0;
         _completeWithdrawalByDepositorAndVerifyState(
@@ -400,7 +399,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     /// 4. Initiate second withdrawal of 1/2 initialUsdcBalance:
     ///    - spendable balance decreases by second withdrawal amount
     ///    - withdrawing balance increases by second withdrawal amount
-    ///    - withdrawal block set to current block + original withdrawalDelay + new withdrawalDelay
+    ///    - withdrawal block set to current block + new withdrawalDelay (uses updated delay)
     function test_withdrawalByDepositor_updateWithdrawalDelayToShorterDelayThenInitiateWithdrawalAgain() public {
         _assertInitialState();
 
@@ -430,7 +429,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedWithdrawableBalance = 0;
-        uint256 expectedSecondBlockHeightWhenWithdrawable = vm.getBlockNumber() + initialWithdrawalDelay + wallet.withdrawalDelay();
+        uint256 expectedSecondBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
         _initiateWithdrawalByDepositorAndVerifyState(
             secondWithdrawalAmount, 
             expectedTotalWithdrawalAmount,

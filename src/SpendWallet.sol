@@ -297,16 +297,9 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         if (value > spendableBalances[token][msg.sender]) {
             revert WithdrawalValueExceedsSpendableBalance();
         }
-        
-        uint256 currentWithdrawableAtBlock = withdrawableAtBlocks[token][msg.sender];
-        if (currentWithdrawableAtBlock > block.number) {
-            withdrawableAtBlocks[token][msg.sender] = currentWithdrawableAtBlock + withdrawalDelay;
-        } else {
-            withdrawableAtBlocks[token][msg.sender] = block.number + withdrawalDelay;
-        }
-
         spendableBalances[token][msg.sender] -= value;
         withdrawingBalances[token][msg.sender] += value;
+        withdrawableAtBlocks[token][msg.sender] = block.number + withdrawalDelay;
         emit WithdrawalInitiated(
             token,
             msg.sender,
