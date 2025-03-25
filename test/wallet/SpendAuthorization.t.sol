@@ -47,6 +47,8 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         vm.expectEmit(true, true, false, true);
         emit SpenderAdded(usdc, owner, spender);
 
+        assertFalse(wallet.isSpender(usdc, spender, owner));
+
         vm.startPrank(owner);
         wallet.addSpender(usdc, spender);
         vm.stopPrank();
