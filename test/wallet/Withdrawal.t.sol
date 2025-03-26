@@ -92,7 +92,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         address actor,
         address depositorAddress,
         uint256 withdrawalAmount,
-        uint256 expectedTotalWithdrawalAmount,
         uint256 expectedSpendableBalance,
         uint256 expectedWithdrawingBalance,
         uint256 expectedWithdrawableBalance,
@@ -101,7 +100,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         vm.startPrank(actor);
         vm.expectEmit(true, true, false, true);
         emit SpendWallet.WithdrawalInitiated(
-            usdc, depositorAddress, actor, withdrawalAmount, expectedTotalWithdrawalAmount, expectedWithdrawalBlock
+            usdc, depositorAddress, actor, withdrawalAmount, expectedWithdrawingBalance, expectedWithdrawalBlock
         );
 
         if (withdrawalType_ == WithdrawalType.Direct) {
@@ -237,7 +236,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         _assertInitialState(depositor);
 
         uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedTotalWithdrawalAmount = withdrawalAmount;
         uint256 expectedSpendableBalance = initialUsdcBalance - withdrawalAmount;
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
@@ -247,7 +245,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
             withdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -292,7 +289,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     function test_withdrawal_balancesUpdatedAfterSimpleWithdrawal() public testWithdrawalTypes {
         _assertInitialState(depositor);
         uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedTotalWithdrawalAmount = withdrawalAmount;
         uint256 expectedSpendableBalance = initialUsdcBalance - withdrawalAmount;
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
@@ -302,7 +298,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
             withdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -350,7 +345,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate first withdrawal
         uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedTotalWithdrawalAmount = firstWithdrawalAmount;
         uint256 expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount;
         uint256 expectedWithdrawingBalance = firstWithdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
@@ -360,7 +354,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
             firstWithdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -372,7 +365,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate second withdrawal
         uint256 secondWithdrawalAmount = initialUsdcBalance / 2;
-        expectedTotalWithdrawalAmount = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedWithdrawableBalance = 0;
@@ -382,7 +374,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
             secondWithdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -428,7 +419,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate first withdrawal
         uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedTotalWithdrawalAmount = firstWithdrawalAmount;
         uint256 expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount;
         uint256 expectedWithdrawingBalance = firstWithdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
@@ -438,7 +428,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
             firstWithdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -450,7 +439,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate second withdrawal
         uint256 secondWithdrawalAmount = initialUsdcBalance / 2;
-        expectedTotalWithdrawalAmount = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedWithdrawableBalance = 0;
@@ -460,7 +448,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
             secondWithdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -502,7 +489,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate first withdrawal
         uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedTotalWithdrawalAmount = firstWithdrawalAmount;
         uint256 expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount;
         uint256 expectedWithdrawingBalance = firstWithdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
@@ -512,7 +498,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
             firstWithdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -521,7 +506,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate second withdrawal
         uint256 secondWithdrawalAmount = initialUsdcBalance / 2;
-        expectedTotalWithdrawalAmount = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedWithdrawableBalance = 0;
@@ -530,7 +514,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
             secondWithdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -574,7 +557,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate first withdrawal
         uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedTotalWithdrawalAmount = firstWithdrawalAmount;
         uint256 expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount;
         uint256 expectedWithdrawingBalance = firstWithdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
@@ -584,7 +566,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
             firstWithdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -598,7 +579,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate second withdrawal
         uint256 secondWithdrawalAmount = initialUsdcBalance / 2;
-        expectedTotalWithdrawalAmount = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedWithdrawableBalance = 0;
@@ -608,7 +588,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
             secondWithdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -639,7 +618,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Depositor initiates withdrawal directly
         uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedTotalWithdrawalAmount = withdrawalAmount;
         uint256 expectedSpendableBalance = initialUsdcBalance - withdrawalAmount;
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
@@ -650,7 +628,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             depositor,
             depositor,
             withdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -699,7 +676,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Spender initiates withdrawal on behalf of depositor
         uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedTotalWithdrawalAmount = withdrawalAmount;
         uint256 expectedSpendableBalance = initialUsdcBalance - withdrawalAmount;
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
@@ -710,7 +686,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             spender,
             depositor,
             withdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -760,7 +735,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Spender initiates withdrawal on behalf of depositor
         uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedTotalWithdrawalAmount = withdrawalAmount;
         uint256 expectedSpendableBalance = initialUsdcBalance - withdrawalAmount;
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
@@ -771,7 +745,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             spender,
             depositor,
             withdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -838,7 +811,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // First spender initiates withdrawal
         uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedTotalWithdrawalAmount = firstWithdrawalAmount;
         uint256 expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount;
         uint256 expectedWithdrawingBalance = firstWithdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
@@ -849,7 +821,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             spender,
             depositor,
             firstWithdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -858,7 +829,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Second spender initiates withdrawal
         uint256 secondWithdrawalAmount = initialUsdcBalance / 3;
-        expectedTotalWithdrawalAmount = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
 
@@ -867,7 +837,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             spender2,
             depositor,
             secondWithdrawalAmount,
-            expectedTotalWithdrawalAmount,
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
@@ -949,7 +918,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             spender,
             depositor,
             withdrawalAmount1,
-            withdrawalAmount1,
             expectedSpendableBalance1,
             withdrawalAmount1,
             0,
@@ -964,7 +932,6 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             WithdrawalType.Authorized,
             spender,
             depositor2,
-            withdrawalAmount2,
             withdrawalAmount2,
             expectedSpendableBalance2,
             withdrawalAmount2,
