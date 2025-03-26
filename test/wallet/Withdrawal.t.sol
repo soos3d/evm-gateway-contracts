@@ -86,7 +86,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         assertEq(wallet.withdrawalBlock(usdc, depositorAddress), 0);
     }
 
-    // Helper function to verify state after withdrawal initiation for a specific depositor
+    // Helper function to verify state after withdrawal initiation for a depositor
     function _initiateWithdrawalAndVerifyState(
         WithdrawalType withdrawalType_,
         address actor,
@@ -121,7 +121,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         assertEq(wallet.withdrawalBlock(usdc, depositorAddress), expectedWithdrawalBlock);
     }
 
-    // Helper function to verify state after withdrawal completion for a specific depositor
+    // Helper function to verify state after withdrawal completion for a depositor
     function _completeWithdrawalAndVerifyState(
         WithdrawalType withdrawalType_,
         address actor,
@@ -153,29 +153,39 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     // ===== Basic Error Tests - Withdrawal Initiation =====
 
-    function test_initiateWithdrawal_revertIfValueIsZero() public testWithdrawalTypes {
-        address actor = withdrawalType == WithdrawalType.Direct ? depositor : spender;
-        vm.startPrank(actor);
-        if (withdrawalType == WithdrawalType.Direct) {
-            vm.expectRevert(SpendWallet.WithdrawalValueMustBePositive.selector);
-            wallet.initiateWithdrawal(usdc, 0);
-        } else {
-            vm.expectRevert(SpendWallet.WithdrawalValueMustBePositive.selector);
-            wallet.initiateWithdrawal(usdc, depositor, 0);
-        }
+    function test_directInitiateWithdrawal_revertIfValueIsZero() public {
+        vm.startPrank(depositor);
+        vm.expectRevert(SpendWallet.WithdrawalValueMustBePositive.selector);
+        wallet.initiateWithdrawal(usdc, 0);
         vm.stopPrank();
     }
 
-    function test_initiateWithdrawal_revertIfValueExceedsSpendableBalance() public testWithdrawalTypes {
-        address actor = withdrawalType == WithdrawalType.Direct ? depositor : spender;
-        vm.startPrank(actor);
-        if (withdrawalType == WithdrawalType.Direct) {
-            vm.expectRevert(SpendWallet.WithdrawalValueExceedsSpendableBalance.selector);
-            wallet.initiateWithdrawal(usdc, 2 * initialUsdcBalance);
-        } else {
-            vm.expectRevert(SpendWallet.WithdrawalValueExceedsSpendableBalance.selector);
-            wallet.initiateWithdrawal(usdc, depositor, 2 * initialUsdcBalance);
-        }
+    function test_authorizedInitiateWithdrawal_revertIfValueIsZero() public {
+        vm.startPrank(depositor);
+        wallet.addSpender(usdc, spender);
+        vm.stopPrank();
+        
+        vm.startPrank(spender);
+        vm.expectRevert(SpendWallet.WithdrawalValueMustBePositive.selector);
+        wallet.initiateWithdrawal(usdc, depositor, 0);
+        vm.stopPrank();
+    }
+
+    function test_directInitiateWithdrawal_revertIfValueExceedsSpendableBalance() public {
+        vm.startPrank(depositor);
+        vm.expectRevert(SpendWallet.WithdrawalValueExceedsSpendableBalance.selector);
+        wallet.initiateWithdrawal(usdc, 2 * initialUsdcBalance);
+        vm.stopPrank();
+    }
+
+    function test_authorizedInitiateWithdrawal_revertIfValueExceedsSpendableBalance() public {
+        vm.startPrank(depositor);
+        wallet.addSpender(usdc, spender);
+        vm.stopPrank();
+        
+        vm.startPrank(spender);
+        vm.expectRevert(SpendWallet.WithdrawalValueExceedsSpendableBalance.selector);
+        wallet.initiateWithdrawal(usdc, depositor, 2 * initialUsdcBalance);
         vm.stopPrank();
     }
 
@@ -204,16 +214,21 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    function test_withdrawal_revertIfNoWithdrawingBalance() public testWithdrawalTypes {
-        address actor = withdrawalType == WithdrawalType.Direct ? depositor : spender;
-        vm.startPrank(actor);
-        if (withdrawalType == WithdrawalType.Direct) {
-            vm.expectRevert(SpendWallet.NoWithdrawingBalance.selector);
-            wallet.withdraw(usdc);
-        } else {
-            vm.expectRevert(SpendWallet.NoWithdrawingBalance.selector);
-            wallet.withdraw(usdc, depositor);
-        }
+    function test_directWithdrawal_revertIfNoWithdrawingBalance() public {
+        vm.startPrank(depositor);
+        vm.expectRevert(SpendWallet.NoWithdrawingBalance.selector);
+        wallet.withdraw(usdc);
+        vm.stopPrank();
+    }
+
+    function test_authorizedWithdrawal_revertIfNoWithdrawingBalance() public {
+        vm.startPrank(depositor);
+        wallet.addSpender(usdc, spender);
+        vm.stopPrank();
+        
+        vm.startPrank(spender);
+        vm.expectRevert(SpendWallet.NoWithdrawingBalance.selector);
+        wallet.withdraw(usdc, depositor);
         vm.stopPrank();
     }
 

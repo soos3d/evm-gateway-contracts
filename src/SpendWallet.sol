@@ -398,6 +398,25 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param value       The value that was withdrawn
     event WithdrawalCompleted(address indexed token, address indexed depositor, address spender, uint256 value);
 
+    /// Internal helper function to complete a withdrawal
+    ///
+    /// @param token       The token to withdraw
+    /// @param depositor   The owner of the balance from which the withdrawal should come
+    /// @param spender     The address completing the withdrawal
+    function _withdraw(address token, address depositor, address spender) internal {
+        uint256 balanceToWithdraw = withdrawingBalances[token][depositor];
+        if (balanceToWithdraw == 0) {
+            revert NoWithdrawingBalance();
+        }
+        if (withdrawableAtBlocks[token][depositor] > block.number) {
+            revert WithdrawalNotYetAvailable();
+        }
+        withdrawingBalances[token][depositor] = 0;
+        withdrawableAtBlocks[token][depositor] = 0;
+        IERC20(token).safeTransfer(spender, balanceToWithdraw);
+        emit WithdrawalCompleted(token, depositor, spender, balanceToWithdraw);
+    }
+
     /// Completes a withdrawal that was initiated at least `withdrawalDelay` blocks ago.
     ///
     /// @dev The full amount that was initiated is always withdrawn
@@ -419,25 +438,6 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
             revert UnauthorizedSpender();
         }
         _withdraw(token, depositor, msg.sender);
-    }
-
-    /// Internal helper function to complete a withdrawal
-    ///
-    /// @param token       The token to withdraw
-    /// @param depositor   The owner of the balance from which the withdrawal should come
-    /// @param spender     The address completing the withdrawal
-    function _withdraw(address token, address depositor, address spender) internal {
-        uint256 balanceToWithdraw = withdrawingBalances[token][depositor];
-        if (balanceToWithdraw == 0) {
-            revert NoWithdrawingBalance();
-        }
-        if (withdrawableAtBlocks[token][depositor] > block.number) {
-            revert WithdrawalNotYetAvailable();
-        }
-        withdrawingBalances[token][depositor] = 0;
-        withdrawableAtBlocks[token][depositor] = 0;
-        IERC20(token).safeTransfer(spender, balanceToWithdraw);
-        emit WithdrawalCompleted(token, depositor, spender, balanceToWithdraw);
     }
 
     /// The block height at which an in-progress withdrawal is withdrawable
