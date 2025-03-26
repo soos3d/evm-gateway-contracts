@@ -276,7 +276,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    /// Tests a simple withdrawal flow with state transitions
+    /// Tests a simple withdrawal flow
     /// State transitions:
     /// 1. Initial state: depositor has initialUsdcBalance in spendable balance
     /// 2. Initiate withdrawal of 1/4 initialUsdcBalance:
@@ -523,6 +523,9 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     ///    - spendable balance decreases by second withdrawal amount
     ///    - withdrawing balance increases by second withdrawal amount
     ///    - withdrawal block set to current block + new withdrawalDelay (uses updated delay)
+    /// 5. After delay:
+    ///    - total withdrawing balance transfers to actor (depositor for direct, spender for authorized)
+    ///    - withdrawing balance and withdrawal block reset to 0
     function test_withdrawal_updateWithdrawalDelayToShorterDelayThenInitiateWithdrawalAgain()
         public
         testWithdrawalTypes
@@ -567,6 +570,15 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             expectedWithdrawableBalance,
             expectedSecondBlockHeightWhenWithdrawable
         );
+
+        // Jump to when both withdrawals are ready
+        vm.roll(expectedSecondBlockHeightWhenWithdrawable);
+
+        address actor = withdrawalType == WithdrawalType.Direct ? depositor : spender;
+        _completeWithdrawalAndVerifyState(
+            withdrawalType, actor, depositor, firstWithdrawalAmount + secondWithdrawalAmount, expectedSpendableBalance
+        );
+        assertEq(IERC20(usdc).balanceOf(actor), firstWithdrawalAmount + secondWithdrawalAmount);
     }
 
     // ===== Multiple Actor Interaction Tests =====
