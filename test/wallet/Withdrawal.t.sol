@@ -123,9 +123,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         address actor,
         address depositorAddress,
         uint256 expectedWithdrawalAmount,
-        uint256 expectedSpendableBalance,
-        uint256 expectedWithdrawingBalance,
-        uint256 expectedWithdrawableBalance
+        uint256 expectedSpendableBalance
     ) internal {
         vm.startPrank(actor);
         vm.expectEmit(true, true, false, true);
@@ -138,8 +136,8 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         vm.stopPrank();
 
         assertEq(wallet.spendableBalance(usdc, depositorAddress), expectedSpendableBalance);
-        assertEq(wallet.withdrawingBalance(usdc, depositorAddress), expectedWithdrawingBalance);
-        assertEq(wallet.withdrawableBalance(usdc, depositorAddress), expectedWithdrawableBalance);
+        assertEq(wallet.withdrawingBalance(usdc, depositorAddress), 0);
+        assertEq(wallet.withdrawableBalance(usdc, depositorAddress), 0);
         assertEq(wallet.withdrawalBlock(usdc, depositorAddress), 0);
     }
 
@@ -322,9 +320,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             actor,
             depositor,
             withdrawalAmount,
-            expectedSpendableBalance,
-            expectedWithdrawingBalance,
-            expectedWithdrawableBalance
+            expectedSpendableBalance
         );
         assertEq(IERC20(usdc).balanceOf(actor), withdrawalAmount);
     }
@@ -404,9 +400,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             actor,
             depositor,
             firstWithdrawalAmount + secondWithdrawalAmount,
-            expectedSpendableBalance,
-            expectedWithdrawingBalance,
-            expectedWithdrawableBalance
+            expectedSpendableBalance
         );
         assertEq(IERC20(usdc).balanceOf(actor), firstWithdrawalAmount + secondWithdrawalAmount);
     }
@@ -484,9 +478,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             actor,
             depositor,
             firstWithdrawalAmount + secondWithdrawalAmount,
-            expectedSpendableBalance,
-            expectedWithdrawingBalance,
-            expectedWithdrawableBalance
+            expectedSpendableBalance
         );
         assertEq(IERC20(usdc).balanceOf(actor), firstWithdrawalAmount + secondWithdrawalAmount);
     }
@@ -556,9 +548,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             actor,
             depositor,
             firstWithdrawalAmount + secondWithdrawalAmount,
-            expectedSpendableBalance,
-            expectedWithdrawingBalance,
-            expectedWithdrawableBalance
+            expectedSpendableBalance
         );
         assertEq(IERC20(usdc).balanceOf(actor), firstWithdrawalAmount + secondWithdrawalAmount);
     }
@@ -680,9 +670,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             spender,
             depositor,
             withdrawalAmount,
-            expectedSpendableBalance,
-            expectedWithdrawingBalance,
-            expectedWithdrawableBalance
+            expectedSpendableBalance
         );
         assertEq(IERC20(usdc).balanceOf(spender), withdrawalAmount);
 
@@ -742,9 +730,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             depositor,
             depositor,
             withdrawalAmount,
-            expectedSpendableBalance,
-            expectedWithdrawingBalance,
-            expectedWithdrawableBalance
+            expectedSpendableBalance
         );
         assertEq(IERC20(usdc).balanceOf(depositor), withdrawalAmount);
 
@@ -815,9 +801,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             depositor,
             depositor,
             withdrawalAmount,
-            expectedSpendableBalance,
-            expectedWithdrawingBalance,
-            expectedWithdrawableBalance
+            expectedSpendableBalance
         );
         assertEq(IERC20(usdc).balanceOf(depositor), withdrawalAmount);
 
@@ -899,9 +883,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             spender,
             depositor,
             expectedWithdrawingBalance, // Gets the total of both withdrawals
-            expectedSpendableBalance,
-            0, // expectedWithdrawingBalance is reset to 0
-            0 // expectedWithdrawableBalance is 0
+            expectedSpendableBalance
         );
         assertEq(IERC20(usdc).balanceOf(spender), expectedWithdrawingBalance);
 
@@ -995,13 +977,13 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Complete first withdrawal and check balance
         _completeWithdrawalAndVerifyState(
-            WithdrawalType.Authorized, spender, depositor, withdrawalAmount1, expectedSpendableBalance1, 0, 0
+            WithdrawalType.Authorized, spender, depositor, withdrawalAmount1, expectedSpendableBalance1
         );
         assertEq(IERC20(usdc).balanceOf(spender), withdrawalAmount1);
 
         // Complete second withdrawal and check balance
         _completeWithdrawalAndVerifyState(
-            WithdrawalType.Authorized, spender, depositor2, withdrawalAmount2, expectedSpendableBalance2, 0, 0
+            WithdrawalType.Authorized, spender, depositor2, withdrawalAmount2, expectedSpendableBalance2
         );
         assertEq(IERC20(usdc).balanceOf(spender), withdrawalAmount1 + withdrawalAmount2);
 
