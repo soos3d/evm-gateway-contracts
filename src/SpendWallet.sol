@@ -60,17 +60,11 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     error DepositValueMustBePositive();
 
     /**
-     * @dev Reverts if an invalid address is set.
-     */
-    error InvalidAddress();
-
-    /**
      * @dev Reverts if function caller is not burnCaller
      */
     error CallerNotBurnCaller();
 
     error CannotAddSelfAsSpender();
-
 
     /// The balances that have been deposited and are available for spending (after finalization)
     mapping(address token => mapping(address depositor => uint256 value)) internal spendableBalances;
@@ -254,15 +248,6 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Spender authorization
-
-    /// Validates that an address is not the zero address
-    ///
-    /// @param addr   The address being authorized to spend
-    function _checkNotZeroAddress(address addr) internal pure {
-        if (addr == address(0)) {
-            revert InvalidAddress();
-        }
-    }
 
     /// Emitted when a spender is authorized to spend a depositor's balance
     ///
@@ -611,5 +596,11 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @dev May only be called by the `owner` role
     ///
     /// @param newBurnCaller   The new burn caller address
-    function updateBurnCaller(address newBurnCaller) external onlyOwner {}
+    function updateBurnCaller(address newBurnCaller) external onlyOwner {
+        _checkNotZeroAddress(newBurnCaller);
+
+        address oldBurnCaller = burnCaller;
+        burnCaller = newBurnCaller;
+        emit BurnCallerUpdated(oldBurnCaller, newBurnCaller);
+    }
 }

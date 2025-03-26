@@ -94,6 +94,11 @@ contract SpendMinter is SpendCommon {
     /// @param token              The token address to update the mint authority for
     /// @param newMintAuthority   The address to set as the new mint authority
     function updateMintAuthority(address token, address newMintAuthority) external onlyOwner tokenSupported(token) {
+        _checkNotZeroAddress(newMintAuthority);
+
+        address oldMintAuthority = tokenMintAuthorities[token];
+        tokenMintAuthorities[token] = newMintAuthority;
+        emit MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
