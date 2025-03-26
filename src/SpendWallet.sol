@@ -397,17 +397,21 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// Emitted when a withdrawal is completed and funds have been transferred to the depositor
     ///
     /// @param token       The token that was withdrawn
-    /// @param depositor   The owner and recipient of the withdrawn funds
+    /// @param depositor   The owner of the withdrawn funds
+    /// @param recipient   The recipient of the funds
     /// @param spender     The spender that authorized the withdrawal
     /// @param value       The value that was withdrawn
-    event WithdrawalCompleted(address indexed token, address indexed depositor, address spender, uint256 value);
+    event WithdrawalCompleted(
+        address indexed token, address indexed depositor, address indexed recipient, address spender, uint256 value
+    );
 
     /// Internal helper function to complete a withdrawal
     ///
     /// @param token       The token to withdraw
     /// @param depositor   The owner of the balance from which the withdrawal should come
+    /// @param recipient   The recipient of the funds
     /// @param spender     The address completing the withdrawal
-    function _withdraw(address token, address depositor, address spender) internal {
+    function _withdraw(address token, address depositor, address recipient, address spender) internal {
         uint256 balanceToWithdraw = withdrawingBalances[token][depositor];
         if (balanceToWithdraw == 0) {
             revert NoWithdrawingBalance();
@@ -417,8 +421,8 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         }
         withdrawingBalances[token][depositor] = 0;
         withdrawableAtBlocks[token][depositor] = 0;
-        IERC20(token).safeTransfer(spender, balanceToWithdraw);
-        emit WithdrawalCompleted(token, depositor, spender, balanceToWithdraw);
+        IERC20(token).safeTransfer(recipient, balanceToWithdraw);
+        emit WithdrawalCompleted(token, depositor, recipient, spender, balanceToWithdraw);
     }
 
     /// Completes a withdrawal that was initiated at least `withdrawalDelay` blocks ago.
@@ -427,21 +431,26 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token   The token to withdraw
     function withdraw(address token) external whenNotPaused tokenSupported(token) {
-        _withdraw(token, msg.sender, msg.sender);
+        _withdraw(token, msg.sender, msg.sender, msg.sender);
     }
 
     /// Completes a withdrawal that was initiated at least `withdrawalDelay` blocks ago. The funds are sent to the
-    /// caller of this method, who must be an authorized spender of `depositor` for `token`.
+    /// specified recipient.
     ///
     /// @dev The full amount that was initiated is always withdrawn
     ///
     /// @param token       The token to withdraw
     /// @param depositor   The owner of the balance from which the withdrawal should come
-    function withdraw(address token, address depositor) external whenNotPaused tokenSupported(token) {
+    /// @param recipient   The recipient of the funds
+    function withdraw(address token, address depositor, address recipient)
+        external
+        whenNotPaused
+        tokenSupported(token)
+    {
         if (!isSpender(token, msg.sender, depositor)) {
             revert UnauthorizedSpender();
         }
-        _withdraw(token, depositor, msg.sender);
+        _withdraw(token, depositor, recipient, msg.sender);
     }
 
     /// The block height at which an in-progress withdrawal is withdrawable
