@@ -370,7 +370,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token   The token to initiate a withdrawal for
     /// @param value   The amount to be withdrawn
-    function initiateWithdrawal(address token, uint256 value) external tokenSupported(token) {
+    function initiateWithdrawal(address token, uint256 value) external whenNotPaused tokenSupported(token) {
         _initiateWithdrawal(token, msg.sender, msg.sender, value);
     }
 
@@ -383,7 +383,11 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param token       The token to initiate a withdrawal for
     /// @param depositor   The owner of the balance from which the withdrawal should come
     /// @param value       The amount to be withdrawn
-    function initiateWithdrawal(address token, address depositor, uint256 value) external tokenSupported(token) {
+    function initiateWithdrawal(address token, address depositor, uint256 value)
+        external
+        whenNotPaused
+        tokenSupported(token)
+    {
         if (!isSpender(token, msg.sender, depositor)) {
             revert UnauthorizedSpender();
         }
@@ -422,7 +426,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @dev The full amount that was initiated is always withdrawn
     ///
     /// @param token   The token to withdraw
-    function withdraw(address token) external tokenSupported(token) {
+    function withdraw(address token) external whenNotPaused tokenSupported(token) {
         _withdraw(token, msg.sender, msg.sender);
     }
 
@@ -433,7 +437,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token to withdraw
     /// @param depositor   The owner of the balance from which the withdrawal should come
-    function withdraw(address token, address depositor) external tokenSupported(token) {
+    function withdraw(address token, address depositor) external whenNotPaused tokenSupported(token) {
         if (!isSpender(token, msg.sender, depositor)) {
             revert UnauthorizedSpender();
         }
@@ -474,7 +478,12 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function withdrawingBalance(address token, address depositor) external view tokenSupported(token) returns (uint256) {
+    function withdrawingBalance(address token, address depositor)
+        external
+        view
+        tokenSupported(token)
+        returns (uint256)
+    {
         return withdrawingBalances[token][depositor];
     }
 
@@ -482,7 +491,12 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function withdrawableBalance(address token, address depositor) external view tokenSupported(token) returns (uint256) {
+    function withdrawableBalance(address token, address depositor)
+        external
+        view
+        tokenSupported(token)
+        returns (uint256)
+    {
         uint256 balanceToWithdraw = withdrawingBalances[token][depositor];
         if (balanceToWithdraw == 0 || withdrawableAtBlocks[token][depositor] > block.number) {
             return 0;

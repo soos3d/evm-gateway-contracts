@@ -65,7 +65,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         // Run test for direct withdrawal
         withdrawalType = WithdrawalType.Direct;
         _;
-        
+
         // Run test for authorized withdrawal
         setUp();
         withdrawalType = WithdrawalType.Authorized;
@@ -93,21 +93,17 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         address depositorAddress,
         uint256 withdrawalAmount,
         uint256 expectedTotalWithdrawalAmount,
-        uint256 expectedSpendableBalance, 
-        uint256 expectedWithdrawingBalance, 
-        uint256 expectedWithdrawableBalance, 
-        uint256 expectedWithdrawalBlock) internal {
+        uint256 expectedSpendableBalance,
+        uint256 expectedWithdrawingBalance,
+        uint256 expectedWithdrawableBalance,
+        uint256 expectedWithdrawalBlock
+    ) internal {
         vm.startPrank(actor);
         vm.expectEmit(true, true, false, true);
         emit SpendWallet.WithdrawalInitiated(
-            usdc, 
-            depositorAddress,
-            actor,
-            withdrawalAmount, 
-            expectedTotalWithdrawalAmount, 
-            expectedWithdrawalBlock
+            usdc, depositorAddress, actor, withdrawalAmount, expectedTotalWithdrawalAmount, expectedWithdrawalBlock
         );
-        
+
         if (withdrawalType_ == WithdrawalType.Direct) {
             wallet.initiateWithdrawal(usdc, withdrawalAmount);
         } else {
@@ -126,18 +122,14 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         WithdrawalType withdrawalType_,
         address actor,
         address depositorAddress,
-        uint256 expectedWithdrawalAmount, 
-        uint256 expectedSpendableBalance, 
-        uint256 expectedWithdrawingBalance, 
-        uint256 expectedWithdrawableBalance) internal {
+        uint256 expectedWithdrawalAmount,
+        uint256 expectedSpendableBalance,
+        uint256 expectedWithdrawingBalance,
+        uint256 expectedWithdrawableBalance
+    ) internal {
         vm.startPrank(actor);
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.WithdrawalCompleted(
-            usdc, 
-            depositorAddress,
-            actor, 
-            expectedWithdrawalAmount
-        );
+        emit SpendWallet.WithdrawalCompleted(usdc, depositorAddress, actor, expectedWithdrawalAmount);
         if (withdrawalType_ == WithdrawalType.Direct) {
             wallet.withdraw(usdc);
         } else {
@@ -164,7 +156,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         vm.startPrank(depositor);
         wallet.addSpender(usdc, spender);
         vm.stopPrank();
-        
+
         vm.startPrank(spender);
         vm.expectRevert(SpendWallet.WithdrawalValueMustBePositive.selector);
         wallet.initiateWithdrawal(usdc, depositor, 0);
@@ -182,7 +174,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         vm.startPrank(depositor);
         wallet.addSpender(usdc, spender);
         vm.stopPrank();
-        
+
         vm.startPrank(spender);
         vm.expectRevert(SpendWallet.WithdrawalValueExceedsSpendableBalance.selector);
         wallet.initiateWithdrawal(usdc, depositor, 2 * initialUsdcBalance);
@@ -225,7 +217,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         vm.startPrank(depositor);
         wallet.addSpender(usdc, spender);
         vm.stopPrank();
-        
+
         vm.startPrank(spender);
         vm.expectRevert(SpendWallet.NoWithdrawingBalance.selector);
         wallet.withdraw(usdc, depositor);
@@ -261,7 +253,8 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             expectedSpendableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
-            expectedBlockHeightWhenWithdrawable);
+            expectedBlockHeightWhenWithdrawable
+        );
 
         // Attempt to withdraw immediately
         address actor = withdrawalType == WithdrawalType.Direct ? depositor : spender;
@@ -310,19 +303,19 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType,
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
-            withdrawalAmount, 
+            withdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
-            expectedWithdrawableBalance, 
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
+            expectedWithdrawableBalance,
             expectedBlockHeightWhenWithdrawable
         );
-        
+
         // Jump to block height when the withdrawal should be withdrawable
         vm.roll(expectedBlockHeightWhenWithdrawable);
         expectedWithdrawingBalance = 0;
         expectedWithdrawableBalance = 0;
-        
+
         address actor = withdrawalType == WithdrawalType.Direct ? depositor : spender;
         _completeWithdrawalAndVerifyState(
             withdrawalType,
@@ -353,9 +346,12 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     /// 4. After delay:
     ///    - total withdrawing balance transfers to actor (depositor for direct, spender for authorized)
     ///    - withdrawing balance and withdrawal block reset to 0
-    function test_withdrawal_secondWithdrawalBeforeFirstWithdrawalIsReadyUpdatesBalancesAndResetsTimer() public testWithdrawalTypes {
+    function test_withdrawal_secondWithdrawalBeforeFirstWithdrawalIsReadyUpdatesBalancesAndResetsTimer()
+        public
+        testWithdrawalTypes
+    {
         _assertInitialState(depositor);
-        
+
         // Initiate first withdrawal
         uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
         uint256 expectedTotalWithdrawalAmount = firstWithdrawalAmount;
@@ -367,12 +363,13 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType,
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
-            firstWithdrawalAmount, 
+            firstWithdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
-            expectedWithdrawableBalance, 
-            expectedFirstBlockHeightWhenWithdrawable);
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
+            expectedWithdrawableBalance,
+            expectedFirstBlockHeightWhenWithdrawable
+        );
 
         // Jump to halfway through the withdrawal delay
         vm.roll(vm.getBlockNumber() + wallet.withdrawalDelay() / 2);
@@ -388,18 +385,19 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType,
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
-            secondWithdrawalAmount, 
+            secondWithdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
             expectedWithdrawableBalance,
-            expectedSecondBlockHeightWhenWithdrawable);
-        
+            expectedSecondBlockHeightWhenWithdrawable
+        );
+
         // Jump to block height when the second withdrawal should be withdrawable
         vm.roll(expectedSecondBlockHeightWhenWithdrawable);
         expectedWithdrawingBalance = 0;
         expectedWithdrawableBalance = 0;
-        
+
         address actor = withdrawalType == WithdrawalType.Direct ? depositor : spender;
         _completeWithdrawalAndVerifyState(
             withdrawalType,
@@ -428,9 +426,12 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     /// 4. After second delay:
     ///    - total withdrawing balance transfers to actor (depositor for direct, spender for authorized)
     ///    - withdrawing balance and withdrawal block reset to 0
-    function test_withdrawal_secondWithdrawalAfterFirstWithdrawalIsReadyUpdatesBalancesAndResetsTimer() public testWithdrawalTypes {
+    function test_withdrawal_secondWithdrawalAfterFirstWithdrawalIsReadyUpdatesBalancesAndResetsTimer()
+        public
+        testWithdrawalTypes
+    {
         _assertInitialState(depositor);
-        
+
         // Initiate first withdrawal
         uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
         uint256 expectedTotalWithdrawalAmount = firstWithdrawalAmount;
@@ -442,12 +443,13 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType,
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
-            firstWithdrawalAmount, 
+            firstWithdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
-            expectedWithdrawableBalance, 
-            expectedFirstBlockHeightWhenWithdrawable);
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
+            expectedWithdrawableBalance,
+            expectedFirstBlockHeightWhenWithdrawable
+        );
 
         // Jump to after first withdrawal is ready
         vm.roll(2 * expectedFirstBlockHeightWhenWithdrawable);
@@ -463,18 +465,19 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType,
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
-            secondWithdrawalAmount, 
+            secondWithdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
             expectedWithdrawableBalance,
-            expectedSecondBlockHeightWhenWithdrawable);
-        
+            expectedSecondBlockHeightWhenWithdrawable
+        );
+
         // Jump to block height when the second withdrawal should be withdrawable
         vm.roll(expectedSecondBlockHeightWhenWithdrawable);
         expectedWithdrawingBalance = 0;
         expectedWithdrawableBalance = 0;
-        
+
         address actor = withdrawalType == WithdrawalType.Direct ? depositor : spender;
         _completeWithdrawalAndVerifyState(
             withdrawalType,
@@ -516,13 +519,14 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType,
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
-            firstWithdrawalAmount, 
+            firstWithdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
-            expectedWithdrawableBalance, 
-            expectedFirstBlockHeightWhenWithdrawable);
-        
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
+            expectedWithdrawableBalance,
+            expectedFirstBlockHeightWhenWithdrawable
+        );
+
         // Initiate second withdrawal
         uint256 secondWithdrawalAmount = initialUsdcBalance / 2;
         expectedTotalWithdrawalAmount = firstWithdrawalAmount + secondWithdrawalAmount;
@@ -533,18 +537,19 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType,
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
-            secondWithdrawalAmount, 
+            secondWithdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
             expectedWithdrawableBalance,
-            expectedFirstBlockHeightWhenWithdrawable /* Both withdrawals should be available at the same time */);
+            expectedFirstBlockHeightWhenWithdrawable /* Both withdrawals should be available at the same time */
+        );
 
         // Jump to when both withdrawals are ready
         vm.roll(expectedFirstBlockHeightWhenWithdrawable);
         expectedWithdrawingBalance = 0;
         expectedWithdrawableBalance = 0;
-        
+
         address actor = withdrawalType == WithdrawalType.Direct ? depositor : spender;
         _completeWithdrawalAndVerifyState(
             withdrawalType,
@@ -571,7 +576,10 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     ///    - spendable balance decreases by second withdrawal amount
     ///    - withdrawing balance increases by second withdrawal amount
     ///    - withdrawal block set to current block + new withdrawalDelay (uses updated delay)
-    function test_withdrawal_updateWithdrawalDelayToShorterDelayThenInitiateWithdrawalAgain() public testWithdrawalTypes {
+    function test_withdrawal_updateWithdrawalDelayToShorterDelayThenInitiateWithdrawalAgain()
+        public
+        testWithdrawalTypes
+    {
         _assertInitialState(depositor);
 
         // Initiate first withdrawal
@@ -585,12 +593,13 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType,
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
-            firstWithdrawalAmount, 
+            firstWithdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
-            expectedWithdrawableBalance, 
-            expectedFirstBlockHeightWhenWithdrawable);
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
+            expectedWithdrawableBalance,
+            expectedFirstBlockHeightWhenWithdrawable
+        );
 
         // Update withdrawal delay to shorter delay
         vm.startPrank(owner);
@@ -608,12 +617,13 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType,
             withdrawalType == WithdrawalType.Direct ? depositor : spender,
             depositor,
-            secondWithdrawalAmount, 
+            secondWithdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
             expectedWithdrawableBalance,
-            expectedSecondBlockHeightWhenWithdrawable);
+            expectedSecondBlockHeightWhenWithdrawable
+        );
     }
 
     // ===== Multiple Actor Interaction Tests =====
@@ -631,12 +641,12 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     ///    - depositor receives nothing
     function test_withdrawal_directInitiationAuthorizedCompletion() public {
         _assertInitialState(depositor);
-        
+
         // Add spender authorization
         vm.startPrank(depositor);
         wallet.addSpender(usdc, spender);
         vm.stopPrank();
-        
+
         // Depositor initiates withdrawal directly
         uint256 withdrawalAmount = initialUsdcBalance / 4;
         uint256 expectedTotalWithdrawalAmount = withdrawalAmount;
@@ -644,29 +654,29 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
-        
+
         _initiateWithdrawalAndVerifyState(
-            WithdrawalType.Direct,  // Direct withdrawal by depositor
+            WithdrawalType.Direct, // Direct withdrawal by depositor
             depositor,
             depositor,
-            withdrawalAmount, 
+            withdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
-            expectedWithdrawableBalance, 
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
+            expectedWithdrawableBalance,
             expectedBlockHeightWhenWithdrawable
         );
-        
+
         // Jump to block height when the withdrawal should be withdrawable
         vm.roll(expectedBlockHeightWhenWithdrawable);
-        
+
         // Authorized spender completes the withdrawal
         expectedWithdrawingBalance = 0;
         expectedWithdrawableBalance = 0;
-        
+
         // Spender receives the funds, not the depositor
         _completeWithdrawalAndVerifyState(
-            WithdrawalType.Authorized,  // Authorized withdrawal completion by spender
+            WithdrawalType.Authorized, // Authorized withdrawal completion by spender
             spender,
             depositor,
             withdrawalAmount,
@@ -675,7 +685,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             expectedWithdrawableBalance
         );
         assertEq(IERC20(usdc).balanceOf(spender), withdrawalAmount);
-        
+
         // Verify the depositor has no balance
         assertEq(IERC20(usdc).balanceOf(depositor), 0);
     }
@@ -693,12 +703,12 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     ///    - spender receives nothing
     function test_withdrawal_authorizedInitiationDirectCompletion() public {
         _assertInitialState(depositor);
-        
+
         // Add spender authorization
         vm.startPrank(depositor);
         wallet.addSpender(usdc, spender);
         vm.stopPrank();
-        
+
         // Spender initiates withdrawal on behalf of depositor
         uint256 withdrawalAmount = initialUsdcBalance / 4;
         uint256 expectedTotalWithdrawalAmount = withdrawalAmount;
@@ -706,29 +716,29 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
-        
+
         _initiateWithdrawalAndVerifyState(
-            WithdrawalType.Authorized,  // Authorized withdrawal initiation by spender
+            WithdrawalType.Authorized, // Authorized withdrawal initiation by spender
             spender,
             depositor,
-            withdrawalAmount, 
+            withdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
-            expectedWithdrawableBalance, 
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
+            expectedWithdrawableBalance,
             expectedBlockHeightWhenWithdrawable
         );
-        
+
         // Jump to block height when the withdrawal should be withdrawable
         vm.roll(expectedBlockHeightWhenWithdrawable);
-        
+
         // Depositor completes the withdrawal
         expectedWithdrawingBalance = 0;
         expectedWithdrawableBalance = 0;
-        
+
         // Depositor receives the funds, not the spender
         _completeWithdrawalAndVerifyState(
-            WithdrawalType.Direct,  // Direct withdrawal completion by depositor
+            WithdrawalType.Direct, // Direct withdrawal completion by depositor
             depositor,
             depositor,
             withdrawalAmount,
@@ -737,7 +747,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             expectedWithdrawableBalance
         );
         assertEq(IERC20(usdc).balanceOf(depositor), withdrawalAmount);
-        
+
         // Verify the spender has no balance
         assertEq(IERC20(usdc).balanceOf(spender), 0);
     }
@@ -756,12 +766,12 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     ///    - withdrawing balance and withdrawal block reset to 0
     function test_withdrawal_revokedSpenderAuthorizationDuringWithdrawal() public {
         _assertInitialState(depositor);
-        
+
         // Add spender authorization
         vm.startPrank(depositor);
         wallet.addSpender(usdc, spender);
         vm.stopPrank();
-        
+
         // Spender initiates withdrawal on behalf of depositor
         uint256 withdrawalAmount = initialUsdcBalance / 4;
         uint256 expectedTotalWithdrawalAmount = withdrawalAmount;
@@ -769,39 +779,39 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
-        
+
         _initiateWithdrawalAndVerifyState(
-            WithdrawalType.Authorized,  // Authorized withdrawal initiation by spender
+            WithdrawalType.Authorized, // Authorized withdrawal initiation by spender
             spender,
             depositor,
-            withdrawalAmount, 
+            withdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
-            expectedWithdrawableBalance, 
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
+            expectedWithdrawableBalance,
             expectedBlockHeightWhenWithdrawable
         );
-        
+
         // Depositor revokes spender's authorization
         vm.startPrank(depositor);
         wallet.removeSpender(usdc, spender);
         vm.stopPrank();
-        
+
         // Jump to block height when the withdrawal should be withdrawable
         vm.roll(expectedBlockHeightWhenWithdrawable);
-        
+
         // Spender tries to complete the withdrawal but should fail
         vm.startPrank(spender);
         vm.expectRevert(SpendWallet.UnauthorizedSpender.selector);
         wallet.withdraw(usdc, depositor);
         vm.stopPrank();
-        
+
         // Depositor completes the withdrawal and succeeds
         expectedWithdrawingBalance = 0;
         expectedWithdrawableBalance = 0;
-        
+
         _completeWithdrawalAndVerifyState(
-            WithdrawalType.Direct,  // Direct withdrawal completion by depositor
+            WithdrawalType.Direct, // Direct withdrawal completion by depositor
             depositor,
             depositor,
             withdrawalAmount,
@@ -810,7 +820,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             expectedWithdrawableBalance
         );
         assertEq(IERC20(usdc).balanceOf(depositor), withdrawalAmount);
-        
+
         // Verify the spender has no balance
         assertEq(IERC20(usdc).balanceOf(spender), 0);
     }
@@ -832,16 +842,16 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     ///    - second spender's attempt to withdraw fails (NoWithdrawingBalance) as nothing is left
     function test_withdrawal_multipleSpendersForSameDepositor() public {
         _assertInitialState(depositor);
-        
+
         // Create a second spender
         address spender2 = makeAddr("spender2");
-        
+
         // Add both spenders as authorized
         vm.startPrank(depositor);
         wallet.addSpender(usdc, spender);
         wallet.addSpender(usdc, spender2);
         vm.stopPrank();
-        
+
         // First spender initiates withdrawal
         uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
         uint256 expectedTotalWithdrawalAmount = firstWithdrawalAmount;
@@ -849,65 +859,65 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         uint256 expectedWithdrawingBalance = firstWithdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
-        
+
         _initiateWithdrawalAndVerifyState(
             WithdrawalType.Authorized,
             spender,
             depositor,
-            firstWithdrawalAmount, 
+            firstWithdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
-            expectedWithdrawableBalance, 
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
+            expectedWithdrawableBalance,
             expectedBlockHeightWhenWithdrawable
         );
-        
+
         // Second spender initiates withdrawal
         uint256 secondWithdrawalAmount = initialUsdcBalance / 3;
         expectedTotalWithdrawalAmount = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
-        
+
         _initiateWithdrawalAndVerifyState(
             WithdrawalType.Authorized,
             spender2,
             depositor,
-            secondWithdrawalAmount, 
+            secondWithdrawalAmount,
             expectedTotalWithdrawalAmount,
-            expectedSpendableBalance, 
-            expectedWithdrawingBalance, 
-            expectedWithdrawableBalance, 
-            expectedBlockHeightWhenWithdrawable  // Both withdrawals are ready at the same time
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
+            expectedWithdrawableBalance,
+            expectedBlockHeightWhenWithdrawable // Both withdrawals are ready at the same time
         );
-        
+
         // Jump to block height when the withdrawals should be withdrawable
         vm.roll(expectedBlockHeightWhenWithdrawable);
-        
+
         // First spender completes the withdrawal and gets the ENTIRE withdrawing balance
         _completeWithdrawalAndVerifyState(
             WithdrawalType.Authorized,
             spender,
             depositor,
-            expectedWithdrawingBalance,  // Gets the total of both withdrawals
+            expectedWithdrawingBalance, // Gets the total of both withdrawals
             expectedSpendableBalance,
-            0,  // expectedWithdrawingBalance is reset to 0
-            0   // expectedWithdrawableBalance is 0
+            0, // expectedWithdrawingBalance is reset to 0
+            0 // expectedWithdrawableBalance is 0
         );
         assertEq(IERC20(usdc).balanceOf(spender), expectedWithdrawingBalance);
-        
+
         // Second spender tries to complete their withdrawal but should fail because nothing is left
         vm.startPrank(spender2);
         vm.expectRevert(SpendWallet.NoWithdrawingBalance.selector);
         wallet.withdraw(usdc, depositor);
         vm.stopPrank();
-        
+
         // Verify second spender got nothing
         assertEq(IERC20(usdc).balanceOf(spender2), 0);
-        
+
         // Verify the depositor still has no balance
         assertEq(IERC20(usdc).balanceOf(depositor), 0);
     }
-    
+
     /// Tests same spender initiating withdrawals for multiple depositors
     /// State transitions:
     /// 1. Initial state: multiple depositors each have initialUsdcBalance in spendable balance
@@ -927,86 +937,74 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         // Setup a second depositor with the same initial balance
         address depositor2 = makeAddr("depositor2");
         deal(usdc, depositor2, initialUsdcBalance);
-        
+
         // Have both depositors deposit funds
         vm.startPrank(depositor2);
         IERC20(usdc).approve(address(wallet), initialUsdcBalance);
         wallet.deposit(usdc, initialUsdcBalance);
         vm.stopPrank();
-        
+
         // Verify initial state for both depositors
-        _assertInitialState(depositor); 
+        _assertInitialState(depositor);
         _assertInitialState(depositor2);
-        
+
         // Add spender authorization for both depositors
         vm.startPrank(depositor);
         wallet.addSpender(usdc, spender);
         vm.stopPrank();
-        
+
         vm.startPrank(depositor2);
         wallet.addSpender(usdc, spender);
         vm.stopPrank();
-        
+
         // Spender initiates withdrawal for first depositor
         uint256 withdrawalAmount1 = initialUsdcBalance / 3;
         uint256 expectedSpendableBalance1 = initialUsdcBalance - withdrawalAmount1;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
-        
+
         _initiateWithdrawalAndVerifyState(
             WithdrawalType.Authorized,
             spender,
-            depositor, 
+            depositor,
             withdrawalAmount1,
             withdrawalAmount1,
             expectedSpendableBalance1,
             withdrawalAmount1,
-            0, 
+            0,
             expectedBlockHeightWhenWithdrawable
         );
-        
+
         // Spender initiates withdrawal for second depositor
         uint256 withdrawalAmount2 = initialUsdcBalance / 2;
         uint256 expectedSpendableBalance2 = initialUsdcBalance - withdrawalAmount2;
-        
+
         _initiateWithdrawalAndVerifyState(
             WithdrawalType.Authorized,
             spender,
-            depositor2, 
+            depositor2,
             withdrawalAmount2,
             withdrawalAmount2,
             expectedSpendableBalance2,
             withdrawalAmount2,
-            0, 
+            0,
             expectedBlockHeightWhenWithdrawable
         );
-        
+
         // Jump to block height when the withdrawals should be withdrawable
         vm.roll(expectedBlockHeightWhenWithdrawable);
-        
+
         // Complete first withdrawal and check balance
         _completeWithdrawalAndVerifyState(
-            WithdrawalType.Authorized,
-            spender,
-            depositor, 
-            withdrawalAmount1,
-            expectedSpendableBalance1,
-            0, 
-            0 
+            WithdrawalType.Authorized, spender, depositor, withdrawalAmount1, expectedSpendableBalance1, 0, 0
         );
         assertEq(IERC20(usdc).balanceOf(spender), withdrawalAmount1);
-        
+
         // Complete second withdrawal and check balance
         _completeWithdrawalAndVerifyState(
-            WithdrawalType.Authorized,
-            spender,
-            depositor2, 
-            withdrawalAmount2,
-            expectedSpendableBalance2,
-            0, 
-            0 
+            WithdrawalType.Authorized, spender, depositor2, withdrawalAmount2, expectedSpendableBalance2, 0, 0
         );
         assertEq(IERC20(usdc).balanceOf(spender), withdrawalAmount1 + withdrawalAmount2);
-        
+
         // Verify both depositors still have no balance
         assertEq(IERC20(usdc).balanceOf(depositor), 0);
         assertEq(IERC20(usdc).balanceOf(depositor2), 0);

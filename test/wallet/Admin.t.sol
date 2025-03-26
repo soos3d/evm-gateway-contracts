@@ -50,4 +50,4 @@ contract SpendWalletAdminTest is Test, DeployUtils {
         wallet.updateWithdrawalDelay(newDelay);
         vm.stopPrank();
     }
-} 
+}
