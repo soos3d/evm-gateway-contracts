@@ -79,8 +79,8 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     mapping(address token => mapping(address depositor => mapping(address spender => bool isAuthorized))) private
         spenderAuthorizations;
 
-    /// The number of blocks a user must wait after initiating a withdrawal before that amount is withdrawable. Updating
-    /// this value does not affect existing withdrawals, just future ones.
+    /// The number of blocks a user must wait after initiating a withdrawal before that amount is withdrawable. This
+    /// value is added to the current block number when a withdrawal is initiated.
     uint256 public withdrawalDelay;
 
     /// The address that is allowed to burn tokens that have been spent
