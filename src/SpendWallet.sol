@@ -394,7 +394,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         _initiateWithdrawal(token, depositor, msg.sender, value);
     }
 
-    /// Emitted when a withdrawal is completed and funds have been transferred to the depositor
+    /// Emitted when a withdrawal is completed and funds have been transferred to the recipient
     ///
     /// @param token       The token that was withdrawn
     /// @param depositor   The owner of the withdrawn funds
