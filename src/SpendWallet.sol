@@ -410,8 +410,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param token       The token to withdraw
     /// @param depositor   The owner of the balance from which the withdrawal should come
     /// @param recipient   The recipient of the funds
-    /// @param spender     The address completing the withdrawal
-    function _withdraw(address token, address depositor, address recipient, address spender) internal {
+    function _withdraw(address token, address depositor, address recipient) internal {
         uint256 balanceToWithdraw = withdrawingBalances[token][depositor];
         if (balanceToWithdraw == 0) {
             revert NoWithdrawingBalance();
@@ -422,7 +421,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         withdrawingBalances[token][depositor] = 0;
         withdrawableAtBlocks[token][depositor] = 0;
         IERC20(token).safeTransfer(recipient, balanceToWithdraw);
-        emit WithdrawalCompleted(token, depositor, recipient, spender, balanceToWithdraw);
+        emit WithdrawalCompleted(token, depositor, recipient, msg.sender, balanceToWithdraw);
     }
 
     /// Completes a withdrawal that was initiated at least `withdrawalDelay` blocks ago.
@@ -431,7 +430,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token   The token to withdraw
     function withdraw(address token) external whenNotPaused tokenSupported(token) {
-        _withdraw(token, msg.sender, msg.sender, msg.sender);
+        _withdraw(token, msg.sender, msg.sender);
     }
 
     /// Completes a withdrawal that was initiated at least `withdrawalDelay` blocks ago. The funds are sent to the
@@ -450,7 +449,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         if (!isSpender(token, msg.sender, depositor)) {
             revert UnauthorizedSpender();
         }
-        _withdraw(token, depositor, recipient, msg.sender);
+        _withdraw(token, depositor, recipient);
     }
 
     /// The block height at which an in-progress withdrawal is withdrawable
