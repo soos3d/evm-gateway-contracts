@@ -66,7 +66,8 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         withdrawalType = WithdrawalType.Direct;
         _;
 
-        // Run test for authorized withdrawal
+        // Run test for authorized withdrawal with a different depositor to prevent state pollution
+        depositor = makeAddr("secondDepositor");
         setUp();
         withdrawalType = WithdrawalType.Authorized;
         vm.startPrank(depositor);
