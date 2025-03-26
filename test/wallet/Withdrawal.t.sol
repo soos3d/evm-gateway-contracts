@@ -85,6 +85,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         assertEq(wallet.withdrawingBalance(usdc, depositorAddress), 0);
         assertEq(wallet.withdrawableBalance(usdc, depositorAddress), 0);
         assertEq(wallet.withdrawalBlock(usdc, depositorAddress), 0);
+        assertEq(wallet.totalBalance(usdc, depositorAddress), initialUsdcBalance);
     }
 
     // Helper function to verify state after withdrawal initiation for a depositor
@@ -115,6 +116,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         assertEq(wallet.withdrawingBalance(usdc, depositorAddress), expectedWithdrawingBalance);
         assertEq(wallet.withdrawableBalance(usdc, depositorAddress), expectedWithdrawableBalance);
         assertEq(wallet.withdrawalBlock(usdc, depositorAddress), expectedWithdrawalBlock);
+        assertEq(wallet.totalBalance(usdc, depositorAddress), expectedSpendableBalance + expectedWithdrawingBalance);
     }
 
     // Helper function to verify state after withdrawal completion for a depositor
@@ -140,6 +142,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         assertEq(wallet.withdrawingBalance(usdc, depositorAddress), 0);
         assertEq(wallet.withdrawableBalance(usdc, depositorAddress), 0);
         assertEq(wallet.withdrawalBlock(usdc, depositorAddress), 0);
+        assertEq(wallet.totalBalance(usdc, depositorAddress), expectedSpendableBalance);
     }
 
     // ===== Basic Error Tests - Withdrawal Initiation =====

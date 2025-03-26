@@ -471,7 +471,9 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function totalBalance(address token, address depositor) external pure returns (uint256) {}
+    function totalBalance(address token, address depositor) external view returns (uint256) {
+        return spendableBalances[token][depositor] + withdrawingBalances[token][depositor];
+    }
 
     /// The balance that is spendable by the depositor, subject to deposits having been observed by the API in a
     /// finalized block and no spend authorizations having been issued but not yet burned by the operator or used on the
