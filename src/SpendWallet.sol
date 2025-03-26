@@ -60,11 +60,17 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     error DepositValueMustBePositive();
 
     /**
-     * @notice Reverts if an invalid address is set.
+     * @dev Reverts if an invalid address is set.
      */
     error InvalidAddress();
 
+    /**
+     * @dev Reverts if function caller is not burnCaller
+     */
+    error CallerNotBurnCaller();
+
     error CannotAddSelfAsSpender();
+
 
     /// The balances that have been deposited and are available for spending (after finalization)
     mapping(address token => mapping(address depositor => uint256 value)) internal spendableBalances;
@@ -84,7 +90,16 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     uint256 public withdrawalDelay;
 
     /// The address that is allowed to burn tokens that have been spent
-    address public burner;
+    address public burnCaller;
+
+    /// @notice Restricts function access to addresses with the burnCaller role
+    /// @dev Reverts if caller does not have burnCaller role
+    modifier onlyBurnCaller() {
+        if (msg.sender != burnCaller) {
+            revert CallerNotBurnCaller();
+        }
+        _;
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Initialization
@@ -527,7 +542,11 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     function burnSpent(bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees)
         external
         whenNotPaused
-    {}
+        onlyBurnCaller
+    {
+        // For each burn authorization:
+        // IBurnToken(token).burn(amountToBurn);
+    }
 
     /// Emitted when a spend authorization is used on the same chain as its source, resulting in a same-chain spend that
     /// transfers funds to the recipient instead of minting and burning them
@@ -581,15 +600,16 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param newDelay   The new value of the delay, in blocks
     function updateWithdrawalDelay(uint256 newDelay) external onlyOwner {}
 
-    /// Emitted when the burner address is updated
+    /// Emitted when the burnCaller role is updated
     ///
-    /// @param newBurner   The new burner address
-    event BurnerUpdated(address newBurner);
+    /// @param oldBurnCaller   The previous burn caller address
+    /// @param newBurnCaller   The new burn caller address
+    event BurnCallerUpdated(address oldBurnCaller, address newBurnCaller);
 
     /// Sets the address that may call `burnSpent`
     ///
     /// @dev May only be called by the `owner` role
     ///
-    /// @param newBurner   The new burner address
-    function updateBurner(address newBurner) external onlyOwner {}
+    /// @param newBurnCaller   The new burn caller address
+    function updateBurnCaller(address newBurnCaller) external onlyOwner {}
 }
