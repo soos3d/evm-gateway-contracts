@@ -41,6 +41,15 @@ contract SpendWalletAdminTest is Test, DeployUtils {
         wallet.updateWithdrawalDelay(newDelay);
         vm.stopPrank();
         assertEq(wallet.withdrawalDelay(), newDelay);
+
+        // Update delay again
+        newDelay = 200;
+        vm.startPrank(owner);
+        vm.expectEmit(false, false, false, true);
+        emit SpendWallet.WithdrawalDelayUpdated(newDelay);
+        wallet.updateWithdrawalDelay(newDelay);
+        vm.stopPrank();
+        assertEq(wallet.withdrawalDelay(), newDelay);
     }
 
     function test_updateWithdrawalDelay_revertIfNotOwner() public {
