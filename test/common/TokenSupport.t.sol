@@ -39,8 +39,6 @@ contract TokenSupportTest is Test {
     address private usdc = makeAddr("USDC");
     address private eurc = makeAddr("EURC");
 
-    event TokenSupported(address token);
-
     function setUp() public {
         tokenSupport = new TokenSupportHarness();
         tokenSupport.initialize(owner);
@@ -48,7 +46,7 @@ contract TokenSupportTest is Test {
 
     function testAddSupportedToken_onlyOwner() public {
         vm.expectEmit(false, false, false, true);
-        emit TokenSupported(usdc);
+        emit TokenSupport.TokenSupported(usdc);
 
         vm.startPrank(owner);
         tokenSupport.addSupportedToken(usdc);
