@@ -64,7 +64,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     error NoWithdrawingBalance();
     error UnauthorizedSpender();
     error CannotAddSelfAsSpender();
-    error InvalidAddress();
+    error CallerNotBurnCaller();
 
     /// The balances that have been deposited and are available for spending (after finalization)
     mapping(address token => mapping(address depositor => uint256 value)) internal spendableBalances;
@@ -84,7 +84,16 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     uint256 public withdrawalDelay;
 
     /// The address that is allowed to burn tokens that have been spent
-    address public burner;
+    address public burnCaller;
+
+    /// @notice Restricts function access to addresses with the burnCaller role
+    /// @dev Reverts if caller does not have burnCaller role
+    modifier onlyBurnCaller() {
+        if (msg.sender != burnCaller) {
+            revert CallerNotBurnCaller();
+        }
+        _;
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Initialization
@@ -239,15 +248,6 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Spender authorization
-
-    /// Validates that an address is not the zero address
-    ///
-    /// @param addr   The address being authorized to spend
-    function _checkNotZeroAddress(address addr) internal pure {
-        if (addr == address(0)) {
-            revert InvalidAddress();
-        }
-    }
 
     /// Emitted when a spender is authorized to spend a depositor's balance
     ///
@@ -620,7 +620,11 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     function burnSpent(bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees)
         external
         whenNotPaused
-    {}
+        onlyBurnCaller
+    {
+        // For each burn authorization:
+        // IBurnToken(token).burn(amountToBurn);
+    }
 
     /// Emitted when a spend authorization is used on the same chain as its source, resulting in a same-chain spend that
     /// transfers funds to the recipient instead of minting and burning them
@@ -677,15 +681,22 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         emit WithdrawalDelayUpdated(newDelay);
     }
 
-    /// Emitted when the burner address is updated
+    /// Emitted when the burnCaller role is updated
     ///
-    /// @param newBurner   The new burner address
-    event BurnerUpdated(address newBurner);
+    /// @param oldBurnCaller   The previous burn caller address
+    /// @param newBurnCaller   The new burn caller address
+    event BurnCallerUpdated(address oldBurnCaller, address newBurnCaller);
 
     /// Sets the address that may call `burnSpent`
     ///
     /// @dev May only be called by the `owner` role
     ///
-    /// @param newBurner   The new burner address
-    function updateBurner(address newBurner) external onlyOwner {}
+    /// @param newBurnCaller   The new burn caller address
+    function updateBurnCaller(address newBurnCaller) external onlyOwner {
+        _checkNotZeroAddress(newBurnCaller);
+
+        address oldBurnCaller = burnCaller;
+        burnCaller = newBurnCaller;
+        emit BurnCallerUpdated(oldBurnCaller, newBurnCaller);
+    }
 }

@@ -27,6 +27,10 @@ import {SpendWallet} from "src/SpendWallet.sol";
 /// chain. Spending requires a signed authorization from the operator. See the documentation for the SpendWallet
 /// contract for more details.
 contract SpendMinter is SpendCommon {
+    /// Maps token addresses to their corresponding minter contract addresses.
+    /// The token minter contracts must have permission to mint the associated token.
+    mapping(address token => address tokenMintAuthority) public tokenMintAuthorities;
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Initialization
 
@@ -71,7 +75,31 @@ contract SpendMinter is SpendCommon {
     ///
     /// @param authorizations   The byte-encoded spend authorization(s)
     /// @param signature        The signature from the operator
-    function spend(bytes memory authorizations, bytes memory signature) external whenNotPaused {}
+    function spend(bytes memory authorizations, bytes memory signature) external whenNotPaused {
+        // For each spend authorization:
+        // IMintToken(tokenMintAuthorities[token]).mint(to, amount);
+    }
+
+    /// Emitted when the mint authority is updated for a token
+    ///
+    /// @param token              The token whose mint authority was updated
+    /// @param oldMintAuthority   The previous mint authority address
+    /// @param newMintAuthority   The new mint authority address
+    event MintAuthorityUpdated(address token, address oldMintAuthority, address newMintAuthority);
+
+    /// Updates the mint authority for a token.
+    ///
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param token              The token address to update the mint authority for
+    /// @param newMintAuthority   The address to set as the new mint authority
+    function updateMintAuthority(address token, address newMintAuthority) external onlyOwner tokenSupported(token) {
+        _checkNotZeroAddress(newMintAuthority);
+
+        address oldMintAuthority = tokenMintAuthorities[token];
+        tokenMintAuthorities[token] = newMintAuthority;
+        emit MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Informational
