@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Circle Internet Group, Inc. All rights reserved.
+ * Copyright 2025 Circle Internet Group, Inc. All rights reserved.
 
  * SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -18,33 +18,36 @@
  */
 pragma solidity ^0.8.28;
 
-import {SpendSpec} from "./SpendSpec.sol";
+import {TransferSpec} from "./TransferSpec.sol";
 
-/// Passed to the SpendWallet contract on the source chain by the operator
+bytes4 constant BURN_AUTHORIZATION_MAGIC = 0x71a020ae;
+bytes4 constant BURN_AUTHORIZATIONS_MAGIC = 0xc98d4e93;
+
+/// Passed to the GatewayWallet contract on the source domain by the operator, in order to burn those funds.
 ///
-/// @dev Magic: bytes4(keccak256("circle.spend.BurnAuthorization")) or
-///             bytes4(keccak256("circle.spend.BurnAuthorization[]"))
+/// @dev Magic: bytes4(keccak256("circle.gateway.BurnAuthorization")) or
+///             bytes4(keccak256("circle.gateway.BurnAuthorization[]"))
 /// @dev In addition to a byte encoding for a single burn authorization, there is also an encoding for several
 ///      authorizations packed together. This allows a wallet to sign a single payload for a set of burns from multiple
 ///      domains, as long as the signature scheme is shared.
-/// @dev A keccak256 hash of each encoded SpendSpec is emitted as part of an event on the source chain, to be used as a
-///      cross-chain identifier
+/// @dev The keccak256 hash of the encoded TransferSpec is used as a cross-chain identifier, for both linkability
+///      and replay protection.
 ///
-/// Byte encoding (single):
-///     FIELD                     BYTES   NOTES
-///     magic                         4   Always 0xa13a4873
-///     max block height             32
-///     max fee                      32   Denominated in the token
-///     spend spec length in bytes    4   May vary based on metadata length
-///     encoded spend spec            ?   Must be the length indicated above
+/// Byte encoding (single, big-endian):
+///     FIELD                      OFFSET   BYTES   NOTES
+///     magic                           0       4   Always 0x71a020ae
+///     max block height                4      32
+///     max fee                        36      32   Denominated in the token
+///     transfer spec length           68       4   In bytes, may vary based on metadata length
+///     encoded spend spec             72       ?   Must be the length indicated above
 ///
-/// Byte encoding (multiple):
-///     FIELD                     BYTES   NOTES
-///     magic                         4   Always 0x2ee059ef
-///     number of authorizations      4
-///     authorizations                ?   Sorted by source domain and concatenated
+/// Byte encoding (multiple, big-endian):
+///     FIELD                      OFFSET   BYTES   NOTES
+///     magic                           0       4   Always 0xc98d4e93
+///     number of authorizations        4       4
+///     authorizations                  8       ?   Must be sorted by source domain and concatenated
 struct BurnAuthorization {
-    SpendSpec spend; //          A description of the spend
-    uint256 maxBlockHeight; //   Valid until this block height
-    uint256 maxFee; //           The maximum fee that may be collected
+    uint256 maxBlockHeight; //   Valid until this block height on the source domain
+    uint256 maxFee; //           The maximum fee that may be collected by the operator
+    TransferSpec spec; //        A description of the transfer
 }

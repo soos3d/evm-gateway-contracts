@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Circle Internet Group, Inc. All rights reserved.
+ * Copyright 2025 Circle Internet Group, Inc. All rights reserved.
 
  * SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -18,31 +18,34 @@
  */
 pragma solidity ^0.8.28;
 
-import {SpendSpec} from "./SpendSpec.sol";
+import {TransferSpec} from "./TransferSpec.sol";
+
+bytes4 constant MINT_AUTHORIZATION_MAGIC = 0x23ba354a;
+bytes4 constant MINT_AUTHORIZATIONS_MAGIC = 0x0d18e6f3;
 
 /// Passed to the SpendDestination contract on the destination chain by the user
 ///
-/// @dev Magic: bytes4(keccak256("circle.spend.SpendAuthorization")) or
-///             bytes4(keccak256("circle.spend.SpendAuthorization[]"))
-/// @dev In addition to a byte encoding for a single spend authorization, there is also an encoding for several
+/// @dev Magic: bytes4(keccak256("circle.gateway.MintAuthorization")) or
+///             bytes4(keccak256("circle.gateway.MintAuthorization[]"))
+/// @dev In addition to a byte encoding for a single mint authorization, there is also an encoding for several
 ///      authorizations packed together. This allows the operator to sign them as a group and enforce that they are all
 ///      used together.
-/// @dev A keccak256 hash of each encoded SpendSpec is emitted as part of an event on the destination chain, to be used
-///      as a cross-chain identifier
+/// @dev The keccak256 hash of the encoded TransferSpec is used as a cross-chain identifier, for both linkability
+///      and replay protection.
 ///
-/// Byte encoding (single):
-///     FIELD                     BYTES   NOTES
-///     magic                         4   Always 0x690995b4
-///     max block height             32
-///     spend spec length in bytes    4   May vary based on metadata length
-///     encoded spend spec            ?   Must be the length indicated above
+/// Byte encoding (single, big-endian):
+///     FIELD                      OFFSET   BYTES   NOTES
+///     magic                           0       4   Always 0x23ba354a
+///     max block height                4      32
+///     transfer spec length           36       4   In bytes, ay vary based on metadata length
+///     encoded spend spec             40       ?   Must be the length indicated above
 ///
-/// Byte encoding (multiple):
-///     FIELD                     BYTES   NOTES
-///     magic                         4   Always 0x03b4bd77
-///     number of authorizations      4
-///     authorizations                ?   Sorted by source domain and concatenated
-struct SpendAuthorization {
-    SpendSpec spend; //          A description of the spend
+/// Byte encoding (multiple, big-endian):
+///     FIELD                      OFFSET   BYTES   NOTES
+///     magic                           0       4   Always 0x0d18e6f3
+///     number of authorizations        4       4
+///     authorizations                  8       ?   Sorted by source domain and concatenated
+struct MintAuthorization {
     uint256 maxBlockHeight; //   Valid until this block height
+    TransferSpec spec; //        A description of the transfer
 }
