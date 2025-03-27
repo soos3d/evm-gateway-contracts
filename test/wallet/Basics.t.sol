@@ -64,7 +64,7 @@ contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
 
         address oldBurnCaller = wallet.burnCaller();
 
-        vm.expectEmit(false, false, false, false);
+        vm.expectEmit(false, false, false, true);
         emit SpendWallet.BurnCallerUpdated(oldBurnCaller, newBurnCaller);
 
         vm.prank(owner);
@@ -79,7 +79,7 @@ contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
         wallet.updateBurnCaller(newBurnCaller); // first update
         assertEq(wallet.burnCaller(), newBurnCaller);
 
-        vm.expectEmit(false, false, false, false);
+        vm.expectEmit(false, false, false, true);
         emit SpendWallet.BurnCallerUpdated(newBurnCaller, newBurnCaller);
         wallet.updateBurnCaller(newBurnCaller); // second update
 
