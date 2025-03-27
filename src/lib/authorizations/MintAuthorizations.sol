@@ -21,31 +21,35 @@ pragma solidity ^0.8.28;
 import {TransferSpec} from "./TransferSpec.sol";
 
 bytes4 constant MINT_AUTHORIZATION_MAGIC = 0x23ba354a;
-bytes4 constant MINT_AUTHORIZATIONS_MAGIC = 0x0d18e6f3;
+bytes4 constant MINT_AUTHORIZATION_SET_MAGIC = 0x95f860bd;
 
-/// Passed to the SpendDestination contract on the destination chain by the user
+/// Passed to the GatewayMinter contract on the destination domain by the user or a relayer
 ///
-/// @dev Magic: bytes4(keccak256("circle.gateway.MintAuthorization")) or
-///             bytes4(keccak256("circle.gateway.MintAuthorization[]"))
-/// @dev In addition to a byte encoding for a single mint authorization, there is also an encoding for several
-///      authorizations packed together. This allows the operator to sign them as a group and enforce that they are all
-///      used together.
+/// @dev Magic: bytes4(keccak256("circle.gateway.MintAuthorization"))
 /// @dev The keccak256 hash of the encoded TransferSpec is used as a cross-chain identifier, for both linkability
 ///      and replay protection.
 ///
-/// Byte encoding (single, big-endian):
+/// Byte encoding (big-endian):
 ///     FIELD                      OFFSET   BYTES   NOTES
 ///     magic                           0       4   Always 0x23ba354a
 ///     max block height                4      32
 ///     transfer spec length           36       4   In bytes, ay vary based on metadata length
-///     encoded spend spec             40       ?   Must be the length indicated above
-///
-/// Byte encoding (multiple, big-endian):
-///     FIELD                      OFFSET   BYTES   NOTES
-///     magic                           0       4   Always 0x0d18e6f3
-///     number of authorizations        4       4
-///     authorizations                  8       ?   Sorted by source domain and concatenated
+///     encoded transfer spec          40       ?   Must be the length indicated above
 struct MintAuthorization {
     uint256 maxBlockHeight; //   Valid until this block height
     TransferSpec spec; //        A description of the transfer
+}
+
+/// Represents multiple MintAuthorizations packed together and signed as a single payload, for transferring from
+/// multiple domains.
+///
+/// @dev Magic: bytes4(keccak256("circle.gateway.MintAuthorizationSet"))
+///
+/// Byte encoding (big-endian):
+///     FIELD                      OFFSET   BYTES   NOTES
+///     magic                           0       4   Always 0x95f860bd
+///     number of authorizations        4       4
+///     authorizations                  8       ?   Sorted by source domain and concatenated
+struct MintAuthorizationSet {
+    MintAuthorization[] authorizations;
 }

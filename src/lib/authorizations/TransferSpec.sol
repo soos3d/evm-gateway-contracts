@@ -19,7 +19,7 @@
 pragma solidity ^0.8.28;
 
 bytes4 constant TRANSFER_SPEC_MAGIC = 0xca85def7;
-uint32 constant VERSION = 1;
+uint32 constant TRANSFER_SPEC_VERSION = 1;
 
 /// Describes a transfer that may happen. Embedded in both a BurnAuthorization and a MintAuthorization.
 ///
