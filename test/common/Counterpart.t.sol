@@ -24,13 +24,10 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract CounterpartHarness is Counterpart {
-    function initialize(address owner) public initializer {
+    function initialize(address owner, address counterpartAddress) public initializer {
         __Ownable_init(owner);
         __Ownable2Step_init();
-    }
-
-    function initializeCounterpart(address contractAddress) public reinitializer(2) {
-        __Counterpart_init(contractAddress);
+        __Counterpart_init(counterpartAddress);
     }
 
     // Expose internal _counterpart function for testing
@@ -46,37 +43,34 @@ contract CounterpartTest is Test {
     CounterpartHarness private counterpart;
 
     address private owner = makeAddr("owner");
-    address private contractAddress = makeAddr("contractAddress");
-    address private newContractAddress = makeAddr("newContractAddress");
-
-    event CounterpartUpdated(address contractAddress);
+    address private counterpartAddress = makeAddr("counterpartAddress");
+    address private secondCounterpartAddress = makeAddr("secondCounterpartAddress");
 
     function setUp() public {
         counterpart = new CounterpartHarness();
-        counterpart.initialize(owner);
     }
 
     function testInitializationAndUpdate_success() public {
         assertEq(address(0), counterpart.counterpart());
 
-        counterpart.initializeCounterpart(contractAddress);
-        assertEq(contractAddress, counterpart.counterpart());
+        counterpart.initialize(owner, counterpartAddress);
+        assertEq(counterpartAddress, counterpart.counterpart());
 
         vm.expectEmit(false, false, false, true);
-        emit CounterpartUpdated(newContractAddress);
+        emit Counterpart.CounterpartUpdated(secondCounterpartAddress);
 
         vm.startPrank(owner);
-        counterpart.updateCounterpart(newContractAddress);
+        counterpart.updateCounterpart(secondCounterpartAddress);
         vm.stopPrank();
 
-        assertEq(counterpart.counterpart(), newContractAddress);
+        assertEq(counterpart.counterpart(), secondCounterpartAddress);
     }
 
     function testInitialization_revertIfAlreadyInitialized() public {
-        counterpart.initializeCounterpart(contractAddress);
+        counterpart.initialize(owner, counterpartAddress);
 
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
-        counterpart.initializeCounterpart(newContractAddress);
+        counterpart.initialize(owner, secondCounterpartAddress);
     }
 
     function testUpdateCounterpart_revertIfNotOwner() public {
@@ -84,14 +78,14 @@ contract CounterpartTest is Test {
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, random));
 
         vm.startPrank(random);
-        counterpart.updateCounterpart(newContractAddress);
+        counterpart.updateCounterpart(counterpartAddress);
         vm.stopPrank();
     }
 
     function testOnlyCounterpartModifier_success() public {
-        counterpart.initializeCounterpart(contractAddress);
+        counterpart.initialize(owner, counterpartAddress);
 
-        vm.startPrank(contractAddress);
+        vm.startPrank(counterpartAddress);
         counterpart.verifyCounterpartModifier();
         vm.stopPrank();
     }
