@@ -41,7 +41,6 @@ contract UpgradeableSpendHashesHarness is SpendHashesHarness, UUPSUpgradeable {
 /// Tests the SpendHashes contract
 contract SpendHashesTest is Test {
     SpendHashesHarness private spendHashes;
-    address private owner = makeAddr("owner");
 
     function setUp() public {
         spendHashes = new SpendHashesHarness();
