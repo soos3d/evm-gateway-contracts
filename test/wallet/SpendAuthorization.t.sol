@@ -18,6 +18,7 @@
  */
 pragma solidity ^0.8.28;
 
+import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {Test} from "forge-std/Test.sol";
@@ -74,7 +75,7 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         address spender = address(0);
 
         vm.startPrank(owner);
-        vm.expectRevert(abi.encodeWithSelector(SpendWallet.InvalidAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(SpendCommon.InvalidAddress.selector));
         wallet.addSpender(usdc, spender);
         vm.stopPrank();
     }
@@ -83,7 +84,7 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         address spender = address(0);
 
         vm.startPrank(owner);
-        vm.expectRevert(abi.encodeWithSelector(SpendWallet.InvalidAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(SpendCommon.InvalidAddress.selector));
         wallet.removeSpender(usdc, spender);
         vm.stopPrank();
     }
