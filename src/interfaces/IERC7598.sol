@@ -18,6 +18,7 @@
  */
 pragma solidity ^0.8.28;
 
+/// @title ERC-7598 Authorization Extension for Smart Contract Accounts
 interface IERC7598 {
     /**
      * @notice Receive a transfer with a signed authorization from the payer

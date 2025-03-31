@@ -191,9 +191,6 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
 
     /// @dev Internal implementation for depositing tokens using an EIP-2612 permit
     ///
-    /// @dev The permit call is wrapped in a try-catch to handle potential failures gracefully,
-    /// as recommended by OpenZeppelin's permit usage guidelines
-    ///
     /// @param token      The ERC20 token contract address that supports EIP-2612 permits
     /// @param owner      The address that owns the tokens and signed the permit
     /// @param value      The amount of tokens to deposit
