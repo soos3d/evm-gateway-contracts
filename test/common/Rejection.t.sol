@@ -29,10 +29,10 @@ contract RejectionHarness is Rejection {
     }
 
     // Test function to expose the notRejected modifier
-    function testNotRejectedModifier(address addr) public notRejected(addr) {}
+    function checkNotRejectedModifier(address addr) public notRejected(addr) {}
 
     // Test function to expose the onlyRejecter modifier
-    function testOnlyRejecterModifier() public onlyRejecter {}
+    function checkOnlyRejecterModifier() public onlyRejecter {}
 }
 
 contract RejectionTest is Test {
@@ -51,7 +51,7 @@ contract RejectionTest is Test {
         // Verify no rejecter is set initially
         vm.expectRevert(abi.encodeWithSelector(Rejection.UnauthorizedRejecter.selector, rejecter));
         vm.prank(rejecter);
-        rejection.testOnlyRejecterModifier();
+        rejection.checkOnlyRejecterModifier();
 
         // Verify random address is not rejected initially
         assertFalse(rejection.isRejected(user), "User should not be rejected by default");
@@ -137,7 +137,7 @@ contract RejectionTest is Test {
         rejection.updateRejecter(rejecter);
 
         vm.prank(rejecter);
-        rejection.testOnlyRejecterModifier();
+        rejection.checkOnlyRejecterModifier();
     }
 
     function test_onlyRejecter_revertIfNotRejecter() public {
@@ -148,7 +148,7 @@ contract RejectionTest is Test {
         vm.expectRevert(abi.encodeWithSelector(Rejection.UnauthorizedRejecter.selector, random));
 
         vm.prank(random);
-        rejection.testOnlyRejecterModifier();
+        rejection.checkOnlyRejecterModifier();
     }
 
     function test_isRejected_returnsCorrectStatus() public {
@@ -273,7 +273,7 @@ contract RejectionTest is Test {
         vm.prank(owner);
         rejection.updateRejecter(rejecter);
 
-        rejection.testNotRejectedModifier(user);
+        rejection.checkNotRejectedModifier(user);
     }
 
     function test_notRejectedModifier_revertIfRejected() public {
@@ -284,6 +284,6 @@ contract RejectionTest is Test {
         rejection.rejectAddress(user);
 
         vm.expectRevert(abi.encodeWithSelector(Rejection.NotAllowed.selector, user));
-        rejection.testNotRejectedModifier(user);
+        rejection.checkNotRejectedModifier(user);
     }
 }
