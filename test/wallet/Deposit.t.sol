@@ -22,11 +22,9 @@ import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import {IERC3009} from "src/interfaces/IERC3009.sol";
 import {Test} from "forge-std/Test.sol";
 
-/// Tests deposit functionality of SpendWallet
+/// Tests basic deposit functionality of SpendWallet
 contract SpendWalletDepositTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     uint256 private depositorPrivateKey;
@@ -35,36 +33,8 @@ contract SpendWalletDepositTest is Test, DeployUtils {
 
     uint256 private initialUsdcBalance = 1000 * 10 ** 6;
 
-    uint256 private eip2612PermitDeadline;
-    uint256 private erc3009ValidAfter;
-    uint256 private erc3009ValidBefore;
-    uint256 private activeTimeOffset;
-    uint256 private inactiveTimeOffset;
-
-    bytes32 private erc3009Nonce = keccak256("erc3009TestNonce");
-
-    // EIP-2612 typehash
-    bytes32 private constant PERMIT_TYPEHASH =
-        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-
-    // ERC-3009 typehashes
-    bytes32 private constant RECEIVE_WITH_AUTHORIZATION_TYPEHASH = keccak256(
-        "ReceiveWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
-    );
-    bytes32 private constant CANCEL_AUTHORIZATION_TYPEHASH =
-        keccak256("CancelAuthorization(address authorizer,bytes32 nonce)");
-
-    // Revert error strings
+        // Revert error strings
     string private constant ERC20_TRANSFER_AMOUNT_EXCEEDS_ALLOWANCE = "ERC20: transfer amount exceeds allowance";
-    string private constant ERC20_TRANSFER_AMOUNT_EXCEEDS_BALANCE = "ERC20: transfer amount exceeds balance";
-    string private constant EIP2612_INVALID_SIGNATURE = "EIP2612: invalid signature";
-    string private constant ECRECOVER_INVALID_SIGNATURE = "ECRecover: invalid signature";
-    string private constant FIATTOKENV2_PERMIT_EXPIRED = "FiatTokenV2: permit is expired";
-    string private constant FIATTOKENV2_INVALID_SIGNATURE = "FiatTokenV2: invalid signature";
-    string private constant FIATTOKENV2_AUTHORIZATION_USED_OR_CANCELED =
-        "FiatTokenV2: authorization is used or canceled";
-    string private constant FIATTOKENV2_AUTHORIZATION_IS_EXPIRED = "FiatTokenV2: authorization is expired";
-    string private constant FIATTOKENV2_AUTHORIZATION_IS_NOT_YET_VALID = "FiatTokenV2: authorization is not yet valid";
 
     SpendWallet private wallet;
 
@@ -77,12 +47,6 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         wallet.addSupportedToken(usdc);
         // Mint initial USDC balance to depositor
         deal(usdc, depositor, initialUsdcBalance);
-
-        eip2612PermitDeadline = block.timestamp + 1 days;
-        erc3009ValidAfter = block.timestamp;
-        erc3009ValidBefore = block.timestamp + 1 days;
-        activeTimeOffset = 1 minutes;
-        inactiveTimeOffset = 2 days;
     }
 
     function test_deposit_revertIfWalletNotApproved() public {
@@ -124,187 +88,5 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
 
         vm.stopPrank();
-    }
-
-    function _create2612PermitSignature(uint256 value) private view returns (uint8 v, bytes32 r, bytes32 s) {
-        uint256 nonce = IERC20Permit(usdc).nonces(depositor);
-        bytes32 structHash =
-            keccak256(abi.encode(PERMIT_TYPEHASH, depositor, address(wallet), value, nonce, eip2612PermitDeadline));
-        bytes32 domainSeparator = IERC20Permit(usdc).DOMAIN_SEPARATOR();
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
-        (v, r, s) = vm.sign(depositorPrivateKey, digest);
-    }
-
-    function test_depositWith2612Permit_revertIfSignatureInvalid() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance);
-        r = 0;
-        vm.expectRevert(bytes(ECRECOVER_INVALID_SIGNATURE));
-        wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
-    }
-
-    function test_depositWith2612Permit_revertIfValueNonPositive() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(0);
-        vm.expectRevert(SpendWallet.DepositValueMustBePositive.selector);
-        wallet.depositWithPermit(usdc, depositor, 0, eip2612PermitDeadline, v, r, s);
-    }
-
-    function test_depositWith2612Permit_revertIfDeadlinePassed() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance);
-        skip(inactiveTimeOffset);
-        vm.expectRevert(bytes(FIATTOKENV2_PERMIT_EXPIRED));
-        wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
-    }
-
-    function test_depositWith2612Permit_revertIfValueExceedsPermitted() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance / 2);
-        vm.expectRevert(bytes(EIP2612_INVALID_SIGNATURE));
-        wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
-    }
-
-    function test_depositWith2612Permit_revertIfValueExceedsBalance() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(2 * initialUsdcBalance);
-        vm.expectRevert(bytes(ERC20_TRANSFER_AMOUNT_EXCEEDS_BALANCE));
-        wallet.depositWithPermit(usdc, depositor, 2 * initialUsdcBalance, eip2612PermitDeadline, v, r, s);
-    }
-
-    function test_depositWith2612Permit_spendableBalanceUpdatedAfterTransfer() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance);
-        vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance);
-        wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
-    }
-
-    function test_depositWith2612Permit_revertIfPermitReplayed() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance / 2);
-        vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
-        wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, v, r, s);
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
-
-        // Attempt to replay the same permit signature
-        vm.expectRevert(bytes(EIP2612_INVALID_SIGNATURE));
-        wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, v, r, s);
-    }
-
-    function _create3009AuthorizationSignature(uint256 value) private view returns (uint8 v, bytes32 r, bytes32 s) {
-        bytes32 structHash = keccak256(
-            abi.encode(
-                RECEIVE_WITH_AUTHORIZATION_TYPEHASH,
-                depositor,
-                address(wallet),
-                value,
-                erc3009ValidAfter,
-                erc3009ValidBefore,
-                erc3009Nonce
-            )
-        );
-        bytes32 domainSeparator = IERC20Permit(usdc).DOMAIN_SEPARATOR();
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
-        (v, r, s) = vm.sign(depositorPrivateKey, digest);
-    }
-
-    function test_depositWith3009Authorization_revertIfSignatureInvalid() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
-        skip(activeTimeOffset);
-        r = 0;
-        vm.expectRevert(bytes(ECRECOVER_INVALID_SIGNATURE));
-        wallet.depositWithAuthorization(
-            usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
-        );
-    }
-
-    function test_depositWith3009Authorization_revertIfAuthorizationIsNotYetValid() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
-        assert(block.timestamp == erc3009ValidAfter);
-        vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_IS_NOT_YET_VALID));
-        wallet.depositWithAuthorization(
-            usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
-        );
-    }
-
-    function test_depositWith3009Authorization_revertIfAuthorizationExpired() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
-        skip(inactiveTimeOffset);
-        vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_IS_EXPIRED));
-        wallet.depositWithAuthorization(
-            usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
-        );
-    }
-
-    function test_depositWith3009Authorization_revertIfValueExceedsAuthorized() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance / 2);
-        skip(activeTimeOffset);
-        vm.expectRevert(bytes(FIATTOKENV2_INVALID_SIGNATURE));
-        // Attempt to deposit more than authorized
-        wallet.depositWithAuthorization(
-            usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
-        );
-    }
-
-    function test_depositWith3009Authorization_revertIfValueExceedsBalance() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(2 * initialUsdcBalance);
-        skip(activeTimeOffset);
-        vm.expectRevert(bytes(ERC20_TRANSFER_AMOUNT_EXCEEDS_BALANCE));
-        wallet.depositWithAuthorization(
-            usdc, depositor, 2 * initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
-        );
-    }
-
-    function _create3009CancellationSignature() private view returns (uint8 v, bytes32 r, bytes32 s) {
-        bytes32 structHash = keccak256(abi.encode(CANCEL_AUTHORIZATION_TYPEHASH, depositor, erc3009Nonce));
-        bytes32 domainSeparator = IERC20Permit(usdc).DOMAIN_SEPARATOR();
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
-        (v, r, s) = vm.sign(depositorPrivateKey, digest);
-    }
-
-    function test_depositWith3009Authorization_revertIfAuthorizationCancelled() public {
-        (uint8 authorizationV, bytes32 authorizationR, bytes32 authorizationS) =
-            _create3009AuthorizationSignature(initialUsdcBalance);
-        (uint8 cancellationV, bytes32 cancellationR, bytes32 cancellationS) = _create3009CancellationSignature();
-        IERC3009(usdc).cancelAuthorization(depositor, erc3009Nonce, cancellationV, cancellationR, cancellationS);
-
-        skip(activeTimeOffset);
-
-        vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_USED_OR_CANCELED));
-        wallet.depositWithAuthorization(
-            usdc,
-            depositor,
-            initialUsdcBalance,
-            erc3009ValidAfter,
-            erc3009ValidBefore,
-            erc3009Nonce,
-            authorizationV,
-            authorizationR,
-            authorizationS
-        );
-    }
-
-    function test_depositWith3009Authorization_spendableBalanceUpdatedAfterTransfer() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
-        skip(activeTimeOffset);
-        vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance);
-        wallet.depositWithAuthorization(
-            usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
-        );
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
-    }
-
-    function test_depositWith3009Authorization_revertIfAuthorizationReplayed() public {
-        (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance / 2);
-        skip(activeTimeOffset);
-        vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
-        wallet.depositWithAuthorization(
-            usdc, depositor, initialUsdcBalance / 2, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
-        );
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
-
-        // Attempt to replay the same authorization
-        vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_USED_OR_CANCELED));
-        wallet.depositWithAuthorization(
-            usdc, depositor, initialUsdcBalance / 2, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
-        );
     }
 }
