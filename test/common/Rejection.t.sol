@@ -195,7 +195,7 @@ contract RejectionTest is Test {
         vm.prank(rejecter);
         rejection.rejectAddress(user);
 
-        assertTrue(rejection.isRejected(user));
+        assertTrue(rejection.isRejected(user), "User should be rejected");
 
         vm.expectEmit(false, false, false, true);
         emit Rejection.AddressRejected(user);
