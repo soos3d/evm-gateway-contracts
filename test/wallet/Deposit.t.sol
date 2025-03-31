@@ -33,7 +33,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
 
     uint256 private initialUsdcBalance = 1000 * 10 ** 6;
 
-        // Revert error strings
+    // Revert error strings
     string private constant ERC20_TRANSFER_AMOUNT_EXCEEDS_ALLOWANCE = "ERC20: transfer amount exceeds allowance";
 
     SpendWallet private wallet;

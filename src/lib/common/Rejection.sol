@@ -49,6 +49,11 @@ contract Rejection is Ownable2StepUpgradeable {
     /// @param addr   The unauthorized address
     error UnauthorizedRejecter(address addr);
 
+    /// Returns the address that has the rejecter role, which can reject and allow addresses
+    function rejecter() public view returns (address) {
+        return RejectionStorage.get().rejecter;
+    }
+
     /// Whether or not a given address is rejected from interacting with the contract
     ///
     /// @param addr   The address to check
