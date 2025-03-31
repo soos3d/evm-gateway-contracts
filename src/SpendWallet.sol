@@ -164,7 +164,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         bytes32 r,
         bytes32 s
     ) external whenNotPaused notRejected(msg.sender) notRejected(owner) tokenSupported(token) {
-        _depositWithPermit(token, owner, value, deadline, abi.encodePacked(r,s,v));
+        _depositWithPermit(token, owner, value, deadline, abi.encodePacked(r, s, v));
     }
 
     /// Deposit tokens with an EIP-7597 permit, passing the signature as bytes to allow for SCA deposits
@@ -180,7 +180,11 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param deadline    The unix time at which the signature expires, or max uint256 value to signal no expiration
     /// @param signature   Signature bytes signed by an EOA wallet or a contract wallet
     function depositWithPermit(address token, address owner, uint256 value, uint256 deadline, bytes calldata signature)
-        external whenNotPaused notRejected(msg.sender) notRejected(owner) tokenSupported(token)
+        external
+        whenNotPaused
+        notRejected(msg.sender)
+        notRejected(owner)
+        tokenSupported(token)
     {
         _depositWithPermit(token, owner, value, deadline, signature);
     }
@@ -195,13 +199,9 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param value      The amount of tokens to deposit
     /// @param deadline   The unix timestamp after which the permit signature expires
     /// @param signature  The signature bytes containing v, r, s components
-    function _depositWithPermit(
-        address token,
-        address owner,
-        uint256 value,
-        uint256 deadline,
-        bytes memory signature
-    ) internal {
+    function _depositWithPermit(address token, address owner, uint256 value, uint256 deadline, bytes memory signature)
+        internal
+    {
         if (value == 0) {
             revert DepositValueMustBePositive();
         }

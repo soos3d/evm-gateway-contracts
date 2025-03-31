@@ -16,14 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-pragma solidity 0.8.28;
+pragma solidity ^0.8.28;
 
 import {Rejection} from "src/lib/common/Rejection.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {MockERC1271Wallet} from "test/mock_fiattoken/contracts/test/MockERC1271Wallet.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {IERC3009} from "src/interfaces/IERC3009.sol";
@@ -60,6 +60,7 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
     string private constant FIATTOKENV2_AUTHORIZATION_IS_NOT_YET_VALID = "FiatTokenV2: authorization is not yet valid";
 
     SpendWallet private wallet;
+    MockERC1271Wallet private depositorWallet;
 
     function setUp() public {
         (depositor, depositorPrivateKey) = makeAddrAndKey("spendWalletDepositor");
@@ -75,6 +76,9 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         erc3009ValidBefore = block.timestamp + 1 days;
         activeTimeOffset = 1 minutes;
         inactiveTimeOffset = 2 days;
+
+        // Create mock ERC1271 wallet for testing SCA signatures
+        depositorWallet = new MockERC1271Wallet(depositor);
     }
 
     // Signature Generation Helpers
@@ -108,11 +112,6 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         signature = abi.encodePacked(r, s, v);
     }
 
-    function _create7598ancellationSignatureBytes() private view returns (bytes memory signature) {
-        (uint8 v, bytes32 r, bytes32 s) = _create3009CancellationSignature();
-        signature = abi.encodePacked(r, s, v);
-    }
-
     /// EIP-3009 EOA signature interface tests
 
     function test_depositWithAuthorization_with3009Interface_revertWhenPaused() public {
@@ -132,7 +131,15 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
 
         vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
         wallet.depositWithAuthorization(
-            unsupportedToken, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
+            unsupportedToken,
+            depositor,
+            initialUsdcBalance,
+            erc3009ValidAfter,
+            erc3009ValidBefore,
+            erc3009Nonce,
+            v,
+            r,
+            s
         );
     }
 
@@ -261,7 +268,7 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
 
     // EIP-7598 byte signature interface tests
 
-    function test_depositWithAuthorization_withEOASignatureBytes_revertWhenPaused() public {
+    function test_depositWithAuthorization_with7598Interface_revertWhenPaused() public {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
         vm.prank(owner);
         wallet.pause();
@@ -272,17 +279,23 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         );
     }
 
-    function test_depositWithAuthorization_withEOASignatureBytes_revertWhenTokenNotSupported() public {
+    function test_depositWithAuthorization_with7598Interface_revertWhenTokenNotSupported() public {
         address unsupportedToken = makeAddr("unsupportedToken");
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
 
         vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
         wallet.depositWithAuthorization(
-            unsupportedToken, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
+            unsupportedToken,
+            depositor,
+            initialUsdcBalance,
+            erc3009ValidAfter,
+            erc3009ValidBefore,
+            erc3009Nonce,
+            signature
         );
     }
 
-    function test_depositWithAuthorization_withEOASignatureBytes_revertWhenTxSenderRejected() public {
+    function test_depositWithAuthorization_with7598Interface_revertWhenTxSenderRejected() public {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
         address rejecter = wallet.rejecter();
         address rejectedSender = makeAddr("rejectedSender");
@@ -296,7 +309,7 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         );
     }
 
-    function test_depositWithAuthorization_withEOASignatureBytes_revertWhenTokenOwnerRejected() public {
+    function test_depositWithAuthorization_with7598Interface_revertWhenTokenOwnerRejected() public {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
         address rejecter = wallet.rejecter();
         vm.prank(rejecter);
@@ -308,7 +321,7 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         );
     }
 
-    function test_depositWithAuthorization_withEOASignatureBytes_revertIfSignatureInvalid() public {
+    function test_depositWithAuthorization_with7598Interface_withEOASignature_revertIfSignatureInvalid() public {
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
         skip(activeTimeOffset);
         r = 0;
@@ -319,7 +332,24 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         );
     }
 
-    function test_depositWithAuthorization_withEOASignatureBytes_revertIfAuthorizationIsNotYetValid() public {
+    function test_depositWithAuthorization_with7598Interface_withSCASignature_revertIfSCASignatureInvalid() public {
+        depositorWallet.setSignatureValid(false);
+        bytes memory signature = abi.encodePacked("random");
+        skip(activeTimeOffset);
+
+        vm.expectRevert(bytes(FIATTOKENV2_INVALID_SIGNATURE));
+        wallet.depositWithAuthorization(
+            usdc,
+            address(depositorWallet),
+            initialUsdcBalance,
+            erc3009ValidAfter,
+            erc3009ValidBefore,
+            erc3009Nonce,
+            signature
+        );
+    }
+
+    function test_depositWithAuthorization_with7598Interface_revertIfAuthorizationIsNotYetValid() public {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
         assert(block.timestamp == erc3009ValidAfter);
         vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_IS_NOT_YET_VALID));
@@ -328,7 +358,7 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         );
     }
 
-    function test_depositWithAuthorization_withEOASignatureBytes_revertIfAuthorizationExpired() public {
+    function test_depositWithAuthorization_with7598Interface_revertIfAuthorizationExpired() public {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
         skip(inactiveTimeOffset);
         vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_IS_EXPIRED));
@@ -337,7 +367,7 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         );
     }
 
-    function test_depositWithAuthorization_withEOASignatureBytes_revertIfValueExceedsAuthorized() public {
+    function test_depositWithAuthorization_with7598Interface_revertIfValueExceedsAuthorized() public {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance / 2);
         skip(activeTimeOffset);
         vm.expectRevert(bytes(FIATTOKENV2_INVALID_SIGNATURE));
@@ -347,7 +377,7 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         );
     }
 
-    function test_depositWithAuthorization_withEOASignatureBytes_revertIfValueExceedsBalance() public {
+    function test_depositWithAuthorization_with7598Interface_revertIfValueExceedsBalance() public {
         bytes memory signature = _create7598AuthorizationSignatureBytes(2 * initialUsdcBalance);
         skip(activeTimeOffset);
         vm.expectRevert(bytes("ERC20: transfer amount exceeds balance"));
@@ -356,7 +386,7 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         );
     }
 
-    function test_depositWithAuthorization_withEOASignatureBytes_revertIfAuthorizationCancelled() public {
+    function test_depositWithAuthorization_with7598Interface_revertIfAuthorizationCancelled() public {
         bytes memory authorizationSignature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
         (uint8 cancellationV, bytes32 cancellationR, bytes32 cancellationS) = _create3009CancellationSignature();
         IERC3009(usdc).cancelAuthorization(depositor, erc3009Nonce, cancellationV, cancellationR, cancellationS);
@@ -375,7 +405,9 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         );
     }
 
-    function test_depositWithAuthorization_withEOASignatureBytes_spendableBalanceUpdatedAfterTransfer() public {
+    function test_depositWithAuthorization_with7598Interface_withEOASignature_spendableBalanceUpdatedAfterTransfer()
+        public
+    {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
         skip(activeTimeOffset);
         vm.expectEmit(true, true, false, true);
@@ -386,7 +418,30 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
     }
 
-    function test_depositWithAuthorization_withEOASignatureBytes_revertIfAuthorizationReplayed() public {
+    function test_depositWithAuthorization_with7598Interface_withSCASignature_spendableBalanceUpdatedAfterTransfer()
+        public
+    {
+        address depositorWalletAddress = address(depositorWallet);
+        deal(usdc, depositorWalletAddress, initialUsdcBalance);
+        depositorWallet.setSignatureValid(true);
+        bytes memory signature = abi.encodePacked("random");
+        skip(activeTimeOffset);
+
+        vm.expectEmit(true, true, false, true);
+        emit SpendWallet.Deposited(usdc, depositorWalletAddress, initialUsdcBalance);
+        wallet.depositWithAuthorization(
+            usdc,
+            depositorWalletAddress,
+            initialUsdcBalance,
+            erc3009ValidAfter,
+            erc3009ValidBefore,
+            erc3009Nonce,
+            signature
+        );
+        assertEq(wallet.spendableBalance(usdc, depositorWalletAddress), initialUsdcBalance);
+    }
+
+    function test_depositWithAuthorization_with7598Interface_revertIfAuthorizationReplayed() public {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance / 2);
         skip(activeTimeOffset);
         vm.expectEmit(true, true, false, true);

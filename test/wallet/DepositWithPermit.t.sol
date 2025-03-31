@@ -16,14 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-pragma solidity 0.8.28;
+pragma solidity ^0.8.28;
 
 import {SpendWallet} from "src/SpendWallet.sol";
 import {Rejection} from "src/lib/common/Rejection.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
+import {MockERC1271Wallet} from "test/mock_fiattoken/contracts/test/MockERC1271Wallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {Test} from "forge-std/Test.sol";
@@ -51,6 +51,7 @@ contract SpendWalletDepositWithPermitTest is Test, DeployUtils {
     string private constant FIATTOKENV2_PERMIT_EXPIRED = "FiatTokenV2: permit is expired";
 
     SpendWallet private wallet;
+    MockERC1271Wallet private depositorWallet;
 
     function setUp() public {
         (depositor, depositorPrivateKey) = makeAddrAndKey("spendWalletDepositor");
@@ -65,6 +66,9 @@ contract SpendWalletDepositWithPermitTest is Test, DeployUtils {
         eip2612PermitDeadline = block.timestamp + 1 days;
         activeTimeOffset = 1 minutes;
         inactiveTimeOffset = 2 days;
+
+        // Create mock ERC1271 wallet for testing SCA signatures
+        depositorWallet = new MockERC1271Wallet(depositor);
     }
 
     // Signature Generation Helpers
@@ -175,9 +179,9 @@ contract SpendWalletDepositWithPermitTest is Test, DeployUtils {
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, v, r, s);
     }
 
-    // EIP-7597 byte signature interface tests (with EOA signature)
+    // EIP-7597 byte signature interface tests
 
-    function test_depositWithPermit_withEOASignatureBytes_revertWhenPaused() public {
+    function test_depositWithPermit_with7597Interface_revertWhenPaused() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance);
         vm.prank(owner);
         wallet.pause();
@@ -186,14 +190,14 @@ contract SpendWalletDepositWithPermitTest is Test, DeployUtils {
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
-    function test_depositWithPermit_withEOASignatureBytes_revertWhenTokenNotSupported() public {
+    function test_depositWithPermit_with7597Interface_revertWhenTokenNotSupported() public {
         address unsupportedToken = makeAddr("unsupportedToken");
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance);
         vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
         wallet.depositWithPermit(unsupportedToken, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
-    function test_depositWithPermit_withEOASignatureBytes_revertWhenTxSenderRejected() public {
+    function test_depositWithPermit_with7597Interface_revertWhenTxSenderRejected() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance);
         address rejecter = wallet.rejecter();
         address rejectedSender = makeAddr("rejectedSender");
@@ -205,7 +209,7 @@ contract SpendWalletDepositWithPermitTest is Test, DeployUtils {
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
-    function test_depositWithPermit_withEOASignatureBytes_revertWhenTokenOwnerRejected() public {
+    function test_depositWithPermit_with7597Interface_revertWhenTokenOwnerRejected() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance);
         address rejecter = wallet.rejecter();
         vm.prank(rejecter);
@@ -215,7 +219,7 @@ contract SpendWalletDepositWithPermitTest is Test, DeployUtils {
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
-    function test_depositWithPermit_withEOASignatureBytes_revertIfSignatureInvalid() public {
+    function test_depositWithPermit_with7597Interface_revertIfEOASignatureInvalid() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance);
         r = 0;
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -223,32 +227,39 @@ contract SpendWalletDepositWithPermitTest is Test, DeployUtils {
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
-    function test_depositWithPermit_withEOASignatureBytes_revertIfValueNonPositive() public {
+    function test_depositWithPermit_with7597Interface_revertIfSCASignatureInvalid() public {
+        depositorWallet.setSignatureValid(false);
+        bytes memory signature = abi.encodePacked("random");
+        vm.expectRevert(bytes(EIP2612_INVALID_SIGNATURE));
+        wallet.depositWithPermit(usdc, address(depositorWallet), initialUsdcBalance, eip2612PermitDeadline, signature);
+    }
+
+    function test_depositWithPermit_with7597Interface_revertIfValueNonPositive() public {
         bytes memory signature = _create7597PermitEOASignature(0);
         vm.expectRevert(SpendWallet.DepositValueMustBePositive.selector);
         wallet.depositWithPermit(usdc, depositor, 0, eip2612PermitDeadline, signature);
     }
 
-    function test_depositWithPermit_withEOASignatureBytes_revertIfDeadlinePassed() public {
+    function test_depositWithPermit_with7597Interface_revertIfDeadlinePassed() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance);
         skip(inactiveTimeOffset);
         vm.expectRevert(bytes(FIATTOKENV2_PERMIT_EXPIRED));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
-    function test_depositWithPermit_withEOASignatureBytes_revertIfValueExceedsPermitted() public {
+    function test_depositWithPermit_with7597Interface_revertIfValueExceedsPermitted() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance / 2);
         vm.expectRevert(bytes(EIP2612_INVALID_SIGNATURE));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
-    function test_depositWithPermit_withEOASignatureBytes_revertIfValueExceedsBalance() public {
+    function test_depositWithPermit_with7597Interface_revertIfValueExceedsBalance() public {
         bytes memory signature = _create7597PermitEOASignature(2 * initialUsdcBalance);
         vm.expectRevert(bytes(ERC20_TRANSFER_AMOUNT_EXCEEDS_BALANCE));
         wallet.depositWithPermit(usdc, depositor, 2 * initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
-    function test_depositWithPermit_withEOASignatureBytes_spendableBalanceUpdatedAfterTransfer() public {
+    function test_depositWithPermit_with7597Interface_withEOASignature_spendableBalanceUpdatedAfterTransfer() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance);
         vm.expectEmit(true, true, false, true);
         emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance);
@@ -258,7 +269,20 @@ contract SpendWalletDepositWithPermitTest is Test, DeployUtils {
         assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
     }
 
-    function test_depositWithPermit_withEOASignatureBytes_revertIfPermitReplayed() public {
+    function test_depositWithPermit_with7597Interface_withSCASignature_spendableBalanceUpdatedAfterTransfer() public {
+        address depositorWalletAddress = address(depositorWallet);
+        deal(usdc, depositorWalletAddress, initialUsdcBalance);
+        depositorWallet.setSignatureValid(true);
+        bytes memory signature = abi.encodePacked("random");
+        vm.expectEmit(true, true, false, true);
+        emit SpendWallet.Deposited(usdc, depositorWalletAddress, initialUsdcBalance);
+
+        wallet.depositWithPermit(usdc, depositorWalletAddress, initialUsdcBalance, eip2612PermitDeadline, signature);
+
+        assertEq(wallet.spendableBalance(usdc, depositorWalletAddress), initialUsdcBalance);
+    }
+
+    function test_depositWithPermit_with7597Interface_revertIfPermitReplayed() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance / 2);
         vm.expectEmit(true, true, false, true);
         emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
@@ -269,6 +293,4 @@ contract SpendWalletDepositWithPermitTest is Test, DeployUtils {
         vm.expectRevert(bytes(EIP2612_INVALID_SIGNATURE));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, signature);
     }
-
-    // EIP-7597 byte signature interface tests (with SCA signature)
 }
