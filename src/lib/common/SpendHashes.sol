@@ -32,14 +32,14 @@ contract SpendHashes {
     ///
     /// @param spendHash   The spend hash to mark as used
     function _markSpendHashAsUsed(bytes32 spendHash) internal {
-        SpendHashesStorage.get().usedSpendHashes[spendHash] = 1;
+        SpendHashesStorage.get().usedSpendHashes[spendHash] = true;
     }
 
     /// Reverts if the given spend hash has already been used
     ///
     /// @param spendHash   The spend hash to check
     function _ensureSpendHashNotUsed(bytes32 spendHash) internal view {
-        if (SpendHashesStorage.get().usedSpendHashes[spendHash] != 0) {
+        if (SpendHashesStorage.get().usedSpendHashes[spendHash]) {
             revert SpendHashUsed(spendHash);
         }
     }
@@ -49,8 +49,8 @@ contract SpendHashes {
 library SpendHashesStorage {
     /// @custom:storage-location 7201:circle.spend.SpendHashes
     struct Data {
-        /// Whether or not a given spend hash has been used (0 if unused, 1 if used)
-        mapping(bytes32 spendHash => uint256 used) usedSpendHashes;
+        /// Whether or not a given spend hash has been used
+        mapping(bytes32 spendHash => bool used) usedSpendHashes;
     }
 
     /// keccak256(abi.encode(uint256(keccak256("circle.spend.SpendHashes")) - 1)) & ~bytes32(uint256(0xff))
