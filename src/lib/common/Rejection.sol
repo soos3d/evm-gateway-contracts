@@ -53,7 +53,7 @@ contract Rejection is Ownable2StepUpgradeable {
     ///
     /// @param addr   The address to check
     function isRejected(address addr) public view returns (bool) {
-        return RejectionStorage.get().rejectedAddresses[addr] != 0;
+        return RejectionStorage.get().rejectedAddresses[addr];
     }
 
     /// Sets the rejection status of an address
@@ -61,7 +61,7 @@ contract Rejection is Ownable2StepUpgradeable {
     /// @param addr       The address to set the rejection status for
     /// @param rejected   Whether or not the address should be rejected
     function _setRejected(address addr, bool rejected) internal {
-        RejectionStorage.get().rejectedAddresses[addr] = rejected ? 1 : 0;
+        RejectionStorage.get().rejectedAddresses[addr] = rejected;
     }
 
     /// Sets the address that is allowed to reject and allow addresses
@@ -131,8 +131,8 @@ contract Rejection is Ownable2StepUpgradeable {
 library RejectionStorage {
     /// @custom:storage-location 7201:circle.spend.Rejection
     struct Data {
-        /// Whether or not a given address should be rejected from interacting with the contract (0 if not rejected, 1 if rejected)
-        mapping(address addr => uint256 rejected) rejectedAddresses;
+        /// Whether or not a given address should be rejected from interacting with the contract
+        mapping(address addr => bool rejected) rejectedAddresses;
         /// The address that is allowed to reject and allow addresses
         address rejecter;
     }
