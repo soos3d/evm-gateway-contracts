@@ -95,7 +95,6 @@ contract RejectionTest is Test {
 
         // Verify old rejecter cannot reject addresses
         vm.expectRevert(abi.encodeWithSelector(Rejection.UnauthorizedRejecter.selector, rejecter));
-
         vm.prank(rejecter);
         rejection.rejectAddress(user);
     }
@@ -124,12 +123,11 @@ contract RejectionTest is Test {
 
     function test_updateRejecter_revertIfNotOwner() public {
         address nonOwner = makeAddr("nonOwner");
-        address newRejecter = makeAddr("newRejecter");
 
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, nonOwner));
 
         vm.prank(nonOwner);
-        rejection.updateRejecter(newRejecter);
+        rejection.updateRejecter(rejecter);
     }
 
     function test_onlyRejecter_success() public {
