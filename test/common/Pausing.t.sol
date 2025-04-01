@@ -55,15 +55,15 @@ contract PausingTest is Test {
     }
 
     function _verifyPauseAndUnpause(address pauserAddress) internal {
-        vm.expectEmit(false, false, false, true);
-
         vm.startPrank(pauserAddress);
         assertFalse(pausing.paused(), "Contract should not be paused initially");
 
+        vm.expectEmit(false, false, false, true);
         emit PausableUpgradeable.Paused(pauserAddress);
         pausing.pause();
         assertTrue(pausing.paused(), "Contract should be paused after pause()");
 
+        vm.expectEmit(false, false, false, true);
         emit PausableUpgradeable.Unpaused(pauserAddress);
         pausing.unpause();
         assertFalse(pausing.paused(), "Contract should be unpaused after unpause()");
@@ -87,6 +87,7 @@ contract PausingTest is Test {
 
         pausing.initialize(owner, pauser);
 
+        vm.expectEmit(false, false, false, true);
         emit Pausing.PauserUpdated(otherPauser);
 
         vm.startPrank(owner);
