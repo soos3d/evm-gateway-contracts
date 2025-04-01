@@ -22,9 +22,9 @@ import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {BurnAuthorization} from "src/lib/Authorizations.sol";
 import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
-import {IERC3009} from "src/interfaces/IERC3009.sol";
+import {IERC7597} from "src/interfaces/IERC7597.sol";
+import {IERC7598} from "src/interfaces/IERC7598.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title Spend Wallet
@@ -163,16 +163,10 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         bytes32 r,
         bytes32 s
     ) external whenNotPaused notRejected(msg.sender) notRejected(owner) tokenSupported(token) {
-        if (value == 0) {
-            revert DepositValueMustBePositive();
-        }
-        spendableBalances[token][owner] += value;
-        IERC20Permit(token).permit(owner, address(this), value, deadline, v, r, s);
-        IERC20(token).safeTransferFrom(owner, address(this), value);
-        emit Deposited(token, owner, value);
+        _depositWithPermit(token, owner, value, deadline, abi.encodePacked(r, s, v));
     }
 
-    /// Deposit tokens with an EIP-2612 permit, passing the signature as bytes to allow for SCA deposits
+    /// Deposit tokens with an EIP-7597 permit, passing the signature as bytes to allow for SCA deposits
     ///
     /// @dev The resulting balance in this contract belongs to `owner`
     /// @dev The permit's `spender` must be the address of this contract
@@ -184,9 +178,34 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param value       The amount to be deposited
     /// @param deadline    The unix time at which the signature expires, or max uint256 value to signal no expiration
     /// @param signature   Signature bytes signed by an EOA wallet or a contract wallet
-    function depositWithPermit(address token, address owner, uint256 value, uint256 deadline, bytes memory signature)
+    function depositWithPermit(address token, address owner, uint256 value, uint256 deadline, bytes calldata signature)
         external
-    {}
+        whenNotPaused
+        notRejected(msg.sender)
+        notRejected(owner)
+        tokenSupported(token)
+    {
+        _depositWithPermit(token, owner, value, deadline, signature);
+    }
+
+    /// @dev Internal implementation for depositing tokens using an EIP-2612 permit
+    ///
+    /// @param token      The ERC20 token contract address that supports EIP-2612 permits
+    /// @param owner      The address that owns the tokens and signed the permit
+    /// @param value      The amount of tokens to deposit
+    /// @param deadline   The unix timestamp after which the permit signature expires
+    /// @param signature  The signature bytes containing v, r, s components
+    function _depositWithPermit(address token, address owner, uint256 value, uint256 deadline, bytes memory signature)
+        internal
+    {
+        if (value == 0) {
+            revert DepositValueMustBePositive();
+        }
+        spendableBalances[token][owner] += value;
+        IERC7597(token).permit(owner, address(this), value, deadline, signature);
+        IERC20(token).safeTransferFrom(owner, address(this), value);
+        emit Deposited(token, owner, value);
+    }
 
     /// Deposit tokens with an ERC-3009 authorization
     ///
@@ -214,19 +233,14 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         bytes32 r,
         bytes32 s
     ) external whenNotPaused notRejected(msg.sender) notRejected(from) tokenSupported(token) {
-        if (value == 0) {
-            revert DepositValueMustBePositive();
-        }
-        spendableBalances[token][from] += value;
-        IERC3009(token).receiveWithAuthorization(from, address(this), value, validAfter, validBefore, nonce, v, r, s);
-        emit Deposited(token, from, value);
+        _depositWithAuthorization(token, from, value, validAfter, validBefore, nonce, abi.encodePacked(r, s, v));
     }
 
-    /// Deposit tokens with an ERC-3009 authorization, passing the signature as bytes to allow for SCA deposits
+    /// Deposit tokens with an ERC-7598 authorization, passing the signature as bytes to allow for SCA deposits
     ///
     /// @dev The resulting balance in this contract belongs to `from`
     /// @dev The authorization's `to` must be the address of this contract
-    /// @dev The transfer will be done via `transferWithAuthorization`
+    /// @dev The transfer will be done via `receiveWithAuthorization`
     /// @dev EOA wallet signatures should be packed in the order of r, s, v
     ///
     /// @param token         The token to deposit
@@ -243,8 +257,36 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         uint256 validAfter,
         uint256 validBefore,
         bytes32 nonce,
+        bytes calldata signature
+    ) external whenNotPaused notRejected(msg.sender) notRejected(from) tokenSupported(token) {
+        _depositWithAuthorization(token, from, value, validAfter, validBefore, nonce, signature);
+    }
+
+    /// @dev Internal implementation for depositing tokens using an ERC-7598 authorization
+    ///
+    /// @param token         The token to deposit
+    /// @param from          The depositor's address
+    /// @param value         The amount to be deposited
+    /// @param validAfter    The time after which this is valid (unix time)
+    /// @param validBefore   The time before which this is valid (unix time)
+    /// @param nonce         Unique nonce
+    /// @param signature     Signature bytes signed by an EOA wallet or a contract wallet
+    function _depositWithAuthorization(
+        address token,
+        address from,
+        uint256 value,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
         bytes memory signature
-    ) external {}
+    ) internal {
+        if (value == 0) {
+            revert DepositValueMustBePositive();
+        }
+        spendableBalances[token][from] += value;
+        IERC7598(token).receiveWithAuthorization(from, address(this), value, validAfter, validBefore, nonce, signature);
+        emit Deposited(token, from, value);
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Spender authorization
@@ -565,7 +607,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param authorizations   A byte-encoded (set of) burn authorization(s)
     /// @param signature        The signature from the spender
-    function validateBurnAuthorizations(bytes memory authorizations, bytes memory signature)
+    function validateBurnAuthorizations(bytes memory authorizations, bytes calldata signature)
         external
         pure
         returns (bool)
@@ -661,7 +703,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param authorization   The spend authorization that was passed to the minter contract
     /// @param signature       The signature from the operator
-    function sameChainSpend(bytes memory authorization, bytes memory signature) external whenNotPaused {}
+    function sameChainSpend(bytes memory authorization, bytes calldata signature) external whenNotPaused {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Admin
