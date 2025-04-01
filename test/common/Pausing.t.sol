@@ -54,7 +54,7 @@ contract PausingTest is Test {
         pausing = new PausingHarness();
     }
 
-    function verifyPauseAndUnpause(address pauserAddress) internal {
+    function _verifyPauseAndUnpause(address pauserAddress) internal {
         vm.expectEmit(false, false, false, true);
 
         vm.startPrank(pauserAddress);
@@ -78,7 +78,7 @@ contract PausingTest is Test {
 
         pausing.initialize(owner, pauser);
 
-        verifyPauseAndUnpause(pauser);
+        _verifyPauseAndUnpause(pauser);
     }
 
     function testUpdatePauser_success() public {
@@ -91,7 +91,7 @@ contract PausingTest is Test {
         pausing.updatePauser(otherPauser);
         vm.stopPrank();
 
-        verifyPauseAndUnpause(otherPauser);
+        _verifyPauseAndUnpause(otherPauser);
     }
 
     function testInitialization_revertIfAlreadyInitialized() public {
