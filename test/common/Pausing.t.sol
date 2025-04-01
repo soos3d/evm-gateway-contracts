@@ -23,6 +23,7 @@ import {Pausing} from "src/lib/common/Pausing.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {PausingStorage} from "src/lib/common/Pausing.sol";
 
 contract PausingHarness is Pausing {
     function initialize(address owner, address pauser) public initializer {
@@ -31,13 +32,15 @@ contract PausingHarness is Pausing {
         __Pausing_init(pauser);
     }
 
-    // Expose internal paused function for testing
-    function isPaused() public view returns (bool) {
-        return paused();
+    function getPauserFromStorage() public view returns (address) {
+        return PausingStorage.get().pauser;
     }
 
     // Helper function to specifically test the modifier whenNotPaused
     function verifyWhenNotPausedModifier() public whenNotPaused {}
+
+    // Helper function to specifically test the modifier whenPaused
+    function verifyWhenPausedModifier() public whenPaused {}
 }
 
 contract PausingTest is Test {
@@ -51,7 +54,25 @@ contract PausingTest is Test {
         pausing = new PausingHarness();
     }
 
+    function verifyPauseAndUnpause(address pauserAddress) internal {
+        vm.expectEmit(false, false, false, true);
+
+        vm.startPrank(pauserAddress);
+        assertFalse(pausing.paused(), "Contract should not be paused initially");
+
+        emit PausableUpgradeable.Paused(pauserAddress);
+        pausing.pause();
+        assertTrue(pausing.paused(), "Contract should be paused after pause()");
+
+        emit PausableUpgradeable.Unpaused(pauserAddress);
+        pausing.unpause();
+        assertFalse(pausing.paused(), "Contract should be unpaused after unpause()");
+        vm.stopPrank();
+    }
+
     function testInitialization_success() public {
+        assertEq(pausing.getPauserFromStorage(), address(0), "Pauser should be zero address before initialization");
+
         vm.expectEmit(false, false, false, true);
         emit Pausing.PauserUpdated(pauser);
 
@@ -71,16 +92,6 @@ contract PausingTest is Test {
         vm.stopPrank();
 
         verifyPauseAndUnpause(otherPauser);
-    }
-
-    function verifyPauseAndUnpause(address pauserAddress) internal {
-        vm.startPrank(pauserAddress);
-        assertEq(pausing.isPaused(), false);
-        pausing.pause();
-        assertEq(pausing.isPaused(), true);
-        pausing.unpause();
-        assertEq(pausing.isPaused(), false);
-        vm.stopPrank();
     }
 
     function testInitialization_revertIfAlreadyInitialized() public {
@@ -124,13 +135,13 @@ contract PausingTest is Test {
 
         vm.startPrank(pauser);
         pausing.pause();
-        assertEq(pausing.isPaused(), true);
+        assertTrue(pausing.paused(), "Contract should be paused after first pause()");
         vm.expectRevert(abi.encodeWithSelector(PausableUpgradeable.EnforcedPause.selector));
         pausing.pause();
         vm.stopPrank();
     }
 
-    function testPause_revertIfNotPaused() public {
+    function testUnpause_revertIfPaused() public {
         pausing.initialize(owner, pauser);
         vm.expectRevert(abi.encodeWithSelector(PausableUpgradeable.ExpectedPause.selector));
 
@@ -139,19 +150,41 @@ contract PausingTest is Test {
         vm.stopPrank();
     }
 
-    function testPausingModifier_success() public {
+    function testWhenNotPausedModifier_allowsExecution() public {
         pausing.initialize(owner, pauser);
 
-        assertEq(pausing.isPaused(), false);
+        assertFalse(pausing.paused(), "Contract should not be paused initially");
+        pausing.verifyWhenNotPausedModifier();
+    }
+
+    function testWhenNotPausedModifier_blocksExecutionWhenPaused() public {
+        pausing.initialize(owner, pauser);
 
         vm.startPrank(pauser);
-        pausing.verifyWhenNotPausedModifier();
-
         pausing.pause();
-        assertEq(pausing.isPaused(), true);
+        vm.stopPrank();
 
+        assertTrue(pausing.paused(), "Contract should be paused after pause()");
         vm.expectRevert(abi.encodeWithSelector(PausableUpgradeable.EnforcedPause.selector));
         pausing.verifyWhenNotPausedModifier();
+    }
+
+    function testWhenPausedModifier_allowsExecution() public {
+        pausing.initialize(owner, pauser);
+
+        vm.startPrank(pauser);
+        pausing.pause();
         vm.stopPrank();
+
+        assertTrue(pausing.paused(), "Contract should be paused after pause()");
+        pausing.verifyWhenPausedModifier();
+    }
+
+    function testWhenPausedModifier_blocksExecutionWhenPaused() public {
+        pausing.initialize(owner, pauser);
+
+        assertFalse(pausing.paused(), "Contract should not be paused initially");
+        vm.expectRevert(abi.encodeWithSelector(PausableUpgradeable.ExpectedPause.selector));
+        pausing.verifyWhenPausedModifier();
     }
 }
