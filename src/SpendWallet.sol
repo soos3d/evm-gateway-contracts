@@ -146,7 +146,6 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @dev The resulting balance in this contract belongs to `owner`
     /// @dev The permit's `spender` must be the address of this contract
     /// @dev The full permitted `value` is always deposited
-    /// @dev This function handles the access control checks before delegating to internal implementation
     ///
     /// @param token      The token to deposit
     /// @param owner      The depositor's address
