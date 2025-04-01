@@ -35,6 +35,9 @@ contract PausingHarness is Pausing {
     function isPaused() public view returns (bool) {
         return paused();
     }
+
+    // Helper function to specifically test the modifier whenNotPaused
+    function verifyWhenNotPausedModifier() public whenNotPaused {}
 }
 
 contract PausingTest is Test {
@@ -48,17 +51,20 @@ contract PausingTest is Test {
         pausing = new PausingHarness();
     }
 
-    function testInitializationAndUpdatePauser_success() public {
+    function testInitialization_success() public {
         vm.expectEmit(false, false, false, true);
         emit Pausing.PauserUpdated(pauser);
-
-        assertEq(pausing.isPaused(), false);
 
         pausing.initialize(owner, pauser);
 
         verifyPauseAndUnpause(pauser);
+    }
 
-        emit Pausing.PauserUpdated(otherPauser);
+    function testUpdatePauser_success() public {
+        vm.expectEmit(false, false, false, true);
+        emit Pausing.PauserUpdated(pauser);
+
+        pausing.initialize(owner, pauser);
 
         vm.startPrank(owner);
         pausing.updatePauser(otherPauser);
@@ -86,7 +92,7 @@ contract PausingTest is Test {
 
     function testUpdatePauser_revertIfNotOwner() public {
         pausing.initialize(owner, pauser);
-        
+
         address random = makeAddr("random");
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, random));
 
@@ -130,6 +136,22 @@ contract PausingTest is Test {
 
         vm.startPrank(pauser);
         pausing.unpause();
+        vm.stopPrank();
+    }
+
+    function testPausingModifier_success() public {
+        pausing.initialize(owner, pauser);
+
+        assertEq(pausing.isPaused(), false);
+
+        vm.startPrank(pauser);
+        pausing.verifyWhenNotPausedModifier();
+
+        pausing.pause();
+        assertEq(pausing.isPaused(), true);
+
+        vm.expectRevert(abi.encodeWithSelector(PausableUpgradeable.EnforcedPause.selector));
+        pausing.verifyWhenNotPausedModifier();
         vm.stopPrank();
     }
 }
