@@ -30,6 +30,11 @@ contract PausingHarness is Pausing {
         __Ownable2Step_init();
         __Pausing_init(pauser);
     }
+
+    // Expose internal paused function for testing
+    function isPaused() public view returns (bool) {
+        return paused();
+    }
 }
 
 contract PausingTest is Test {
@@ -47,12 +52,11 @@ contract PausingTest is Test {
         vm.expectEmit(false, false, false, true);
         emit Pausing.PauserUpdated(pauser);
 
+        assertEq(pausing.isPaused(), false);
+
         pausing.initialize(owner, pauser);
 
-        vm.startPrank(pauser);
-        pausing.pause();
-        pausing.unpause();
-        vm.stopPrank();
+        verifyPauseAndUnpause(pauser);
 
         emit Pausing.PauserUpdated(otherPauser);
 
@@ -60,9 +64,16 @@ contract PausingTest is Test {
         pausing.updatePauser(otherPauser);
         vm.stopPrank();
 
-        vm.startPrank(otherPauser);
+        verifyPauseAndUnpause(otherPauser);
+    }
+
+    function verifyPauseAndUnpause(address pauserAddress) internal {
+        vm.startPrank(pauserAddress);
+        assertEq(pausing.isPaused(), false);
         pausing.pause();
+        assertEq(pausing.isPaused(), true);
         pausing.unpause();
+        assertEq(pausing.isPaused(), false);
         vm.stopPrank();
     }
 
@@ -74,6 +85,8 @@ contract PausingTest is Test {
     }
 
     function testUpdatePauser_revertIfNotOwner() public {
+        pausing.initialize(owner, pauser);
+        
         address random = makeAddr("random");
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, random));
 
@@ -105,6 +118,7 @@ contract PausingTest is Test {
 
         vm.startPrank(pauser);
         pausing.pause();
+        assertEq(pausing.isPaused(), true);
         vm.expectRevert(abi.encodeWithSelector(PausableUpgradeable.EnforcedPause.selector));
         pausing.pause();
         vm.stopPrank();
