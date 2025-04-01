@@ -87,6 +87,8 @@ contract PausingTest is Test {
 
         pausing.initialize(owner, pauser);
 
+        emit Pausing.PauserUpdated(otherPauser);
+
         vm.startPrank(owner);
         pausing.updatePauser(otherPauser);
         vm.stopPrank();
