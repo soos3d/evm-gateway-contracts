@@ -148,18 +148,6 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
     function test_balanceOf_returnsCorrectBalancesForMultipleWithdrawals() public {
         uint256 firstWithdrawAmount = 10;
         uint256 secondWithdrawAmount = 5;
-
-        // Initiate first withdrawal
-        vm.startPrank(depositor);
-        wallet.initiateWithdrawal(usdc, firstWithdrawAmount);
-
-        // Move forward by one block to separate withdrawals
-        vm.roll(block.number + 1);
-
-        // Initiate second withdrawal
-        wallet.initiateWithdrawal(usdc, secondWithdrawAmount);
-        vm.stopPrank();
-
         uint256 totalWithdrawing = firstWithdrawAmount + secondWithdrawAmount;
 
         // Check all balance types
@@ -168,37 +156,37 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
         uint256 withdrawingBalanceId = _createBalanceId(usdc, 2);
         uint256 withdrawableBalanceId = _createBalanceId(usdc, 3);
 
+        // Initiate two withdrawals
+        vm.startPrank(depositor);
+        wallet.initiateWithdrawal(usdc, firstWithdrawAmount);
+        wallet.initiateWithdrawal(usdc, secondWithdrawAmount);
+        vm.stopPrank();
+
+        // Check balances after initiating withdrawals
         assertEq(wallet.balanceOf(depositor, totalBalanceId), initialUsdcBalance);
         assertEq(wallet.balanceOf(depositor, spendableBalanceId), initialUsdcBalance - totalWithdrawing);
         assertEq(wallet.balanceOf(depositor, withdrawingBalanceId), totalWithdrawing);
         assertEq(wallet.balanceOf(depositor, withdrawableBalanceId), 0);
 
-        // Move past withdrawal delay of first withdrawal
-        vm.roll(block.number + initialWithdrawalDelay - 1);
+        // Move past withdrawal delay
+        vm.roll(block.number + initialWithdrawalDelay);
 
-        // First withdrawal should now be withdrawable, second still withdrawing
+        // Check balances when withdrawals become available
         assertEq(wallet.balanceOf(depositor, totalBalanceId), initialUsdcBalance);
         assertEq(wallet.balanceOf(depositor, spendableBalanceId), initialUsdcBalance - totalWithdrawing);
         assertEq(wallet.balanceOf(depositor, withdrawingBalanceId), totalWithdrawing);
-        assertEq(wallet.balanceOf(depositor, withdrawableBalanceId), firstWithdrawAmount);
+        assertEq(wallet.balanceOf(depositor, withdrawableBalanceId), totalWithdrawing);
 
-        // Complete first withdrawal
+        // Complete withdrawal
         vm.prank(depositor);
         wallet.withdraw(usdc);
 
-        // // Check final balances after first withdrawal
-        assertEq(wallet.balanceOf(depositor, totalBalanceId), initialUsdcBalance - firstWithdrawAmount);
+        // Check final balances
+        assertEq(wallet.balanceOf(depositor, totalBalanceId), initialUsdcBalance - totalWithdrawing);
         assertEq(wallet.balanceOf(depositor, spendableBalanceId), initialUsdcBalance - totalWithdrawing);
-        assertEq(wallet.balanceOf(depositor, withdrawingBalanceId), secondWithdrawAmount);
+        assertEq(wallet.balanceOf(depositor, withdrawingBalanceId), 0);
         assertEq(wallet.balanceOf(depositor, withdrawableBalanceId), 0);
-
-        vm.roll(block.number + 1);
-
-        // Second withdrawal should now be withdrawable
-        assertEq(wallet.balanceOf(depositor, totalBalanceId), initialUsdcBalance - firstWithdrawAmount);
-        assertEq(wallet.balanceOf(depositor, spendableBalanceId), initialUsdcBalance - totalWithdrawing);
-        assertEq(wallet.balanceOf(depositor, withdrawingBalanceId), secondWithdrawAmount);
-        assertEq(wallet.balanceOf(depositor, withdrawableBalanceId), secondWithdrawAmount);
+        assertEq(IERC20(usdc).balanceOf(depositor), totalWithdrawing);
     }
 
     function test_balanceOfBatch_revertsOnLengthMismatch() public {
