@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Circle Internet Group, Inc. All rights reserved.
+ * Copyright 2025 Circle Internet Group, Inc. All rights reserved.
 
  * SPDX-License-Identifier: GPL-3.0-or-later
 
