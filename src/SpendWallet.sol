@@ -65,6 +65,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     error UnauthorizedSpender();
     error CannotAddSelfAsSpender();
     error CallerNotBurnCaller();
+    error LengthMismatch();
 
     /// The balances that have been deposited and are available for spending (after finalization)
     mapping(address token => mapping(address depositor => uint256 value)) internal spendableBalances;
@@ -512,7 +513,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function totalBalance(address token, address depositor) external view returns (uint256) {
+    function totalBalance(address token, address depositor) public view returns (uint256) {
         return spendableBalances[token][depositor] + withdrawingBalances[token][depositor];
     }
 
@@ -522,7 +523,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function spendableBalance(address token, address depositor) external view returns (uint256) {
+    function spendableBalance(address token, address depositor) public view returns (uint256) {
         return spendableBalances[token][depositor];
     }
 
@@ -530,12 +531,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function withdrawingBalance(address token, address depositor)
-        external
-        view
-        tokenSupported(token)
-        returns (uint256)
-    {
+    function withdrawingBalance(address token, address depositor) public view tokenSupported(token) returns (uint256) {
         return withdrawingBalances[token][depositor];
     }
 
@@ -544,7 +540,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
     function withdrawableBalance(address token, address depositor)
-        external
+        public
         view
         tokenSupported(token)
         returns (uint256)
@@ -563,7 +559,23 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param depositor   The depositor of the requested balance
     /// @param id          The packed token and balance id specifier
-    function balanceOf(address depositor, uint256 id) external pure override returns (uint256) {}
+    function balanceOf(address depositor, uint256 id) public view override returns (uint256) {
+        uint96 balanceType = uint96(id >> 160);
+        address token = address(uint160(id));
+
+        if (!isTokenSupported(token)) {
+            return 0;
+        }
+
+        if (balanceType <= 3) {
+            if (balanceType == 0) return totalBalance(token, depositor);
+            if (balanceType == 1) return spendableBalance(token, depositor);
+            if (balanceType == 2) return withdrawingBalance(token, depositor);
+            if (balanceType == 3) return withdrawableBalance(token, depositor);
+        }
+
+        return 0;
+    }
 
     /// The batch version of `balanceOf`, compatible with ERC-1155
     ///
@@ -575,10 +587,21 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param ids          The packed token and balance id specifier
     function balanceOfBatch(address[] calldata depositors, uint256[] memory ids)
         external
-        pure
+        view
         override
         returns (uint256[] memory)
-    {}
+    {
+        if (depositors.length != ids.length) {
+            revert LengthMismatch();
+        }
+
+        uint256[] memory batchBalances = new uint256[](depositors.length);
+        for (uint256 i = 0; i < depositors.length; i++) {
+            batchBalances[i] = balanceOf(depositors[i], ids[i]);
+        }
+
+        return batchBalances;
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Informational
