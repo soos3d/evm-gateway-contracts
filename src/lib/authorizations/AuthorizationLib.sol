@@ -75,6 +75,11 @@ library AuthorizationLib {
     uint16 private constant BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 68;
     uint16 private constant BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 72;
 
+    // BurnAuthorizationSet field offsets
+    uint16 private constant BURN_AUTHORIZATION_SET_MAGIC_OFFSET = 0;
+    uint16 private constant BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
+    uint16 private constant BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
+
     // MintAuthorization field offsets
     uint16 private constant MINT_AUTHORIZATION_MAGIC_OFFSET = 0;
     uint16 private constant MINT_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET = 4;
@@ -322,6 +327,67 @@ library AuthorizationLib {
         return specRef;
     }
 
+    /// @notice Extract the number of authorizations from an encoded BurnAuthorizationSet
+    /// @param ref The TypedMemView reference to the encoded BurnAuthorizationSet
+    /// @return The number of authorizations in the set
+    function getBurnAuthorizationSetNumAuthorizations(bytes29 ref) 
+        internal 
+        pure 
+        onlyBurnAuthorizationSet(ref) 
+        returns (uint32) 
+    {
+        return uint32(ref.indexUint(BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET, UINT32_BYTES));
+    }
+
+    /// @notice Extract a BurnAuthorization at the given index from a BurnAuthorizationSet
+    /// @param ref The TypedMemView reference to the encoded BurnAuthorizationSet
+    /// @param index The index of the authorization to extract
+    /// @return A typed memory view for the authorization at the given index
+    function getBurnAuthorizationSetAuthorizationAt(bytes29 ref, uint32 index) 
+        internal 
+        pure 
+        onlyBurnAuthorizationSet(ref) 
+        returns (bytes29) 
+    {
+        uint32 numAuths = getBurnAuthorizationSetNumAuthorizations(ref);
+
+        if (index >= numAuths) {
+            revert MalformedBurnAuthorizationSet("Index out of bounds");
+        }
+
+        // Initial offset is just the fixed header of BurnAuthorizationSet before the authorizations themselves
+        uint32 offset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
+
+        // Skip past authorizations before the one we want
+        for (uint32 i = 0; i < index; i++) {
+            // Ensure we're at a valid BurnAuthorization
+            bytes4 magic = bytes4(ref.index(offset, BYTES4_BYTES));
+            if (magic != BURN_AUTHORIZATION_MAGIC) {
+                revert MalformedBurnAuthorizationSet("Invalid authorization magic in set");
+            }
+            uint32 specLength = uint32(ref.indexUint(offset + BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+            offset += BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLength;
+        }
+
+        // Verify the magic at the current offset
+        bytes4 targetMagic = bytes4(ref.index(offset, BYTES4_BYTES));
+        if (targetMagic != BURN_AUTHORIZATION_MAGIC) {
+            revert MalformedBurnAuthorizationSet("Invalid authorization magic in set");
+        }
+
+        uint32 targetSpecLength = uint32(ref.indexUint(offset + BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+        uint256 authSize = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + targetSpecLength;
+
+        // Validate that the calculated slice is within the bounds of the parent view
+        if (ref.len() < offset + authSize) {
+             revert MalformedBurnAuthorizationSet("Calculated authorization slice exceeds set bounds");
+        }
+
+        // Return a typed memory view to this authorization
+        bytes29 authView = ref.slice(offset, authSize, _toMemViewType(BURN_AUTHORIZATION_MAGIC));
+        return authView;
+    }
+
     /// @notice Extract the max block height from an encoded MintAuthorization
     /// @param ref The TypedMemView reference to the encoded MintAuthorization
     /// @return The maxBlockHeight field
@@ -450,6 +516,51 @@ library AuthorizationLib {
         );
     }
 
+    /// @notice Encode a BurnAuthorizationSet struct into bytes
+    /// @param authSet The BurnAuthorizationSet to encode
+    /// @return The encoded bytes
+    function encodeBurnAuthorizationSet(BurnAuthorizationSet memory authSet) internal pure returns (bytes memory) {
+        uint256 numAuths = authSet.authorizations.length;
+
+        if (numAuths > type(uint32).max) {
+            revert MalformedBurnAuthorizationSet("Too many authorizations");
+        }
+
+        // Calculate total size of all encoded authorizations
+        uint256 totalSize = 0;
+        bytes[] memory encodedAuths = new bytes[](numAuths);
+        for (uint256 i = 0; i < numAuths; i++) {
+            encodedAuths[i] = encodeBurnAuthorization(authSet.authorizations[i]);
+            totalSize += encodedAuths[i].length;
+        }
+
+        // Create header with magic and authorization count
+        bytes memory header = abi.encodePacked(
+            BURN_AUTHORIZATION_SET_MAGIC,
+            uint32(numAuths) // 4 bytes
+        );
+
+        // Combine header and all encoded authorizations
+        bytes memory result = new bytes(header.length + totalSize);
+
+        // Copy header into result
+        for (uint256 i = 0; i < header.length; i++) {
+            result[i] = header[i];
+        }
+
+        // Copy each encoded authorization into result
+        uint256 position = header.length;
+        for (uint256 i = 0; i < numAuths; i++) {
+            bytes memory auth = encodedAuths[i];
+            for (uint256 j = 0; j < auth.length; j++) {
+                result[position] = auth[j];
+                position++;
+            }
+        }
+
+        return result;
+    }
+
     /// @notice Encode a MintAuthorization struct into bytes
     /// @param auth The MintAuthorization to encode
     /// @return The encoded bytes
@@ -463,7 +574,6 @@ library AuthorizationLib {
             specBytes
         );
     }
-
 
     // --- Decoding Functions ---
 
@@ -575,7 +685,74 @@ library AuthorizationLib {
         return _decodeBurnAuthorizationFromView(authView);
     }
 
- /// @notice Internal helper to decode a MintAuthorization struct from its TypedMemView reference
+    /// @notice Decode a BurnAuthorizationSet struct from its byte representation
+    /// @param data The encoded BurnAuthorizationSet bytes
+    /// @return The decoded BurnAuthorizationSet struct
+    function decodeBurnAuthorizationSet(bytes memory data) internal view returns (BurnAuthorizationSet memory) {
+        /*
+         * Validation steps:
+         * 1. Minimum header length check: Verifies data is at least long enough (8 bytes)
+         *    to contain all fixed-size fields of the BurnAuthorizationSet.
+         * 2. Magic number check: Ensures the BURN_AUTHORIZATION_SET_MAGIC magic number is correct.
+         * 3. Iterative decoding and validation: For each BurnAuthorization in the set,
+         *     a. Check that the data is long enough to contain the next BurnAuthorization header.
+         *     b. Check that the data is long enough to contain the next BurnAuthorization in its entirety.
+         *     c. Check the magic number of the current authorization.
+         *     d. Decode the BurnAuthorization, performing all of the validation steps documented in _decodeBurnAuthorizationFromView.
+         */
+
+        // 1. Minimum header length check
+        if (data.length < BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
+            revert MalformedBurnAuthorizationSet(data);
+        }
+
+        // Create view of the BurnAuthorizationSet
+        // 2. Magic number check
+        bytes29 setView = asBurnAuthorizationSet(data);
+
+        uint32 numAuths = getBurnAuthorizationSetNumAuthorizations(setView);
+        BurnAuthorization[] memory authorizations = new BurnAuthorization[](numAuths);
+
+        // Initial offset is just the fixed header of BurnAuthorizationSet before the authorizations themselves
+        uint256 currentOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
+        
+        for (uint32 i = 0; i < numAuths; i++) {
+            // 3a. Check that the entire set is long enough to contain the next BurnAuthorization header
+            if (setView.len() < currentOffset + BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET) {
+                revert MalformedBurnAuthorizationSet("Data too short for next BurnAuthorization header");
+            }
+
+            // 3b. Check that the entire set is long enough to contain the full next BurnAuthorization
+            uint32 specLength = uint32(setView.indexUint(currentOffset + BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+            uint256 currentAuthTotalLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLength;
+            if (setView.len() < currentOffset + currentAuthTotalLength) {
+                revert MalformedBurnAuthorizationSet("Data too short for next BurnAuthorization");
+            }
+
+            // 3c. Check the magic number of the current authorization
+            bytes4 actualMagic = bytes4(setView.index(currentOffset + BURN_AUTHORIZATION_MAGIC_OFFSET, BYTES4_BYTES));
+            if (actualMagic != BURN_AUTHORIZATION_MAGIC) {
+                revert MalformedBurnAuthorizationSet("Invalid authorization magic in set");
+            }
+
+            // Create a view for the BurnAuthorization
+            bytes29 authView = setView.slice(currentOffset, currentAuthTotalLength, _toMemViewType(BURN_AUTHORIZATION_MAGIC));
+            
+            // 3d. Validate and decode the BurnAuthorization
+            authorizations[i] = _decodeBurnAuthorizationFromView(authView);
+
+            // Update the offset for the next iteration
+            currentOffset += currentAuthTotalLength;
+        }
+
+        if (currentOffset != setView.len()) {
+            revert MalformedBurnAuthorizationSet("Set length mismatch after decoding all elements");
+        }
+
+        return BurnAuthorizationSet({authorizations: authorizations});
+    }
+
+    /// @notice Internal helper to decode a MintAuthorization struct from its TypedMemView reference
     /// @dev Assumes the authView points to a valid slice within a larger structure or represents the full data.
     /// @param authView The TypedMemView reference to the encoded MintAuthorization
     /// @return The decoded MintAuthorization struct
