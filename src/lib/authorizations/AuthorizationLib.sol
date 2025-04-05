@@ -66,7 +66,14 @@ library AuthorizationLib {
     uint16 private constant TRANSFER_SPEC_VALUE_OFFSET = 272;
     uint16 private constant TRANSFER_SPEC_NONCE_OFFSET = 304;
     uint16 private constant TRANSFER_SPEC_METADATA_LENGTH_OFFSET = 336;
-    uint16 public constant TRANSFER_SPEC_METADATA_OFFSET = 340;
+    uint16 private constant TRANSFER_SPEC_METADATA_OFFSET = 340;
+
+    // BurnAuthorization field offsets
+    uint16 private constant BURN_AUTHORIZATION_MAGIC_OFFSET = 0;
+    uint16 private constant BURN_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET = 4;
+    uint16 private constant BURN_AUTHORIZATION_MAX_FEE_OFFSET = 36;
+    uint16 private constant BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 68;
+    uint16 private constant BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 72;
 
     function _toMemViewType(bytes4 magic) private pure returns (uint40) {
         return uint40(uint32(magic));
@@ -267,6 +274,48 @@ library AuthorizationLib {
         return ref.slice(TRANSFER_SPEC_METADATA_OFFSET, 0, 0);
     }
 
+    /// @notice Extract the max block height from an encoded BurnAuthorization
+    /// @param ref The TypedMemView reference to the encoded BurnAuthorization
+    /// @return The maxBlockHeight field
+    function getBurnAuthorizationMaxBlockHeight(bytes29 ref) 
+        internal 
+        pure 
+        onlyBurnAuthorization(ref) 
+        returns (uint256) 
+    {
+        return ref.indexUint(BURN_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET, UINT256_BYTES);
+    }
+
+    /// @notice Extract the max fee from an encoded BurnAuthorization
+    /// @param ref The TypedMemView reference to the encoded BurnAuthorization
+    /// @return The maxFee field
+    function getBurnAuthorizationMaxFee(bytes29 ref) internal pure onlyBurnAuthorization(ref) returns (uint256) {
+        return ref.indexUint(BURN_AUTHORIZATION_MAX_FEE_OFFSET, UINT256_BYTES);
+    }
+
+    /// @notice Extract the transfer spec length from an encoded BurnAuthorization
+    /// @param ref The TypedMemView reference to the encoded BurnAuthorization
+    /// @return The transfer spec length
+    function getBurnAuthorizationTransferSpecLength(bytes29 ref) internal pure onlyBurnAuthorization(ref) returns (uint32) {
+        return uint32(ref.indexUint(BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+    }
+
+    /// @notice Extract the transfer spec from an encoded BurnAuthorization
+    /// @param ref The TypedMemView reference to the encoded BurnAuthorization
+    /// @return A TypedMemView reference to the transferSpec portion
+    function getBurnAuthorizationTransferSpec(bytes29 ref) internal pure onlyBurnAuthorization(ref) returns (bytes29) {
+        uint32 specLength = getBurnAuthorizationTransferSpecLength(ref);
+        bytes29 specRef =
+            ref.slice(BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET, specLength, _toMemViewType(TRANSFER_SPEC_MAGIC));
+
+        // Validate that the slice contains a valid TransferSpec
+        if (specRef.index(0, 4) != TRANSFER_SPEC_MAGIC) {
+            revert MalformedTransferSpec("Invalid TransferSpec magic in BurnAuthorization");
+        }
+
+        return specRef;
+    }
+
     // --- Encoding Functions ---
 
     function _encodeTransferSpecHeader(
@@ -336,6 +385,20 @@ library AuthorizationLib {
         return bytes.concat(header, footer);
     }
 
+    /// @notice Encode a BurnAuthorization struct into bytes
+    /// @param auth The BurnAuthorization to encode
+    /// @return The encoded bytes
+    function encodeBurnAuthorization(BurnAuthorization memory auth) internal pure returns (bytes memory) {
+        bytes memory specBytes = encodeTransferSpec(auth.spec);
+        return abi.encodePacked(
+            BURN_AUTHORIZATION_MAGIC,
+            auth.maxBlockHeight,
+            auth.maxFee,
+            uint32(specBytes.length), // 4 bytes
+            specBytes
+        );
+    }
+
     // --- Decoding Functions ---
 
     /// @notice Internal helper to decode a TransferSpec struct from its TypedMemView reference
@@ -392,4 +455,58 @@ library AuthorizationLib {
         bytes29 specView = asTransferSpec(data);
         return _decodeTransferSpecFromView(specView);
     }
+
+    /// @notice Internal helper to decode a BurnAuthorization struct from its TypedMemView reference
+    /// @dev Assumes the authView points to a valid slice within a larger structure or represents the full data.
+    /// @param authView The TypedMemView reference to the encoded BurnAuthorization
+    /// @return The decoded BurnAuthorization struct
+    function _decodeBurnAuthorizationFromView(bytes29 authView) private view returns (BurnAuthorization memory) {
+        /*
+         * Validation steps:
+         * 1. Minimum header length check: Verifies the view is long enough (72 bytes)
+         *    to contain all fixed-size fields of the BurnAuthorization struct before the variable-length TransferSpec.
+         * 2. Total length consistency check: Reads the declared TransferSpec length from the header within the view
+         *    and verifies that the view's length exactly matches the fixed header size (72 bytes) plus this
+         *    declared TransferSpec length.
+         * 3. Inner TransferSpec magic check: Ensures the TransferSpec magic number is correct
+         * 4. Inner TransferSpec validation: Calls _decodeTransferSpecFromView on the inner TransferSpec view,
+         *    which performs its own set of validations (magic, min length, total length) on that inner view.
+         */
+
+        // 1. Minimum header length check
+        if (authView.len() < BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET) {
+            revert MalformedBurnAuthorizationInvalidLength(
+                BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET, authView.len()
+            );
+        }
+
+        // 2. Total length consistency check
+        uint32 specLengthDeclaredInAuth = getBurnAuthorizationTransferSpecLength(authView);
+        uint256 expectedAuthLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLengthDeclaredInAuth;
+        if (authView.len() != expectedAuthLength) {
+            revert MalformedBurnAuthorizationInvalidLength(expectedAuthLength, authView.len());
+        }
+
+        // Create view of internal TransferSpec
+        // 3. Asserts the TransferSpec magic number is correct
+        bytes29 specView = getBurnAuthorizationTransferSpec(authView);
+
+        // 4. Inner TransferSpec Validation & Decoding
+        TransferSpec memory decodedSpec = _decodeTransferSpecFromView(specView);
+
+        return BurnAuthorization({
+            maxBlockHeight: getBurnAuthorizationMaxBlockHeight(authView),
+            maxFee: getBurnAuthorizationMaxFee(authView),
+            spec: decodedSpec
+        });
+    }
+
+    /// @notice Decode a BurnAuthorization struct from its byte representation
+    /// @param data The encoded BurnAuthorization bytes
+    /// @return The decoded BurnAuthorization struct
+    function decodeBurnAuthorization(bytes memory data) internal view returns (BurnAuthorization memory) {
+        bytes29 authView = asBurnAuthorization(data);
+        return _decodeBurnAuthorizationFromView(authView);
+    }
+
 }
