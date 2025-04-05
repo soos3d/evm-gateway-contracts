@@ -108,7 +108,37 @@ contract TransferSpecTest is AuthorizationTestUtils {
     // ===== Decode Failure Tests =====
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_decode_revertsOnDataTooShortForRequiredFields(TransferSpec memory originalSpec) public {
+    function test_decode_revertsOnDataTooShortForMagic() public {
+        bytes memory shorterThanMagic = new bytes(2);
+        vm.expectRevert(
+            bytes(
+                string.concat(
+                    "TypedMemView/index - Overran the view. ",
+                    "Slice is at 0x0000a0 with length 0x000002. ",
+                    "Attempted to index at offset 0x000000 with length 0x000004."
+                )
+            )
+        );
+        AuthorizationLib.decodeTransferSpec(shorterThanMagic);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_decode_revertsOnCorruptedMagicFuzz(TransferSpec memory spec) public {
+        spec.version = TRANSFER_SPEC_VERSION;
+        spec.metadata = LONG_METADATA;
+        bytes memory encodedSpec = AuthorizationLib.encodeTransferSpec(spec);
+        encodedSpec[0] = hex"FF";
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AuthorizationLib.MalformedTransferSpec.selector,
+                encodedSpec
+            )
+        );
+        AuthorizationLib.decodeTransferSpec(encodedSpec);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_decode_revertsOnDataTooShortForHeaderFuzz(TransferSpec memory originalSpec) public {
         originalSpec.version = TRANSFER_SPEC_VERSION;
         bytes memory validEncodedSpec = AuthorizationLib.encodeTransferSpec(originalSpec);
 
@@ -129,22 +159,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_decode_revertsOnDataShorterThanMagic() public {
-        bytes memory shorterThanMagic = new bytes(2);
-        vm.expectRevert(
-            bytes(
-                string.concat(
-                    "TypedMemView/index - Overran the view. ",
-                    "Slice is at 0x0000a0 with length 0x000002. ",
-                    "Attempted to index at offset 0x000000 with length 0x000004."
-                )
-            )
-        );
-        AuthorizationLib.decodeTransferSpec(shorterThanMagic);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function test_decode_revertsOnMetadataLengthBiggerThanActualMetadataLengthFuzz(TransferSpec memory spec) public {
+    function test_decode_revertsOnDeclaredMetadataLengthTooBigFuzz(TransferSpec memory spec) public {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = LONG_METADATA;
         bytes memory encodedSpec = AuthorizationLib.encodeTransferSpec(spec);
@@ -157,7 +172,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_decode_revertsOnMetadataLengthSmallerThanActualMetadataLengthFuzz(TransferSpec memory spec) public {
+    function test_decode_revertsOnDeclaredMetadataLengthTooSmallFuzz(TransferSpec memory spec) public {
         spec.version = TRANSFER_SPEC_VERSION;
         // Ensure metadata length > 0 for division
         if (spec.metadata.length == 0) {
@@ -175,7 +190,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
     }
  
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_decode_revertsOnTrailingBytes(TransferSpec memory spec) public {
+    function test_decode_revertsOnTrailingBytesFuzz(TransferSpec memory spec) public {
         spec.version = TRANSFER_SPEC_VERSION; // Ensure correct version for encoding
         spec.metadata = LONG_METADATA;
         bytes memory encodedSpec = AuthorizationLib.encodeTransferSpec(spec);
@@ -193,18 +208,4 @@ contract TransferSpecTest is AuthorizationTestUtils {
         AuthorizationLib.decodeTransferSpec(corruptedData);
     }
 
-    /// forge-config: default.allow_internal_expect_revert = true
-    function test_decode_revertsOnCorruptedMagic(TransferSpec memory spec) public {
-        spec.version = TRANSFER_SPEC_VERSION;
-        spec.metadata = LONG_METADATA;
-        bytes memory encodedSpec = AuthorizationLib.encodeTransferSpec(spec);
-        encodedSpec[0] = 0xFF;
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AuthorizationLib.MalformedTransferSpec.selector,
-                encodedSpec
-            )
-        );
-        AuthorizationLib.decodeTransferSpec(encodedSpec);
-    }
 }

@@ -91,6 +91,14 @@ contract AuthorizationTestUtils is Test {
         assertEq(keccak256(a.metadata), keccak256(b.metadata), "Eq Fail: metadata keccak");
     }
 
+    /// @notice Creates corrupted TransferSpec data by modifying the inner spec's declared metadata length,
+    ///         then sets up an expected revert for `MalformedTransferSpecInvalidLength`.
+    ///         Useful for testing direct `TransferSpec` decoding or decoding of structs containing an embedded `TransferSpec`.
+    /// @param encodedStruct The original encoded data containing the TransferSpec.
+    /// @param specOffset The starting offset of the inner TransferSpec within `encodedStruct` (0 for direct TransferSpec tests).
+    /// @param originalMetadataLength The actual length of the metadata in the original `spec`.
+    /// @param makeLengthBigger If true, corrupts the length field to be larger; otherwise, makes it smaller.
+    /// @return corruptedData The modified byte array with the corrupted metadata length.
     function _expectRevertForInnerSpecMetadataLengthMismatch(
         bytes memory encodedStruct,
         uint32 specOffset,
