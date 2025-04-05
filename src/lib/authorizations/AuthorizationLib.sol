@@ -75,6 +75,12 @@ library AuthorizationLib {
     uint16 private constant BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 68;
     uint16 private constant BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 72;
 
+    // MintAuthorization field offsets
+    uint16 private constant MINT_AUTHORIZATION_MAGIC_OFFSET = 0;
+    uint16 private constant MINT_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET = 4;
+    uint16 private constant MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 36;
+    uint16 private constant MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 40;
+
     function _toMemViewType(bytes4 magic) private pure returns (uint40) {
         return uint40(uint32(magic));
     }
@@ -316,6 +322,51 @@ library AuthorizationLib {
         return specRef;
     }
 
+    /// @notice Extract the max block height from an encoded MintAuthorization
+    /// @param ref The TypedMemView reference to the encoded MintAuthorization
+    /// @return The maxBlockHeight field
+    function getMintAuthorizationMaxBlockHeight(bytes29 ref) 
+        internal 
+        pure 
+        onlyMintAuthorization(ref) 
+        returns (uint256) 
+    {
+        return ref.indexUint(MINT_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET, UINT256_BYTES);
+    }
+
+    /// @notice Extract the transfer spec length from an encoded MintAuthorization
+    /// @param ref The TypedMemView reference to the encoded MintAuthorization
+    /// @return The transfer spec length
+    function getMintAuthorizationTransferSpecLength(bytes29 ref) 
+        internal 
+        pure 
+        onlyMintAuthorization(ref) 
+        returns (uint32) 
+    {
+        return uint32(ref.indexUint(MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+    }
+
+    /// @notice Extract the transfer spec from an encoded MintAuthorization
+    /// @param ref The TypedMemView reference to the encoded MintAuthorization
+    /// @return A TypedMemView reference to the transferSpec portion
+    function getMintAuthorizationTransferSpec(bytes29 ref) 
+        internal 
+        pure 
+        onlyMintAuthorization(ref) 
+        returns (bytes29) 
+    {
+        uint32 specLength = getMintAuthorizationTransferSpecLength(ref);
+        bytes29 specRef =
+            ref.slice(MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET, specLength, _toMemViewType(TRANSFER_SPEC_MAGIC));
+
+        // Validate that the slice contains a valid TransferSpec
+        if (specRef.index(0, 4) != TRANSFER_SPEC_MAGIC) {
+            revert MalformedTransferSpec("Invalid TransferSpec magic in MintAuthorization");
+        }
+
+        return specRef;
+    }
+
     // --- Encoding Functions ---
 
     function _encodeTransferSpecHeader(
@@ -398,6 +449,21 @@ library AuthorizationLib {
             specBytes
         );
     }
+
+    /// @notice Encode a MintAuthorization struct into bytes
+    /// @param auth The MintAuthorization to encode
+    /// @return The encoded bytes
+    function encodeMintAuthorization(MintAuthorization memory auth) internal pure returns (bytes memory) {
+        bytes memory specBytes = encodeTransferSpec(auth.spec);
+
+        return abi.encodePacked(
+            MINT_AUTHORIZATION_MAGIC,
+            auth.maxBlockHeight, // 32 bytes
+            uint32(specBytes.length), // 4 bytes
+            specBytes
+        );
+    }
+
 
     // --- Decoding Functions ---
 
@@ -491,7 +557,7 @@ library AuthorizationLib {
         // 3. Asserts the TransferSpec magic number is correct
         bytes29 specView = getBurnAuthorizationTransferSpec(authView);
 
-        // 4. Inner TransferSpec Validation & Decoding
+        // 4. Inner TransferSpec validation and decoding
         TransferSpec memory decodedSpec = _decodeTransferSpecFromView(specView);
 
         return BurnAuthorization({
@@ -507,6 +573,58 @@ library AuthorizationLib {
     function decodeBurnAuthorization(bytes memory data) internal view returns (BurnAuthorization memory) {
         bytes29 authView = asBurnAuthorization(data);
         return _decodeBurnAuthorizationFromView(authView);
+    }
+
+ /// @notice Internal helper to decode a MintAuthorization struct from its TypedMemView reference
+    /// @dev Assumes the authView points to a valid slice within a larger structure or represents the full data.
+    /// @param authView The TypedMemView reference to the encoded MintAuthorization
+    /// @return The decoded MintAuthorization struct
+    function _decodeMintAuthorizationFromView(bytes29 authView) private view returns (MintAuthorization memory) {
+        /*
+         * Validation steps:
+         * 1. Minimum header length check: Verifies the view is long enough (40 bytes)
+         *    to contain all fixed-size fields of the MintAuthorization struct before the variable-length TransferSpec.
+         * 2. Total length consistency check: Reads the declared TransferSpec length from the header within the view
+         *    and verifies that the view's length exactly matches the fixed header size (72 bytes) plus this
+         *    declared TransferSpec length.
+         * 3. Inner TransferSpec magic check: Ensures the TransferSpec magic number is correct
+         * 4. Inner TransferSpec validation: Calls _decodeTransferSpecFromView on the inner TransferSpec view,
+         *    which performs its own set of validations (magic, min length, total length) on that inner view.
+         */
+
+        // 1. Minimum header length check
+        if (authView.len() < MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET) {
+            revert MalformedMintAuthorizationInvalidLength(
+                 MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET, authView.len()
+            );
+        }
+
+        // 2. Total length consistency check
+        uint32 specLengthDeclaredInAuth = getMintAuthorizationTransferSpecLength(authView);
+        uint256 expectedAuthLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLengthDeclaredInAuth;
+        if (authView.len() != expectedAuthLength) {
+            revert MalformedMintAuthorizationInvalidLength(expectedAuthLength, authView.len());
+        }
+
+        // Create view of internal TransferSpec
+        // 3. Asserts the TransferSpec magic number is correct
+        bytes29 specView = getMintAuthorizationTransferSpec(authView);
+
+        // 4. Inner TransferSpec validation and decoding
+        TransferSpec memory decodedSpec = _decodeTransferSpecFromView(specView);
+
+        return MintAuthorization({
+            maxBlockHeight: getMintAuthorizationMaxBlockHeight(authView),
+            spec: decodedSpec
+        });
+    }
+
+    /// @notice Decode a MintAuthorization struct from its byte representation
+    /// @param data The encoded MintAuthorization bytes
+    /// @return The decoded MintAuthorization struct
+    function decodeMintAuthorization(bytes memory data) internal view returns (MintAuthorization memory) {
+        bytes29 authView = asMintAuthorization(data);
+        return _decodeMintAuthorizationFromView(authView);
     }
 
 }
