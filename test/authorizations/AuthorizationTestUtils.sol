@@ -20,6 +20,7 @@ pragma solidity ^0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
+import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {AuthorizationLib} from "src/lib/authorizations/AuthorizationLib.sol";
 
 contract AuthorizationTestUtils is Test {
@@ -40,13 +41,37 @@ contract AuthorizationTestUtils is Test {
         }
     }
 
-    /// Helper to create data with specific magic bytes
+    // Helper to create data with specific magic bytes
     function _magic(string memory label) internal pure returns (bytes memory, uint40) {
         bytes4 magic = bytes4(keccak256(bytes(label)));
         return (abi.encodePacked(magic), uint40(uint32(magic)));
     }
 
-    /// Verifies all fields read from a TransferSpec view match the original struct
+    // Compares two TransferSpec structs field-by-field
+    function _assertTransferSpecsEqual(TransferSpec memory a, TransferSpec memory b) internal pure {
+        assertEq(a.version, b.version, "Eq Fail: version");
+        assertEq(a.sourceDomain, b.sourceDomain, "Eq Fail: sourceDomain");
+        assertEq(a.destinationDomain, b.destinationDomain, "Eq Fail: destinationDomain");
+        assertEq(a.sourceContract, b.sourceContract, "Eq Fail: sourceContract");
+        assertEq(a.destinationContract, b.destinationContract, "Eq Fail: destinationContract");
+        assertEq(a.sourceToken, b.sourceToken, "Eq Fail: sourceToken");
+        assertEq(a.destinationToken, b.destinationToken, "Eq Fail: destinationToken");
+        assertEq(a.sourceDepositor, b.sourceDepositor, "Eq Fail: sourceDepositor");
+        assertEq(a.destinationRecipient, b.destinationRecipient, "Eq Fail: destinationRecipient");
+        assertEq(a.sourceSigner, b.sourceSigner, "Eq Fail: sourceSigner");
+        assertEq(a.destinationCaller, b.destinationCaller, "Eq Fail: destinationCaller");
+        assertEq(a.value, b.value, "Eq Fail: value");
+        assertEq(a.nonce, b.nonce, "Eq Fail: nonce");
+        assertEq(keccak256(a.metadata), keccak256(b.metadata), "Eq Fail: metadata keccak");
+    }
+
+    function _assertBurnAuthorizationsEqual(BurnAuthorization memory a, BurnAuthorization memory b) internal pure {
+        assertEq(a.maxBlockHeight, b.maxBlockHeight, "Eq Fail: maxBlockHeight");
+        assertEq(a.maxFee, b.maxFee, "Eq Fail: maxFee");
+        _assertTransferSpecsEqual(a.spec, b.spec);
+    }
+
+    // Verifies all fields read from a TransferSpec view match the original struct
     function _verifyTransferSpecFieldsFromView(bytes29 ref, TransferSpec memory spec) internal pure {
         assertEq(ref.getTransferSpecVersion(), spec.version, "Eq Fail: version");
         assertEq(ref.getTransferSpecSourceDomain(), spec.sourceDomain, "Eq Fail: sourceDomain");
@@ -73,22 +98,12 @@ contract AuthorizationTestUtils is Test {
         }
     }
 
-    /// Compares two TransferSpec structs field-by-field
-    function _assertTransferSpecEqual(TransferSpec memory a, TransferSpec memory b) internal pure {
-        assertEq(a.version, b.version, "Eq Fail: version");
-        assertEq(a.sourceDomain, b.sourceDomain, "Eq Fail: sourceDomain");
-        assertEq(a.destinationDomain, b.destinationDomain, "Eq Fail: destinationDomain");
-        assertEq(a.sourceContract, b.sourceContract, "Eq Fail: sourceContract");
-        assertEq(a.destinationContract, b.destinationContract, "Eq Fail: destinationContract");
-        assertEq(a.sourceToken, b.sourceToken, "Eq Fail: sourceToken");
-        assertEq(a.destinationToken, b.destinationToken, "Eq Fail: destinationToken");
-        assertEq(a.sourceDepositor, b.sourceDepositor, "Eq Fail: sourceDepositor");
-        assertEq(a.destinationRecipient, b.destinationRecipient, "Eq Fail: destinationRecipient");
-        assertEq(a.sourceSigner, b.sourceSigner, "Eq Fail: sourceSigner");
-        assertEq(a.destinationCaller, b.destinationCaller, "Eq Fail: destinationCaller");
-        assertEq(a.value, b.value, "Eq Fail: value");
-        assertEq(a.nonce, b.nonce, "Eq Fail: nonce");
-        assertEq(keccak256(a.metadata), keccak256(b.metadata), "Eq Fail: metadata keccak");
+    // Verifies all fields read from a BurnAuthorization view match the original struct
+    function _verifyBurnAuthorizationFieldsFromView(bytes29 ref, BurnAuthorization memory auth) internal pure {
+        assertEq(ref.getBurnAuthorizationMaxBlockHeight(), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
+        assertEq(ref.getBurnAuthorizationMaxFee(), auth.maxFee, "Eq Fail: maxFee");
+        bytes29 specRef = ref.getBurnAuthorizationTransferSpec();
+        _verifyTransferSpecFieldsFromView(specRef, auth.spec);
     }
 
     /// @notice Creates corrupted TransferSpec data by modifying the inner spec's declared metadata length,

@@ -76,7 +76,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         originalSpec.metadata = new bytes(0);
         bytes memory encoded = AuthorizationLib.encodeTransferSpec(originalSpec);
         TransferSpec memory decodedSpec = AuthorizationLib.decodeTransferSpec(encoded);
-        _assertTransferSpecEqual(decodedSpec, originalSpec);
+        _assertTransferSpecsEqual(decodedSpec, originalSpec);
     }
 
     function test_encodeDecode_roundTrip_shortMetadataFuzz(TransferSpec memory originalSpec) public view {
@@ -84,7 +84,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         originalSpec.metadata = SHORT_METADATA;
         bytes memory encoded = AuthorizationLib.encodeTransferSpec(originalSpec);
         TransferSpec memory decodedSpec = AuthorizationLib.decodeTransferSpec(encoded);
-        _assertTransferSpecEqual(decodedSpec, originalSpec);
+        _assertTransferSpecsEqual(decodedSpec, originalSpec);
     }
 
     function test_encodeDecode_roundTrip_longMetadataFuzz(TransferSpec memory originalSpec) public view {
@@ -92,7 +92,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         originalSpec.metadata = LONG_METADATA;
         bytes memory encoded = AuthorizationLib.encodeTransferSpec(originalSpec);
         TransferSpec memory decodedSpec = AuthorizationLib.decodeTransferSpec(encoded);
-        _assertTransferSpecEqual(decodedSpec, originalSpec);
+        _assertTransferSpecsEqual(decodedSpec, originalSpec);
     }
 
     function test_encodeDecode_roundTripZeroSignerAndCallerFuzz(TransferSpec memory originalSpec) public view {
@@ -102,7 +102,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         originalSpec.metadata = new bytes(0);
         bytes memory encoded = AuthorizationLib.encodeTransferSpec(originalSpec);
         TransferSpec memory decodedSpec = AuthorizationLib.decodeTransferSpec(encoded);
-        _assertTransferSpecEqual(decodedSpec, originalSpec);
+        _assertTransferSpecsEqual(decodedSpec, originalSpec);
     }
 
     // ===== Decode Failure Tests =====
