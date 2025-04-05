@@ -132,10 +132,12 @@ contract TransferSpecTest is AuthorizationTestUtils {
     function test_decode_revertsOnDataShorterThanMagic() public {
         bytes memory shorterThanMagic = new bytes(2);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
-                TRANSFER_SPEC_METADATA_OFFSET,
-                shorterThanMagic.length
+            bytes(
+                string.concat(
+                    "TypedMemView/index - Overran the view. ",
+                    "Slice is at 0x0000a0 with length 0x000002. ",
+                    "Attempted to index at offset 0x000000 with length 0x000004."
+                )
             )
         );
         AuthorizationLib.decodeTransferSpec(shorterThanMagic);

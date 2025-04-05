@@ -389,35 +389,7 @@ library AuthorizationLib {
     /// @param data The encoded TransferSpec bytes
     /// @return The decoded TransferSpec struct
     function decodeTransferSpec(bytes memory data) internal view returns (TransferSpec memory) {
-        /*
-         * Validation steps:
-         * 1. Minimum header length check: Verifies data is at least long enough (340 bytes)
-         *    to contain all fixed-size fields of the TransferSpec struct before the variable-length metadata.
-         * 2. Magic number check: Ensures the data starts with the expected TRANSFER_SPEC_MAGIC bytes.
-         * 3. Total length consistency check: Reads the metadata length from the TransferSpec header
-         *    and verifies that the total data.length exactly matches the TransferSpec fixed header size (340 bytes) 
-         *    plus this declared metadata length.
-         */
-
-        // 1. Minimum header length check
-        if (data.length < TRANSFER_SPEC_METADATA_OFFSET) {
-            revert MalformedTransferSpecInvalidLength(TRANSFER_SPEC_METADATA_OFFSET, data.length);
-        }
-
-        // Create a view
-        // 2. Magic number check is performed by `asTransferSpec`
         bytes29 specView = asTransferSpec(data);
-
-        // Read the variable metadata length to calculate expected total length based on the header
-        uint32 metadataLength = getTransferSpecMetadataLength(specView);
-        uint256 expectedTotalLength = TRANSFER_SPEC_METADATA_OFFSET + metadataLength;
-
-        // 3. Check if actual total length matches expected length based on header declaration
-        if (data.length != expectedTotalLength) {
-            revert MalformedTransferSpecInvalidLength(expectedTotalLength, data.length);
-        }
-        
-        // Decode using the internal helper which performs further validation on the view itself
         return _decodeTransferSpecFromView(specView);
     }
 }
