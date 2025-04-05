@@ -32,7 +32,7 @@ bytes4 constant MINT_AUTHORIZATION_SET_MAGIC = 0x95f860bd;
 ///     FIELD                      OFFSET   BYTES   NOTES
 ///     magic                           0       4   Always 0x23ba354a
 ///     max block height                4      32
-///     transfer spec length           36       4   In bytes, ay vary based on metadata length
+///     transfer spec length           36       4   In bytes, may vary based on metadata length
 ///     encoded transfer spec          40       ?   Must be the length indicated above
 struct MintAuthorization {
     uint256 maxBlockHeight; //   Valid until this block height
