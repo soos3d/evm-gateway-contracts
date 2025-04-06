@@ -115,6 +115,20 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     // ===== Decode Failures: Outer BurnAuthorization struct Consistency Tests =====
 
     /// forge-config: default.allow_internal_expect_revert = true
+    function test_decode_burnAuth_revertsOnCorruptedMagicFuzz(BurnAuthorization memory auth) public {
+        auth.spec.version = TRANSFER_SPEC_VERSION;
+        auth.spec.metadata = LONG_METADATA;
+        bytes memory encodedAuth = AuthorizationLib.encodeBurnAuthorization(auth);
+
+        // Corrupt the first byte of the BurnAuthorization magic
+        encodedAuth[0] = hex"FF";
+        vm.expectRevert(
+             abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorization.selector, encodedAuth)
+        );
+        AuthorizationLib.decodeBurnAuthorization(encodedAuth);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
     // Verifies both direct validate and decode revert appropriately
     function test_decode_burnAuth_revertsOnDataTooShortForHeaderFuzz(BurnAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
