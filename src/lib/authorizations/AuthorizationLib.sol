@@ -91,6 +91,11 @@ library AuthorizationLib {
     uint16 private constant MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 36;
     uint16 private constant MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 40;
 
+    // MintAuthorizationSet field offsets
+    uint16 private constant MINT_AUTHORIZATION_SET_MAGIC_OFFSET = 0;
+    uint16 private constant MINT_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
+    uint16 private constant MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
+
     function _toMemViewType(bytes4 magic) private pure returns (uint40) {
         return uint40(uint32(magic));
     }
@@ -345,6 +350,74 @@ library AuthorizationLib {
         _validateMintAuthorizationOuterStructure(authView);
         bytes29 specView = getMintAuthorizationTransferSpec(authView);
         validateTransferSpecStructure(specView);
+    }
+
+    /// @notice Validates the full structural integrity of an encoded MintAuthorization memory view.
+    /// @dev Performs structural validation on a MintAuthorizationSet view. Reverts on failure.
+    /// Assumes the view has the correct MintAuthorizationSet magic number (e.g., checked via `as...Set`).
+    /// Validation includes:
+    /// 1. Minimum header length check.
+    /// 2. Reading declared authorization count.
+    /// 3. Iterating through declared authorizations:
+    ///    a. Checking bounds based on previously declared lengths.
+    ///    b. Checking the magic number of each authorization.
+    ///    c. Performing full recursive validation on each authorization using `validateMintAuthorization`.
+    /// 4. Final total length consistency check.
+    /// @dev Reverts with specific errors (e.g., MalformedMintAuthorizationSet) if the structure is invalid.
+    /// @param setView The TypedMemView reference to the encoded MintAuthorizationSet to validate.
+    function validateMintAuthorizationSet(bytes29 setView) internal pure {
+        // 1. Minimum header length check
+        if (setView.len() < MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
+           revert MalformedMintAuthorizationSet("Data too short for set header");
+        }
+
+        // 2. Read declared count
+        uint32 numAuths = getMintAuthorizationSetNumAuthorizations(setView);
+        uint256 currentOffset = MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
+
+        // 3. Iterate and validate each element
+        for (uint32 i = 0; i < numAuths; i++) {
+            // 3a. Check bounds for header read
+            if (setView.len() < currentOffset + MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET) {
+                revert MalformedMintAuthorizationSet(
+                    "Data too short for next MintAuthorization header"
+                );
+            }
+            // Read spec length to determine current auth total length
+            uint32 specLength = uint32(
+                setView.indexUint(currentOffset + MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES)
+            );
+            uint256 currentAuthTotalLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLength;
+            // Check bounds for full auth read
+            if (setView.len() < currentOffset + currentAuthTotalLength) {
+                revert MalformedMintAuthorizationSet(
+                    "Data too short for next MintAuthorization"
+                );
+            }
+
+            // 3b. Check magic number of the current element slice
+            if (bytes4(setView.index(currentOffset + MINT_AUTHORIZATION_MAGIC_OFFSET, BYTES4_BYTES)) != MINT_AUTHORIZATION_MAGIC) {
+                revert MalformedMintAuthorizationSet("Invalid authorization magic in set");
+            }
+
+            // 3c. Create view and perform full recursive validation on the element
+            bytes29 authView = setView.slice(
+                currentOffset,
+                currentAuthTotalLength,
+                _toMemViewType(MINT_AUTHORIZATION_MAGIC)
+            );
+            validateMintAuthorization(authView);
+
+            // Update offset for the next iteration
+            currentOffset += currentAuthTotalLength;
+        }
+
+        // 4. Final total length consistency check
+        if (currentOffset != setView.len()) {
+            revert MalformedMintAuthorizationSet(
+                "Set length mismatch after validating all elements"
+            );
+        }
     }
 
     // --- View field accessors ---
@@ -607,6 +680,73 @@ library AuthorizationLib {
         return specRef;
     }
 
+    /// @notice Extract the number of authorizations from an encoded MintAuthorizationSet
+    /// @param ref The TypedMemView reference to the encoded MintAuthorizationSet
+    /// @return The number of authorizations in the set
+    function getMintAuthorizationSetNumAuthorizations(bytes29 ref)
+        internal
+        pure
+        onlyMintAuthorizationSet(ref)
+        returns (uint32)
+    {
+        return uint32(ref.indexUint(MINT_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET, UINT32_BYTES));
+    }
+
+    /// @notice Extract a MintAuthorization at the given index from a MintAuthorizationSet
+    /// @param ref The TypedMemView reference to the encoded MintAuthorizationSet
+    /// @param index The index of the authorization to extract
+    /// @return A typed memory view for the authorization at the given index
+    function getMintAuthorizationSetAuthorizationAt(bytes29 ref, uint32 index)
+        internal
+        pure
+        onlyMintAuthorizationSet(ref)
+        returns (bytes29)
+    {
+        uint32 numAuths = getMintAuthorizationSetNumAuthorizations(ref);
+
+        if (index >= numAuths) {
+            revert MalformedMintAuthorizationSet("Index out of bounds");
+        }
+
+        // Initial offset is just the fixed header of MintAuthorizationSet before the authorizations themselves
+        uint32 offset = MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
+
+        // Skip past authorizations before the one we want
+        for (uint32 i = 0; i < index; i++) {
+            // Ensure we're at a valid MintAuthorization
+            bytes4 magic = bytes4(ref.index(offset, BYTES4_BYTES));
+            if (magic != MINT_AUTHORIZATION_MAGIC) {
+                revert MalformedMintAuthorizationSet("Invalid authorization magic in set");
+            }
+            uint32 specLength = uint32(
+                ref.indexUint(offset + MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES)
+            );
+            offset += MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLength;
+        }
+
+        // Verify the magic at the current offset
+        bytes4 targetMagic = bytes4(ref.index(offset, BYTES4_BYTES));
+        if (targetMagic != MINT_AUTHORIZATION_MAGIC) {
+            revert MalformedMintAuthorizationSet("Invalid authorization magic in set");
+        }
+
+        uint32 targetSpecLength = uint32(
+            ref.indexUint(offset + MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES)
+        );
+        uint256 authSize = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + targetSpecLength;
+
+        // Validate that the calculated slice is within the bounds of the parent view
+        if (ref.len() < offset + authSize) {
+             revert MalformedMintAuthorizationSet(
+                 "Calculated authorization slice exceeds set bounds"
+             );
+        }
+
+        // Return a typed memory view to this authorization
+        bytes29 authView = ref.slice(offset, authSize, _toMemViewType(MINT_AUTHORIZATION_MAGIC));
+        return authView;
+    }
+
     // --- Encoding Functions ---
 
     function _encodeTransferSpecHeader(
@@ -747,6 +887,51 @@ library AuthorizationLib {
             uint32(specBytes.length), // 4 bytes
             specBytes
         );
+    }
+
+    /// @notice Encode a MintAuthorizationSet struct into bytes
+    /// @param authSet The MintAuthorizationSet to encode
+    /// @return The encoded bytes
+    function encodeMintAuthorizationSet(MintAuthorizationSet memory authSet) internal pure returns (bytes memory) {
+        uint256 numAuths = authSet.authorizations.length;
+
+        if (numAuths > type(uint32).max) {
+            revert MalformedMintAuthorizationSet("Too many authorizations");
+        }
+
+        // Calculate total size of all encoded authorizations
+        uint256 totalSize = 0;
+        bytes[] memory encodedAuths = new bytes[](numAuths);
+        for (uint256 i = 0; i < numAuths; i++) {
+            encodedAuths[i] = encodeMintAuthorization(authSet.authorizations[i]);
+            totalSize += encodedAuths[i].length;
+        }
+
+        // Create header with magic and authorization count
+        bytes memory header = abi.encodePacked(
+            MINT_AUTHORIZATION_SET_MAGIC,
+            uint32(numAuths) // 4 bytes
+        );
+
+        // Combine header and all encoded authorizations
+        bytes memory result = new bytes(header.length + totalSize);
+
+        // Copy header into result
+        for (uint256 i = 0; i < header.length; i++) {
+            result[i] = header[i];
+        }
+
+        // Copy each encoded authorization into result
+        uint256 position = header.length;
+        for (uint256 i = 0; i < numAuths; i++) {
+            bytes memory auth = encodedAuths[i];
+            for (uint256 j = 0; j < auth.length; j++) {
+                result[position] = auth[j];
+                position++;
+            }
+        }
+
+        return result;
     }
 
     // --- Decoding Functions ---
@@ -899,5 +1084,82 @@ library AuthorizationLib {
     function decodeMintAuthorization(bytes memory data) internal view returns (MintAuthorization memory) {
         bytes29 authView = asMintAuthorization(data);
         return _decodeMintAuthorizationFromView(authView);
+    }
+
+    /// @notice Decode a MintAuthorizationSet struct from its byte representation
+    /// @param data The encoded MintAuthorizationSet bytes
+    /// @return The decoded MintAuthorizationSet struct
+    function decodeMintAuthorizationSet(bytes memory data) internal view returns (MintAuthorizationSet memory) {
+        /*
+         * Validation steps:
+         * 1. Minimum header length check: Verifies data is at least long enough (8 bytes)
+         *    to contain all fixed-size fields of the MintAuthorizationSet.
+         * 2. Magic number check: Ensures the MINT_AUTHORIZATION_SET_MAGIC magic number is correct.
+         * 3. Iterative decoding and validation: For each MintAuthorization in the set,
+         *     a. Check that the data is long enough to contain the next MintAuthorization header.
+         *     b. Check that the data is long enough to contain the next MintAuthorization in its entirety.
+         *     c. Check the magic number of the current authorization.
+         *     d. Decode the MintAuthorization, performing all of the validation steps documented in _decodeMintAuthorizationFromView.
+         */
+
+        // 1. Minimum header length check
+        if (data.length < MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
+            revert MalformedMintAuthorizationSet(data);
+        }
+
+        // Create view of the MintAuthorizationSet
+        // 2. Magic number check
+        bytes29 setView = asMintAuthorizationSet(data);
+
+        uint32 numAuths = getMintAuthorizationSetNumAuthorizations(setView);
+        MintAuthorization[] memory authorizations = new MintAuthorization[](numAuths);
+
+        // Initial offset is just the fixed header of MintAuthorizationSet before the authorizations themselves
+        uint256 currentOffset = MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
+
+        for (uint32 i = 0; i < numAuths; i++) {
+            // 3a. Check that the entire set is long enough to contain the next MintAuthorization header
+            if (setView.len() < currentOffset + MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET) {
+                revert MalformedMintAuthorizationSet(
+                    "Data too short for next MintAuthorization header"
+                );
+            }
+
+            // 3b. Check that the entire set is long enough to contain the full next MintAuthorization
+            uint32 specLength = uint32(
+                setView.indexUint(currentOffset + MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES)
+            );
+            uint256 currentAuthTotalLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLength;
+            if (setView.len() < currentOffset + currentAuthTotalLength) {
+                revert MalformedMintAuthorizationSet(
+                    "Data too short for next MintAuthorization"
+                );
+            }
+
+            // 3c. Check the magic number of the current authorization
+            bytes4 actualMagic = bytes4(setView.index(currentOffset + MINT_AUTHORIZATION_MAGIC_OFFSET, BYTES4_BYTES));
+            if (actualMagic != MINT_AUTHORIZATION_MAGIC) {
+                revert MalformedMintAuthorizationSet("Invalid authorization magic in set");
+            }
+
+            // Create a view for the MintAuthorization
+            bytes29 authView = setView.slice(
+                currentOffset, currentAuthTotalLength, _toMemViewType(MINT_AUTHORIZATION_MAGIC)
+            );
+
+            // 3d. Validate and decode the MintAuthorization
+            authorizations[i] = _decodeMintAuthorizationFromView(authView);
+
+            // Update the offset for the next iteration
+            currentOffset += currentAuthTotalLength;
+        }
+
+        if (currentOffset != setView.len()) {
+            revert MalformedMintAuthorizationSet(
+                "Set length mismatch after decoding all elements"
+            );
+        }
+
+        return MintAuthorizationSet({authorizations: authorizations});
     }
 }
