@@ -934,6 +934,15 @@ library AuthorizationLib {
         return result;
     }
 
+    // --- Hash Utilities ---
+
+    /// @notice Calculate the keccak256 hash of an encoded TransferSpec.
+    /// @param encodedSpec The raw bytes of the encoded TransferSpec.
+    /// @return The keccak256 hash of the encoded TransferSpec bytes.
+    function getTransferSpecHash(bytes memory encodedSpec) internal pure returns (bytes32) {
+        return keccak256(encodedSpec);
+    }
+
     // --- Decoding Functions ---
 
     /// @notice Internal helper to decode a TransferSpec struct from its TypedMemView reference

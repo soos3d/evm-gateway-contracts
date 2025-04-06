@@ -227,4 +227,16 @@ contract TransferSpecTest is AuthorizationTestUtils {
         AuthorizationLib.decodeTransferSpec(corruptedData);
     }
 
+    // ===== Hash Utility Tests =====
+
+    function test_getTransferSpecHash_withMetadataFuzz(TransferSpec memory spec) public pure {
+        spec.version = TRANSFER_SPEC_VERSION;
+        spec.metadata = SHORT_METADATA;
+        bytes memory encodedSpec = AuthorizationLib.encodeTransferSpec(spec);
+
+        bytes32 libHash = AuthorizationLib.getTransferSpecHash(encodedSpec);
+        bytes32 expectedHash = keccak256(encodedSpec);
+
+        assertEq(libHash, expectedHash, "Hash mismatch for non-empty metadata");
+    }
 }
