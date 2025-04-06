@@ -129,6 +129,15 @@ library AuthorizationLib {
 
     // --- Casting ---
 
+    /// @notice Checks if the provided data likely represents an authorization set (Burn or Mint).
+    /// @param data The raw byte data to check.
+    /// @return true if the magic number matches BurnAuthorizationSet or MintAuthorizationSet, false otherwise.
+    function isAuthorizationSet(bytes memory data) internal pure returns (bool) {
+        bytes29 ref = data.ref(0);
+        bytes4 magic = bytes4(ref.index(0, BYTES4_BYTES));
+        return magic == BURN_AUTHORIZATION_SET_MAGIC || magic == MINT_AUTHORIZATION_SET_MAGIC;
+    }
+
     /// @notice Creates a typed memory view for a BurnAuthorization
     /// @param data The raw bytes to create a view into
     /// @return ref A typed memory view referencing the BurnAuthorization data
