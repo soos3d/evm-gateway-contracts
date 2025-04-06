@@ -139,6 +139,7 @@ library AuthorizationLib {
     }
 
     /// @notice Creates a typed memory view for a BurnAuthorization
+    /// @dev Creates a typed view with the proper type encoding and validates the magic number
     /// @param data The raw bytes to create a view into
     /// @return ref A typed memory view referencing the BurnAuthorization data
     function asBurnAuthorization(bytes memory data) internal pure returns (bytes29 ref) {
@@ -1018,19 +1019,16 @@ library AuthorizationLib {
     /// @notice Decode a BurnAuthorizationSet struct from its byte representation
     /// @param data The encoded BurnAuthorizationSet bytes
     /// @return The decoded BurnAuthorizationSet struct
+    /// @dev Performs validation during decoding:
+    ///      1. Minimum header length check.
+    ///      2. Magic number check via `asBurnAuthorizationSet`.
+    ///      3. Iterative decoding and validation of each `BurnAuthorization`:
+    ///         a. Checks bounds for next header and full authorization read.
+    ///         b. Checks magic number of the current authorization.
+    ///         c. Decodes the `BurnAuthorization` using `_decodeBurnAuthorizationFromView`, 
+    ///            which includes nested validation.
+    ///      4. Final total length consistency check.
     function decodeBurnAuthorizationSet(bytes memory data) internal view returns (BurnAuthorizationSet memory) {
-        /*
-         * Validation steps:
-         * 1. Minimum header length check: Verifies data is at least long enough (8 bytes)
-         *    to contain all fixed-size fields of the BurnAuthorizationSet.
-         * 2. Magic number check: Ensures the BURN_AUTHORIZATION_SET_MAGIC magic number is correct.
-         * 3. Iterative decoding and validation: For each BurnAuthorization in the set,
-         *     a. Check that the data is long enough to contain the next BurnAuthorization header.
-         *     b. Check that the data is long enough to contain the next BurnAuthorization in its entirety.
-         *     c. Check the magic number of the current authorization.
-         *     d. Decode the BurnAuthorization, performing all of the validation steps documented in _decodeBurnAuthorizationFromView.
-         */
-
         // 1. Minimum header length check
         if (data.length < BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
             revert MalformedBurnAuthorizationSet(data);
@@ -1107,19 +1105,16 @@ library AuthorizationLib {
     /// @notice Decode a MintAuthorizationSet struct from its byte representation
     /// @param data The encoded MintAuthorizationSet bytes
     /// @return The decoded MintAuthorizationSet struct
+    /// @dev Performs validation during decoding:
+    ///      1. Minimum header length check.
+    ///      2. Magic number check via `asMintAuthorizationSet`.
+    ///      3. Iterative decoding and validation of each `MintAuthorization`:
+    ///         a. Checks bounds for next header and full authorization read.
+    ///         b. Checks magic number of the current authorization.
+    ///         c. Decodes the `MintAuthorization` using `_decodeMintAuthorizationFromView`, 
+    ///            which includes nested validation.
+    ///      4. Final total length consistency check.
     function decodeMintAuthorizationSet(bytes memory data) internal view returns (MintAuthorizationSet memory) {
-        /*
-         * Validation steps:
-         * 1. Minimum header length check: Verifies data is at least long enough (8 bytes)
-         *    to contain all fixed-size fields of the MintAuthorizationSet.
-         * 2. Magic number check: Ensures the MINT_AUTHORIZATION_SET_MAGIC magic number is correct.
-         * 3. Iterative decoding and validation: For each MintAuthorization in the set,
-         *     a. Check that the data is long enough to contain the next MintAuthorization header.
-         *     b. Check that the data is long enough to contain the next MintAuthorization in its entirety.
-         *     c. Check the magic number of the current authorization.
-         *     d. Decode the MintAuthorization, performing all of the validation steps documented in _decodeMintAuthorizationFromView.
-         */
-
         // 1. Minimum header length check
         if (data.length < MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
             revert MalformedMintAuthorizationSet(data);
