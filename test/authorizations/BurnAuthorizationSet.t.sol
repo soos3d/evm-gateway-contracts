@@ -18,10 +18,9 @@
 pragma solidity ^0.8.28;
 
 import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
-import {TransferSpec, TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
+import {TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {
     BurnAuthorization,
-    BURN_AUTHORIZATION_MAGIC,
     BurnAuthorizationSet,
     BURN_AUTHORIZATION_SET_MAGIC
 } from "src/lib/authorizations/BurnAuthorizations.sol";
@@ -174,7 +173,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         bytes4 encodedCorruptedLength = bytes4(corruptedSpecLength);
 
         bytes memory corruptedEncodedAuthSet = encodedAuthSet;
-        for (uint i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < 4; i++) {
             corruptedEncodedAuthSet[specLengthOffset + i] = encodedCorruptedLength[i];
         }
 
@@ -309,9 +308,8 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
 
         // Truncate the first auth header (e.g., provide only 10 bytes of it)
         uint256 partialAuthHeaderLength = 10;
-        require(partialAuthHeaderLength < BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET, "Test setup invalid");
         bytes memory partialAuthData = new bytes(partialAuthHeaderLength);
-        for (uint i=0; i < partialAuthHeaderLength; i++) {
+        for (uint256 i=0; i < partialAuthHeaderLength; i++) {
             partialAuthData[i] = encodedAuth1[i];
         }
 
@@ -343,7 +341,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint256 truncatedLength = encodedSetHeader.length + encodedAuth1.length - 1;
         bytes memory truncatedData = new bytes(truncatedLength);
         bytes memory combined = bytes.concat(encodedSetHeader, encodedAuth1);
-        for(uint i=0; i < truncatedLength; i++) {
+        for(uint256 i=0; i < truncatedLength; i++) {
             truncatedData[i] = combined[i];
         }
 
@@ -379,7 +377,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         // Truncate data after auth1 and partway into auth2's header
         uint256 partialAuth2HeaderLength = 10;
         bytes memory partialAuth2Data = new bytes(partialAuth2HeaderLength);
-        for (uint i=0; i < partialAuth2HeaderLength; i++) {
+        for (uint256 i=0; i < partialAuth2HeaderLength; i++) {
             partialAuth2Data[i] = encodedAuth2[i];
         }
 
@@ -418,7 +416,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint256 truncatedLength = encodedSetHeader.length + encodedAuth1.length + encodedAuth2.length - 1;
         bytes memory truncatedData = new bytes(truncatedLength);
         bytes memory combined = bytes.concat(encodedSetHeader, encodedAuth1, encodedAuth2);
-        for(uint i=0; i < truncatedLength; i++) {
+        for(uint256 i=0; i < truncatedLength; i++) {
             truncatedData[i] = combined[i];
         }
 
@@ -564,7 +562,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint256 innerMetadataLengthOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + TRANSFER_SPEC_METADATA_LENGTH_OFFSET;
         uint32 invalidMetadataLength = originalMetadataLength + 1;
         bytes4 encodedInvalidLength = bytes4(invalidMetadataLength);
-        for (uint i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < 4; i++) {
             encodedAuthSet[innerMetadataLengthOffset + i] = encodedInvalidLength[i];
         }
 
@@ -601,7 +599,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint256 innerMetadataLengthOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + TRANSFER_SPEC_METADATA_LENGTH_OFFSET;
         uint32 invalidMetadataLength = originalMetadataLength / 2; // Make it smaller
         bytes4 encodedInvalidLength = bytes4(invalidMetadataLength);
-        for (uint i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < 4; i++) {
             encodedAuthSet[innerMetadataLengthOffset + i] = encodedInvalidLength[i];
         }
 
@@ -640,7 +638,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint256 outerSpecLengthOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET;
         uint32 invalidSpecLength = originalSpecLength - 1;
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
-         for (uint i = 0; i < 4; i++) {
+         for (uint8 i = 0; i < 4; i++) {
             encodedAuthSet[outerSpecLengthOffset + i] = encodedInvalidLength[i];
         }
 
@@ -680,7 +678,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint256 outerSpecLengthOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET;
         uint32 invalidSpecLength = originalSpecLength + 1; // Make it larger than actual
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
-         for (uint i = 0; i < 4; i++) {
+         for (uint8 i = 0; i < 4; i++) {
             encodedAuthSet[outerSpecLengthOffset + i] = encodedInvalidLength[i];
         }
 

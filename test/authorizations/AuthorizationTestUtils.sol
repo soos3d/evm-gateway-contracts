@@ -19,7 +19,7 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
+import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
 import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {MintAuthorization} from "src/lib/authorizations/MintAuthorizations.sol";
 import {AuthorizationLib} from "src/lib/authorizations/AuthorizationLib.sol";
@@ -32,12 +32,12 @@ contract AuthorizationTestUtils is Test {
     uint16 internal constant TRANSFER_SPEC_METADATA_LENGTH_OFFSET = 336;
     uint16 internal constant TRANSFER_SPEC_METADATA_OFFSET = 340;
 
-    bytes constant SHORT_METADATA = "Test metadata";
-    bytes constant LONG_METADATA = "This is a longer metadata string to test larger metadata payloads";
+    bytes internal constant SHORT_METADATA = "Test metadata";
+    bytes internal constant LONG_METADATA = "This is a longer metadata string to test larger metadata payloads";
 
     function cloneBytes(bytes memory source) internal pure returns (bytes memory target) {
         target = new bytes(source.length);
-        for (uint i = 0; i < source.length; i++) {
+        for (uint256 i = 0; i < source.length; i++) {
             target[i] = source[i];
         }
     }
@@ -178,7 +178,7 @@ contract AuthorizationTestUtils is Test {
         }
 
         bytes4 encodedInvalidLength = bytes4(corruptedMetadataLength);
-        for (uint i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < 4; i++) {
             corruptedData[innerMetadataLengthOffset + i] = encodedInvalidLength[i];
         }
 

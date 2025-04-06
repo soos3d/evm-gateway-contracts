@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {TransferSpec, TRANSFER_SPEC_MAGIC, TRANSFER_SPEC_VERSION} from "./TransferSpec.sol";
+import {TransferSpec, TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
 import {
     BurnAuthorization,
     BurnAuthorizationSet,
@@ -203,7 +203,7 @@ library AuthorizationLib {
     /// 2. Total length consistency check (ensuring `header_length + declared_metadata_length == total_view_length`).
     /// @dev Reverts with `MalformedTransferSpecInvalidLength` if the structure is invalid.
     /// @param specView The TypedMemView reference to the encoded TransferSpec to validate.
-    function validateTransferSpecStructure(bytes29 specView) internal pure {
+    function validateTransferSpecStructure(bytes29 specView) internal pure onlyTransferSpec(specView) {
         // 1. Minimum header length check
         if (specView.len() < TRANSFER_SPEC_METADATA_OFFSET) {
             revert MalformedTransferSpecInvalidLength(TRANSFER_SPEC_METADATA_OFFSET, specView.len());
@@ -211,7 +211,7 @@ library AuthorizationLib {
 
         // 2. Total length consistency check
         // (Reads declared metadata length from the view and checks against view's total length)
-        uint32 metadataLength = getTransferSpecMetadataLength(specView); // Uses existing getter
+        uint32 metadataLength = getTransferSpecMetadataLength(specView);
         uint256 expectedInternalSpecLength = TRANSFER_SPEC_METADATA_OFFSET + metadataLength;
         if (specView.len() != expectedInternalSpecLength) {
             revert MalformedTransferSpecInvalidLength(expectedInternalSpecLength, specView.len());
@@ -253,7 +253,7 @@ library AuthorizationLib {
     ///      structure is invalid.
     /// @param authView The TypedMemView reference to the encoded BurnAuthorization to
     ///                 validate.
-    function validateBurnAuthorization(bytes29 authView) onlyBurnAuthorization(authView) internal pure {
+    function validateBurnAuthorization(bytes29 authView) internal pure onlyBurnAuthorization(authView) {
         _validateBurnAuthorizationOuterStructure(authView);
         bytes29 specView = getBurnAuthorizationTransferSpec(authView);
         validateTransferSpecStructure(specView);
@@ -272,7 +272,7 @@ library AuthorizationLib {
     /// 4. Final total length consistency check.
     /// @dev Reverts with specific errors (e.g., MalformedBurnAuthorizationSet) if the structure is invalid.
     /// @param setView The TypedMemView reference to the encoded BurnAuthorizationSet to validate.
-    function validateBurnAuthorizationSet(bytes29 setView) internal pure {
+    function validateBurnAuthorizationSet(bytes29 setView) internal pure onlyBurnAuthorizationSet(setView) {
         // 1. Minimum header length check
         if (setView.len() < BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
            revert MalformedBurnAuthorizationSet("Data too short for set header");
@@ -356,7 +356,7 @@ library AuthorizationLib {
     ///      structure is invalid.
     /// @param authView The TypedMemView reference to the encoded MintAuthorization to
     ///                 validate.
-    function validateMintAuthorization(bytes29 authView) onlyMintAuthorization(authView) internal pure {
+    function validateMintAuthorization(bytes29 authView) internal pure onlyMintAuthorization(authView){
         _validateMintAuthorizationOuterStructure(authView);
         bytes29 specView = getMintAuthorizationTransferSpec(authView);
         validateTransferSpecStructure(specView);
@@ -375,7 +375,7 @@ library AuthorizationLib {
     /// 4. Final total length consistency check.
     /// @dev Reverts with specific errors (e.g., MalformedMintAuthorizationSet) if the structure is invalid.
     /// @param setView The TypedMemView reference to the encoded MintAuthorizationSet to validate.
-    function validateMintAuthorizationSet(bytes29 setView) internal pure {
+    function validateMintAuthorizationSet(bytes29 setView) internal pure onlyMintAuthorizationSet(setView) {
         // 1. Minimum header length check
         if (setView.len() < MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
            revert MalformedMintAuthorizationSet("Data too short for set header");

@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
-import {TransferSpec, TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
+import {TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
 import {
     MintAuthorization,
     MINT_AUTHORIZATION_MAGIC
@@ -136,7 +136,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         // Truncate data to be shorter than the fixed header offset
         uint16 truncatedLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET - 1;
         bytes memory shortData = new bytes(truncatedLength);
-        for (uint i = 0; i < truncatedLength; i++) {
+        for (uint16 i = 0; i < truncatedLength; i++) {
             shortData[i] = validEncodedMintAuth[i];
         }
         bytes memory expectedRevertData = abi.encodeWithSelector(
@@ -183,7 +183,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         uint32 invalidSpecLength = originalSpecLength - 1; // Make it smaller
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         bytes memory corruptedData = cloneBytes(encodedAuth);
-        for (uint i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < 4; i++) {
             corruptedData[specLengthOffset + i] = encodedInvalidLength[i];
         }
 
@@ -217,7 +217,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         uint32 invalidSpecLength = originalSpecLength + 1;
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         bytes memory corruptedData = cloneBytes(encodedAuth);
-        for (uint i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < 4; i++) {
             corruptedData[specLengthOffset + i] = encodedInvalidLength[i];
         }
 
@@ -247,7 +247,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         // Ensure there is something to truncate
         assertTrue(expectedLength > 0, "Test setup error: Encoded auth cannot be empty"); 
         bytes memory truncatedData = new bytes(expectedLength - 1);
-        for (uint i = 0; i < truncatedData.length; i++) {
+        for (uint256 i = 0; i < truncatedData.length; i++) {
             truncatedData[i] = encodedAuth[i];
         }
 

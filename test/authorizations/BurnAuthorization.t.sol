@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
-import {TransferSpec, TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
+import {TRANSFER_SPEC_MAGIC, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {
     BurnAuthorization,
     BURN_AUTHORIZATION_MAGIC
@@ -135,7 +135,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         bytes memory validEncodedBurnAuth = AuthorizationLib.encodeBurnAuthorization(auth);
         uint16 truncatedLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET - 1;
         bytes memory shortData = new bytes(truncatedLength);
-        for (uint i = 0; i < truncatedLength; i++) {
+        for (uint16 i = 0; i < truncatedLength; i++) {
             shortData[i] = validEncodedBurnAuth[i];
         }
         bytes memory expectedRevertData = abi.encodeWithSelector(
@@ -180,7 +180,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         uint32 invalidSpecLength = originalSpecLength - 1;
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         bytes memory corruptedData = cloneBytes(encodedAuth);
-        for (uint i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < 4; i++) {
             corruptedData[specLengthOffset + i] = encodedInvalidLength[i];
         }
         uint256 expectedAuthLengthBasedOnCorruption = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + invalidSpecLength;
@@ -210,7 +210,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         uint32 invalidSpecLength = originalSpecLength + 1;
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         bytes memory corruptedData = cloneBytes(encodedAuth);
-        for (uint i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < 4; i++) {
             corruptedData[specLengthOffset + i] = encodedInvalidLength[i];
         }
         uint256 expectedAuthLengthBasedOnCorruption = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + invalidSpecLength;
@@ -236,7 +236,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         bytes memory encodedAuth = AuthorizationLib.encodeBurnAuthorization(auth);
         uint256 expectedLength = encodedAuth.length;
         bytes memory truncatedData = new bytes(expectedLength - 1);
-        for (uint i = 0; i < truncatedData.length; i++) {
+        for (uint256 i = 0; i < truncatedData.length; i++) {
             truncatedData[i] = encodedAuth[i];
         }
         bytes memory expectedRevertData = abi.encodeWithSelector(

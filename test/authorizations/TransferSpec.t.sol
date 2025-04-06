@@ -144,7 +144,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
 
         uint16 truncatedLength = TRANSFER_SPEC_METADATA_OFFSET - 1;
         bytes memory shortData = new bytes(truncatedLength);
-        for (uint i = 0; i < truncatedLength; i++) {
+        for (uint16 i = 0; i < truncatedLength; i++) {
             shortData[i] = validEncodedSpec[i];
         }
 
