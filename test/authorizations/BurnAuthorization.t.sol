@@ -124,7 +124,6 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    // Verifies both direct validate and decode revert appropriately
     function test_decode_burnAuth_revertsOnDataTooShortForHeaderFuzz(BurnAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         bytes memory validEncodedBurnAuth = AuthorizationLib.encodeBurnAuthorization(auth);
@@ -163,7 +162,6 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    // Verifies both direct validate and decode revert appropriately
     function test_decode_burnAuth_revertsOnDeclaredSpecLengthTooSmallFuzz(BurnAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
@@ -194,7 +192,6 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    // Verifies both direct validate and decode revert appropriately
     function test_decode_burnAuth_revertsOnDeclaredSpecLengthTooLargeFuzz(BurnAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
@@ -224,7 +221,6 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    // Verifies both direct validate and decode revert appropriately
     function test_decode_burnAuth_revertsOnTruncatedDataFuzz(BurnAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
@@ -247,7 +243,6 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    // Verifies both direct validate and decode revert appropriately
     function test_decode_burnAuth_revertsOnTrailingBytesFuzz(BurnAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
@@ -298,7 +293,6 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    // Verifies both direct validate and decode revert appropriately
     function test_decode_innerSpec_revertsOnCorruptedMagicFuzz(BurnAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
@@ -317,9 +311,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    // Verifies both direct validate and decode revert appropriately
     function test_decode_innerSpec_revertsOnDataTooShortForHeaderFuzz(BurnAuthorization memory auth) public {
-        // Setup
         uint32 incorrectSpecLength = TRANSFER_SPEC_METADATA_OFFSET - 1; // Shorter than spec header
         bytes memory dummySpecData = abi.encodePacked(
             TRANSFER_SPEC_MAGIC, // Correct inner magic
@@ -377,7 +369,6 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    // Verifies both direct validate and decode revert appropriately
     function test_decode_innerSpec_revertsOnDeclaredMetadataLengthTooSmallFuzz(BurnAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
@@ -396,8 +387,8 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         uint256 actualInnerSpecLength = TRANSFER_SPEC_METADATA_OFFSET + originalMetadataLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
-            expectedInnerSpecLength, // validateTransferSpecStructure expects this...
-            actualInnerSpecLength // ...but inner spec actually has this length
+            expectedInnerSpecLength, // validateTransferSpecStructure expects this
+            actualInnerSpecLength // inner spec actually has this length
         );
 
         bytes29 authView = corruptedData.asBurnAuthorization();

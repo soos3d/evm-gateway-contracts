@@ -119,8 +119,7 @@ contract AuthorizationTestUtils is Test {
         _verifyTransferSpecFieldsFromView(specRef, auth.spec);
     }
 
-    /// @notice Creates corrupted TransferSpec data by modifying the inner spec's declared metadata length,
-    ///         then sets up an expected revert for `MalformedTransferSpecInvalidLength`.
+    /// @notice Creates corrupted TransferSpec data by modifying the inner spec's declared metadata length.
     ///         Useful for testing direct `TransferSpec` decoding or decoding of structs containing an embedded `TransferSpec`.
     /// @param encodedStruct The original encoded data containing the TransferSpec.
     /// @param specOffset The starting offset of the inner TransferSpec within `encodedStruct` (0 for direct TransferSpec tests).

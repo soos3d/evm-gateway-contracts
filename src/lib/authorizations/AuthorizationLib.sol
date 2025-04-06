@@ -1009,9 +1009,10 @@ library AuthorizationLib {
     ///      1. Minimum header length check.
     ///      2. Magic number check via `asBurnAuthorizationSet`.
     ///      3. Iterative decoding and validation of each `BurnAuthorization`:
-    ///         a. Checks bounds for next header and full authorization read.
-    ///         b. Checks magic number of the current authorization.
-    ///         c. Decodes the `BurnAuthorization` using `_decodeBurnAuthorizationFromView`,
+    ///         a. Checks that entire set is long enough for next authorization header.
+    ///         b. Checks that entire set is long enough to contain the full next authorization
+    ///         c. Checks magic number of the current authorization.
+    ///         d. Decodes the `BurnAuthorization` using `_decodeBurnAuthorizationFromView`,
     ///            which includes nested validation.
     ///      4. Final total length consistency check.
     function decodeBurnAuthorizationSet(bytes memory data) internal view returns (BurnAuthorizationSet memory) {
@@ -1094,9 +1095,10 @@ library AuthorizationLib {
     ///      1. Minimum header length check.
     ///      2. Magic number check via `asMintAuthorizationSet`.
     ///      3. Iterative decoding and validation of each `MintAuthorization`:
-    ///         a. Checks bounds for next header and full authorization read.
-    ///         b. Checks magic number of the current authorization.
-    ///         c. Decodes the `MintAuthorization` using `_decodeMintAuthorizationFromView`,
+    ///         a. Checks that entire set is long enough for next authorization header.
+    ///         b. Checks that entire set is long enough to contain the full next authorization
+    ///         c. Checks magic number of the current authorization.
+    ///         d. Decodes the `MintAuthorization` using `_decodeMintAuthorizationFromView`,
     ///            which includes nested validation.
     ///      4. Final total length consistency check.
     function decodeMintAuthorizationSet(bytes memory data) internal view returns (MintAuthorizationSet memory) {
