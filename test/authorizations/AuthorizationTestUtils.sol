@@ -114,38 +114,27 @@ contract AuthorizationTestUtils is Test {
     /// @param originalMetadataLength The actual length of the metadata in the original `spec`.
     /// @param makeLengthBigger If true, corrupts the length field to be larger; otherwise, makes it smaller.
     /// @return corruptedData The modified byte array with the corrupted metadata length.
-    function _expectRevertForInnerSpecMetadataLengthMismatch(
+    /// @return corruptedMetadataLength The artificially inflated/deflated metadata length value written into the corrupted data.
+    function _getCorruptedInnerSpecMetadataLengthData(
         bytes memory encodedStruct,
         uint32 specOffset,
         uint32 originalMetadataLength,
         bool makeLengthBigger
-    ) internal returns (bytes memory corruptedData) {
+    ) internal pure returns (bytes memory corruptedData, uint32 corruptedMetadataLength) {
         uint256 innerMetadataLengthOffset = specOffset + TRANSFER_SPEC_METADATA_LENGTH_OFFSET;
-        uint32 originalInnerSpecLength = uint32(encodedStruct.length - specOffset);
-
         corruptedData = cloneBytes(encodedStruct);
-
-        uint32 invalidMetadataLength;
+    
         if (makeLengthBigger) {
-            invalidMetadataLength = 2 * originalMetadataLength;
+            corruptedMetadataLength = originalMetadataLength * 2;
         } else {
-            invalidMetadataLength = originalMetadataLength / 2;
+            corruptedMetadataLength = originalMetadataLength / 2;
         }
 
-        bytes4 encodedInvalidLength = bytes4(invalidMetadataLength);
+        bytes4 encodedInvalidLength = bytes4(corruptedMetadataLength);
         for (uint i = 0; i < 4; i++) {
             corruptedData[innerMetadataLengthOffset + i] = encodedInvalidLength[i];
         }
 
-        uint256 expectedLengthAfterCorruption = TRANSFER_SPEC_METADATA_OFFSET + invalidMetadataLength;
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
-                expectedLengthAfterCorruption, // The incorrect length expected based on corrupted field
-                originalInnerSpecLength
-            )
-        );
-
-        return corruptedData;
+        return (corruptedData, corruptedMetadataLength);
     }
 } 

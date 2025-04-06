@@ -163,11 +163,22 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = LONG_METADATA;
         bytes memory encodedSpec = AuthorizationLib.encodeTransferSpec(spec);
+        uint32 originalMetadataLength = uint32(spec.metadata.length);
+        uint32 originalInnerSpecLength = uint32(encodedSpec.length); // Original total length
 
-        bytes memory corruptedData = _expectRevertForInnerSpecMetadataLengthMismatch(
-            encodedSpec, 0, uint32(spec.metadata.length), true /* inflate metadata length field */
+        // Call the new helper to get corrupted data and the invalid length
+        (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
+            encodedSpec, 0, originalMetadataLength, true /* inflate metadata length field */
         );
         
+        uint256 expectedLengthAfterCorruption = TRANSFER_SPEC_METADATA_OFFSET + corruptedMetadataLength;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
+                expectedLengthAfterCorruption, // The incorrect length expected based on corrupted field
+                originalInnerSpecLength        // The actual length of the original spec view
+            )
+        );
         AuthorizationLib.decodeTransferSpec(corruptedData);
     }
 
@@ -180,12 +191,20 @@ contract TransferSpecTest is AuthorizationTestUtils {
         }
         bytes memory encodedSpec = AuthorizationLib.encodeTransferSpec(spec);
         uint32 originalMetadataLength = uint32(spec.metadata.length);
-        assertTrue(originalMetadataLength > 0, "Test setup: metadata length must be > 0");
+        uint32 originalInnerSpecLength = uint32(encodedSpec.length); // Original total length
 
-        bytes memory corruptedData = _expectRevertForInnerSpecMetadataLengthMismatch(
+        (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
             encodedSpec, 0, originalMetadataLength, false /* make metadata length shorter */
         );
 
+        uint256 expectedLengthAfterCorruption = TRANSFER_SPEC_METADATA_OFFSET + corruptedMetadataLength;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
+                expectedLengthAfterCorruption, // The incorrect length expected based on corrupted field
+                originalInnerSpecLength        // The actual length of the original spec view
+            )
+        );
         AuthorizationLib.decodeTransferSpec(corruptedData);
     }
  

@@ -90,6 +90,15 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         data.asBurnAuthorizationSet();
     }
 
+    // ===== Direct Validation Tests =====
+
+    function test_validateBurnAuthorizationSet_successFuzz(BurnAuthorization memory auth1, BurnAuthorization memory auth2) public pure {
+        BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, LONG_METADATA);
+        bytes memory encodedAuthSet = AuthorizationLib.encodeBurnAuthorizationSet(authSet);
+        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+    }
+
     // ===== Field Accessor / Set Iteration Tests =====
 
     function test_burnAuthorizationSet_readsAllFieldsEmptySet() public pure {
@@ -159,7 +168,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint256 originalAuth1Length = encodedAuth1.length;
         uint32 originalSpecLength = uint32(originalAuth1Length - BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET);
 
-        // Corruption: Increase the declared spec length within the encoded data without actually adding more data bytes
+        // Increase the declared spec length within the encoded data without actually adding more data bytes
         uint256 specLengthOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET;
         uint32 corruptedSpecLength = 2 * originalSpecLength;
         bytes4 encodedCorruptedLength = bytes4(corruptedSpecLength);
@@ -242,9 +251,13 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     function test_decode_set_revertsOnDataTooShortForHeader() public {
         // Length is > magic (4) but < header (8)
         bytes memory shortData = abi.encodePacked(BURN_AUTHORIZATION_SET_MAGIC, hex"112233"); // 7 bytes
-        vm.expectRevert(
-            abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, shortData)
-        );
+        bytes memory expectedRevertData = abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Data too short for set header");
+
+        bytes29 setView = shortData.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(shortData);
     }
 
@@ -255,10 +268,13 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
             uint32(0) // numAuthorizations = 0
         );
         bytes memory trailingBytesData = bytes.concat(encodedSetHeader, hex"FFFF");
+        bytes memory expectedRevertData = abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Set length mismatch after validating all elements");
 
-        vm.expectRevert(
-            abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Set length mismatch after decoding all elements")
-        );
+        bytes29 setView = trailingBytesData.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(trailingBytesData);
     }
 
@@ -269,10 +285,13 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
             BURN_AUTHORIZATION_SET_MAGIC,
             uint32(1) // numAuthorizations = 1
         ); // 8 bytes total
+        bytes memory expectedRevertData = abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Data too short for next BurnAuthorization header");
 
-        vm.expectRevert(
-            abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Data too short for next BurnAuthorization header")
-        );
+        bytes29 setView = encodedSetHeaderOnly.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(encodedSetHeaderOnly);
     }
 
@@ -298,9 +317,13 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
 
         bytes memory truncatedData = bytes.concat(encodedSetHeader, partialAuthData);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Data too short for next BurnAuthorization header")
-        );
+        bytes memory expectedRevertData = abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Data too short for next BurnAuthorization header");
+
+        bytes29 setView = truncatedData.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(truncatedData);
     }
 
@@ -324,9 +347,13 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
             truncatedData[i] = combined[i];
         }
 
-        vm.expectRevert(
-            abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Data too short for next BurnAuthorization")
-        );
+        bytes memory expectedRevertData = abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Data too short for next BurnAuthorization");
+
+        bytes29 setView = truncatedData.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(truncatedData);
     }
 
@@ -358,9 +385,13 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
 
         bytes memory truncatedData = bytes.concat(encodedSetHeader, encodedAuth1, partialAuth2Data);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Data too short for next BurnAuthorization header")
-        );
+        bytes memory expectedRevertData = abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Data too short for next BurnAuthorization header");
+
+        bytes29 setView = truncatedData.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(truncatedData);
     }
 
@@ -391,9 +422,13 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
             truncatedData[i] = combined[i];
         }
 
-        vm.expectRevert(
-            abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Data too short for next BurnAuthorization")
-        );
+        bytes memory expectedRevertData = abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Data too short for next BurnAuthorization");
+
+        bytes29 setView = truncatedData.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(truncatedData);
     }
 
@@ -404,10 +439,13 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
             uint32(0) // numAuthorizations = 0
         );
         bytes memory trailingBytesData = bytes.concat(encodedSetHeader, hex"FFFF"); // Add trailing bytes
+        bytes memory expectedRevertData = abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Set length mismatch after validating all elements");
 
-        vm.expectRevert(
-            abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Set length mismatch after decoding all elements")
-        );
+        bytes29 setView = trailingBytesData.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(trailingBytesData);
     }
 
@@ -422,10 +460,13 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
 
         // Add trailing bytes
         bytes memory trailingBytesData = bytes.concat(encodedAuthSet, hex"FFFF");
+        bytes memory expectedRevertData = abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Set length mismatch after validating all elements");
 
-        vm.expectRevert(
-            abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Set length mismatch after decoding all elements")
-        );
+        bytes29 setView = trailingBytesData.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(trailingBytesData);
     }
 
@@ -443,9 +484,13 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         // Corrupt the magic of the first authorization (at offset 8)
         encodedAuthSet[BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET] = hex"FF";
 
-        vm.expectRevert(
-            abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Invalid authorization magic in set")
-        );
+        bytes memory expectedRevertData = abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Invalid authorization magic in set");
+
+        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(encodedAuthSet);
     }
 
@@ -465,9 +510,13 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         // Corrupt the magic of the second authorization
         encodedAuthSet[secondAuthOffset] = hex"FF";
 
-        vm.expectRevert(
-            abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Invalid authorization magic in set")
-        );
+        bytes memory expectedRevertData = abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Invalid authorization magic in set");
+
+        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(encodedAuthSet);
     }
 
@@ -485,12 +534,16 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint256 innerSpecMagicOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET;
         encodedAuthSet[innerSpecMagicOffset] = hex"FF";
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AuthorizationLib.MalformedTransferSpec.selector,
-                "Invalid TransferSpec magic in BurnAuthorization"
-            )
+        bytes memory expectedRevertData = abi.encodeWithSelector(
+            AuthorizationLib.MalformedTransferSpec.selector,
+            "Invalid TransferSpec magic in BurnAuthorization"
         );
+
+        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(encodedAuthSet);
     }
 
@@ -517,14 +570,17 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
 
         uint256 expectedInnerSpecLength = TRANSFER_SPEC_METADATA_OFFSET + invalidMetadataLength;
         uint256 actualInnerSpecLength = encodedAuth1Length - BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET;
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
-                expectedInnerSpecLength,
-                actualInnerSpecLength
-            )
+        bytes memory expectedRevertData = abi.encodeWithSelector(
+            AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
+            expectedInnerSpecLength,
+            actualInnerSpecLength
         );
+
+        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(encodedAuthSet);
     }
 
@@ -551,14 +607,17 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
 
         uint256 expectedInnerSpecLength = TRANSFER_SPEC_METADATA_OFFSET + invalidMetadataLength;
         uint256 actualInnerSpecLength = encodedAuth1Length - BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET;
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
-                expectedInnerSpecLength,
-                actualInnerSpecLength
-            )
+        bytes memory expectedRevertData = abi.encodeWithSelector(
+            AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
+            expectedInnerSpecLength,
+            actualInnerSpecLength
         );
+
+        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(encodedAuthSet);
     }
 
@@ -589,13 +648,17 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         // leads to providing a truncated spec slice.
         uint256 expectedInnerSpecLengthBasedOnMetadata = TRANSFER_SPEC_METADATA_OFFSET + originalMetadataLength;
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
-                expectedInnerSpecLengthBasedOnMetadata, // Length expected by inner spec based on its metadata
-                invalidSpecLength // Actual length of the spec slice provided due to outer corruption
-            )
+        bytes memory expectedRevertData = abi.encodeWithSelector(
+            AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
+            expectedInnerSpecLengthBasedOnMetadata, // Length expected by inner spec based on its metadata
+            invalidSpecLength // Actual length of the spec slice provided due to outer corruption
         );
+
+        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(encodedAuthSet);
     }
 
@@ -623,9 +686,13 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
 
         // The failure occurs in the main decode loop when checking if the set data
         // is long enough to contain the authorization based on its inflated declared length.
-        vm.expectRevert(
-             abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Data too short for next BurnAuthorization")
-        );
+        bytes memory expectedRevertData = abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Data too short for next BurnAuthorization");
+
+        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.validateBurnAuthorizationSet(setView);
+
+        vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorizationSet(encodedAuthSet);
     }
 
