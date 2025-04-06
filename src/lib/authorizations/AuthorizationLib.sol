@@ -36,19 +36,24 @@ library AuthorizationLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
 
-    error MalformedTransferSpec(bytes data);
-    error MalformedTransferSpecInvalidLength(uint256 expectedLength, uint256 actualLength);
-    error MalformedBurnAuthorization(bytes data);
-    error MalformedBurnAuthorizationSet(bytes data);
-    error MalformedBurnAuthorizationInvalidLength(uint256 expectedLength, uint256 actualLength);
-    error MalformedMintAuthorization(bytes data);
-    error MalformedMintAuthorizationSet(bytes data);
-    error MalformedMintAuthorizationInvalidLength(uint256 expectedLength, uint256 actualLength);
-
     uint8 private constant BYTES4_BYTES = 4;
     uint8 private constant UINT32_BYTES = 4;
     uint8 private constant UINT256_BYTES = 32;
     uint8 private constant BYTES32_BYTES = 32;
+
+    // TransferSpec decoding errors
+    error MalformedTransferSpec(bytes data);
+    error MalformedTransferSpecInvalidLength(uint256 expectedLength, uint256 actualLength);
+
+    // BurnAuthorization decoding errors
+    error MalformedBurnAuthorization(bytes data);
+    error MalformedBurnAuthorizationInvalidLength(uint256 expectedLength, uint256 actualLength);
+    error MalformedBurnAuthorizationSet(bytes data);
+
+    // MintAuthorization decoding errors
+    error MalformedMintAuthorization(bytes data);
+    error MalformedMintAuthorizationInvalidLength(uint256 expectedLength, uint256 actualLength);
+    error MalformedMintAuthorizationSet(bytes data);
 
     // TransferSpec field offsets
     uint16 private constant TRANSFER_SPEC_MAGIC_OFFSET = 0;
@@ -90,7 +95,7 @@ library AuthorizationLib {
         return uint40(uint32(magic));
     }
 
-    // --- Modifiers for type assertions ---
+    // --- Type assertion modifiers ---
 
     modifier onlyTransferSpec(bytes29 ref) {
         ref.assertType(_toMemViewType(TRANSFER_SPEC_MAGIC));
@@ -171,6 +176,175 @@ library AuthorizationLib {
         if (ref.index(0, 4) != TRANSFER_SPEC_MAGIC) {
             revert MalformedTransferSpec(data);
         }
+    }
+
+    // --- Validators ---
+
+    /// @notice Validates the structural integrity of an encoded TransferSpec memory view.
+    /// @dev Performs structural validation on a TransferSpec view. Reverts on failure.
+    /// Assumes the view has the correct TransferSpec magic number (e.g., checked via `asTransferSpec`).
+    /// Validation includes:
+    /// 1. Minimum header length check (ensuring enough bytes for fixed fields).
+    /// 2. Total length consistency check (ensuring `header_length + declared_metadata_length == total_view_length`).
+    /// @dev Reverts with `MalformedTransferSpecInvalidLength` if the structure is invalid.
+    /// @param specView The TypedMemView reference to the encoded TransferSpec to validate.
+    function validateTransferSpecStructure(bytes29 specView) internal pure {
+        // 1. Minimum header length check
+        if (specView.len() < TRANSFER_SPEC_METADATA_OFFSET) {
+            revert MalformedTransferSpecInvalidLength(TRANSFER_SPEC_METADATA_OFFSET, specView.len());
+        }
+
+        // 2. Total length consistency check
+        // (Reads declared metadata length from the view and checks against view's total length)
+        uint32 metadataLength = getTransferSpecMetadataLength(specView); // Uses existing getter
+        uint256 expectedInternalSpecLength = TRANSFER_SPEC_METADATA_OFFSET + metadataLength;
+        if (specView.len() != expectedInternalSpecLength) {
+            revert MalformedTransferSpecInvalidLength(expectedInternalSpecLength, specView.len());
+        }
+    }
+
+    /// @notice Validates the structural integrity of an encoded BurnAuthorization wrapper.
+    /// @dev Performs structural validation on a BurnAuthorization view,
+    ///      *excluding* recursive validation of the nested TransferSpec and its magic number. Reverts on failure.
+    ///      Assumes outer magic number check has passed (via asBurnAuthorization).
+    /// Validation steps:
+    /// 1. Minimum header length check.
+    /// 2. Total length consistency check (using declared TransferSpec length).
+    /// @param authView The TypedMemView reference to the encoded BurnAuthorization to validate.
+    function _validateBurnAuthorizationOuterStructure(bytes29 authView) private pure {
+        // 1. Minimum header length check
+        if (authView.len() < BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET) {
+            revert MalformedBurnAuthorizationInvalidLength(
+                BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET, authView.len()
+            );
+        }
+
+        // 2. Total length consistency check
+        uint32 specLengthDeclaredInAuth = getBurnAuthorizationTransferSpecLength(authView);
+        uint256 expectedAuthLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLengthDeclaredInAuth;
+        if (authView.len() != expectedAuthLength) {
+            revert MalformedBurnAuthorizationInvalidLength(expectedAuthLength, authView.len());
+        }
+    }
+
+    /// @notice Validates the full structural integrity of a BurnAuthorization view, including the nested TransferSpec.
+    /// @dev Performs structural validation on a BurnAuthorization view. Reverts on failure.
+    /// Assumes the view has the correct BurnAuthorization magic number (enforced by the
+    ///      `onlyBurnAuthorization` modifier).
+    /// Validation includes:
+    /// 1. Wrapper structure validation (header length, total length consistency, nested TransferSpec magic).
+    /// 2. Full recursive validation of the nested TransferSpec structure.
+    /// @dev Reverts with specific errors (e.g., MalformedBurnAuthorizationInvalidLength, MalformedTransferSpec) if the
+    ///      structure is invalid.
+    /// @param authView The TypedMemView reference to the encoded BurnAuthorization to
+    ///                 validate.
+    function validateBurnAuthorization(bytes29 authView) onlyBurnAuthorization(authView) internal pure {
+        _validateBurnAuthorizationOuterStructure(authView);
+        bytes29 specView = getBurnAuthorizationTransferSpec(authView);
+        validateTransferSpecStructure(specView);
+    }
+
+    /// @notice Validates the full structural integrity of an encoded BurnAuthorizationSet memory view.
+    /// @dev Performs structural validation on a BurnAuthorizationSet view. Reverts on failure.
+    /// Assumes the view has the correct BurnAuthorizationSet magic number (e.g., checked via `as...Set`).
+    /// Validation includes:
+    /// 1. Minimum header length check.
+    /// 2. Reading declared authorization count.
+    /// 3. Iterating through declared authorizations:
+    ///    a. Checking bounds based on previously declared lengths.
+    ///    b. Checking the magic number of each authorization.
+    ///    c. Performing full recursive validation on each authorization using `validateBurnAuthorization`.
+    /// 4. Final total length consistency check.
+    /// @dev Reverts with specific errors (e.g., MalformedBurnAuthorizationSet) if the structure is invalid.
+    /// @param setView The TypedMemView reference to the encoded BurnAuthorizationSet to validate.
+    function validateBurnAuthorizationSet(bytes29 setView) internal pure {
+        // 1. Minimum header length check
+        if (setView.len() < BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
+           revert MalformedBurnAuthorizationSet("Data too short for set header");
+        }
+
+        // 2. Read declared count
+        uint32 numAuths = getBurnAuthorizationSetNumAuthorizations(setView);
+        uint256 currentOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
+
+        // 3. Iterate and validate each element
+        for (uint32 i = 0; i < numAuths; i++) {
+            // 3a. Check bounds for header read
+            if (setView.len() < currentOffset + BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET) {
+                revert MalformedBurnAuthorizationSet("Data too short for next BurnAuthorization header");
+            }
+            // Read spec length to determine current auth total length
+            uint32 specLength = uint32(
+                setView.indexUint(currentOffset + BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES)
+            );
+            uint256 currentAuthTotalLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLength;
+            // Check bounds for full auth read
+            if (setView.len() < currentOffset + currentAuthTotalLength) {
+                revert MalformedBurnAuthorizationSet("Data too short for next BurnAuthorization");
+            }
+
+            // 3b. Check magic number of the current element slice
+            if (bytes4(setView.index(currentOffset + BURN_AUTHORIZATION_MAGIC_OFFSET, BYTES4_BYTES)) != BURN_AUTHORIZATION_MAGIC) {
+                revert MalformedBurnAuthorizationSet("Invalid authorization magic in set");
+            }
+
+            // 3c. Create view and perform full recursive validation on the element
+            bytes29 authView = setView.slice(
+                currentOffset,
+                currentAuthTotalLength,
+                _toMemViewType(BURN_AUTHORIZATION_MAGIC)
+            );
+            validateBurnAuthorization(authView);
+
+            // Update offset for the next iteration
+            currentOffset += currentAuthTotalLength;
+        }
+
+        // 4. Final total length consistency check
+        if (currentOffset != setView.len()) {
+            revert MalformedBurnAuthorizationSet("Set length mismatch after validating all elements");
+        }
+    }
+
+    /// @notice Validates the structural integrity of an encoded MintAuthorization wrapper.
+    /// @dev Performs structural validation on a MintAuthorization view,
+    ///      *excluding* recursive validation of the nested TransferSpec and its magic number. Reverts on failure.
+    ///      Assumes outer magic number check has passed (via asMintAuthorization).
+    /// Validation steps:
+    /// 1. Minimum header length check.
+    /// 2. Total length consistency check (using declared TransferSpec length).
+    /// @param authView The TypedMemView reference to the encoded MintAuthorization to validate.
+    function _validateMintAuthorizationOuterStructure(bytes29 authView) private pure {
+        // 1. Minimum header length check
+        if (authView.len() < MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET) {
+            revert MalformedMintAuthorizationInvalidLength(
+                 MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET, authView.len()
+            );
+        }
+
+        // 2. Total length consistency check
+        uint32 specLengthDeclaredInAuth = getMintAuthorizationTransferSpecLength(authView);
+        uint256 expectedAuthLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLengthDeclaredInAuth;
+        if (authView.len() != expectedAuthLength) {
+            revert MalformedMintAuthorizationInvalidLength(expectedAuthLength, authView.len());
+        }
+    }
+
+    /// @notice Validates the full structural integrity of a MintAuthorization view, including the nested TransferSpec.
+    /// @dev Performs comprehensive structural validation on a MintAuthorization view. Reverts on failure.
+    /// Assumes the view has the correct MintAuthorization magic number (enforced by the
+    ///      `onlyMintAuthorization` modifier).
+    /// Validation includes:
+    /// 1. Wrapper structure validation (header length, total length consistency, nested TransferSpec magic).
+    /// 2. Full recursive validation of the nested TransferSpec structure.
+    /// @dev Reverts with specific errors (e.g., MalformedMintAuthorizationInvalidLength, MalformedTransferSpec) if the
+    ///      structure is invalid.
+    /// @param authView The TypedMemView reference to the encoded MintAuthorization to
+    ///                 validate.
+    function validateMintAuthorization(bytes29 authView) onlyMintAuthorization(authView) internal pure {
+        _validateMintAuthorizationOuterStructure(authView);
+        bytes29 specView = getMintAuthorizationTransferSpec(authView);
+        validateTransferSpecStructure(specView);
     }
 
     // --- View field accessors ---
@@ -581,27 +755,10 @@ library AuthorizationLib {
     /// @param specView The TypedMemView reference to the encoded TransferSpec
     /// @return The decoded TransferSpec struct
     function _decodeTransferSpecFromView(bytes29 specView) private view returns (TransferSpec memory) {
-        /*
-         * Validation steps:
-         * 1. Minimum header length check: Verifies the view is long enough (340 bytes)
-         *    to contain all fixed-size fields of the TransferSpec struct before the variable-length metadata.
-         * 2. Total length consistency check: Reads the metadata length from the TransferSpec view. Verifies that this
-         *    metadata length + the TransferSpec fixed header size (340 bytes) exactly matches the view's total length.
-         */
-
-        // 1. Minimum header length check
-        if (specView.len() < TRANSFER_SPEC_METADATA_OFFSET) {
-            revert MalformedTransferSpecInvalidLength(TRANSFER_SPEC_METADATA_OFFSET, specView.len());
-        }
-
-        // 2. Total length consistency check
-        uint32 metadataLength = getTransferSpecMetadataLength(specView);
-        uint256 expectedInternalSpecLength = TRANSFER_SPEC_METADATA_OFFSET + metadataLength;
-        if (specView.len() != expectedInternalSpecLength) {
-            revert MalformedTransferSpecInvalidLength(expectedInternalSpecLength, specView.len());
-        }
+        validateTransferSpecStructure(specView);
 
         bytes memory metadata;
+        uint32 metadataLength = getTransferSpecMetadataLength(specView);
         if (metadataLength > 0) {
             metadata = getTransferSpecMetadata(specView).clone();
         }
@@ -637,39 +794,9 @@ library AuthorizationLib {
     /// @param authView The TypedMemView reference to the encoded BurnAuthorization
     /// @return The decoded BurnAuthorization struct
     function _decodeBurnAuthorizationFromView(bytes29 authView) private view returns (BurnAuthorization memory) {
-        /*
-         * Validation steps:
-         * 1. Minimum header length check: Verifies the view is long enough (72 bytes)
-         *    to contain all fixed-size fields of the BurnAuthorization struct before the variable-length TransferSpec.
-         * 2. Total length consistency check: Reads the declared TransferSpec length from the header within the view
-         *    and verifies that the view's length exactly matches the fixed header size (72 bytes) plus this
-         *    declared TransferSpec length.
-         * 3. Inner TransferSpec magic check: Ensures the TransferSpec magic number is correct
-         * 4. Inner TransferSpec validation: Calls _decodeTransferSpecFromView on the inner TransferSpec view,
-         *    which performs its own set of validations (magic, min length, total length) on that inner view.
-         */
-
-        // 1. Minimum header length check
-        if (authView.len() < BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET) {
-            revert MalformedBurnAuthorizationInvalidLength(
-                BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET, authView.len()
-            );
-        }
-
-        // 2. Total length consistency check
-        uint32 specLengthDeclaredInAuth = getBurnAuthorizationTransferSpecLength(authView);
-        uint256 expectedAuthLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLengthDeclaredInAuth;
-        if (authView.len() != expectedAuthLength) {
-            revert MalformedBurnAuthorizationInvalidLength(expectedAuthLength, authView.len());
-        }
-
-        // Create view of internal TransferSpec
-        // 3. Asserts the TransferSpec magic number is correct
+        _validateBurnAuthorizationOuterStructure(authView);
         bytes29 specView = getBurnAuthorizationTransferSpec(authView);
-
-        // 4. Inner TransferSpec validation and decoding
         TransferSpec memory decodedSpec = _decodeTransferSpecFromView(specView);
-
         return BurnAuthorization({
             maxBlockHeight: getBurnAuthorizationMaxBlockHeight(authView),
             maxFee: getBurnAuthorizationMaxFee(authView),
@@ -757,39 +884,9 @@ library AuthorizationLib {
     /// @param authView The TypedMemView reference to the encoded MintAuthorization
     /// @return The decoded MintAuthorization struct
     function _decodeMintAuthorizationFromView(bytes29 authView) private view returns (MintAuthorization memory) {
-        /*
-         * Validation steps:
-         * 1. Minimum header length check: Verifies the view is long enough (40 bytes)
-         *    to contain all fixed-size fields of the MintAuthorization struct before the variable-length TransferSpec.
-         * 2. Total length consistency check: Reads the declared TransferSpec length from the header within the view
-         *    and verifies that the view's length exactly matches the fixed header size (72 bytes) plus this
-         *    declared TransferSpec length.
-         * 3. Inner TransferSpec magic check: Ensures the TransferSpec magic number is correct
-         * 4. Inner TransferSpec validation: Calls _decodeTransferSpecFromView on the inner TransferSpec view,
-         *    which performs its own set of validations (magic, min length, total length) on that inner view.
-         */
-
-        // 1. Minimum header length check
-        if (authView.len() < MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET) {
-            revert MalformedMintAuthorizationInvalidLength(
-                 MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET, authView.len()
-            );
-        }
-
-        // 2. Total length consistency check
-        uint32 specLengthDeclaredInAuth = getMintAuthorizationTransferSpecLength(authView);
-        uint256 expectedAuthLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLengthDeclaredInAuth;
-        if (authView.len() != expectedAuthLength) {
-            revert MalformedMintAuthorizationInvalidLength(expectedAuthLength, authView.len());
-        }
-
-        // Create view of internal TransferSpec
-        // 3. Asserts the TransferSpec magic number is correct
+        _validateMintAuthorizationOuterStructure(authView);
         bytes29 specView = getMintAuthorizationTransferSpec(authView);
-
-        // 4. Inner TransferSpec validation and decoding
         TransferSpec memory decodedSpec = _decodeTransferSpecFromView(specView);
-
         return MintAuthorization({
             maxBlockHeight: getMintAuthorizationMaxBlockHeight(authView),
             spec: decodedSpec
@@ -803,5 +900,4 @@ library AuthorizationLib {
         bytes29 authView = asMintAuthorization(data);
         return _decodeMintAuthorizationFromView(authView);
     }
-
 }
