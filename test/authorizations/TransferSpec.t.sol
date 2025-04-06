@@ -128,12 +128,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.metadata = LONG_METADATA;
         bytes memory encodedSpec = AuthorizationLib.encodeTransferSpec(spec);
         encodedSpec[0] = hex"FF";
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AuthorizationLib.MalformedTransferSpec.selector,
-                encodedSpec
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(AuthorizationLib.MalformedTransferSpec.selector, encodedSpec));
         AuthorizationLib.decodeTransferSpec(encodedSpec);
     }
 
@@ -170,13 +165,13 @@ contract TransferSpecTest is AuthorizationTestUtils {
         (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
             encodedSpec, 0, originalMetadataLength, true /* inflate metadata length field */
         );
-        
+
         uint256 expectedLengthAfterCorruption = TRANSFER_SPEC_METADATA_OFFSET + corruptedMetadataLength;
         vm.expectRevert(
             abi.encodeWithSelector(
                 AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
                 expectedLengthAfterCorruption, // The incorrect length expected based on corrupted field
-                originalInnerSpecLength        // The actual length of the original spec view
+                originalInnerSpecLength // The actual length of the original spec view
             )
         );
         AuthorizationLib.decodeTransferSpec(corruptedData);
@@ -187,7 +182,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         // Ensure metadata length > 0 for division
         if (spec.metadata.length == 0) {
-            spec.metadata = LONG_METADATA; 
+            spec.metadata = LONG_METADATA;
         }
         bytes memory encodedSpec = AuthorizationLib.encodeTransferSpec(spec);
         uint32 originalMetadataLength = uint32(spec.metadata.length);
@@ -202,12 +197,12 @@ contract TransferSpecTest is AuthorizationTestUtils {
             abi.encodeWithSelector(
                 AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
                 expectedLengthAfterCorruption, // The incorrect length expected based on corrupted field
-                originalInnerSpecLength        // The actual length of the original spec view
+                originalInnerSpecLength // The actual length of the original spec view
             )
         );
         AuthorizationLib.decodeTransferSpec(corruptedData);
     }
- 
+
     /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_revertsOnTrailingBytesFuzz(TransferSpec memory spec) public {
         spec.version = TRANSFER_SPEC_VERSION; // Ensure correct version for encoding
@@ -219,9 +214,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         bytes memory corruptedData = bytes.concat(encodedSpec, hex"ffff");
         vm.expectRevert(
             abi.encodeWithSelector(
-                AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
-                originalSpecLength,
-                corruptedData.length
+                AuthorizationLib.MalformedTransferSpecInvalidLength.selector, originalSpecLength, corruptedData.length
             )
         );
         AuthorizationLib.decodeTransferSpec(corruptedData);

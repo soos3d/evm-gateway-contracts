@@ -19,10 +19,7 @@ pragma solidity ^0.8.28;
 
 import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
 import {TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
-import {
-    MintAuthorization,
-    MINT_AUTHORIZATION_MAGIC
-} from "src/lib/authorizations/MintAuthorizations.sol";
+import {MintAuthorization, MINT_AUTHORIZATION_MAGIC} from "src/lib/authorizations/MintAuthorizations.sol";
 import {AuthorizationLib} from "src/lib/authorizations/AuthorizationLib.sol";
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 
@@ -53,7 +50,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
     // ===== Field Accessor Tests =====
 
     function test_mintAuthorization_readAllFieldsEmptyMetadataFuzz(MintAuthorization memory auth) public pure {
-        auth.spec.version = TRANSFER_SPEC_VERSION; 
+        auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = new bytes(0);
         bytes memory encodedAuth = AuthorizationLib.encodeMintAuthorization(auth);
         bytes29 ref = encodedAuth.asMintAuthorization();
@@ -122,9 +119,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
 
         // Corrupt the first byte of the MintAuthorization magic
         encodedAuth[0] = hex"FF";
-        vm.expectRevert(
-             abi.encodeWithSelector(AuthorizationLib.MalformedMintAuthorization.selector, encodedAuth)
-        );
+        vm.expectRevert(abi.encodeWithSelector(AuthorizationLib.MalformedMintAuthorization.selector, encodedAuth));
         AuthorizationLib.decodeMintAuthorization(encodedAuth);
     }
 
@@ -176,7 +171,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         uint256 originalAuthLength = encodedAuth.length;
         uint32 originalSpecLength = uint32(originalAuthLength - MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET);
         // Ensure the test logic is sound by requiring original spec length > 0
-        assertTrue(originalSpecLength > 0, "Test setup error: Original spec length must be > 0"); 
+        assertTrue(originalSpecLength > 0, "Test setup error: Original spec length must be > 0");
 
         // Corrupt the declared spec length (make it smaller)
         uint256 specLengthOffset = MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET; // Use constant
@@ -235,17 +230,17 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         vm.expectRevert(expectedRevertData); // Expect same revert from decode
         AuthorizationLib.decodeMintAuthorization(corruptedData);
     }
-    
+
     /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_mintAuth_revertsOnTruncatedDataFuzz(MintAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
-        auth.spec.metadata = LONG_METADATA; 
+        auth.spec.metadata = LONG_METADATA;
 
         bytes memory encodedAuth = AuthorizationLib.encodeMintAuthorization(auth);
         uint256 expectedLength = encodedAuth.length;
 
         // Ensure there is something to truncate
-        assertTrue(expectedLength > 0, "Test setup error: Encoded auth cannot be empty"); 
+        assertTrue(expectedLength > 0, "Test setup error: Encoded auth cannot be empty");
         bytes memory truncatedData = new bytes(expectedLength - 1);
         for (uint256 i = 0; i < truncatedData.length; i++) {
             truncatedData[i] = encodedAuth[i];
@@ -288,7 +283,6 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         AuthorizationLib.decodeMintAuthorization(corruptedData);
     }
 
-
     // ===== Decode Failures: Inner TransferSpec Consistency Tests =====
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -298,14 +292,10 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         uint32 incorrectSpecLength = 2;
 
         // Construct corrupted data: header + 2 dummy bytes for spec
-        bytes memory corruptedData = abi.encodePacked(
-            MINT_AUTHORIZATION_MAGIC,
-            fixedMaxBlockHeight,
-            incorrectSpecLength,
-            hex"0000"
-        );
+        bytes memory corruptedData =
+            abi.encodePacked(MINT_AUTHORIZATION_MAGIC, fixedMaxBlockHeight, incorrectSpecLength, hex"0000");
 
-            bytes memory expectedRevertData = bytes(
+        bytes memory expectedRevertData = bytes(
             string.concat(
                 "TypedMemView/index - Overran the view. ",
                 "Slice is at 0x0000c8 with length 0x000002. ", // The length is the incorrectSpecLength (2)
@@ -330,8 +320,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         // Corrupt the TransferSpec magic using the offset
         encodedAuth[MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET] = hex"FF";
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            AuthorizationLib.MalformedTransferSpec.selector,
-            "Invalid TransferSpec magic in MintAuthorization"
+            AuthorizationLib.MalformedTransferSpec.selector, "Invalid TransferSpec magic in MintAuthorization"
         );
 
         bytes29 authView = encodedAuth.asMintAuthorization();
@@ -371,7 +360,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeMintAuthorization(corruptedData);
     }
-    
+
     /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_innerSpec_revertsOnDeclaredMetadataLengthTooBigFuzz(MintAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
@@ -382,7 +371,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
 
         // Corrupt the TransferSpec metadata length field, making it larger
         (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
-            encodedAuth, 
+            encodedAuth,
             MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within MintAuth
             originalMetadataLength, // Original metadata length
             true // Inflate the metadata length field
@@ -393,7 +382,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         bytes memory expectedRevertData = abi.encodeWithSelector(
             AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
             expectedLengthAfterCorruption, // The incorrect length expected based on corrupted field
-            originalInnerSpecLength        // The actual length of the original spec view
+            originalInnerSpecLength // The actual length of the original spec view
         );
 
         // Call the function under test with corrupted data
@@ -410,7 +399,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         // Ensure metadata length > 0 for the test logic
         if (auth.spec.metadata.length == 0) {
-            auth.spec.metadata = LONG_METADATA; 
+            auth.spec.metadata = LONG_METADATA;
         }
         bytes memory encodedAuth = AuthorizationLib.encodeMintAuthorization(auth);
         uint32 originalMetadataLength = uint32(auth.spec.metadata.length);
@@ -418,7 +407,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
 
         // Corrupt the TransferSpec metadata length field, making it smaller
         (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
-            encodedAuth, 
+            encodedAuth,
             MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within MintAuth
             originalMetadataLength, // Original metadata length
             false // Make the metadata length field smaller
@@ -429,7 +418,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         bytes memory expectedRevertData = abi.encodeWithSelector(
             AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
             expectedLengthAfterCorruption, // The incorrect length expected based on corrupted field
-            originalInnerSpecLength        // The actual length of the original spec view
+            originalInnerSpecLength // The actual length of the original spec view
         );
 
         // Call the function under test with corrupted data
@@ -440,4 +429,4 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeMintAuthorization(corruptedData);
     }
-} 
+}

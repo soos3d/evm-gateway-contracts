@@ -18,17 +18,9 @@
 pragma solidity ^0.8.28;
 
 import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
-import {
-    TRANSFER_SPEC_MAGIC
-} from "src/lib/authorizations/TransferSpec.sol";
-import {
-    BURN_AUTHORIZATION_MAGIC,
-    BURN_AUTHORIZATION_SET_MAGIC
-} from "src/lib/authorizations/BurnAuthorizations.sol";
-import {
-    MINT_AUTHORIZATION_MAGIC,
-    MINT_AUTHORIZATION_SET_MAGIC
-} from "src/lib/authorizations/MintAuthorizations.sol";
+import {TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
+import {BURN_AUTHORIZATION_MAGIC, BURN_AUTHORIZATION_SET_MAGIC} from "src/lib/authorizations/BurnAuthorizations.sol";
+import {MINT_AUTHORIZATION_MAGIC, MINT_AUTHORIZATION_SET_MAGIC} from "src/lib/authorizations/MintAuthorizations.sol";
 import {AuthorizationLib} from "src/lib/authorizations/AuthorizationLib.sol";
 
 contract AuthorizationLibCommonTest is AuthorizationTestUtils {
@@ -88,16 +80,16 @@ contract AuthorizationLibCommonTest is AuthorizationTestUtils {
 
     /// forge-config: default.allow_internal_expect_revert = true
     function test_isAuthorizationSet_revertsForEmptyBytes() public {
-         bytes memory data = new bytes(0);
-         vm.expectRevert(
-             bytes(
-                 string.concat(
+        bytes memory data = new bytes(0);
+        vm.expectRevert(
+            bytes(
+                string.concat(
                     "TypedMemView/index - Overran the view. ",
                     "Slice is at 0x0000a0 with length 0x000000. ",
                     "Attempted to index at offset 0x000000 with length 0x000004."
-                 )
+                )
             )
-         );
-         data.isAuthorizationSet();
+        );
+        data.isAuthorizationSet();
     }
-} 
+}

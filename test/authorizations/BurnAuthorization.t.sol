@@ -19,10 +19,7 @@ pragma solidity ^0.8.28;
 
 import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
 import {TRANSFER_SPEC_MAGIC, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
-import {
-    BurnAuthorization,
-    BURN_AUTHORIZATION_MAGIC
-} from "src/lib/authorizations/BurnAuthorizations.sol";
+import {BurnAuthorization, BURN_AUTHORIZATION_MAGIC} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {AuthorizationLib} from "src/lib/authorizations/AuthorizationLib.sol";
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 
@@ -63,7 +60,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     // ===== Field Accessor Tests =====
 
     function test_burnAuthorization_readAllFieldsEmptyMetadataFuzz(BurnAuthorization memory auth) public pure {
-        auth.spec.version = TRANSFER_SPEC_VERSION; 
+        auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = new bytes(0);
         bytes memory encodedAuth = AuthorizationLib.encodeBurnAuthorization(auth);
         bytes29 ref = encodedAuth.asBurnAuthorization();
@@ -122,9 +119,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
 
         // Corrupt the first byte of the BurnAuthorization magic
         encodedAuth[0] = hex"FF";
-        vm.expectRevert(
-             abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorization.selector, encodedAuth)
-        );
+        vm.expectRevert(abi.encodeWithSelector(AuthorizationLib.MalformedBurnAuthorization.selector, encodedAuth));
         AuthorizationLib.decodeBurnAuthorization(encodedAuth);
     }
 
@@ -227,7 +222,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         vm.expectRevert(expectedRevertData); // Expect same revert from decode
         AuthorizationLib.decodeBurnAuthorization(corruptedData);
     }
-    
+
     /// forge-config: default.allow_internal_expect_revert = true
     // Verifies both direct validate and decode revert appropriately
     function test_decode_burnAuth_revertsOnTruncatedDataFuzz(BurnAuthorization memory auth) public {
@@ -240,9 +235,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
             truncatedData[i] = encodedAuth[i];
         }
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            AuthorizationLib.MalformedBurnAuthorizationInvalidLength.selector,
-            expectedLength,
-            truncatedData.length
+            AuthorizationLib.MalformedBurnAuthorizationInvalidLength.selector, expectedLength, truncatedData.length
         );
 
         bytes29 authView = truncatedData.asBurnAuthorization();
@@ -262,9 +255,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         uint256 originalAuthLength = encodedAuth.length;
         bytes memory corruptedData = bytes.concat(encodedAuth, hex"FFFF");
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            AuthorizationLib.MalformedBurnAuthorizationInvalidLength.selector,
-            originalAuthLength,
-            corruptedData.length
+            AuthorizationLib.MalformedBurnAuthorizationInvalidLength.selector, originalAuthLength, corruptedData.length
         );
 
         bytes29 authView = corruptedData.asBurnAuthorization();
@@ -274,7 +265,6 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         vm.expectRevert(expectedRevertData); // Expect same revert from decode
         AuthorizationLib.decodeBurnAuthorization(corruptedData);
     }
-
 
     // ===== Decode Failures: Inner TransferSpec Consistency Tests =====
 
@@ -315,8 +305,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         bytes memory encodedAuth = AuthorizationLib.encodeBurnAuthorization(auth);
         encodedAuth[BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET] = hex"FF"; // Corrupt inner magic
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            AuthorizationLib.MalformedTransferSpec.selector,
-            "Invalid TransferSpec magic in BurnAuthorization"
+            AuthorizationLib.MalformedTransferSpec.selector, "Invalid TransferSpec magic in BurnAuthorization"
         );
 
         bytes29 authView = encodedAuth.asBurnAuthorization();
@@ -376,7 +365,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         bytes memory expectedRevertData = abi.encodeWithSelector(
             AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
             expectedInnerSpecLength, // validateTransferSpecStructure expects this...
-            actualInnerSpecLength   // ...but inner spec actually has this length
+            actualInnerSpecLength // ...but inner spec actually has this length
         );
 
         bytes29 authView = corruptedData.asBurnAuthorization();
@@ -408,7 +397,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         bytes memory expectedRevertData = abi.encodeWithSelector(
             AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
             expectedInnerSpecLength, // validateTransferSpecStructure expects this...
-            actualInnerSpecLength   // ...but inner spec actually has this length
+            actualInnerSpecLength // ...but inner spec actually has this length
         );
 
         bytes29 authView = corruptedData.asBurnAuthorization();
@@ -418,4 +407,4 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         vm.expectRevert(expectedRevertData);
         AuthorizationLib.decodeBurnAuthorization(corruptedData);
     }
-} 
+}

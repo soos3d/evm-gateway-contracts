@@ -81,35 +81,15 @@ contract AuthorizationTestUtils is Test {
     function _verifyTransferSpecFieldsFromView(bytes29 ref, TransferSpec memory spec) internal pure {
         assertEq(ref.getTransferSpecVersion(), spec.version, "Eq Fail: version");
         assertEq(ref.getTransferSpecSourceDomain(), spec.sourceDomain, "Eq Fail: sourceDomain");
-        assertEq(
-            ref.getTransferSpecDestinationDomain(), 
-            spec.destinationDomain, 
-            "Eq Fail: destinationDomain"
-        );
+        assertEq(ref.getTransferSpecDestinationDomain(), spec.destinationDomain, "Eq Fail: destinationDomain");
         assertEq(ref.getTransferSpecSourceContract(), spec.sourceContract, "Eq Fail: sourceContract");
-        assertEq(
-            ref.getTransferSpecDestinationContract(), 
-            spec.destinationContract, 
-            "Eq Fail: destinationContract"
-        );
+        assertEq(ref.getTransferSpecDestinationContract(), spec.destinationContract, "Eq Fail: destinationContract");
         assertEq(ref.getTransferSpecSourceToken(), spec.sourceToken, "Eq Fail: sourceToken");
-        assertEq(
-            ref.getTransferSpecDestinationToken(), 
-            spec.destinationToken, 
-            "Eq Fail: destinationToken"
-        );
+        assertEq(ref.getTransferSpecDestinationToken(), spec.destinationToken, "Eq Fail: destinationToken");
         assertEq(ref.getTransferSpecSourceDepositor(), spec.sourceDepositor, "Eq Fail: sourceDepositor");
-        assertEq(
-            ref.getTransferSpecDestinationRecipient(), 
-            spec.destinationRecipient, 
-            "Eq Fail: destinationRecipient"
-        );
+        assertEq(ref.getTransferSpecDestinationRecipient(), spec.destinationRecipient, "Eq Fail: destinationRecipient");
         assertEq(ref.getTransferSpecSourceSigner(), spec.sourceSigner, "Eq Fail: sourceSigner");
-        assertEq(
-            ref.getTransferSpecDestinationCaller(), 
-            spec.destinationCaller, 
-            "Eq Fail: destinationCaller"
-        );
+        assertEq(ref.getTransferSpecDestinationCaller(), spec.destinationCaller, "Eq Fail: destinationCaller");
         assertEq(ref.getTransferSpecValue(), spec.value, "Eq Fail: value");
         assertEq(ref.getTransferSpecNonce(), spec.nonce, "Eq Fail: nonce");
 
@@ -133,18 +113,8 @@ contract AuthorizationTestUtils is Test {
     }
 
     // Verifies all fields read from a MintAuthorization view match the original struct
-    function _verifyMintAuthorizationFieldsFromView(
-        bytes29 ref, 
-        MintAuthorization memory auth
-    ) 
-        internal 
-        pure 
-    {
-        assertEq(
-            ref.getMintAuthorizationMaxBlockHeight(), 
-            auth.maxBlockHeight, 
-            "Eq Fail: maxBlockHeight"
-        );
+    function _verifyMintAuthorizationFieldsFromView(bytes29 ref, MintAuthorization memory auth) internal pure {
+        assertEq(ref.getMintAuthorizationMaxBlockHeight(), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
         bytes29 specRef = ref.getMintAuthorizationTransferSpec();
         _verifyTransferSpecFieldsFromView(specRef, auth.spec);
     }
@@ -163,14 +133,10 @@ contract AuthorizationTestUtils is Test {
         uint32 specOffset,
         uint32 originalMetadataLength,
         bool makeLengthBigger
-    ) 
-        internal 
-        pure 
-        returns (bytes memory corruptedData, uint32 corruptedMetadataLength) 
-    {
+    ) internal pure returns (bytes memory corruptedData, uint32 corruptedMetadataLength) {
         uint256 innerMetadataLengthOffset = specOffset + TRANSFER_SPEC_METADATA_LENGTH_OFFSET;
         corruptedData = cloneBytes(encodedStruct);
-    
+
         if (makeLengthBigger) {
             corruptedMetadataLength = originalMetadataLength * 2;
         } else {
@@ -184,4 +150,4 @@ contract AuthorizationTestUtils is Test {
 
         return (corruptedData, corruptedMetadataLength);
     }
-} 
+}
