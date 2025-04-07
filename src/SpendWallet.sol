@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2025 Circle Internet Group, Inc. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -66,13 +66,13 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     error CallerNotBurnCaller();
     error InputArrayLengthMismatch();
     error InvalidBalanceType(uint96 balanceType);
-    error UnreachableCodeDetected();
 
     enum BalanceType {
-        Total,              // 0
-        Spendable,          // 1
-        Withdrawing,        // 2
-        Withdrawable        // 3
+        Total, // 0
+        Spendable, // 1
+        Withdrawing, // 2
+        Withdrawable // 3
+
     }
 
     /// The balances that have been deposited and are available for spending (after finalization)
@@ -582,13 +582,13 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
 
         // Return the appropriate balance
         BalanceType balanceTypeEnum = BalanceType(balanceType);
-        
+
         if (balanceTypeEnum == BalanceType.Total) return totalBalance(token, depositor);
         if (balanceTypeEnum == BalanceType.Spendable) return spendableBalance(token, depositor);
         if (balanceTypeEnum == BalanceType.Withdrawing) return withdrawingBalance(token, depositor);
         if (balanceTypeEnum == BalanceType.Withdrawable) return withdrawableBalance(token, depositor);
 
-        revert UnreachableCodeDetected();
+        return 0;
     }
 
     /// The batch version of `balanceOf`, compatible with ERC-1155

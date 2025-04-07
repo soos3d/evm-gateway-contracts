@@ -75,7 +75,7 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
 
     function test_balanceOf_returnsTotalBalance() public {
         uint256 withdrawAmount = initialUsdcBalance / 2;
-        
+
         vm.startPrank(depositor);
         wallet.initiateWithdrawal(usdc, withdrawAmount);
         vm.stopPrank();
@@ -225,7 +225,8 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
         ids[uint256(SpendWallet.BalanceType.Total)] = _createBalanceId(usdc, SpendWallet.BalanceType.Total);
         ids[uint256(SpendWallet.BalanceType.Spendable)] = _createBalanceId(usdc, SpendWallet.BalanceType.Spendable);
         ids[uint256(SpendWallet.BalanceType.Withdrawing)] = _createBalanceId(usdc, SpendWallet.BalanceType.Withdrawing);
-        ids[uint256(SpendWallet.BalanceType.Withdrawable)] = _createBalanceId(usdc, SpendWallet.BalanceType.Withdrawable);
+        ids[uint256(SpendWallet.BalanceType.Withdrawable)] =
+            _createBalanceId(usdc, SpendWallet.BalanceType.Withdrawable);
 
         uint256[] memory balances = wallet.balanceOfBatch(depositors, ids);
 
