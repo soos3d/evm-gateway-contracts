@@ -11,7 +11,7 @@
     "sizes": "forge build --sizes; ./scripts/contract_sizes.sh",
     "ci": "yarn format && yarn lint && yarn test:all"
   },
-  "license": "GPL-3.0-or-later",
+  "license": "Apache-2.0",
   "type": "module",
   "devDependencies": {
     "solhint": "^5.0.5"
