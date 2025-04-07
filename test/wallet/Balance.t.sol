@@ -217,21 +217,23 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
         uint256[] memory ids = new uint256[](4);
 
         // Query all balance types for same depositor/token
-        for (uint96 i = 0; i < 4; i++) {
-            depositors[i] = depositor;
-            ids[i] = _createBalanceId(usdc, SpendWallet.BalanceType(i));
-        }
+        depositors[uint256(SpendWallet.BalanceType.Total)] = depositor;
+        depositors[uint256(SpendWallet.BalanceType.Spendable)] = depositor;
+        depositors[uint256(SpendWallet.BalanceType.Withdrawing)] = depositor;
+        depositors[uint256(SpendWallet.BalanceType.Withdrawable)] = depositor;
+
+        ids[uint256(SpendWallet.BalanceType.Total)] = _createBalanceId(usdc, SpendWallet.BalanceType.Total);
+        ids[uint256(SpendWallet.BalanceType.Spendable)] = _createBalanceId(usdc, SpendWallet.BalanceType.Spendable);
+        ids[uint256(SpendWallet.BalanceType.Withdrawing)] = _createBalanceId(usdc, SpendWallet.BalanceType.Withdrawing);
+        ids[uint256(SpendWallet.BalanceType.Withdrawable)] = _createBalanceId(usdc, SpendWallet.BalanceType.Withdrawable);
 
         uint256[] memory balances = wallet.balanceOfBatch(depositors, ids);
 
-        // Total balance
-        assertEq(balances[0], initialUsdcBalance);
-        // Spendable balance
-        assertEq(balances[1], initialUsdcBalance);
-        // Withdrawing balance (0 since no withdrawal initiated)
-        assertEq(balances[2], 0);
-        // Withdrawable balance (0 since no withdrawal initiated)
-        assertEq(balances[3], 0);
+        // Assert each balance type matches expected value
+        assertEq(balances[uint256(SpendWallet.BalanceType.Total)], initialUsdcBalance, "Total balance mismatch");
+        assertEq(balances[uint256(SpendWallet.BalanceType.Spendable)], initialUsdcBalance, "Spendable balance mismatch");
+        assertEq(balances[uint256(SpendWallet.BalanceType.Withdrawing)], 0, "Withdrawing balance should be 0");
+        assertEq(balances[uint256(SpendWallet.BalanceType.Withdrawable)], 0, "Withdrawable balance should be 0");
     }
 
     function test_balanceOfBatch_returnsMultipleDepositors() public {
