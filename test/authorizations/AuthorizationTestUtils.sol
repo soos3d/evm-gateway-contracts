@@ -31,6 +31,10 @@ contract AuthorizationTestUtils is Test {
 
     uint16 internal constant TRANSFER_SPEC_METADATA_LENGTH_OFFSET = 336;
     uint16 internal constant TRANSFER_SPEC_METADATA_OFFSET = 340;
+    uint16 internal constant BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 68;
+    uint16 internal constant BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 72;
+    uint16 internal constant MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 36;
+    uint16 internal constant MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 40;
 
     bytes internal constant SHORT_METADATA = "Test metadata";
     bytes internal constant LONG_METADATA = "This is a longer metadata string to test larger metadata payloads";

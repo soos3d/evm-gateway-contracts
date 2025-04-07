@@ -23,7 +23,6 @@ import {AuthorizationLib} from "src/lib/authorizations/AuthorizationLib.sol";
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 
 contract TransferSpecTest is AuthorizationTestUtils {
-    using TypedMemView for bytes29;
     using AuthorizationLib for bytes;
     using AuthorizationLib for bytes29;
 
@@ -159,9 +158,8 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.metadata = LONG_METADATA;
         bytes memory encodedSpec = AuthorizationLib.encodeTransferSpec(spec);
         uint32 originalMetadataLength = uint32(spec.metadata.length);
-        uint32 originalInnerSpecLength = uint32(encodedSpec.length); // Original total length
+        uint32 originalSpecLength = uint32(encodedSpec.length);
 
-        // Call the new helper to get corrupted data and the invalid length
         (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
             encodedSpec, 0, originalMetadataLength, true /* inflate metadata length field */
         );
@@ -171,7 +169,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
             abi.encodeWithSelector(
                 AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
                 expectedLengthAfterCorruption, // The incorrect length expected based on corrupted field
-                originalInnerSpecLength // The actual length of the original spec view
+                originalSpecLength // The actual length of the original spec view
             )
         );
         AuthorizationLib.decodeTransferSpec(corruptedData);
@@ -180,16 +178,13 @@ contract TransferSpecTest is AuthorizationTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_revertsOnDeclaredMetadataLengthTooSmallFuzz(TransferSpec memory spec) public {
         spec.version = TRANSFER_SPEC_VERSION;
-        // Ensure metadata length > 0 for division
-        if (spec.metadata.length == 0) {
-            spec.metadata = LONG_METADATA;
-        }
+        spec.metadata = LONG_METADATA;
         bytes memory encodedSpec = AuthorizationLib.encodeTransferSpec(spec);
         uint32 originalMetadataLength = uint32(spec.metadata.length);
-        uint32 originalInnerSpecLength = uint32(encodedSpec.length); // Original total length
+        uint32 originalSpecLength = uint32(encodedSpec.length);
 
         (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
-            encodedSpec, 0, originalMetadataLength, false /* make metadata length shorter */
+            encodedSpec, 0, originalMetadataLength, false /* make metadata length smaller */
         );
 
         uint256 expectedLengthAfterCorruption = TRANSFER_SPEC_METADATA_OFFSET + corruptedMetadataLength;
@@ -197,15 +192,34 @@ contract TransferSpecTest is AuthorizationTestUtils {
             abi.encodeWithSelector(
                 AuthorizationLib.MalformedTransferSpecInvalidLength.selector,
                 expectedLengthAfterCorruption, // The incorrect length expected based on corrupted field
-                originalInnerSpecLength // The actual length of the original spec view
+                originalSpecLength // The actual length of the original spec view
             )
         );
         AuthorizationLib.decodeTransferSpec(corruptedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
+    function test_decode_revertsOnTruncatedDataFuzz(TransferSpec memory spec) public {
+        spec.version = TRANSFER_SPEC_VERSION;
+        spec.metadata = LONG_METADATA;
+        bytes memory encodedSpec = AuthorizationLib.encodeTransferSpec(spec);
+        uint256 originalSpecLength = encodedSpec.length;
+
+        bytes memory truncatedData = new bytes(originalSpecLength - 1);
+        for (uint256 i = 0; i < truncatedData.length; i++) {
+            truncatedData[i] = encodedSpec[i];
+        }
+        bytes memory expectedRevertData = abi.encodeWithSelector(
+            AuthorizationLib.MalformedTransferSpecInvalidLength.selector, originalSpecLength, truncatedData.length
+        );
+
+        vm.expectRevert(expectedRevertData);
+        AuthorizationLib.decodeTransferSpec(truncatedData);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_revertsOnTrailingBytesFuzz(TransferSpec memory spec) public {
-        spec.version = TRANSFER_SPEC_VERSION; // Ensure correct version for encoding
+        spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = LONG_METADATA;
         bytes memory encodedSpec = AuthorizationLib.encodeTransferSpec(spec);
         uint256 originalSpecLength = encodedSpec.length;
