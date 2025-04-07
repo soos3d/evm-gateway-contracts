@@ -64,6 +64,16 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     error UnauthorizedSpender();
     error CannotAddSelfAsSpender();
     error CallerNotBurnCaller();
+    error InputArrayLengthMismatch();
+    error InvalidBalanceType(uint96 balanceType);
+
+    enum BalanceType {
+        Total, // 0
+        Spendable, // 1
+        Withdrawing, // 2
+        Withdrawable // 3
+
+    }
 
     /// The balances that have been deposited and are available for spending (after finalization)
     mapping(address token => mapping(address depositor => uint256 value)) internal spendableBalances;
@@ -511,7 +521,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function totalBalance(address token, address depositor) external view returns (uint256) {
+    function totalBalance(address token, address depositor) public view returns (uint256) {
         return spendableBalances[token][depositor] + withdrawingBalances[token][depositor];
     }
 
@@ -521,7 +531,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function spendableBalance(address token, address depositor) external view returns (uint256) {
+    function spendableBalance(address token, address depositor) public view returns (uint256) {
         return spendableBalances[token][depositor];
     }
 
@@ -529,12 +539,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function withdrawingBalance(address token, address depositor)
-        external
-        view
-        tokenSupported(token)
-        returns (uint256)
-    {
+    function withdrawingBalance(address token, address depositor) public view tokenSupported(token) returns (uint256) {
         return withdrawingBalances[token][depositor];
     }
 
@@ -543,7 +548,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
     function withdrawableBalance(address token, address depositor)
-        external
+        public
         view
         tokenSupported(token)
         returns (uint256)
@@ -562,7 +567,29 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ///
     /// @param depositor   The depositor of the requested balance
     /// @param id          The packed token and balance id specifier
-    function balanceOf(address depositor, uint256 id) external pure override returns (uint256) {}
+    function balanceOf(address depositor, uint256 id) public view override returns (uint256) {
+        // Verify token is supported
+        address token = address(uint160(id));
+        if (!isTokenSupported(token)) {
+            revert UnsupportedToken(token);
+        }
+
+        // Verify balance type is valid
+        uint96 balanceType = uint96(id >> 160);
+        if (balanceType > uint96(type(BalanceType).max)) {
+            revert InvalidBalanceType(balanceType);
+        }
+
+        // Return the appropriate balance
+        BalanceType balanceTypeEnum = BalanceType(balanceType);
+
+        if (balanceTypeEnum == BalanceType.Total) return totalBalance(token, depositor);
+        if (balanceTypeEnum == BalanceType.Spendable) return spendableBalance(token, depositor);
+        if (balanceTypeEnum == BalanceType.Withdrawing) return withdrawingBalance(token, depositor);
+        if (balanceTypeEnum == BalanceType.Withdrawable) return withdrawableBalance(token, depositor);
+
+        return 0;
+    }
 
     /// The batch version of `balanceOf`, compatible with ERC-1155
     ///
@@ -574,10 +601,21 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param ids          The packed token and balance id specifier
     function balanceOfBatch(address[] calldata depositors, uint256[] memory ids)
         external
-        pure
+        view
         override
         returns (uint256[] memory)
-    {}
+    {
+        if (depositors.length != ids.length) {
+            revert InputArrayLengthMismatch();
+        }
+
+        uint256[] memory batchBalances = new uint256[](depositors.length);
+        for (uint256 i = 0; i < depositors.length; i++) {
+            batchBalances[i] = balanceOf(depositors[i], ids[i]);
+        }
+
+        return batchBalances;
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Informational
