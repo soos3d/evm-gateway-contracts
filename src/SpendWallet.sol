@@ -64,7 +64,16 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     error UnauthorizedSpender();
     error CannotAddSelfAsSpender();
     error CallerNotBurnCaller();
-    error LengthMismatch();
+    error InputArrayLengthMismatch();
+    error InvalidBalanceType(uint96 balanceType);
+    error UnreachableCodeDetected();
+
+    enum BalanceType {
+        Total,              // 0
+        Spendable,          // 1
+        Withdrawing,        // 2
+        Withdrawable        // 3
+    }
 
     /// The balances that have been deposited and are available for spending (after finalization)
     mapping(address token => mapping(address depositor => uint256 value)) internal spendableBalances;
@@ -559,21 +568,27 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param depositor   The depositor of the requested balance
     /// @param id          The packed token and balance id specifier
     function balanceOf(address depositor, uint256 id) public view override returns (uint256) {
-        uint96 balanceType = uint96(id >> 160);
+        // Verify token is supported
         address token = address(uint160(id));
-
         if (!isTokenSupported(token)) {
-            return 0;
+            revert UnsupportedToken(token);
         }
 
-        if (balanceType <= 3) {
-            if (balanceType == 0) return totalBalance(token, depositor);
-            if (balanceType == 1) return spendableBalance(token, depositor);
-            if (balanceType == 2) return withdrawingBalance(token, depositor);
-            if (balanceType == 3) return withdrawableBalance(token, depositor);
+        // Verify balance type is valid
+        uint96 balanceType = uint96(id >> 160);
+        if (balanceType > uint96(type(BalanceType).max)) {
+            revert InvalidBalanceType(balanceType);
         }
 
-        return 0;
+        // Return the appropriate balance
+        BalanceType balanceTypeEnum = BalanceType(balanceType);
+        
+        if (balanceTypeEnum == BalanceType.Total) return totalBalance(token, depositor);
+        if (balanceTypeEnum == BalanceType.Spendable) return spendableBalance(token, depositor);
+        if (balanceTypeEnum == BalanceType.Withdrawing) return withdrawingBalance(token, depositor);
+        if (balanceTypeEnum == BalanceType.Withdrawable) return withdrawableBalance(token, depositor);
+
+        revert UnreachableCodeDetected();
     }
 
     /// The batch version of `balanceOf`, compatible with ERC-1155
@@ -591,7 +606,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         returns (uint256[] memory)
     {
         if (depositors.length != ids.length) {
-            revert LengthMismatch();
+            revert InputArrayLengthMismatch();
         }
 
         uint256[] memory batchBalances = new uint256[](depositors.length);
