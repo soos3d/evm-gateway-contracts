@@ -92,4 +92,46 @@ contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
         vm.expectRevert(abi.encodeWithSelector(SpendWallet.CallerNotBurnCaller.selector));
         wallet.burnSpent(new bytes[](0), new bytes[](0), new uint256[][](0));
     }
+
+    function test_updateFeeRecipient_revertWhenNotOwner() public {
+        address randomCaller = makeAddr("random");
+        address newFeeRecipient = makeAddr("newFeeRecipient");
+
+        vm.prank(randomCaller);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, randomCaller));
+        wallet.updateFeeRecipient(newFeeRecipient);
+    }
+
+    function test_updateFeeRecipient_revertWhenZeroAddress() public {
+        vm.prank(owner);
+        vm.expectRevert(SpendCommon.InvalidAddress.selector);
+        wallet.updateFeeRecipient(address(0));
+    }
+
+    function test_updateFeeRecipient_success(address newFeeRecipient) public {
+        vm.assume(newFeeRecipient != address(0));
+
+        address oldFeeRecipient = wallet.feeRecipient();
+
+        vm.expectEmit(false, false, false, true);
+        emit SpendWallet.FeeRecipientUpdated(oldFeeRecipient, newFeeRecipient);
+
+        vm.prank(owner);
+        wallet.updateFeeRecipient(newFeeRecipient);
+
+        assertEq(wallet.feeRecipient(), newFeeRecipient);
+    }
+
+    function test_updateFeeRecipient_idempotent() public {
+        address newFeeRecipient = makeAddr("newFeeRecipient");
+        vm.startPrank(owner);
+        wallet.updateFeeRecipient(newFeeRecipient); // first update
+        assertEq(wallet.feeRecipient(), newFeeRecipient);
+
+        vm.expectEmit(false, false, false, true);
+        emit SpendWallet.FeeRecipientUpdated(newFeeRecipient, newFeeRecipient);
+        wallet.updateFeeRecipient(newFeeRecipient); // second update
+
+        assertEq(wallet.feeRecipient(), newFeeRecipient);
+    }
 }
