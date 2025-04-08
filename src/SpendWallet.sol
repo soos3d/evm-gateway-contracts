@@ -95,6 +95,9 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// The address that is allowed to burn tokens that have been spent
     address public burnCaller;
 
+    /// The address that will receive the onchain fee for burns
+    address public feeRecipient;
+
     /// @notice Restricts function access to addresses with the burnCaller role
     /// @dev Reverts if caller does not have burnCaller role
     modifier onlyBurnCaller() {
@@ -777,5 +780,24 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         address oldBurnCaller = burnCaller;
         burnCaller = newBurnCaller;
         emit BurnCallerUpdated(oldBurnCaller, newBurnCaller);
+    }
+
+    /// Emitted when the feeRecipient role is updated
+    ///
+    /// @param oldFeeRecipient   The previous fee recipient address
+    /// @param newFeeRecipient   The new fee recipient address
+    event FeeRecipientUpdated(address oldFeeRecipient, address newFeeRecipient);
+
+    /// Sets the address that will receive the fee for burns
+    ///
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param newFeeRecipient   The new fee recipient address
+    function updateFeeRecipient(address newFeeRecipient) external onlyOwner {
+        _checkNotZeroAddress(newFeeRecipient);
+
+        address oldFeeRecipient = feeRecipient;
+        feeRecipient = newFeeRecipient;
+        emit FeeRecipientUpdated(oldFeeRecipient, newFeeRecipient);
     }
 }
