@@ -1018,7 +1018,7 @@ library AuthorizationLib {
     function decodeBurnAuthorizationSet(bytes memory data) internal view returns (BurnAuthorizationSet memory) {
         // 1. Minimum header length check
         if (data.length < BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
-            revert MalformedBurnAuthorizationSet(data);
+            revert MalformedBurnAuthorizationSet("Data too short for set header");
         }
 
         // Create view of the BurnAuthorizationSet
@@ -1104,7 +1104,7 @@ library AuthorizationLib {
     function decodeMintAuthorizationSet(bytes memory data) internal view returns (MintAuthorizationSet memory) {
         // 1. Minimum header length check
         if (data.length < MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
-            revert MalformedMintAuthorizationSet(data);
+            revert MalformedMintAuthorizationSet("Data too short for set header");
         }
 
         // Create view of the MintAuthorizationSet

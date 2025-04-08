@@ -17,7 +17,7 @@
  */
 pragma solidity ^0.8.28;
 
-import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
+import {AuthorizationLibWrapper, AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
 import {TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
 import {MintAuthorization, MINT_AUTHORIZATION_MAGIC} from "src/lib/authorizations/MintAuthorizations.sol";
 import {AuthorizationLib} from "src/lib/authorizations/AuthorizationLib.sol";
@@ -26,6 +26,12 @@ import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 contract MintAuthorizationTest is AuthorizationTestUtils {
     using AuthorizationLib for bytes;
     using AuthorizationLib for bytes29;
+
+    AuthorizationLibWrapper private wrapper;
+
+    function setUp() public {
+        wrapper = new AuthorizationLibWrapper();
+    }
 
     // ===== Casting Tests =====
 
@@ -134,7 +140,6 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         AuthorizationLib.decodeMintAuthorization(encodedAuth);
     }
 
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_mintAuth_revertsOnDataTooShortForHeaderFuzz(MintAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         bytes memory validEncodedMintAuth = AuthorizationLib.encodeMintAuthorization(auth);
@@ -150,15 +155,13 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
             shortData.length
         );
 
-        bytes29 authView = shortData.asMintAuthorization();
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.validateMintAuthorization(authView);
+        wrapper.castAndValidateMintAuthorization(shortData);
 
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.decodeMintAuthorization(shortData);
+        wrapper.decodeMintAuthorizationWrapper(shortData);
     }
 
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_mintAuth_revertsOnDeclaredSpecLengthTooBigFuzz(MintAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
@@ -180,15 +183,13 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
             originalAuthLength
         );
 
-        bytes29 authView = corruptedData.asMintAuthorization();
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.validateMintAuthorization(authView);
+        wrapper.castAndValidateMintAuthorization(corruptedData);
 
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.decodeMintAuthorization(corruptedData);
+        wrapper.decodeMintAuthorizationWrapper(corruptedData);
     }
 
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_mintAuth_revertsOnDeclaredSpecLengthTooSmallFuzz(MintAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
@@ -210,15 +211,13 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
             originalAuthLength
         );
 
-        bytes29 authView = corruptedData.asMintAuthorization();
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.validateMintAuthorization(authView);
+        wrapper.castAndValidateMintAuthorization(corruptedData);
 
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.decodeMintAuthorization(corruptedData);
+        wrapper.decodeMintAuthorizationWrapper(corruptedData);
     }
 
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_mintAuth_revertsOnTruncatedDataFuzz(MintAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
@@ -233,15 +232,13 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
             AuthorizationLib.MalformedMintAuthorizationInvalidLength.selector, expectedLength, truncatedData.length
         );
 
-        bytes29 authView = truncatedData.asMintAuthorization();
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.validateMintAuthorization(authView);
+        wrapper.castAndValidateMintAuthorization(truncatedData);
 
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.decodeMintAuthorization(truncatedData);
+        wrapper.decodeMintAuthorizationWrapper(truncatedData);
     }
 
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_mintAuth_revertsOnTrailingBytesFuzz(MintAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
@@ -253,17 +250,15 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
             AuthorizationLib.MalformedMintAuthorizationInvalidLength.selector, originalAuthLength, corruptedData.length
         );
 
-        bytes29 authView = corruptedData.asMintAuthorization();
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.validateMintAuthorization(authView);
+        wrapper.castAndValidateMintAuthorization(corruptedData);
 
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.decodeMintAuthorization(corruptedData);
+        wrapper.decodeMintAuthorizationWrapper(corruptedData);
     }
 
     // ===== Decode Failures: Inner TransferSpec Consistency Tests =====
 
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_innerSpec_revertsOnDataTooShortForMagic() public {
         // Use fixed values for header fields, override spec length
         uint256 fixedMaxBlockHeight = 1;
@@ -280,15 +275,13 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
             )
         );
 
-        bytes29 authView = corruptedData.asMintAuthorization();
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.validateMintAuthorization(authView);
+        wrapper.castAndValidateMintAuthorization(corruptedData);
 
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.decodeMintAuthorization(corruptedData);
+        wrapper.decodeMintAuthorizationWrapper(corruptedData);
     }
 
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_innerSpec_revertsOnCorruptedMagicFuzz(MintAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
@@ -299,15 +292,13 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
             AuthorizationLib.MalformedTransferSpec.selector, "Invalid TransferSpec magic in MintAuthorization"
         );
 
-        bytes29 authView = encodedAuth.asMintAuthorization();
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.validateMintAuthorization(authView);
+        wrapper.castAndValidateMintAuthorization(encodedAuth);
 
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.decodeMintAuthorization(encodedAuth);
+        wrapper.decodeMintAuthorizationWrapper(encodedAuth);
     }
 
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_innerSpec_revertsOnDataTooShortForHeaderFuzz(MintAuthorization memory auth) public {
         uint32 incorrectSpecLength = TRANSFER_SPEC_METADATA_OFFSET - 1;
         bytes memory dummySpecData = abi.encodePacked(TRANSFER_SPEC_MAGIC, new bytes(incorrectSpecLength - 4));
@@ -319,15 +310,13 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
             incorrectSpecLength
         );
 
-        bytes29 authView = corruptedData.asMintAuthorization();
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.validateMintAuthorization(authView);
+        wrapper.castAndValidateMintAuthorization(corruptedData);
 
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.decodeMintAuthorization(corruptedData);
+        wrapper.decodeMintAuthorizationWrapper(corruptedData);
     }
 
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_innerSpec_revertsOnDeclaredMetadataLengthTooBigFuzz(MintAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
@@ -350,15 +339,13 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
             originalInnerSpecLength // The actual length of the original spec view
         );
 
-        bytes29 authView = corruptedData.asMintAuthorization();
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.validateMintAuthorization(authView);
+        wrapper.castAndValidateMintAuthorization(corruptedData);
 
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.decodeMintAuthorization(corruptedData);
+        wrapper.decodeMintAuthorizationWrapper(corruptedData);
     }
 
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_decode_innerSpec_revertsOnDeclaredMetadataLengthTooSmallFuzz(MintAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
@@ -380,11 +367,10 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
             originalInnerSpecLength // The actual length of the original spec view
         );
 
-        bytes29 authView = corruptedData.asMintAuthorization();
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.validateMintAuthorization(authView);
+        wrapper.castAndValidateMintAuthorization(corruptedData);
 
         vm.expectRevert(expectedRevertData);
-        AuthorizationLib.decodeMintAuthorization(corruptedData);
+        wrapper.decodeMintAuthorizationWrapper(corruptedData);
     }
 }
