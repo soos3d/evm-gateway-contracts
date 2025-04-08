@@ -137,7 +137,7 @@ library AuthorizationLib {
     /// @return ref A typed memory view referencing the BurnAuthorization data
     function asBurnAuthorization(bytes memory data) internal pure returns (bytes29 ref) {
         ref = data.ref(_toMemViewType(BURN_AUTHORIZATION_MAGIC));
-        if (ref.index(0, 4) != BURN_AUTHORIZATION_MAGIC) {
+        if (ref.index(0, BYTES4_BYTES) != BURN_AUTHORIZATION_MAGIC) {
             revert MalformedBurnAuthorization(data);
         }
     }
@@ -148,7 +148,7 @@ library AuthorizationLib {
     /// @return ref A typed memory view referencing the BurnAuthorizationSet data
     function asBurnAuthorizationSet(bytes memory data) internal pure returns (bytes29 ref) {
         ref = data.ref(_toMemViewType(BURN_AUTHORIZATION_SET_MAGIC));
-        if (ref.index(0, 4) != BURN_AUTHORIZATION_SET_MAGIC) {
+        if (ref.index(0, BYTES4_BYTES) != BURN_AUTHORIZATION_SET_MAGIC) {
             revert MalformedBurnAuthorizationSet(data);
         }
     }
@@ -159,7 +159,7 @@ library AuthorizationLib {
     /// @return ref A typed memory view referencing the MintAuthorization data
     function asMintAuthorization(bytes memory data) internal pure returns (bytes29 ref) {
         ref = data.ref(_toMemViewType(MINT_AUTHORIZATION_MAGIC));
-        if (ref.index(0, 4) != MINT_AUTHORIZATION_MAGIC) {
+        if (ref.index(0, BYTES4_BYTES) != MINT_AUTHORIZATION_MAGIC) {
             revert MalformedMintAuthorization(data);
         }
     }
@@ -170,7 +170,7 @@ library AuthorizationLib {
     /// @return ref A typed memory view referencing the MintAuthorizationSet data
     function asMintAuthorizationSet(bytes memory data) internal pure returns (bytes29 ref) {
         ref = data.ref(_toMemViewType(MINT_AUTHORIZATION_SET_MAGIC));
-        if (ref.index(0, 4) != MINT_AUTHORIZATION_SET_MAGIC) {
+        if (ref.index(0, BYTES4_BYTES) != MINT_AUTHORIZATION_SET_MAGIC) {
             revert MalformedMintAuthorizationSet(data);
         }
     }
@@ -181,7 +181,7 @@ library AuthorizationLib {
     /// @return ref A typed memory view referencing the TransferSpec data
     function asTransferSpec(bytes memory data) internal pure returns (bytes29 ref) {
         ref = data.ref(_toMemViewType(TRANSFER_SPEC_MAGIC));
-        if (ref.index(0, 4) != TRANSFER_SPEC_MAGIC) {
+        if (ref.index(0, BYTES4_BYTES) != TRANSFER_SPEC_MAGIC) {
             revert MalformedTransferSpec(data);
         }
     }
@@ -563,7 +563,7 @@ library AuthorizationLib {
             ref.slice(BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET, specLength, _toMemViewType(TRANSFER_SPEC_MAGIC));
 
         // Validate that the slice contains a valid TransferSpec
-        if (specRef.index(0, 4) != TRANSFER_SPEC_MAGIC) {
+        if (specRef.index(0, BYTES4_BYTES) != TRANSFER_SPEC_MAGIC) {
             revert MalformedTransferSpec("Invalid TransferSpec magic in BurnAuthorization");
         }
 
@@ -666,7 +666,7 @@ library AuthorizationLib {
             ref.slice(MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET, specLength, _toMemViewType(TRANSFER_SPEC_MAGIC));
 
         // Validate that the slice contains a valid TransferSpec
-        if (specRef.index(0, 4) != TRANSFER_SPEC_MAGIC) {
+        if (specRef.index(0, BYTES4_BYTES) != TRANSFER_SPEC_MAGIC) {
             revert MalformedTransferSpec("Invalid TransferSpec magic in MintAuthorization");
         }
 
