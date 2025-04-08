@@ -22,6 +22,17 @@ import {TransferSpec} from "./TransferSpec.sol";
 bytes4 constant MINT_AUTHORIZATION_MAGIC = 0x23ba354a;
 bytes4 constant MINT_AUTHORIZATION_SET_MAGIC = 0x95f860bd;
 
+// MintAuthorization field offsets
+uint16 constant MINT_AUTHORIZATION_MAGIC_OFFSET = 0;
+uint16 constant MINT_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET = 4;
+uint16 constant MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 36;
+uint16 constant MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 40;
+
+// MintAuthorizationSet field offsets
+uint16 constant MINT_AUTHORIZATION_SET_MAGIC_OFFSET = 0;
+uint16 constant MINT_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
+uint16 constant MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
+
 /// Passed to the GatewayMinter contract on the destination domain by the user or a relayer
 ///
 /// @dev Magic: bytes4(keccak256("circle.gateway.MintAuthorization"))

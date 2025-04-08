@@ -20,6 +20,24 @@ pragma solidity ^0.8.28;
 bytes4 constant TRANSFER_SPEC_MAGIC = 0xca85def7;
 uint32 constant TRANSFER_SPEC_VERSION = 1;
 
+// Field offsets
+uint16 constant TRANSFER_SPEC_MAGIC_OFFSET = 0;
+uint16 constant TRANSFER_SPEC_VERSION_OFFSET = 4;
+uint16 constant TRANSFER_SPEC_SOURCE_DOMAIN_OFFSET = 8;
+uint16 constant TRANSFER_SPEC_DESTINATION_DOMAIN_OFFSET = 12;
+uint16 constant TRANSFER_SPEC_SOURCE_CONTRACT_OFFSET = 16;
+uint16 constant TRANSFER_SPEC_DESTINATION_CONTRACT_OFFSET = 48;
+uint16 constant TRANSFER_SPEC_SOURCE_TOKEN_OFFSET = 80;
+uint16 constant TRANSFER_SPEC_DESTINATION_TOKEN_OFFSET = 112;
+uint16 constant TRANSFER_SPEC_SOURCE_DEPOSITOR_OFFSET = 144;
+uint16 constant TRANSFER_SPEC_DESTINATION_RECIPIENT_OFFSET = 176;
+uint16 constant TRANSFER_SPEC_SOURCE_SIGNER_OFFSET = 208;
+uint16 constant TRANSFER_SPEC_DESTINATION_CALLER_OFFSET = 240;
+uint16 constant TRANSFER_SPEC_VALUE_OFFSET = 272;
+uint16 constant TRANSFER_SPEC_NONCE_OFFSET = 304;
+uint16 constant TRANSFER_SPEC_METADATA_LENGTH_OFFSET = 336;
+uint16 constant TRANSFER_SPEC_METADATA_OFFSET = 340;
+
 /// Describes a transfer that may happen. Embedded in both a BurnAuthorization and a MintAuthorization.
 ///
 /// @dev Magic: bytes4(keccak256("circle.gateway.TransferSpec"))

@@ -18,18 +18,52 @@
 pragma solidity ^0.8.28;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {TransferSpec, TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
+import {
+    TransferSpec,
+    TRANSFER_SPEC_MAGIC,
+    TRANSFER_SPEC_MAGIC_OFFSET,
+    TRANSFER_SPEC_VERSION_OFFSET,
+    TRANSFER_SPEC_SOURCE_DOMAIN_OFFSET,
+    TRANSFER_SPEC_DESTINATION_DOMAIN_OFFSET,
+    TRANSFER_SPEC_SOURCE_CONTRACT_OFFSET,
+    TRANSFER_SPEC_DESTINATION_CONTRACT_OFFSET,
+    TRANSFER_SPEC_SOURCE_TOKEN_OFFSET,
+    TRANSFER_SPEC_DESTINATION_TOKEN_OFFSET,
+    TRANSFER_SPEC_SOURCE_DEPOSITOR_OFFSET,
+    TRANSFER_SPEC_DESTINATION_RECIPIENT_OFFSET,
+    TRANSFER_SPEC_SOURCE_SIGNER_OFFSET,
+    TRANSFER_SPEC_DESTINATION_CALLER_OFFSET,
+    TRANSFER_SPEC_VALUE_OFFSET,
+    TRANSFER_SPEC_NONCE_OFFSET,
+    TRANSFER_SPEC_METADATA_LENGTH_OFFSET,
+    TRANSFER_SPEC_METADATA_OFFSET
+    } from "./TransferSpec.sol";
 import {
     BurnAuthorization,
     BurnAuthorizationSet,
     BURN_AUTHORIZATION_MAGIC,
-    BURN_AUTHORIZATION_SET_MAGIC
+    BURN_AUTHORIZATION_SET_MAGIC,
+    BURN_AUTHORIZATION_MAGIC_OFFSET,
+    BURN_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET,
+    BURN_AUTHORIZATION_MAX_FEE_OFFSET,
+    BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET,
+    BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
+    BURN_AUTHORIZATION_SET_MAGIC_OFFSET,
+    BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET,
+    BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET
 } from "./BurnAuthorizations.sol";
 import {
     MintAuthorization,
     MintAuthorizationSet,
     MINT_AUTHORIZATION_MAGIC,
-    MINT_AUTHORIZATION_SET_MAGIC
+    MINT_AUTHORIZATION_SET_MAGIC,
+    MINT_AUTHORIZATION_MAGIC_OFFSET,
+    MINT_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET,
+    MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET,
+    MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
+    MINT_AUTHORIZATION_SET_MAGIC_OFFSET,
+    MINT_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET,
+    MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET
 } from "./MintAuthorizations.sol";
 
 library AuthorizationLib {
@@ -54,47 +88,6 @@ library AuthorizationLib {
     error MalformedMintAuthorization(bytes data);
     error MalformedMintAuthorizationInvalidLength(uint256 expectedLength, uint256 actualLength);
     error MalformedMintAuthorizationSet(bytes data);
-
-    // TransferSpec field offsets
-    uint16 private constant TRANSFER_SPEC_MAGIC_OFFSET = 0;
-    uint16 private constant TRANSFER_SPEC_VERSION_OFFSET = 4;
-    uint16 private constant TRANSFER_SPEC_SOURCE_DOMAIN_OFFSET = 8;
-    uint16 private constant TRANSFER_SPEC_DESTINATION_DOMAIN_OFFSET = 12;
-    uint16 private constant TRANSFER_SPEC_SOURCE_CONTRACT_OFFSET = 16;
-    uint16 private constant TRANSFER_SPEC_DESTINATION_CONTRACT_OFFSET = 48;
-    uint16 private constant TRANSFER_SPEC_SOURCE_TOKEN_OFFSET = 80;
-    uint16 private constant TRANSFER_SPEC_DESTINATION_TOKEN_OFFSET = 112;
-    uint16 private constant TRANSFER_SPEC_SOURCE_DEPOSITOR_OFFSET = 144;
-    uint16 private constant TRANSFER_SPEC_DESTINATION_RECIPIENT_OFFSET = 176;
-    uint16 private constant TRANSFER_SPEC_SOURCE_SIGNER_OFFSET = 208;
-    uint16 private constant TRANSFER_SPEC_DESTINATION_CALLER_OFFSET = 240;
-    uint16 private constant TRANSFER_SPEC_VALUE_OFFSET = 272;
-    uint16 private constant TRANSFER_SPEC_NONCE_OFFSET = 304;
-    uint16 private constant TRANSFER_SPEC_METADATA_LENGTH_OFFSET = 336;
-    uint16 private constant TRANSFER_SPEC_METADATA_OFFSET = 340;
-
-    // BurnAuthorization field offsets
-    uint16 private constant BURN_AUTHORIZATION_MAGIC_OFFSET = 0;
-    uint16 private constant BURN_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET = 4;
-    uint16 private constant BURN_AUTHORIZATION_MAX_FEE_OFFSET = 36;
-    uint16 private constant BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 68;
-    uint16 private constant BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 72;
-
-    // BurnAuthorizationSet field offsets
-    uint16 private constant BURN_AUTHORIZATION_SET_MAGIC_OFFSET = 0;
-    uint16 private constant BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
-    uint16 private constant BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
-
-    // MintAuthorization field offsets
-    uint16 private constant MINT_AUTHORIZATION_MAGIC_OFFSET = 0;
-    uint16 private constant MINT_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET = 4;
-    uint16 private constant MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 36;
-    uint16 private constant MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 40;
-
-    // MintAuthorizationSet field offsets
-    uint16 private constant MINT_AUTHORIZATION_SET_MAGIC_OFFSET = 0;
-    uint16 private constant MINT_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
-    uint16 private constant MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
 
     function _toMemViewType(bytes4 magic) private pure returns (uint40) {
         return uint40(uint32(magic));

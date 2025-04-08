@@ -22,6 +22,18 @@ import {TransferSpec} from "./TransferSpec.sol";
 bytes4 constant BURN_AUTHORIZATION_MAGIC = 0x71a020ae;
 bytes4 constant BURN_AUTHORIZATION_SET_MAGIC = 0xb12eecd9;
 
+// BurnAuthorization field offsets
+uint16 constant BURN_AUTHORIZATION_MAGIC_OFFSET = 0;
+uint16 constant BURN_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET = 4;
+uint16 constant BURN_AUTHORIZATION_MAX_FEE_OFFSET = 36;
+uint16 constant BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 68;
+uint16 constant BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 72;
+
+// BurnAuthorizationSet field offsets
+uint16 constant BURN_AUTHORIZATION_SET_MAGIC_OFFSET = 0;
+uint16 constant BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
+uint16 constant BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
+
 /// Passed to the GatewayWallet contract on the source domain by the operator, in order to burn those funds.
 ///
 /// @dev Magic: bytes4(keccak256("circle.gateway.BurnAuthorization"))
