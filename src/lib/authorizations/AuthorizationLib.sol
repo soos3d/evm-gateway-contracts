@@ -77,16 +77,16 @@ library AuthorizationLib {
 
     // TransferSpec decoding errors
     error MalformedTransferSpec(bytes data);
-    error MalformedTransferSpecInvalidLength(uint256 expectedLength, uint256 actualLength);
+    error MalformedTransferSpecInvalidLength(uint256 expectedMinimumLength, uint256 actualLength);
 
     // BurnAuthorization decoding errors
     error MalformedBurnAuthorization(bytes data);
-    error MalformedBurnAuthorizationInvalidLength(uint256 expectedLength, uint256 actualLength);
+    error MalformedBurnAuthorizationInvalidLength(uint256 expectedMinimumLength, uint256 actualLength);
     error MalformedBurnAuthorizationSet(bytes data);
 
     // MintAuthorization decoding errors
     error MalformedMintAuthorization(bytes data);
-    error MalformedMintAuthorizationInvalidLength(uint256 expectedLength, uint256 actualLength);
+    error MalformedMintAuthorizationInvalidLength(uint256 expectedMinimumLength, uint256 actualLength);
     error MalformedMintAuthorizationSet(bytes data);
 
     function _toMemViewType(bytes4 magic) private pure returns (uint40) {
