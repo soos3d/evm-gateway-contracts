@@ -98,7 +98,7 @@ library TransferSpecLib {
         }
     }
 
-   // --- View field accessors ---
+    // --- View field accessors ---
 
     /// @notice Extract the version from an encoded TransferSpec
     /// @param ref The TypedMemView reference to the encoded TransferSpec
@@ -279,53 +279,13 @@ library TransferSpecLib {
         return bytes.concat(header, footer);
     }
 
-    // --- Decoding ---
-
-    /// @notice Internal helper to decode a TransferSpec struct from its TypedMemView reference
-    /// @param specView The TypedMemView reference to the encoded TransferSpec
-    /// @return The decoded TransferSpec struct
-    function _decodeTransferSpecFromView(bytes29 specView) internal view returns (TransferSpec memory) {
-        validateTransferSpecStructure(specView);
-
-        bytes memory metadata;
-        uint32 metadataLength = getTransferSpecMetadataLength(specView);
-        if (metadataLength > 0) {
-            metadata = getTransferSpecMetadata(specView).clone();
-        }
-
-        return TransferSpec({
-            version: getTransferSpecVersion(specView),
-            sourceDomain: getTransferSpecSourceDomain(specView),
-            destinationDomain: getTransferSpecDestinationDomain(specView),
-            sourceContract: getTransferSpecSourceContract(specView),
-            destinationContract: getTransferSpecDestinationContract(specView),
-            sourceToken: getTransferSpecSourceToken(specView),
-            destinationToken: getTransferSpecDestinationToken(specView),
-            sourceDepositor: getTransferSpecSourceDepositor(specView),
-            destinationRecipient: getTransferSpecDestinationRecipient(specView),
-            sourceSigner: getTransferSpecSourceSigner(specView),
-            destinationCaller: getTransferSpecDestinationCaller(specView),
-            value: getTransferSpecValue(specView),
-            nonce: getTransferSpecNonce(specView),
-            metadata: metadata
-        });
-    }
-
-    /// @notice Decode a TransferSpec struct from its byte representation
-    /// @param data The encoded TransferSpec bytes
-    /// @return The decoded TransferSpec struct
-    function decodeTransferSpec(bytes memory data) internal view returns (TransferSpec memory) {
-        bytes29 specView = asTransferSpec(data);
-        return _decodeTransferSpecFromView(specView);
-    }
-
     // --- Hashing ---
 
-    /// @notice Calculate the keccak256 hash of an encoded TransferSpec.
-    /// @param encodedSpec The raw bytes of the encoded TransferSpec.
+    /// @notice Calculate the keccak256 hash of a TransferSpec view.
+    /// @param ref The TypedMemView reference to the encoded TransferSpec.
     /// @return The keccak256 hash of the encoded TransferSpec bytes.
-    function getTransferSpecHash(bytes memory encodedSpec) internal pure returns (bytes32) {
-        return keccak256(encodedSpec);
+    function getTransferSpecHash(bytes29 ref) internal pure onlyTransferSpec(ref) returns (bytes32) {
+        return ref.keccak();
     }
 
 }
