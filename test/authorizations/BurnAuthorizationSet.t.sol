@@ -150,7 +150,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_burnAuthorizationSet_revertsOnOutOfBoundsAccessFuzz(
+    function test_getBurnAuthSetAuthAt_revertsOnOutOfBoundsAccessFuzz(
         BurnAuthorization memory auth1,
         BurnAuthorization memory auth2
     ) public {
@@ -191,7 +191,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
             corruptedEncodedAuthSet[specLengthOffset + i] = encodedCorruptedLength[i];
         }
 
-        bytes29 ref = corruptedEncodedAuthSet.asBurnAuthorizationSet();
+        bytes29 setRef = corruptedEncodedAuthSet.asBurnAuthorizationSet();
 
         // Expect the revert from the bounds check added in getBurnAuthorizationSetAuthorizationAt
         vm.expectRevert(
@@ -200,7 +200,50 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
                 "Calculated authorization slice exceeds set bounds"
             )
         );
-        ref.getBurnAuthorizationSetAuthorizationAt(0);
+        setRef.getBurnAuthorizationSetAuthorizationAt(0);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_getBurnAuthSetAuthAt_revertsOnCorruptedInnerMagic_BeforeTargetFuzz(
+        BurnAuthorization memory auth1,
+        BurnAuthorization memory auth2
+    ) public {
+        BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, new bytes(0));
+        bytes memory encodedAuthSet = AuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        // Corrupt the magic of the first authorization
+        encodedAuthSet[BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET] = hex"FF";
+
+        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Invalid authorization magic in set"
+            )
+        );
+        // Try to access the second element
+        setRef.getBurnAuthorizationSetAuthorizationAt(1);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_getBurnAuthSetAuthAt_revertsOnCorruptedInnerMagic_TargetFuzz(BurnAuthorization memory auth1) public {
+        auth1.spec.version = TRANSFER_SPEC_VERSION;
+        auth1.spec.metadata = SHORT_METADATA;
+
+        BurnAuthorization[] memory authorizations = new BurnAuthorization[](1);
+        authorizations[0] = auth1;
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: authorizations});
+        bytes memory encodedAuthSet = AuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        // Corrupt the magic of the authorization
+        encodedAuthSet[BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET] = hex"FF";
+
+        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AuthorizationLib.MalformedBurnAuthorizationSet.selector, "Invalid authorization magic in set"
+            )
+        );
+        setRef.getBurnAuthorizationSetAuthorizationAt(0);
     }
 
     // ===== Encode/Decode Round Trip Tests =====

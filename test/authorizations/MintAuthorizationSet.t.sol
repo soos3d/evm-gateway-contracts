@@ -148,18 +148,18 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_mintAuthorizationSet_revertsOnOutOfBoundsAccessFuzz(
+    function test_getMintAuthSetAuthAt_revertsOnOutOfBoundsAccessFuzz(
         MintAuthorization memory auth1,
         MintAuthorization memory auth2
     ) public {
         MintAuthorizationSet memory authSet = _createMintAuthSet(auth1, auth2, new bytes(0));
         bytes memory encodedAuthSet = AuthorizationLib.encodeMintAuthorizationSet(authSet);
-        bytes29 ref = encodedAuthSet.asMintAuthorizationSet();
-        uint32 numAuths = ref.getMintAuthorizationSetNumAuthorizations();
+        bytes29 setRef = encodedAuthSet.asMintAuthorizationSet();
+        uint32 numAuths = setRef.getMintAuthorizationSetNumAuthorizations();
         vm.expectRevert(
             abi.encodeWithSelector(AuthorizationLib.MalformedMintAuthorizationSet.selector, "Index out of bounds")
         );
-        ref.getMintAuthorizationSetAuthorizationAt(numAuths);
+        setRef.getMintAuthorizationSetAuthorizationAt(numAuths);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -189,7 +189,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
             corruptedEncodedAuthSet[specLengthOffset + i] = encodedCorruptedLength[i];
         }
 
-        bytes29 ref = corruptedEncodedAuthSet.asMintAuthorizationSet();
+        bytes29 setRef = corruptedEncodedAuthSet.asMintAuthorizationSet();
 
         // Expect the revert from the bounds check added in getMintAuthorizationSetAuthorizationAt
         vm.expectRevert(
@@ -198,7 +198,50 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
                 "Calculated authorization slice exceeds set bounds"
             )
         );
-        ref.getMintAuthorizationSetAuthorizationAt(0);
+        setRef.getMintAuthorizationSetAuthorizationAt(0);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_getMintAuthSetAuthAt_revertsOnCorruptedInnerMagic_BeforeTargetFuzz(
+        MintAuthorization memory auth1,
+        MintAuthorization memory auth2
+    ) public {
+        MintAuthorizationSet memory authSet = _createMintAuthSet(auth1, auth2, new bytes(0));
+        bytes memory encodedAuthSet = AuthorizationLib.encodeMintAuthorizationSet(authSet);
+
+        // Corrupt the magic of the first authorization
+        encodedAuthSet[MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET] = hex"FF";
+
+        bytes29 setRef = encodedAuthSet.asMintAuthorizationSet();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AuthorizationLib.MalformedMintAuthorizationSet.selector, "Invalid authorization magic in set"
+            )
+        );
+        // Try to access the second element
+        setRef.getMintAuthorizationSetAuthorizationAt(1);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_getMintAuthSetAuthAt_revertsOnCorruptedInnerMagic_TargetFuzz(MintAuthorization memory auth1) public {
+        auth1.spec.version = TRANSFER_SPEC_VERSION;
+        auth1.spec.metadata = SHORT_METADATA;
+
+        MintAuthorization[] memory authorizations = new MintAuthorization[](1);
+        authorizations[0] = auth1;
+        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
+        bytes memory encodedAuthSet = AuthorizationLib.encodeMintAuthorizationSet(authSet);
+
+        // Corrupt the magic of the authorization
+        encodedAuthSet[MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET] = hex"FF";
+
+        bytes29 setRef = encodedAuthSet.asMintAuthorizationSet();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AuthorizationLib.MalformedMintAuthorizationSet.selector, "Invalid authorization magic in set"
+            )
+        );
+        setRef.getMintAuthorizationSetAuthorizationAt(0);
     }
 
     // ===== Encode/Decode Round Trip Tests =====
@@ -472,14 +515,12 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         // Add trailing bytes
         bytes memory trailingBytesData = bytes.concat(encodedAuthSet, hex"FFFF");
 
-        // Expect revert from castAndValidate
         bytes memory expectedValidateRevertData = abi.encodeWithSelector(
             AuthorizationLib.MalformedMintAuthorizationSet.selector, "Set length mismatch after validating all elements"
         );
         vm.expectRevert(expectedValidateRevertData);
         wrapper.castAndValidateMintAuthorizationSet(trailingBytesData);
 
-        // Expect revert from decode
         bytes memory expectedDecodeRevertData = abi.encodeWithSelector(
             AuthorizationLib.MalformedMintAuthorizationSet.selector, "Set length mismatch after decoding all elements"
         );
