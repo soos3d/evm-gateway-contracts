@@ -35,6 +35,7 @@ library BurnAuthorizationLib {
     );
     error MalformedBurnAuthorizationSet(bytes data);
     error CursorOutOfBounds();
+    error InvalidAuthorizationMagic(bytes data);
 
     modifier onlyBurnAuthorization(bytes29 ref) {
         ref.assertType(
@@ -50,36 +51,39 @@ library BurnAuthorizationLib {
         _;
     }
 
-    // --- Casting ---
-
-    /// @notice Creates a typed memory view for a BurnAuthorization
-    /// @dev Creates a typed view with the proper type encoding and validates the magic number
-    /// @param data The raw bytes to create a view into
-    /// @return ref A typed memory view referencing the BurnAuthorization data
-    function asBurnAuthorization(
-        bytes memory data
-    ) internal pure returns (bytes29 ref) {
-        ref = data.ref(
-            TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_MAGIC)
-        );
-        if (ref.index(0, BYTES4_BYTES) != BURN_AUTHORIZATION_MAGIC) {
-            revert MalformedBurnAuthorization(data);
-        }
+    function isSet(bytes29 ref) private pure returns (bool) {
+        return ref.index(0, BYTES4_BYTES) == BURN_AUTHORIZATION_SET_MAGIC;
     }
 
-    /// @notice Creates a typed memory view for a BurnAuthorizationSet
-    /// @dev Creates a typed view with the proper type encoding and validates the magic number
-    /// @param data The raw bytes to create a view into
-    /// @return ref A typed memory view referencing the BurnAuthorizationSet data
-    function asBurnAuthorizationSet(
+    // --- Casting ---
+
+    /// @notice Creates a typed memory view for a BurnAuthorization or BurnAuthorizationSet.
+    /// @dev Checks for either BurnAuthorization or BurnAuthorizationSet magic.
+    /// @param data The raw bytes to create a view into. Must contain at least 4 bytes.
+    /// @return ref A typed memory view referencing the data, typed according to the magic number found.
+    /// @dev Reverts with InvalidAuthorizationMagic if neither known magic number is present.
+    /// @dev Reverts if data length is less than 4.
+    function asAuthOrSetView(
         bytes memory data
     ) internal pure returns (bytes29 ref) {
-        ref = data.ref(
-            TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_SET_MAGIC)
-        );
-        if (ref.index(0, BYTES4_BYTES) != BURN_AUTHORIZATION_SET_MAGIC) {
-            revert MalformedBurnAuthorizationSet(data);
+        if (data.length < BYTES4_BYTES) {
+            revert MalformedBurnAuthorization(data);
         }
+        
+        bytes29 initialView = data.ref(0);
+        bytes4 magic = bytes4(initialView.index(0, BYTES4_BYTES)); 
+        if (magic == BURN_AUTHORIZATION_MAGIC) {
+            ref = initialView.castTo(
+                TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_MAGIC)
+            );
+        } else if (magic == BURN_AUTHORIZATION_SET_MAGIC) {
+            ref = initialView.castTo(
+                TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_SET_MAGIC)
+            );
+        } else {
+            revert InvalidAuthorizationMagic(data);
+        }
+        return ref;
     }
 
     // --- Validation ---
@@ -128,12 +132,12 @@ library BurnAuthorizationLib {
     ///      structure is invalid.
     /// @param authView The TypedMemView reference to the encoded BurnAuthorization to
     ///                 validate.
-    function validateBurnAuthorization(
+    function _validateBurnAuthorization(
         bytes29 authView
     ) internal pure onlyBurnAuthorization(authView) {
         _validateBurnAuthorizationOuterStructure(authView);
         bytes29 specView = getBurnAuthorizationTransferSpec(authView);
-        TransferSpecLib.validateTransferSpecStructure(specView);
+        TransferSpecLib._validateTransferSpecStructure(specView);
     }
 
     /// @notice Validates the full structural integrity of an encoded BurnAuthorizationSet memory view.
@@ -145,11 +149,11 @@ library BurnAuthorizationLib {
     /// 3. Iterating through declared authorizations:
     ///    a. Checking bounds based on previously declared lengths.
     ///    b. Checking the magic number of each authorization.
-    ///    c. Performing full recursive validation on each authorization using `validateBurnAuthorization`.
+    ///    c. Performing full recursive validation on each authorization using `_validateBurnAuthorization`.
     /// 4. Final total length consistency check.
     /// @dev Reverts with specific errors (e.g., MalformedBurnAuthorizationSet) if the structure is invalid.
     /// @param setView The TypedMemView reference to the encoded BurnAuthorizationSet to validate.
-    function validateBurnAuthorizationSet(
+    function _validateBurnAuthorizationSet(
         bytes29 setView
     ) internal pure onlyBurnAuthorizationSet(setView) {
         // 1. Minimum header length check
@@ -211,7 +215,7 @@ library BurnAuthorizationLib {
                 currentAuthTotalLength,
                 TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_MAGIC)
             );
-            validateBurnAuthorization(authView);
+            _validateBurnAuthorization(authView);
 
             // Update offset for the next iteration
             currentOffset += currentAuthTotalLength;
@@ -225,21 +229,33 @@ library BurnAuthorizationLib {
         }
     }
 
-    // --- Iteration ---
-
-    function isSet(bytes29 ref) internal pure returns (bool) {
-        return ref.index(0, BYTES4_BYTES) == BURN_AUTHORIZATION_SET_MAGIC;
+    /// @notice Validates the structural integrity of either a BurnAuthorization or a BurnAuthorizationSet.
+    /// @dev Validates the structural integrity of either a BurnAuthorization or a BurnAuthorizationSet.
+    ///      First casts the data using `asAuthorizationOrSetView`, then calls the appropriate
+    ///      specific validation function (`_validateBurnAuthorization` or `_validateBurnAuthorizationSet`).
+    ///      Reverts with specific errors if casting or validation fails.
+    /// @param data The raw bytes representing either an encoded single BurnAuthorization or an encoded BurnAuthorizationSet.
+    function validate(bytes memory data) internal pure {
+        bytes29 ref = asAuthOrSetView(data);
+        if (isSet(ref)) {
+            _validateBurnAuthorizationSet(ref);
+        } else {
+            _validateBurnAuthorization(ref);
+        }
     }
 
-    /// @notice Initializes a cursor for iterating over a BurnAuthorization or BurnAuthorizationSet.
+    // --- Iteration ---
+
     /// @dev For a single BurnAuthorization, the cursor will yield that single element.
     ///      For a BurnAuthorizationSet, it iterates through each contained BurnAuthorization.
     ///      Sets the 'done' flag immediately if the set contains zero authorizations.
-    /// @param ref The TypedMemView reference to the encoded BurnAuthorization or BurnAuthorizationSet.
+    /// @param data The raw bytes representing either an encoded BurnAuthorization or an encoded BurnAuthorizationSet.
     /// @return c An initialized AuthorizationCursor memory struct.
     function cursor(
-        bytes29 ref
+        bytes memory data
     ) internal pure returns (AuthorizationCursor memory c) {
+        bytes29 ref = asAuthOrSetView(data);
+
         if (!isSet(ref)) {
             c.setOrAuthView = ref;
             c.offset = 0;

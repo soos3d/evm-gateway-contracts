@@ -54,19 +54,20 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         return BurnAuthorizationSet({authorizations: authorizations});
     }
 
-    /// @notice Internal helper to verify all fields from a BurnAuthorizationSet view match the original struct.
-    function _verifyBurnAuthorizationSetFieldsFromView(bytes29 setRef, BurnAuthorizationSet memory authSet)
+    /// @notice Internal helper to verify all fields from encoded set bytes match the original struct.
+    function _verifyEncodedSetFieldsAgainstStruct(bytes memory encodedAuthSet, BurnAuthorizationSet memory authSet)
         internal
         pure
     {
+        bytes29 setRef = encodedAuthSet.asAuthOrSetView(); // Get view from bytes
         uint32 numAuths = setRef.getBurnAuthorizationSetNumAuthorizations();
         assertEq(numAuths, authSet.authorizations.length, "Eq Fail: numAuths");
 
-        AuthorizationCursor memory cursor = setRef.cursor();
+        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet); // Use original bytes
         uint32 i = 0;
         while (!cursor.done) {
             bytes29 authRef = cursor.current();
-            _verifyBurnAuthorizationFieldsFromView(authRef, authSet.authorizations[i]);
+            _verifyBurnAuthorizationFieldsFromView(authRef, authSet.authorizations[i]); 
             cursor = cursor.next();
             i++;
         }
@@ -83,20 +84,13 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         }
     }
 
-    // ===== Casting Tests (Set) =====
+    // ===== Casting Tests =====
 
-    function test_asBurnAuthorizationSet_correctMagic() public pure {
-        (bytes memory data, uint40 magicType) = _magic("circle.gateway.BurnAuthorizationSet");
-        bytes29 ref = data.asBurnAuthorizationSet();
-        assertEq(TypedMemView.typeOf(ref), magicType);
-        assertEq(bytes4(uint32(magicType)), BURN_AUTHORIZATION_SET_MAGIC);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function test_asBurnAuthorizationSet_incorrectMagic() public {
-        (bytes memory data,) = _magic("something else");
-        vm.expectRevert(abi.encodeWithSelector(BurnAuthorizationLib.MalformedBurnAuthorizationSet.selector, data));
-        data.asBurnAuthorizationSet();
+    function test_asAuthOrSetView_successBurnAuthSet() public pure {
+        (bytes memory data, uint40 expectedType) = _magic("circle.gateway.BurnAuthorizationSet"); // Use helper
+        bytes29 ref = data.asAuthOrSetView();
+        assertEq(TypedMemView.typeOf(ref), expectedType);
+        assertEq(bytes4(uint32(expectedType)), BURN_AUTHORIZATION_SET_MAGIC);
     }
 
     // ===== Validation Tests =====
@@ -107,8 +101,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     ) public pure {
         BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(encodedAuthSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -120,8 +113,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = shortData.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(shortData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -136,8 +128,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
             BurnAuthorizationLib.MalformedBurnAuthorizationSet.selector, "Set length mismatch after validating all elements"
         );
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = trailingBytesData.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(trailingBytesData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -152,8 +143,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = encodedSetHeaderOnly.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(encodedSetHeaderOnly);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -184,8 +174,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = truncatedData.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(truncatedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -215,8 +204,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = truncatedData.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(truncatedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -252,8 +240,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = truncatedData.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(truncatedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -288,8 +275,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = truncatedData.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(truncatedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -311,8 +297,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
             BurnAuthorizationLib.MalformedBurnAuthorizationSet.selector, "Set length mismatch after validating all elements"
         );
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = trailingBytesData.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(trailingBytesData);
     }
 
     // ===== Decode Failures: Inner Authorization Consistency =====
@@ -337,8 +322,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(encodedAuthSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -365,8 +349,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(encodedAuthSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -404,8 +387,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(encodedAuthSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -438,8 +420,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(encodedAuthSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -462,8 +443,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = encodedAuthSet.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(encodedAuthSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -497,8 +477,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = corruptedEncodedAuthSet.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(corruptedEncodedAuthSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -532,8 +511,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        bytes29 setView = corruptedEncodedAuthSet.asBurnAuthorizationSet();
-        setView.validateBurnAuthorizationSet();
+        BurnAuthorizationLib.validate(corruptedEncodedAuthSet);
     }
 
     // ===== Field Accessor / Set Iteration Tests =====
@@ -542,8 +520,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         BurnAuthorization[] memory authorizations = new BurnAuthorization[](0);
         BurnAuthorizationSet memory set = BurnAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(set);
-        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
-        _verifyBurnAuthorizationSetFieldsFromView(setRef, set);
+        _verifyEncodedSetFieldsAgainstStruct(encodedAuthSet, set);
     }
 
     function test_burnAuthorizationSet_readAllFieldsEmptyMetadataFuzz(
@@ -552,8 +529,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     ) public pure {
         BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, new bytes(0));
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
-        _verifyBurnAuthorizationSetFieldsFromView(setRef, authSet);
+        _verifyEncodedSetFieldsAgainstStruct(encodedAuthSet, authSet);
     }
 
     function test_burnAuthorizationSet_readAllFieldsShortMetadataFuzz(
@@ -562,8 +538,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     ) public pure {
         BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, SHORT_METADATA);
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
-        _verifyBurnAuthorizationSetFieldsFromView(setRef, authSet);
+        _verifyEncodedSetFieldsAgainstStruct(encodedAuthSet, authSet);
     }
 
     function test_burnAuthorizationSet_readAllFieldsLongMetadataFuzz(
@@ -572,8 +547,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     ) public pure {
         BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
-        _verifyBurnAuthorizationSetFieldsFromView(setRef, authSet);
+        _verifyEncodedSetFieldsAgainstStruct(encodedAuthSet, authSet);
     }
 
     // ===== Iteration Tests =====
@@ -582,8 +556,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         BurnAuthorization[] memory authorizations = new BurnAuthorization[](0);
         BurnAuthorizationSet memory set = BurnAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(set);
-        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(setRef);
+        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         assertEq(cursor.done, true);
     }
 
@@ -592,9 +565,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         BurnAuthorization[] memory authorizations = new BurnAuthorization[](0);
         BurnAuthorizationSet memory set = BurnAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(set);
-        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
-        
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(setRef);
+        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         vm.expectRevert(abi.encodeWithSelector(BurnAuthorizationLib.CursorOutOfBounds.selector));
         cursor.current();
     }
@@ -604,9 +575,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         BurnAuthorization[] memory authorizations = new BurnAuthorization[](0);
         BurnAuthorizationSet memory set = BurnAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(set);
-        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
-        
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(setRef);
+        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         vm.expectRevert(abi.encodeWithSelector(BurnAuthorizationLib.CursorOutOfBounds.selector));
         cursor.next();
     }
@@ -619,9 +588,9 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         authorizations[0] = auth;
         BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
+        bytes29 setRef = encodedAuthSet.asAuthOrSetView();
         
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(setRef);
+        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
 
         // Initial state
         assertEq(cursor.done, false);
@@ -653,9 +622,8 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         authorizations[0] = auth;
         BurnAuthorizationSet memory set = BurnAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(set);
-        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
-        
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(setRef);
+
+        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         cursor = cursor.next();
         assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(BurnAuthorizationLib.CursorOutOfBounds.selector));
@@ -670,9 +638,8 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         authorizations[0] = auth;
         BurnAuthorizationSet memory set = BurnAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(set);
-        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
         
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(setRef);
+        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         cursor = cursor.next();
         assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(BurnAuthorizationLib.CursorOutOfBounds.selector));
@@ -682,8 +649,8 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     function test_cursor_multipleAuthsInSetFuzz(BurnAuthorization memory auth1, BurnAuthorization memory auth2) public pure {
         BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(setRef);
+        bytes29 setRef = encodedAuthSet.asAuthOrSetView();
+        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
 
         // Initial state
         assertEq(cursor.done, false);
@@ -725,9 +692,8 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     function test_cursor_revertsOnCurrentWhenDone_MultipleAuthsFuzz(BurnAuthorization memory auth1, BurnAuthorization memory auth2) public {
         BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
         
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(setRef);
+        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         cursor = cursor.next();
         cursor = cursor.next();
         assertEq(cursor.done, true);
@@ -740,9 +706,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     function test_cursor_revertsOnNextWhenDone_MultipleAuthsFuzz(BurnAuthorization memory auth1, BurnAuthorization memory auth2) public {
         BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-        bytes29 setRef = encodedAuthSet.asBurnAuthorizationSet();
-        
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(setRef);
+        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         cursor = cursor.next();
         cursor = cursor.next();
         assertEq(cursor.done, true);

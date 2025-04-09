@@ -83,7 +83,7 @@ library TransferSpecLib {
     /// 2. Total length consistency check (ensuring `header_length + declared_metadata_length == total_view_length`).
     /// @dev Reverts with `MalformedTransferSpecInvalidLength` if the structure is invalid.
     /// @param specView The TypedMemView reference to the encoded TransferSpec to validate.
-    function validateTransferSpecStructure(bytes29 specView) internal pure onlyTransferSpec(specView) {
+    function _validateTransferSpecStructure(bytes29 specView) internal pure onlyTransferSpec(specView) {
         // 1. Minimum header length check
         if (specView.len() < TRANSFER_SPEC_METADATA_OFFSET) {
             revert MalformedTransferSpecInvalidLength(TRANSFER_SPEC_METADATA_OFFSET, specView.len());
