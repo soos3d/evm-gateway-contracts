@@ -63,7 +63,6 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     error NoWithdrawingBalance();
     error UnauthorizedSpender();
     error CannotAddSelfAsSpender();
-    error CallerNotBurnCaller();
     error InputArrayLengthMismatch();
     error InvalidBalanceType(uint96 balanceType);
 
@@ -92,20 +91,11 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// value is added to the current block number when a withdrawal is initiated.
     uint256 public withdrawalDelay;
 
-    /// The address that is allowed to burn tokens that have been spent
-    address public burnCaller;
+    /// The address that may sign the calldata for burning tokens that have been spent
+    address public burnSigner;
 
     /// The address that will receive the onchain fee for burns
     address public feeRecipient;
-
-    /// @notice Restricts function access to addresses with the burnCaller role
-    /// @dev Reverts if caller does not have burnCaller role
-    modifier onlyBurnCaller() {
-        if (msg.sender != burnCaller) {
-            revert CallerNotBurnCaller();
-        }
-        _;
-    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Initialization
@@ -702,7 +692,6 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     function burnSpent(bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees)
         external
         whenNotPaused
-        onlyBurnCaller
     {
         // For each burn authorization:
         // IBurnToken(token).burn(amountToBurn);
@@ -763,23 +752,23 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         emit WithdrawalDelayUpdated(newDelay);
     }
 
-    /// Emitted when the burnCaller role is updated
+    /// Emitted when the burnSigner role is updated
     ///
-    /// @param oldBurnCaller   The previous burn caller address
-    /// @param newBurnCaller   The new burn caller address
-    event BurnCallerUpdated(address oldBurnCaller, address newBurnCaller);
+    /// @param oldBurnSigner   The previous burn signer address
+    /// @param newBurnSigner   The new burn signer address
+    event BurnSignerUpdated(address oldBurnSigner, address newBurnSigner);
 
     /// Sets the address that may call `burnSpent`
     ///
     /// @dev May only be called by the `owner` role
     ///
-    /// @param newBurnCaller   The new burn caller address
-    function updateBurnCaller(address newBurnCaller) external onlyOwner {
-        _checkNotZeroAddress(newBurnCaller);
+    /// @param newBurnSigner   The new burn caller address
+    function updateBurnSigner(address newBurnSigner) external onlyOwner {
+        _checkNotZeroAddress(newBurnSigner);
 
-        address oldBurnCaller = burnCaller;
-        burnCaller = newBurnCaller;
-        emit BurnCallerUpdated(oldBurnCaller, newBurnCaller);
+        address oldBurnSigner = burnSigner;
+        burnSigner = newBurnSigner;
+        emit BurnSignerUpdated(oldBurnSigner, newBurnSigner);
     }
 
     /// Emitted when the feeRecipient role is updated

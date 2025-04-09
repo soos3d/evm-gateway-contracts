@@ -43,54 +43,46 @@ contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
         wallet.initialize(makeAddr("random"));
     }
 
-    function test_updateBurnCaller_revertWhenNotOwner() public {
+    function test_updateBurnSigner_revertWhenNotOwner() public {
         address randomCaller = makeAddr("random");
-        address newBurnCaller = makeAddr("newBurnCaller");
+        address newBurnSigner = makeAddr("newBurnSigner");
 
         vm.prank(randomCaller);
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, randomCaller));
-        wallet.updateBurnCaller(newBurnCaller);
+        wallet.updateBurnSigner(newBurnSigner);
     }
 
-    function test_updateBurnCaller_revertWhenZeroAddress() public {
+    function test_updateBurnSigner_revertWhenZeroAddress() public {
         vm.prank(owner);
         vm.expectRevert(SpendCommon.InvalidAddress.selector);
-        wallet.updateBurnCaller(address(0));
+        wallet.updateBurnSigner(address(0));
     }
 
-    function test_updateBurnCaller_success(address newBurnCaller) public {
-        vm.assume(newBurnCaller != address(0));
+    function test_updateBurnSigner_success(address newBurnSigner) public {
+        vm.assume(newBurnSigner != address(0));
 
-        address oldBurnCaller = wallet.burnCaller();
+        address oldBurnSigner = wallet.burnSigner();
 
         vm.expectEmit(false, false, false, true);
-        emit SpendWallet.BurnCallerUpdated(oldBurnCaller, newBurnCaller);
+        emit SpendWallet.BurnSignerUpdated(oldBurnSigner, newBurnSigner);
 
         vm.prank(owner);
-        wallet.updateBurnCaller(newBurnCaller);
+        wallet.updateBurnSigner(newBurnSigner);
 
-        assertEq(wallet.burnCaller(), newBurnCaller);
+        assertEq(wallet.burnSigner(), newBurnSigner);
     }
 
-    function test_updateBurnCaller_idempotent() public {
-        address newBurnCaller = makeAddr("newBurnCaller");
+    function test_updateBurnSigner_idempotent() public {
+        address newBurnSigner = makeAddr("newBurnSigner");
         vm.startPrank(owner);
-        wallet.updateBurnCaller(newBurnCaller); // first update
-        assertEq(wallet.burnCaller(), newBurnCaller);
+        wallet.updateBurnSigner(newBurnSigner); // first update
+        assertEq(wallet.burnSigner(), newBurnSigner);
 
         vm.expectEmit(false, false, false, true);
-        emit SpendWallet.BurnCallerUpdated(newBurnCaller, newBurnCaller);
-        wallet.updateBurnCaller(newBurnCaller); // second update
+        emit SpendWallet.BurnSignerUpdated(newBurnSigner, newBurnSigner);
+        wallet.updateBurnSigner(newBurnSigner); // second update
 
-        assertEq(wallet.burnCaller(), newBurnCaller);
-    }
-
-    function test_burnSpent_revertWhenNotBurnCaller() public {
-        address randomCaller = makeAddr("random");
-
-        vm.prank(randomCaller);
-        vm.expectRevert(abi.encodeWithSelector(SpendWallet.CallerNotBurnCaller.selector));
-        wallet.burnSpent(new bytes[](0), new bytes[](0), new uint256[][](0));
+        assertEq(wallet.burnSigner(), newBurnSigner);
     }
 
     function test_updateFeeRecipient_revertWhenNotOwner() public {
