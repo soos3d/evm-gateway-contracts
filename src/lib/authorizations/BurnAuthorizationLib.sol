@@ -63,7 +63,7 @@ library BurnAuthorizationLib {
     /// @return ref A typed memory view referencing the data, typed according to the magic number found.
     /// @dev Reverts with InvalidAuthorizationMagic if neither known magic number is present.
     /// @dev Reverts if data length is less than 4.
-    function asAuthOrSetView(
+    function _asAuthOrSetView(
         bytes memory data
     ) internal pure returns (bytes29 ref) {
         if (data.length < BYTES4_BYTES) {
@@ -91,7 +91,7 @@ library BurnAuthorizationLib {
     /// @notice Validates the structural integrity of an encoded BurnAuthorization wrapper.
     /// @dev Performs structural validation on a BurnAuthorization view,
     ///      *excluding* recursive validation of the nested TransferSpec and its magic number. Reverts on failure.
-    ///      Assumes outer magic number check has passed (via asBurnAuthorization).
+    ///      Assumes outer magic number check has passed (via casting).
     /// Validation steps:
     /// 1. Minimum header length check.
     /// 2. Total length consistency check (using declared TransferSpec length).
@@ -236,7 +236,7 @@ library BurnAuthorizationLib {
     ///      Reverts with specific errors if casting or validation fails.
     /// @param data The raw bytes representing either an encoded single BurnAuthorization or an encoded BurnAuthorizationSet.
     function validate(bytes memory data) internal pure {
-        bytes29 ref = asAuthOrSetView(data);
+        bytes29 ref = _asAuthOrSetView(data);
         if (isSet(ref)) {
             _validateBurnAuthorizationSet(ref);
         } else {
@@ -254,8 +254,8 @@ library BurnAuthorizationLib {
     function cursor(
         bytes memory data
     ) internal pure returns (AuthorizationCursor memory c) {
-        bytes29 ref = asAuthOrSetView(data);
-
+        bytes29 ref = _asAuthOrSetView(data);
+        
         if (!isSet(ref)) {
             c.setOrAuthView = ref;
             c.offset = 0;
@@ -264,6 +264,7 @@ library BurnAuthorizationLib {
             c.done = false; // There's one element to process
             return c;
         }
+
         uint32 numAuths = getBurnAuthorizationSetNumAuthorizations(ref);
         c.setOrAuthView = ref;
         c.offset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;

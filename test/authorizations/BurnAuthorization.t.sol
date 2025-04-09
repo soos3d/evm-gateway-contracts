@@ -34,7 +34,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
 
     function test_asAuthOrSetView_successBurnAuth() public pure {
         (bytes memory data, uint40 expectedType) = _magic("circle.gateway.BurnAuthorization"); // Use helper
-        bytes29 ref = data.asAuthOrSetView();
+        bytes29 ref = BurnAuthorizationLib._asAuthOrSetView(data);
         assertEq(TypedMemView.typeOf(ref), expectedType);
         assertEq(bytes4(uint32(expectedType)), BURN_AUTHORIZATION_MAGIC);
     }
@@ -43,14 +43,14 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     function test_asAuthOrSetView_revertsOnShortData() public {
         bytes memory shortData = hex"1122";
         vm.expectRevert(abi.encodeWithSelector(BurnAuthorizationLib.MalformedBurnAuthorization.selector, shortData));
-        shortData.asAuthOrSetView();
+        BurnAuthorizationLib._asAuthOrSetView(shortData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
     function test_asAuthOrSetView_revertsOnInvalidMagic4Bytes() public {
         (bytes memory invalidMagicData,) = _magic("not a valid magic");
         vm.expectRevert(abi.encodeWithSelector(BurnAuthorizationLib.InvalidAuthorizationMagic.selector, invalidMagicData));
-        invalidMagicData.asAuthOrSetView();
+        BurnAuthorizationLib._asAuthOrSetView(invalidMagicData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -58,7 +58,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         (bytes memory invalidMagicData,) = _magic("not a valid magic");
         bytes memory longerInvalidMagic = bytes.concat(invalidMagicData, hex"01020304");
         vm.expectRevert(abi.encodeWithSelector(BurnAuthorizationLib.InvalidAuthorizationMagic.selector, longerInvalidMagic));
-        longerInvalidMagic.asAuthOrSetView();
+        BurnAuthorizationLib._asAuthOrSetView(longerInvalidMagic);
     }
 
     // ===== Validation Tests =====
@@ -69,6 +69,8 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
         BurnAuthorizationLib.validate(encodedAuth);
     }
+
+    // ===== Validation Failures: Burn Authorization Structure =====
 
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_burnAuth_revertsOnDataTooShortForHeaderFuzz(BurnAuthorization memory auth) public {
@@ -177,6 +179,8 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         BurnAuthorizationLib.validate(corruptedData);
     }
 
+    // ===== Validation Failures: Inner TransferSpec Consistency =====
+
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_innerSpec_revertsOnDataTooShortForMagic() public {
         uint256 fixedMaxBlockHeight = 1;
@@ -187,7 +191,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
             fixedMaxBlockHeight,
             fixedMaxFee,
             incorrectSpecLength,
-            hex"0000" // Dummy spec data
+            hex"0000"
         );
 
         bytes memory expectedRevertData = bytes(
@@ -286,39 +290,13 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         BurnAuthorizationLib.validate(corruptedData);
     }
 
-    // ===== Field Accessor Tests =====
-
-    function test_burnAuthorization_readAllFieldsEmptyMetadataFuzz(BurnAuthorization memory auth) public pure {
-        auth.spec.version = TRANSFER_SPEC_VERSION;
-        auth.spec.metadata = new bytes(0);
-        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
-        bytes29 ref = encodedAuth.asAuthOrSetView();
-        _verifyBurnAuthorizationFieldsFromView(ref, auth);
-    }
-
-    function test_burnAuthorization_readAllFieldsShortMetadataFuzz(BurnAuthorization memory auth) public pure {
-        auth.spec.version = TRANSFER_SPEC_VERSION;
-        auth.spec.metadata = SHORT_METADATA;
-        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
-        bytes29 ref = encodedAuth.asAuthOrSetView();
-        _verifyBurnAuthorizationFieldsFromView(ref, auth);
-    }
-
-    function test_burnAuthorization_readAllFieldsLongMetadataFuzz(BurnAuthorization memory auth) public pure {
-        auth.spec.version = TRANSFER_SPEC_VERSION;
-        auth.spec.metadata = LONG_METADATA;
-        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
-        bytes29 ref = encodedAuth.asAuthOrSetView();
-        _verifyBurnAuthorizationFieldsFromView(ref, auth);
-    }
-
     // ===== Iteration Tests =====
 
     function test_cursor_successFuzz(BurnAuthorization memory auth) public pure {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
-        bytes29 authView = encodedAuth.asAuthOrSetView();
+        bytes29 authView = BurnAuthorizationLib._asAuthOrSetView(encodedAuth);
 
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuth);
         assertEq(cursor.setOrAuthView, authView);
@@ -360,6 +338,32 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         cursor = cursor.next();
         vm.expectRevert(abi.encodeWithSelector(BurnAuthorizationLib.CursorOutOfBounds.selector));
         cursor.next();
+    }
+
+    // ===== Field Accessor Tests =====
+
+    function test_burnAuthorization_readAllFieldsEmptyMetadataFuzz(BurnAuthorization memory auth) public pure {
+        auth.spec.version = TRANSFER_SPEC_VERSION;
+        auth.spec.metadata = new bytes(0);
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes29 ref = BurnAuthorizationLib._asAuthOrSetView(encodedAuth);
+        _verifyBurnAuthorizationFieldsFromView(ref, auth);
+    }
+
+    function test_burnAuthorization_readAllFieldsShortMetadataFuzz(BurnAuthorization memory auth) public pure {
+        auth.spec.version = TRANSFER_SPEC_VERSION;
+        auth.spec.metadata = SHORT_METADATA;
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes29 ref = BurnAuthorizationLib._asAuthOrSetView(encodedAuth);
+        _verifyBurnAuthorizationFieldsFromView(ref, auth);
+    }
+
+    function test_burnAuthorization_readAllFieldsLongMetadataFuzz(BurnAuthorization memory auth) public pure {
+        auth.spec.version = TRANSFER_SPEC_VERSION;
+        auth.spec.metadata = LONG_METADATA;
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes29 ref = BurnAuthorizationLib._asAuthOrSetView(encodedAuth);
+        _verifyBurnAuthorizationFieldsFromView(ref, auth);
     }
 
 }
