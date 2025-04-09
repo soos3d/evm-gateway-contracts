@@ -17,6 +17,7 @@
  */
 pragma solidity ^0.8.28;
 
+/// @dev Magic: bytes4(keccak256("circle.gateway.TransferSpec"))
 bytes4 constant TRANSFER_SPEC_MAGIC = 0xca85def7;
 uint32 constant TRANSFER_SPEC_VERSION = 1;
 

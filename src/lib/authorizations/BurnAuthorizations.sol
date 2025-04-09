@@ -19,7 +19,9 @@ pragma solidity ^0.8.28;
 
 import {TransferSpec} from "./TransferSpec.sol";
 
+/// @dev Magic: bytes4(keccak256("circle.gateway.BurnAuthorization"))
 bytes4 constant BURN_AUTHORIZATION_MAGIC = 0x71a020ae;
+/// @dev Magic: bytes4(keccak256("circle.gateway.BurnAuthorizationSet"))
 bytes4 constant BURN_AUTHORIZATION_SET_MAGIC = 0xb12eecd9;
 
 // BurnAuthorization field offsets

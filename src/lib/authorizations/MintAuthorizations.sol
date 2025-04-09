@@ -19,7 +19,9 @@ pragma solidity ^0.8.28;
 
 import {TransferSpec} from "./TransferSpec.sol";
 
+/// @dev Magic: bytes4(keccak256("circle.gateway.MintAuthorization"))
 bytes4 constant MINT_AUTHORIZATION_MAGIC = 0x23ba354a;
+/// @dev Magic: bytes4(keccak256("circle.gateway.MintAuthorizationSet"))
 bytes4 constant MINT_AUTHORIZATION_SET_MAGIC = 0x95f860bd;
 
 // MintAuthorization field offsets
