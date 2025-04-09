@@ -20,22 +20,17 @@ pragma solidity ^0.8.28;
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {TransferSpec, TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
 import {BurnAuthorization, BurnAuthorizationSet, BURN_AUTHORIZATION_MAGIC, BURN_AUTHORIZATION_SET_MAGIC, BURN_AUTHORIZATION_MAGIC_OFFSET, BURN_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET, BURN_AUTHORIZATION_MAX_FEE_OFFSET, BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET, BURN_AUTHORIZATION_SET_MAGIC_OFFSET, BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET, BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET} from "./BurnAuthorizations.sol";
-import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
+import {
+    TransferSpecLib,
+    BYTES4_BYTES,
+    UINT32_BYTES,
+    UINT256_BYTES
+} from "./TransferSpecLib.sol";
 import {AuthorizationCursor} from "./AuthorizationCursor.sol";
 
 library BurnAuthorizationLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
-
-    // BurnAuthorization decoding errors
-    error MalformedBurnAuthorization(bytes data);
-    error MalformedBurnAuthorizationInvalidLength(
-        uint256 expectedMinimumLength,
-        uint256 actualLength
-    );
-    error MalformedBurnAuthorizationSet(bytes data);
-    error CursorOutOfBounds();
-    error InvalidAuthorizationMagic(bytes data);
 
     modifier onlyBurnAuthorization(bytes29 ref) {
         ref.assertType(
@@ -67,7 +62,7 @@ library BurnAuthorizationLib {
         bytes memory data
     ) internal pure returns (bytes29 ref) {
         if (data.length < BYTES4_BYTES) {
-            revert MalformedBurnAuthorization(data);
+            revert TransferSpecLib.AuthorizationDataTooShort(BYTES4_BYTES, data.length);
         }
         
         bytes29 initialView = data.ref(0);
@@ -81,7 +76,7 @@ library BurnAuthorizationLib {
                 TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_SET_MAGIC)
             );
         } else {
-            revert InvalidAuthorizationMagic(data);
+            revert TransferSpecLib.InvalidAuthorizationMagic(magic);
         }
         return ref;
     }
@@ -101,10 +96,7 @@ library BurnAuthorizationLib {
     ) private pure {
         // 1. Minimum header length check
         if (authView.len() < BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET) {
-            revert MalformedBurnAuthorizationInvalidLength(
-                BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
-                authView.len()
-            );
+            revert TransferSpecLib.AuthorizationHeaderTooShort(BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET, authView.len());
         }
 
         // 2. Total length consistency check
@@ -114,10 +106,7 @@ library BurnAuthorizationLib {
         uint256 expectedAuthLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET +
             specLengthDeclaredInAuth;
         if (authView.len() != expectedAuthLength) {
-            revert MalformedBurnAuthorizationInvalidLength(
-                expectedAuthLength,
-                authView.len()
-            );
+            revert TransferSpecLib.AuthorizationOverallLengthMismatch(expectedAuthLength, authView.len());
         }
     }
 
@@ -158,9 +147,7 @@ library BurnAuthorizationLib {
     ) internal pure onlyBurnAuthorizationSet(setView) {
         // 1. Minimum header length check
         if (setView.len() < BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
-            revert MalformedBurnAuthorizationSet(
-                "Data too short for set header"
-            );
+            revert TransferSpecLib.AuthorizationSetHeaderTooShort(BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET, setView.len());
         }
 
         // 2. Read declared count
@@ -169,14 +156,13 @@ library BurnAuthorizationLib {
 
         // 3. Iterate and validate each element
         for (uint32 i = 0; i < numAuths; i++) {
+            uint256 requiredOffsetForHeader = currentOffset + BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET;
             // 3a. Check bounds for header read
             if (
                 setView.len() <
-                currentOffset + BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET
+                requiredOffsetForHeader
             ) {
-                revert MalformedBurnAuthorizationSet(
-                    "Data too short for next BurnAuthorization header"
-                );
+                revert TransferSpecLib.AuthorizationSetElementHeaderTooShort(i, setView.len(), requiredOffsetForHeader);
             }
             // Read spec length to determine current auth total length
             uint32 specLength = uint32(
@@ -188,25 +174,21 @@ library BurnAuthorizationLib {
             );
             uint256 currentAuthTotalLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET +
                     specLength;
+            uint256 requiredOffsetForElement = currentOffset + currentAuthTotalLength;
             // Check bounds for full auth read
-            if (setView.len() < currentOffset + currentAuthTotalLength) {
-                revert MalformedBurnAuthorizationSet(
-                    "Data too short for next BurnAuthorization"
-                );
+            if (setView.len() < requiredOffsetForElement) {
+                revert TransferSpecLib.AuthorizationSetElementTooShort(i, setView.len(), requiredOffsetForElement);
             }
 
             // 3b. Check magic number of the current element slice
-            if (
-                bytes4(
-                    setView.index(
-                        currentOffset + BURN_AUTHORIZATION_MAGIC_OFFSET,
-                        BYTES4_BYTES
-                    )
-                ) != BURN_AUTHORIZATION_MAGIC
-            ) {
-                revert MalformedBurnAuthorizationSet(
-                    "Invalid authorization magic in set"
-                );
+            bytes4 elementMagic = bytes4(
+                setView.index(
+                    currentOffset + BURN_AUTHORIZATION_MAGIC_OFFSET,
+                    BYTES4_BYTES
+                )
+            );
+            if (elementMagic != BURN_AUTHORIZATION_MAGIC) {
+                revert TransferSpecLib.AuthorizationSetInvalidElementMagic(i, elementMagic);
             }
 
             // 3c. Create view and perform full recursive validation on the element
@@ -223,9 +205,7 @@ library BurnAuthorizationLib {
 
         // 4. Final total length consistency check
         if (currentOffset != setView.len()) {
-            revert MalformedBurnAuthorizationSet(
-                "Set length mismatch after validating all elements"
-            );
+            revert TransferSpecLib.AuthorizationSetOverallLengthMismatch(currentOffset, setView.len());
         }
     }
 
@@ -283,7 +263,7 @@ library BurnAuthorizationLib {
         AuthorizationCursor memory c
     ) internal pure returns (bytes29 ref) {
         if (c.done) {
-            revert CursorOutOfBounds();
+            revert TransferSpecLib.CursorOutOfBounds();
         }
 
         if (!isSet(c.setOrAuthView)) {
@@ -316,7 +296,7 @@ library BurnAuthorizationLib {
         AuthorizationCursor memory c
     ) internal pure returns (AuthorizationCursor memory) {
         if (c.done) {
-            revert CursorOutOfBounds();
+            revert TransferSpecLib.CursorOutOfBounds();
         }
 
         if (!isSet(c.setOrAuthView)) {
@@ -396,10 +376,9 @@ library BurnAuthorizationLib {
         );
 
         // Validate that the slice contains a valid TransferSpec
-        if (specRef.index(0, BYTES4_BYTES) != TRANSFER_SPEC_MAGIC) {
-            revert TransferSpecLib.MalformedTransferSpec(
-                "Invalid TransferSpec magic in BurnAuthorization"
-            );
+        bytes4 specMagic = bytes4(specRef.index(0, BYTES4_BYTES));
+        if (specMagic != TRANSFER_SPEC_MAGIC) {
+            revert TransferSpecLib.InvalidTransferSpecMagic(specMagic);    
         }
 
         return specRef;
@@ -448,7 +427,7 @@ library BurnAuthorizationLib {
         uint256 numAuths = authSet.authorizations.length;
 
         if (numAuths > type(uint32).max) {
-            revert MalformedBurnAuthorizationSet("Too many authorizations");
+            revert TransferSpecLib.AuthorizationSetTooManyElements(type(uint32).max);
         }
 
         // Calculate total size of all encoded authorizations

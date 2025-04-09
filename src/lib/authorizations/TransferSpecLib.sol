@@ -48,8 +48,29 @@ library TransferSpecLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
 
-    error MalformedTransferSpec(bytes data);
-    error MalformedTransferSpecInvalidLength(uint256 expectedMinimumLength, uint256 actualLength);
+    // TransferSpec errors
+    error InvalidTransferSpecMagic(bytes4 actualMagic);
+    error TransferSpecHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+    error TransferSpecOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
+    error TransferSpecMetadataFieldTooLarge(uint256 actualLength, uint256 maxLength);
+
+    // Common Authorization errors
+    error AuthorizationDataTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+    error InvalidAuthorizationMagic(bytes4 actualMagic);
+    error InvalidAuthorizationSetMagic(bytes4 actualMagic);
+    error AuthorizationHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+    error AuthorizationOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
+
+    // Common Authorization set errors
+    error AuthorizationSetHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+    error AuthorizationSetElementHeaderTooShort(uint32 index, uint256 actualSetLength, uint256 requiredOffset);
+    error AuthorizationSetElementTooShort(uint32 index, uint256 actualSetLength, uint256 requiredOffset);
+    error AuthorizationSetInvalidElementMagic(uint32 index, bytes4 actualMagic);
+    error AuthorizationSetOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
+    error AuthorizationSetTooManyElements(uint32 maxElements);
+
+    // Common iteration errors
+    error CursorOutOfBounds();
 
     function _toMemViewType(bytes4 magic) internal pure returns (uint40) {
         return uint40(uint32(magic));
@@ -69,7 +90,7 @@ library TransferSpecLib {
     function asTransferSpec(bytes memory data) internal pure returns (bytes29 ref) {
         ref = data.ref(_toMemViewType(TRANSFER_SPEC_MAGIC));
         if (ref.index(0, BYTES4_BYTES) != TRANSFER_SPEC_MAGIC) {
-            revert MalformedTransferSpec(data);
+            revert InvalidTransferSpecMagic(bytes4(ref.index(0, BYTES4_BYTES)));
         }
     }
 
@@ -81,12 +102,12 @@ library TransferSpecLib {
     /// Validation includes:
     /// 1. Minimum header length check (ensuring enough bytes for fixed fields).
     /// 2. Total length consistency check (ensuring `header_length + declared_metadata_length == total_view_length`).
-    /// @dev Reverts with `MalformedTransferSpecInvalidLength` if the structure is invalid.
+    /// @dev Reverts with `TransferSpecOverallLengthMismatch` if the structure is invalid.
     /// @param specView The TypedMemView reference to the encoded TransferSpec to validate.
     function _validateTransferSpecStructure(bytes29 specView) internal pure onlyTransferSpec(specView) {
         // 1. Minimum header length check
         if (specView.len() < TRANSFER_SPEC_METADATA_OFFSET) {
-            revert MalformedTransferSpecInvalidLength(TRANSFER_SPEC_METADATA_OFFSET, specView.len());
+            revert TransferSpecHeaderTooShort(TRANSFER_SPEC_METADATA_OFFSET, specView.len());
         }
 
         // 2. Total length consistency check
@@ -94,7 +115,7 @@ library TransferSpecLib {
         uint32 metadataLength = getMetadataLength(specView);
         uint256 expectedInternalSpecLength = TRANSFER_SPEC_METADATA_OFFSET + metadataLength;
         if (specView.len() != expectedInternalSpecLength) {
-            revert MalformedTransferSpecInvalidLength(expectedInternalSpecLength, specView.len());
+            revert TransferSpecOverallLengthMismatch(expectedInternalSpecLength, specView.len());
         }
     }
 
@@ -244,7 +265,7 @@ library TransferSpecLib {
         bytes memory metadata
     ) private pure returns (bytes memory) {
         if (metadata.length > type(uint32).max) {
-            revert MalformedTransferSpec("Metadata length exceeds maximum allowed (4GB)");
+            revert TransferSpecMetadataFieldTooLarge(metadata.length, type(uint32).max);
         }
 
         return abi.encodePacked(

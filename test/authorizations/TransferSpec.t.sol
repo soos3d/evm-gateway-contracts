@@ -38,7 +38,9 @@ contract TransferSpecTest is AuthorizationTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_asTransferSpec_incorrectMagic() external {
         (bytes memory data,) = _magic("something else");
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.MalformedTransferSpec.selector, data));
+        // The first 4 bytes of data will be the incorrect magic.
+        bytes4 incorrectMagic = bytes4(data); 
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecMagic.selector, incorrectMagic));
         data.asTransferSpec();
     }
 
