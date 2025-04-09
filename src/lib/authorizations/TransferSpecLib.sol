@@ -44,6 +44,10 @@ uint8 constant UINT32_BYTES = 4;
 uint8 constant UINT256_BYTES = 32;
 uint8 constant BYTES32_BYTES = 32;
 
+/// @title TransferSpecLib
+/// @notice Library for encoding, validating, hashing, and providing field accessors for TransferSpec structures.
+/// @dev Provides low-level access and manipulation functions for byte-encoded TransferSpec data
+///      using TypedMemView for efficient memory operations.
 library TransferSpecLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;

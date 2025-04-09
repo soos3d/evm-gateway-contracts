@@ -40,6 +40,10 @@ import {
 } from "./TransferSpecLib.sol";
 import {AuthorizationCursor} from "./AuthorizationCursor.sol";
 
+/// @title MintAuthorizationLib
+/// @notice Library for encoding, validating, and iterating over MintAuthorization and MintAuthorizationSet structures.
+/// @dev Provides functions to handle single mint authorizations or sets of them, using TypedMemView for efficient
+///      memory operations and AuthorizationCursor for unified iteration.
 library MintAuthorizationLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;

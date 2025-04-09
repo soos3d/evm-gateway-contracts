@@ -28,6 +28,10 @@ import {
 } from "./TransferSpecLib.sol";
 import {AuthorizationCursor} from "./AuthorizationCursor.sol";
 
+/// @title BurnAuthorizationLib
+/// @notice Library for encoding, validating, and iterating over BurnAuthorization and BurnAuthorizationSet structures.
+/// @dev Provides functions to handle single burn authorizations or sets of them, using TypedMemView for efficient
+///      memory operations and AuthorizationCursor for unified iteration.
 library BurnAuthorizationLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
