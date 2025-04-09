@@ -20,7 +20,7 @@ pragma solidity ^0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {TransferSpec, TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
-import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
+import {TransferSpecLib, BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
 import {BurnAuthorization, BurnAuthorizationSet, BURN_AUTHORIZATION_MAGIC} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {MintAuthorization, MintAuthorizationSet, MINT_AUTHORIZATION_MAGIC} from "src/lib/authorizations/MintAuthorizations.sol";
@@ -121,7 +121,7 @@ contract AuthorizationTestUtils is Test {
         }
 
         bytes4 encodedInvalidLength = bytes4(corruptedMetadataLength);
-        for (uint8 i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < BYTES4_BYTES; i++) {
             corruptedData[innerMetadataLengthOffset + i] = encodedInvalidLength[i];
         }
 

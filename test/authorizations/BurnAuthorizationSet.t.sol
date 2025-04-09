@@ -325,8 +325,8 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint32 elementIndex = 0;
         bytes4 corruptedMagic;
         uint256 offset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + BURN_AUTHORIZATION_MAGIC_OFFSET;
-        bytes memory tempBytes = new bytes(4); 
-        for (uint i = 0; i < 4; i++) {
+        bytes memory tempBytes = new bytes(BYTES4_BYTES); 
+        for (uint i = 0; i < BYTES4_BYTES; i++) {
             tempBytes[i] = encodedAuthSet[offset + i];
         }
         corruptedMagic = bytes4(tempBytes);
@@ -361,8 +361,8 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint32 elementIndex = 1;
         bytes4 corruptedMagic;
         uint256 offset = secondAuthOffset + BURN_AUTHORIZATION_MAGIC_OFFSET;
-        bytes memory tempBytes = new bytes(4); 
-        for (uint i = 0; i < 4; i++) {
+        bytes memory tempBytes = new bytes(BYTES4_BYTES); 
+        for (uint i = 0; i < BYTES4_BYTES; i++) {
             tempBytes[i] = encodedAuthSet[offset + i];
         }
         corruptedMagic = bytes4(tempBytes);
@@ -465,8 +465,8 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
 
         bytes4 corruptedMagic;
         uint256 offset = innerSpecMagicOffset;
-        bytes memory tempBytes = new bytes(4); 
-        for (uint i = 0; i < 4; i++) {
+        bytes memory tempBytes = new bytes(BYTES4_BYTES); 
+        for (uint i = 0; i < BYTES4_BYTES; i++) {
             tempBytes[i] = encodedAuthSet[offset + i];
         }
         corruptedMagic = bytes4(tempBytes);

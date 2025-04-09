@@ -112,17 +112,17 @@ library MintAuthorizationLib {
         }
     }
 
-    /// @notice Validates the full structural integrity of a MintAuthorization view, including the nested TransferSpec.
     /// @dev Performs structural validation on a MintAuthorization view. Reverts on failure.
-    /// Assumes the view has the correct MintAuthorization magic number (enforced by the
-    ///      `onlyMintAuthorization` modifier).
+    ///      Assumes the view has the correct MintAuthorization magic number
+    ///      (e.g., validated by `_asAuthOrSetView`).
     /// Validation includes:
-    /// 1. Wrapper structure validation (header length, total length consistency, nested TransferSpec magic).
+    /// 1. Wrapper structure validation (header length, total length consistency).
     /// 2. Full recursive validation of the nested TransferSpec structure.
-    /// @dev Reverts with specific errors (e.g., MalformedMintAuthorizationInvalidLength, MalformedTransferSpec) if the
+    /// @dev Reverts with specific errors (e.g., `AuthorizationHeaderTooShort`,
+    ///      `AuthorizationOverallLengthMismatch`, `InvalidTransferSpecMagic`,
+    ///      `TransferSpecHeaderTooShort`, `TransferSpecOverallLengthMismatch`) if the
     ///      structure is invalid.
-    /// @param authView The TypedMemView reference to the encoded MintAuthorization to
-    ///                 validate.
+    /// @param authView The TypedMemView reference to the encoded MintAuthorization to validate.
     function _validateMintAuthorization(
         bytes29 authView
     ) internal pure {
@@ -142,7 +142,8 @@ library MintAuthorizationLib {
     ///    b. Checking the magic number of each authorization.
     ///    c. Performing full recursive validation on each authorization using `_validateMintAuthorization`.
     /// 4. Final total length consistency check.
-    /// @dev Reverts with specific errors (e.g., MalformedMintAuthorizationSet) if the structure is invalid.
+    /// @dev Reverts with errors relating to set/element structure, bounds, magic numbers,
+    ///      and nested validation (see `_validateMintAuthorization`).
     /// @param setView The TypedMemView reference to the encoded MintAuthorizationSet to validate.
     function _validateMintAuthorizationSet(
         bytes29 setView
@@ -211,12 +212,12 @@ library MintAuthorizationLib {
         }
     }
 
-    /// @notice Validates the structural integrity of either a MintAuthorization or a MintAuthorizationSet.
     /// @dev Validates the structural integrity of either a MintAuthorization or a MintAuthorizationSet.
-    ///      First casts the data using `asAuthorizationOrSetView`, then calls the appropriate
-    ///      specific validation function (`_validateMintAuthorization` or `_validateMintAuthorizationSet`).
+    ///      First casts the data using `_asAuthOrSetView`, then calls the appropriate specific
+    ///      validation function (`_validateMintAuthorization` or `_validateMintAuthorizationSet`).
     ///      Reverts with specific errors if casting or validation fails.
-    /// @param data The raw bytes representing either an encoded single MintAuthorization or an encoded MintAuthorizationSet.
+    /// @param data The raw bytes representing either an encoded single MintAuthorization or an
+    ///             encoded MintAuthorizationSet.
     function validate(bytes memory data) internal pure {
         bytes29 ref = _asAuthOrSetView(data);
         if (isSet(ref)) {
@@ -228,11 +229,13 @@ library MintAuthorizationLib {
 
     // --- Iteration ---
 
-    /// @dev For a single MintAuthorization, the cursor will yield that single element.
+    /// @dev For a single MintAuthorization, the cursor yields that single element.
     ///      For a MintAuthorizationSet, it iterates through each contained MintAuthorization.
     ///      Sets the 'done' flag immediately if the set contains zero authorizations.
-    /// @param data The raw bytes representing either an encoded MintAuthorization or an encoded MintAuthorizationSet.
+    /// @param data The raw bytes representing either an encoded MintAuthorization or an
+    ///             encoded MintAuthorizationSet.
     /// @return c An initialized AuthorizationCursor memory struct.
+    /// @dev Reverts with `AuthorizationDataTooShort` or `InvalidAuthorizationMagic` if casting fails.
     function cursor(
         bytes memory data
     ) internal pure returns (AuthorizationCursor memory c) {

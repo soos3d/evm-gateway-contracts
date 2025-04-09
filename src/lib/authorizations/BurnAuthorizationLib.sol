@@ -102,15 +102,15 @@ library BurnAuthorizationLib {
 
     /// @notice Validates the full structural integrity of a BurnAuthorization view, including the nested TransferSpec.
     /// @dev Performs structural validation on a BurnAuthorization view. Reverts on failure.
-    /// Assumes the view has the correct BurnAuthorization magic number (enforced by the
-    ///      `onlyBurnAuthorization` modifier).
+    ///      Assumes the view has the correct BurnAuthorization magic number (e.g., validated by `_asAuthOrSetView`).
     /// Validation includes:
-    /// 1. Wrapper structure validation (header length, total length consistency, nested TransferSpec magic).
+    /// 1. Wrapper structure validation (header length, total length consistency).
     /// 2. Full recursive validation of the nested TransferSpec structure.
-    /// @dev Reverts with specific errors (e.g., MalformedBurnAuthorizationInvalidLength, MalformedTransferSpec) if the
-    ///      structure is invalid.
-    /// @param authView The TypedMemView reference to the encoded BurnAuthorization to
-    ///                 validate.
+    /// @dev Reverts with specific errors (e.g., `AuthorizationHeaderTooShort`,
+    ///      `AuthorizationOverallLengthMismatch`, `InvalidTransferSpecMagic`,
+    ///      `TransferSpecHeaderTooShort`, `TransferSpecOverallLengthMismatch`)
+    ///      if the structure is invalid.
+    /// @param authView The TypedMemView reference to the encoded BurnAuthorization to validate.
     function _validateBurnAuthorization(
         bytes29 authView
     ) internal pure {
@@ -130,7 +130,8 @@ library BurnAuthorizationLib {
     ///    b. Checking the magic number of each authorization.
     ///    c. Performing full recursive validation on each authorization using `_validateBurnAuthorization`.
     /// 4. Final total length consistency check.
-    /// @dev Reverts with specific errors (e.g., MalformedBurnAuthorizationSet) if the structure is invalid.
+    /// @dev Reverts with errors relating to set/element structure, bounds, magic numbers,
+    ///      and nested validation (see `_validateBurnAuthorization`).
     /// @param setView The TypedMemView reference to the encoded BurnAuthorizationSet to validate.
     function _validateBurnAuthorizationSet(
         bytes29 setView
@@ -221,6 +222,7 @@ library BurnAuthorizationLib {
     ///      Sets the 'done' flag immediately if the set contains zero authorizations.
     /// @param data The raw bytes representing either an encoded BurnAuthorization or an encoded BurnAuthorizationSet.
     /// @return c An initialized AuthorizationCursor memory struct.
+    /// @dev Reverts with `AuthorizationDataTooShort` or `InvalidAuthorizationMagic` if casting fails.
     function cursor(
         bytes memory data
     ) internal pure returns (AuthorizationCursor memory c) {

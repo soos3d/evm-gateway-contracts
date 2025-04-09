@@ -105,7 +105,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         uint32 invalidSpecLength = originalSpecLength + 1;
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         bytes memory corruptedData = cloneBytes(encodedAuth);
-        for (uint8 i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < BYTES4_BYTES; i++) {
             corruptedData[MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET + i] = encodedInvalidLength[i];
         }
 
@@ -214,7 +214,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         bytes4 corruptedMagic;
         uint256 offset = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET;
         bytes memory tempBytes = new bytes(BYTES4_BYTES);
-        for (uint i = 0; i < 4; i++) {
+        for (uint i = 0; i < BYTES4_BYTES; i++) {
             tempBytes[i] = encodedAuth[offset + i];
         }
         corruptedMagic = bytes4(tempBytes);

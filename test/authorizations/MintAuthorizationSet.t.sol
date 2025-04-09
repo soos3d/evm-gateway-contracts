@@ -325,8 +325,8 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         uint32 elementIndex = 0;
         bytes4 corruptedMagic;
         uint256 offset = MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + MINT_AUTHORIZATION_MAGIC_OFFSET;
-        bytes memory tempBytes = new bytes(4); 
-        for (uint i = 0; i < 4; i++) {
+        bytes memory tempBytes = new bytes(BYTES4_BYTES); 
+        for (uint i = 0; i < BYTES4_BYTES; i++) {
             tempBytes[i] = encodedAuthSet[offset + i];
         }
         corruptedMagic = bytes4(tempBytes);
@@ -361,8 +361,8 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         uint32 elementIndex = 1;
         bytes4 corruptedMagic;
         uint256 offset = secondAuthOffset + MINT_AUTHORIZATION_MAGIC_OFFSET;
-        bytes memory tempBytes = new bytes(4); 
-        for (uint i = 0; i < 4; i++) {
+        bytes memory tempBytes = new bytes(BYTES4_BYTES); 
+        for (uint i = 0; i < BYTES4_BYTES; i++) {
             tempBytes[i] = encodedAuthSet[offset + i];
         }
         corruptedMagic = bytes4(tempBytes);
@@ -395,7 +395,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
             MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET;
         uint32 invalidSpecLength = originalSpecLength - 1;
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
-        for (uint8 i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < BYTES4_BYTES; i++) {
             encodedAuthSet[outerSpecLengthOffset + i] = encodedInvalidLength[i];
         }
 
@@ -432,7 +432,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
             MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET;
         uint32 invalidSpecLength = originalSpecLength + 1; // Make it larger than actual
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
-        for (uint8 i = 0; i < 4; i++) {
+        for (uint8 i = 0; i < BYTES4_BYTES; i++) {
             encodedAuthSet[outerSpecLengthOffset + i] = encodedInvalidLength[i];
         }
 
@@ -465,8 +465,8 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
 
         bytes4 corruptedMagic;
         uint256 offset = innerSpecMagicOffset;
-        bytes memory tempBytes = new bytes(4); 
-        for (uint i = 0; i < 4; i++) {
+        bytes memory tempBytes = new bytes(BYTES4_BYTES); 
+        for (uint i = 0; i < BYTES4_BYTES; i++) {
             tempBytes[i] = encodedAuthSet[offset + i];
         }
         corruptedMagic = bytes4(tempBytes);

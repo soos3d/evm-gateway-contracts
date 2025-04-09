@@ -83,7 +83,8 @@ library TransferSpecLib {
     // --- Casting ---
 
     /// @notice Creates a typed memory view for a TransferSpec
-    /// @dev Creates a typed view with the proper type encoding and validates the magic number
+    /// @dev Creates a typed view with the proper type encoding and validates the magic number.
+    ///      Does not perform full structural validation (use `_validateTransferSpecStructure` for that).
     /// @param data The raw bytes to create a view into
     /// @return ref A typed memory view referencing the TransferSpec data
     function asTransferSpec(bytes memory data) internal pure returns (bytes29 ref) {
@@ -97,11 +98,10 @@ library TransferSpecLib {
 
     /// @notice Validates the structural integrity of an encoded TransferSpec memory view.
     /// @dev Performs structural validation on a TransferSpec view. Reverts on failure.
-    /// Assumes the view has the correct TransferSpec magic number (e.g., checked via `asTransferSpec`).
-    /// Validation includes:
-    /// 1. Minimum header length check (ensuring enough bytes for fixed fields).
-    /// 2. Total length consistency check (ensuring `header_length + declared_metadata_length == total_view_length`).
-    /// @dev Reverts with `TransferSpecOverallLengthMismatch` if the structure is invalid.
+    ///      Assumes outer magic number check has passed (via casting).
+    /// Validation steps:
+    /// 1. Minimum header length check.
+    /// 2. Total length consistency check (using declared TransferSpec length).
     /// @param specView The TypedMemView reference to the encoded TransferSpec to validate.
     function _validateTransferSpecStructure(bytes29 specView) internal pure {
         // 1. Minimum header length check
