@@ -212,7 +212,7 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
         wallet.balanceOfBatch(depositors, ids);
     }
 
-    function test_balanceOfBatch_returnsMultipleBalanceTypes() public {
+    function test_balanceOfBatch_returnsMultipleBalanceTypes() public view {
         address[] memory depositors = new address[](4);
         uint256[] memory ids = new uint256[](4);
 
