@@ -25,6 +25,7 @@ import {IERC7597} from "src/interfaces/IERC7597.sol";
 import {IERC7598} from "src/interfaces/IERC7598.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /// @title Spend Wallet
 ///
@@ -65,6 +66,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     error CannotAddSelfAsSpender();
     error InputArrayLengthMismatch();
     error InvalidBalanceType(uint96 balanceType);
+    error InvalidBurnSigner();
 
     enum BalanceType {
         Total, // 0
@@ -689,12 +691,58 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param fees             The fees to be collected for each burn. Fees for burns on other domains are ignored and
     ///                         may be passed as zero. Each fee must be no more than `maxFee` of the corresponding burn
     ///                         authorization.
-    function burnSpent(bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees)
-        external
-        whenNotPaused
-    {
+    function burnSpent(
+        bytes[] memory authorizations,
+        bytes[] memory signatures,
+        uint256[][] memory fees,
+        bytes memory burnerSignature
+    ) external view whenNotPaused {
+        _verifyBurnerSignature(burnerSignature);
+
         // For each burn authorization:
         // IBurnToken(token).burn(amountToBurn);
+    }
+
+    /// Internal function to verify the signature of the `burnSigner` on the other arguments in calldata, using assembly
+    /// to hash the entire calldata portion rather than using abi.encode (which does a lot of copying and stack
+    /// manipulation).
+    ///
+    /// @param burnerSignature   The signature from the `burnSigner` to verify
+    function _verifyBurnerSignature(bytes memory burnerSignature) internal view {
+        // Ensure that the signature is the expected length, to correctly index into the calldata
+        if (burnerSignature.length != 65) {
+            revert InvalidBurnSigner();
+        }
+
+        bytes memory calldataBytes;
+        bytes32 calldataHash;
+
+        assembly {
+            // Get the size of the three arguments we're interested in:
+            //   - Start with the calldatasize
+            //   - Subtract 4 bytes for the function selector
+            //   - Subtract 128 (0x80) bytes for the 4 argument offsets
+            //   - Subtract 128 (0x80) bytes for the signature (last argument)
+            let size := sub(calldatasize(), 0x104)
+
+            // Allocate `size` bytes memory to copy to
+            calldataBytes := mload(0x40)
+            mstore(0x40, add(calldataBytes, size))
+
+            // Copy the calldata portion we're interested in to memory
+            //   - Skip the function selector (0x4 bytes)
+            //   - Skip the 4 argument offsets (0x80 bytes)
+            //   - Copy only `size` bytes, which excludes the signature argument
+            calldatacopy(calldataBytes, 0x84, size)
+
+            // Hash `calldataBytes`, which is the message that was signed by `burnSigner`
+            calldataHash := keccak256(calldataBytes, size)
+        }
+
+        address recoveredSigner = ECDSA.recover(calldataHash, burnerSignature);
+        if (recoveredSigner != burnSigner) {
+            revert InvalidBurnSigner();
+        }
     }
 
     /// Emitted when a spend authorization is used on the same chain as its source, resulting in a same-chain spend that
