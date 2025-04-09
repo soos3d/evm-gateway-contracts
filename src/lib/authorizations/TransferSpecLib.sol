@@ -21,7 +21,6 @@ import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {
     TransferSpec,
     TRANSFER_SPEC_MAGIC,
-    TRANSFER_SPEC_MAGIC_OFFSET,
     TRANSFER_SPEC_VERSION_OFFSET,
     TRANSFER_SPEC_SOURCE_DOMAIN_OFFSET,
     TRANSFER_SPEC_DESTINATION_DOMAIN_OFFSET,
@@ -37,7 +36,7 @@ import {
     TRANSFER_SPEC_NONCE_OFFSET,
     TRANSFER_SPEC_METADATA_LENGTH_OFFSET,
     TRANSFER_SPEC_METADATA_OFFSET
-    } from "./TransferSpec.sol";
+} from "./TransferSpec.sol";
 
 uint8 constant BYTES4_BYTES = 4;
 uint8 constant UINT32_BYTES = 4;
@@ -307,5 +306,4 @@ library TransferSpecLib {
     function getHash(bytes29 ref) internal pure returns (bytes32) {
         return ref.keccak();
     }
-
 }

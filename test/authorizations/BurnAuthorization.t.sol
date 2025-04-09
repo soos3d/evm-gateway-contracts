@@ -42,14 +42,16 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_asAuthOrSetView_revertsOnShortData() public {
         bytes memory shortData = hex"1122";
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.AuthorizationDataTooShort.selector, BYTES4_BYTES, shortData.length));
+        vm.expectRevert(
+            abi.encodeWithSelector(TransferSpecLib.AuthorizationDataTooShort.selector, BYTES4_BYTES, shortData.length)
+        );
         BurnAuthorizationLib._asAuthOrSetView(shortData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
     function test_asAuthOrSetView_revertsOnInvalidMagic4Bytes() public {
         (bytes memory invalidMagicData,) = _magic("not a valid magic");
-        bytes4 incorrectMagic = bytes4(invalidMagicData); 
+        bytes4 incorrectMagic = bytes4(invalidMagicData);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidAuthorizationMagic.selector, incorrectMagic));
         BurnAuthorizationLib._asAuthOrSetView(invalidMagicData);
     }
@@ -188,13 +190,8 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         uint256 fixedMaxBlockHeight = 1;
         uint256 fixedMaxFee = 1;
         uint32 incorrectSpecLength = 2;
-        bytes memory corruptedData = abi.encodePacked(
-            BURN_AUTHORIZATION_MAGIC,
-            fixedMaxBlockHeight,
-            fixedMaxFee,
-            incorrectSpecLength,
-            hex"0000"
-        );
+        bytes memory corruptedData =
+            abi.encodePacked(BURN_AUTHORIZATION_MAGIC, fixedMaxBlockHeight, fixedMaxFee, incorrectSpecLength, hex"0000");
 
         bytes memory expectedRevertData = bytes(
             string.concat(
@@ -219,14 +216,13 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         bytes4 corruptedMagic;
         uint256 offset = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET;
         bytes memory tempBytes = new bytes(BYTES4_BYTES);
-        for (uint i = 0; i < BYTES4_BYTES; i++) {
+        for (uint8 i = 0; i < BYTES4_BYTES; i++) {
             tempBytes[i] = encodedAuth[offset + i];
         }
         corruptedMagic = bytes4(tempBytes);
 
-        bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.InvalidTransferSpecMagic.selector, corruptedMagic
-        );
+        bytes memory expectedRevertData =
+            abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecMagic.selector, corruptedMagic);
 
         vm.expectRevert(expectedRevertData);
         BurnAuthorizationLib.validate(encodedAuth);
@@ -235,14 +231,13 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_innerSpec_revertsOnDataTooShortForHeaderFuzz(BurnAuthorization memory auth) public {
         uint32 incorrectSpecLength = TRANSFER_SPEC_METADATA_OFFSET - 1;
-        bytes memory dummySpecData = abi.encodePacked(TRANSFER_SPEC_MAGIC, new bytes(incorrectSpecLength - BYTES4_BYTES));
+        bytes memory dummySpecData =
+            abi.encodePacked(TRANSFER_SPEC_MAGIC, new bytes(incorrectSpecLength - BYTES4_BYTES));
         bytes memory corruptedData = abi.encodePacked(
             BURN_AUTHORIZATION_MAGIC, auth.maxBlockHeight, auth.maxFee, incorrectSpecLength, dummySpecData
         );
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.TransferSpecHeaderTooShort.selector,
-            TRANSFER_SPEC_METADATA_OFFSET,
-            incorrectSpecLength
+            TransferSpecLib.TransferSpecHeaderTooShort.selector, TRANSFER_SPEC_METADATA_OFFSET, incorrectSpecLength
         );
 
         vm.expectRevert(expectedRevertData);
@@ -276,7 +271,9 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_innerSpec_revertsOnDeclaredMetadataLengthTooSmallFuzz(BurnAuthorization memory auth) public {
+    function test_validate_innerSpec_revertsOnDeclaredMetadataLengthTooSmallFuzz(BurnAuthorization memory auth)
+        public
+    {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
@@ -376,5 +373,4 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         bytes29 ref = BurnAuthorizationLib._asAuthOrSetView(encodedAuth);
         _verifyBurnAuthorizationFieldsFromView(ref, auth);
     }
-
 }

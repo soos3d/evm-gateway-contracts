@@ -28,5 +28,3 @@ struct AuthorizationCursor {
     uint32 index; // The 0-based index of the current authorization.
     bool done; // A flag indicating whether iteration is complete (i.e., `index == numAuths`).
 }
-
-

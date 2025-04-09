@@ -21,9 +21,9 @@ import {Test} from "forge-std/Test.sol";
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {TransferSpec, TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
-import {BurnAuthorization, BurnAuthorizationSet, BURN_AUTHORIZATION_MAGIC} from "src/lib/authorizations/BurnAuthorizations.sol";
+import {BurnAuthorization, BURN_AUTHORIZATION_MAGIC} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
-import {MintAuthorization, MintAuthorizationSet, MINT_AUTHORIZATION_MAGIC} from "src/lib/authorizations/MintAuthorizations.sol";
+import {MintAuthorization, MINT_AUTHORIZATION_MAGIC} from "src/lib/authorizations/MintAuthorizations.sol";
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 
 contract AuthorizationTestUtils is Test {
@@ -63,7 +63,9 @@ contract AuthorizationTestUtils is Test {
         assertEq(TransferSpecLib.getSourceToken(ref), spec.sourceToken, "Eq Fail: sourceToken");
         assertEq(TransferSpecLib.getDestinationToken(ref), spec.destinationToken, "Eq Fail: destinationToken");
         assertEq(TransferSpecLib.getSourceDepositor(ref), spec.sourceDepositor, "Eq Fail: sourceDepositor");
-        assertEq(TransferSpecLib.getDestinationRecipient(ref), spec.destinationRecipient, "Eq Fail: destinationRecipient");
+        assertEq(
+            TransferSpecLib.getDestinationRecipient(ref), spec.destinationRecipient, "Eq Fail: destinationRecipient"
+        );
         assertEq(TransferSpecLib.getSourceSigner(ref), spec.sourceSigner, "Eq Fail: sourceSigner");
         assertEq(TransferSpecLib.getDestinationCaller(ref), spec.destinationCaller, "Eq Fail: destinationCaller");
         assertEq(TransferSpecLib.getValue(ref), spec.value, "Eq Fail: value");

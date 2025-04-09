@@ -39,7 +39,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
     function test_asTransferSpec_incorrectMagic() external {
         (bytes memory data,) = _magic("something else");
         // The first 4 bytes of data will be the incorrect magic.
-        bytes4 incorrectMagic = bytes4(data); 
+        bytes4 incorrectMagic = bytes4(data);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecMagic.selector, incorrectMagic));
         data.asTransferSpec();
     }
@@ -77,7 +77,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.metadata = SHORT_METADATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
         bytes29 ref = encodedSpec.asTransferSpec();
-        
+
         bytes32 expectedHash = keccak256(encodedSpec);
         bytes32 libHash = TransferSpecLib.getHash(ref);
 

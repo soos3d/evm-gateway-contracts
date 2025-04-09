@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {TransferSpec, TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
+import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
 import {
     MintAuthorization,
     MintAuthorizationSet,
@@ -28,16 +28,10 @@ import {
     MINT_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET,
     MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET,
     MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
-    MINT_AUTHORIZATION_SET_MAGIC_OFFSET,
     MINT_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET,
     MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET
 } from "./MintAuthorizations.sol";
-import {
-    TransferSpecLib,
-    BYTES4_BYTES,
-    UINT32_BYTES,
-    UINT256_BYTES
-} from "./TransferSpecLib.sol";
+import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
 import {AuthorizationCursor} from "./AuthorizationCursor.sol";
 
 /// @title MintAuthorizationLib
@@ -60,23 +54,17 @@ library MintAuthorizationLib {
     /// @return ref A typed memory view referencing the data, typed according to the magic number found.
     /// @dev Reverts with InvalidAuthorizationMagic if neither known magic number is present.
     /// @dev Reverts if data length is less than 4.
-    function _asAuthOrSetView(
-        bytes memory data
-    ) internal pure returns (bytes29 ref) {
+    function _asAuthOrSetView(bytes memory data) internal pure returns (bytes29 ref) {
         if (data.length < BYTES4_BYTES) {
             revert TransferSpecLib.AuthorizationDataTooShort(BYTES4_BYTES, data.length);
         }
-        
+
         bytes29 initialView = data.ref(0);
         bytes4 magic = bytes4(initialView.index(0, BYTES4_BYTES));
         if (magic == MINT_AUTHORIZATION_MAGIC) {
-            ref = initialView.castTo(
-                TransferSpecLib._toMemViewType(MINT_AUTHORIZATION_MAGIC)
-            );
+            ref = initialView.castTo(TransferSpecLib._toMemViewType(MINT_AUTHORIZATION_MAGIC));
         } else if (magic == MINT_AUTHORIZATION_SET_MAGIC) {
-            ref = initialView.castTo(
-                TransferSpecLib._toMemViewType(MINT_AUTHORIZATION_SET_MAGIC)
-            );
+            ref = initialView.castTo(TransferSpecLib._toMemViewType(MINT_AUTHORIZATION_SET_MAGIC));
         } else {
             revert TransferSpecLib.InvalidAuthorizationMagic(magic);
         }
@@ -93,20 +81,15 @@ library MintAuthorizationLib {
     /// 1. Minimum header length check.
     /// 2. Total length consistency check (using declared TransferSpec length).
     /// @param authView The TypedMemView reference to the encoded MintAuthorization to validate.
-    function _validateMintAuthorizationOuterStructure(
-        bytes29 authView
-    ) private pure {
+    function _validateMintAuthorizationOuterStructure(bytes29 authView) private pure {
         // 1. Minimum header length check
         if (authView.len() < MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET) {
             revert TransferSpecLib.AuthorizationHeaderTooShort(MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET, authView.len());
         }
 
         // 2. Total length consistency check
-        uint32 specLengthDeclaredInAuth = getTransferSpecLength(
-                authView
-            );
-        uint256 expectedAuthLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET +
-            specLengthDeclaredInAuth;
+        uint32 specLengthDeclaredInAuth = getTransferSpecLength(authView);
+        uint256 expectedAuthLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLengthDeclaredInAuth;
         if (authView.len() != expectedAuthLength) {
             revert TransferSpecLib.AuthorizationOverallLengthMismatch(expectedAuthLength, authView.len());
         }
@@ -123,9 +106,7 @@ library MintAuthorizationLib {
     ///      `TransferSpecHeaderTooShort`, `TransferSpecOverallLengthMismatch`) if the
     ///      structure is invalid.
     /// @param authView The TypedMemView reference to the encoded MintAuthorization to validate.
-    function _validateMintAuthorization(
-        bytes29 authView
-    ) internal pure {
+    function _validateMintAuthorization(bytes29 authView) internal pure {
         _validateMintAuthorizationOuterStructure(authView);
         bytes29 specView = getTransferSpec(authView);
         TransferSpecLib._validateTransferSpecStructure(specView);
@@ -145,12 +126,12 @@ library MintAuthorizationLib {
     /// @dev Reverts with errors relating to set/element structure, bounds, magic numbers,
     ///      and nested validation (see `_validateMintAuthorization`).
     /// @param setView The TypedMemView reference to the encoded MintAuthorizationSet to validate.
-    function _validateMintAuthorizationSet(
-        bytes29 setView
-    ) internal pure {
+    function _validateMintAuthorizationSet(bytes29 setView) internal pure {
         // 1. Minimum header length check
         if (setView.len() < MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
-            revert TransferSpecLib.AuthorizationSetHeaderTooShort(MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET, setView.len());
+            revert TransferSpecLib.AuthorizationSetHeaderTooShort(
+                MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET, setView.len()
+            );
         }
 
         // 2. Read declared count
@@ -161,22 +142,13 @@ library MintAuthorizationLib {
         for (uint32 i = 0; i < numAuths; i++) {
             uint256 requiredOffsetForHeader = currentOffset + MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET;
             // 3a. Check bounds for header read
-            if (
-                setView.len() <
-                requiredOffsetForHeader
-            ) {
+            if (setView.len() < requiredOffsetForHeader) {
                 revert TransferSpecLib.AuthorizationSetElementHeaderTooShort(i, setView.len(), requiredOffsetForHeader);
             }
             // Read spec length to determine current auth total length
-            uint32 specLength = uint32(
-                setView.indexUint(
-                    currentOffset +
-                        MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET,
-                    UINT32_BYTES
-                )
-            );
-            uint256 currentAuthTotalLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET +
-                    specLength;
+            uint32 specLength =
+                uint32(setView.indexUint(currentOffset + MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+            uint256 currentAuthTotalLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLength;
             uint256 requiredOffsetForElement = currentOffset + currentAuthTotalLength;
             // Check bounds for full auth read
             if (setView.len() < requiredOffsetForElement) {
@@ -184,21 +156,14 @@ library MintAuthorizationLib {
             }
 
             // 3b. Check magic number of the current element slice
-            bytes4 elementMagic = bytes4(
-                setView.index(
-                    currentOffset + MINT_AUTHORIZATION_MAGIC_OFFSET,
-                    BYTES4_BYTES
-                )
-            );
+            bytes4 elementMagic = bytes4(setView.index(currentOffset + MINT_AUTHORIZATION_MAGIC_OFFSET, BYTES4_BYTES));
             if (elementMagic != MINT_AUTHORIZATION_MAGIC) {
                 revert TransferSpecLib.AuthorizationSetInvalidElementMagic(i, elementMagic);
             }
 
             // 3c. Create view and perform full recursive validation on the element
             bytes29 authView = setView.slice(
-                currentOffset,
-                currentAuthTotalLength,
-                TransferSpecLib._toMemViewType(MINT_AUTHORIZATION_MAGIC)
+                currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(MINT_AUTHORIZATION_MAGIC)
             );
             _validateMintAuthorization(authView);
 
@@ -236,9 +201,7 @@ library MintAuthorizationLib {
     ///             encoded MintAuthorizationSet.
     /// @return c An initialized AuthorizationCursor memory struct.
     /// @dev Reverts with `AuthorizationDataTooShort` or `InvalidAuthorizationMagic` if casting fails.
-    function cursor(
-        bytes memory data
-    ) internal pure returns (AuthorizationCursor memory c) {
+    function cursor(bytes memory data) internal pure returns (AuthorizationCursor memory c) {
         bytes29 ref = _asAuthOrSetView(data);
 
         if (!isSet(ref)) {
@@ -264,9 +227,7 @@ library MintAuthorizationLib {
     /// @dev Reverts with CursorOutOfBounds if the cursor is already done.
     /// @param c The AuthorizationCursor memory struct.
     /// @return ref A TypedMemView reference to the current MintAuthorization.
-    function current(
-        AuthorizationCursor memory c
-    ) internal pure returns (bytes29 ref) {
+    function current(AuthorizationCursor memory c) internal pure returns (bytes29 ref) {
         if (c.done) {
             revert TransferSpecLib.CursorOutOfBounds();
         }
@@ -275,19 +236,12 @@ library MintAuthorizationLib {
             return c.setOrAuthView;
         }
 
-        uint32 currentSpecLength = uint32(
-            c.setOrAuthView.indexUint(
-                c.offset + MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET,
-                UINT32_BYTES
-            )
-        );
-        uint256 currentAuthTotalLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET +
-                currentSpecLength;
+        uint32 currentSpecLength =
+            uint32(c.setOrAuthView.indexUint(c.offset + MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+        uint256 currentAuthTotalLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + currentSpecLength;
 
         ref = c.setOrAuthView.slice(
-            c.offset,
-            currentAuthTotalLength,
-            TransferSpecLib._toMemViewType(MINT_AUTHORIZATION_MAGIC)
+            c.offset, currentAuthTotalLength, TransferSpecLib._toMemViewType(MINT_AUTHORIZATION_MAGIC)
         );
         return ref;
     }
@@ -297,9 +251,7 @@ library MintAuthorizationLib {
     ///      Reverts with CursorOutOfBounds if called when no elements are remaining.
     /// @param c The AuthorizationCursor memory struct.
     /// @return The updated AuthorizationCursor memory struct.
-    function next(
-        AuthorizationCursor memory c
-    ) internal pure returns (AuthorizationCursor memory) {
+    function next(AuthorizationCursor memory c) internal pure returns (AuthorizationCursor memory) {
         if (c.done) {
             revert TransferSpecLib.CursorOutOfBounds();
         }
@@ -310,14 +262,9 @@ library MintAuthorizationLib {
             return c;
         }
 
-        uint32 currentSpecLength = uint32(
-            c.setOrAuthView.indexUint(
-                c.offset + MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET,
-                UINT32_BYTES
-            )
-        );
-        uint256 currentAuthTotalLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET +
-                currentSpecLength;
+        uint32 currentSpecLength =
+            uint32(c.setOrAuthView.indexUint(c.offset + MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+        uint256 currentAuthTotalLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + currentSpecLength;
 
         c.offset += currentAuthTotalLength;
         c.index++;
@@ -333,54 +280,30 @@ library MintAuthorizationLib {
     /// @notice Extract the max block height from an encoded MintAuthorization
     /// @param ref The TypedMemView reference to the encoded MintAuthorization
     /// @return The maxBlockHeight field
-    function getMaxBlockHeight(bytes29 ref)
-        internal
-        pure
-        returns (uint256)
-    {
-        return
-            ref.indexUint(
-                MINT_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET,
-                UINT256_BYTES
-            );
+    function getMaxBlockHeight(bytes29 ref) internal pure returns (uint256) {
+        return ref.indexUint(MINT_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET, UINT256_BYTES);
     }
 
     /// @notice Extract the transfer spec length from an encoded MintAuthorization
     /// @param ref The TypedMemView reference to the encoded MintAuthorization
     /// @return The transfer spec length
-    function getTransferSpecLength(bytes29 ref)
-        internal
-        pure
-        returns (uint32)
-    {
-        return
-            uint32(
-                ref.indexUint(
-                    MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET,
-                    UINT32_BYTES
-                )
-            );
+    function getTransferSpecLength(bytes29 ref) internal pure returns (uint32) {
+        return uint32(ref.indexUint(MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
     }
 
     /// @notice Extract the transfer spec from an encoded MintAuthorization
     /// @param ref The TypedMemView reference to the encoded MintAuthorization
     /// @return A TypedMemView reference to the transferSpec portion
-    function getTransferSpec(bytes29 ref)
-        internal
-        pure
-        returns (bytes29)
-    {
+    function getTransferSpec(bytes29 ref) internal pure returns (bytes29) {
         uint32 specLength = getTransferSpecLength(ref);
         bytes29 specRef = ref.slice(
-            MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
-            specLength,
-            TransferSpecLib._toMemViewType(TRANSFER_SPEC_MAGIC)
+            MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET, specLength, TransferSpecLib._toMemViewType(TRANSFER_SPEC_MAGIC)
         );
 
         // Validate that the slice contains a valid TransferSpec
         bytes4 specMagic = bytes4(specRef.index(0, BYTES4_BYTES));
         if (specMagic != TRANSFER_SPEC_MAGIC) {
-            revert TransferSpecLib.InvalidTransferSpecMagic(specMagic);    
+            revert TransferSpecLib.InvalidTransferSpecMagic(specMagic);
         }
 
         return specRef;
@@ -389,18 +312,8 @@ library MintAuthorizationLib {
     /// @notice Extract the number of authorizations from an encoded MintAuthorizationSet
     /// @param ref The TypedMemView reference to the encoded MintAuthorizationSet
     /// @return The number of authorizations in the set
-    function getNumAuthorizations(bytes29 ref)
-        internal
-        pure
-        returns (uint32)
-    {
-        return
-            uint32(
-                ref.indexUint(
-                    MINT_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET,
-                    UINT32_BYTES
-                )
-            );
+    function getNumAuthorizations(bytes29 ref) internal pure returns (uint32) {
+        return uint32(ref.indexUint(MINT_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET, UINT32_BYTES));
     }
 
     // --- Encoding ---
@@ -408,30 +321,21 @@ library MintAuthorizationLib {
     /// @notice Encode a MintAuthorization struct into bytes
     /// @param auth The MintAuthorization to encode
     /// @return The encoded bytes
-    function encodeMintAuthorization(MintAuthorization memory auth)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function encodeMintAuthorization(MintAuthorization memory auth) internal pure returns (bytes memory) {
         bytes memory specBytes = TransferSpecLib.encodeTransferSpec(auth.spec);
 
-        return
-            abi.encodePacked(
-                MINT_AUTHORIZATION_MAGIC,
-                auth.maxBlockHeight, // 32 bytes
-                uint32(specBytes.length), // 4 bytes
-                specBytes
-            );
+        return abi.encodePacked(
+            MINT_AUTHORIZATION_MAGIC,
+            auth.maxBlockHeight, // 32 bytes
+            uint32(specBytes.length), // 4 bytes
+            specBytes
+        );
     }
 
     /// @notice Encode a MintAuthorizationSet struct into bytes
     /// @param authSet The MintAuthorizationSet to encode
     /// @return The encoded bytes
-    function encodeMintAuthorizationSet(MintAuthorizationSet memory authSet)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function encodeMintAuthorizationSet(MintAuthorizationSet memory authSet) internal pure returns (bytes memory) {
         uint256 numAuths = authSet.authorizations.length;
 
         if (numAuths > type(uint32).max) {
@@ -442,9 +346,7 @@ library MintAuthorizationLib {
         uint256 totalSize = 0;
         bytes[] memory encodedAuths = new bytes[](numAuths);
         for (uint256 i = 0; i < numAuths; i++) {
-            encodedAuths[i] = encodeMintAuthorization(
-                authSet.authorizations[i]
-            );
+            encodedAuths[i] = encodeMintAuthorization(authSet.authorizations[i]);
             totalSize += encodedAuths[i].length;
         }
 
@@ -474,5 +376,4 @@ library MintAuthorizationLib {
 
         return result;
     }
-
-} 
+}
