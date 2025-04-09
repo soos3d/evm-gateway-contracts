@@ -24,59 +24,6 @@ import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/Bu
 import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/MintAuthorizations.sol";
 import {AuthorizationLib} from "src/lib/authorizations/AuthorizationLib.sol";
 
-/// @notice A wrapper contract to ensure correct `expectRevert` behavior when testing library functions.
-/// @dev Foundry's `expectRevert` relies on EVM call depth to isolate the expected revert.
-///      Direct calls to library functions do not increment the call depth. This poses a problem
-///      when testing sequences that anticipate multiple reverts from library calls within the same test
-contract AuthorizationLibWrapper {
-    using AuthorizationLib for bytes;
-    using AuthorizationLib for bytes29;
-
-    function castAndValidateBurnAuthorization(bytes memory data) external pure {
-        bytes29 auth = data.asBurnAuthorization();
-        auth.validateBurnAuthorization();
-    }
-
-    function decodeBurnAuthorizationWrapper(bytes memory data) external view returns (BurnAuthorization memory auth) {
-        auth = data.decodeBurnAuthorization();
-    }
-
-    function castAndValidateBurnAuthorizationSet(bytes memory data) external pure {
-        bytes29 set = data.asBurnAuthorizationSet();
-        set.validateBurnAuthorizationSet();
-    }
-
-    function decodeBurnAuthorizationSetWrapper(bytes memory data)
-        external
-        view
-        returns (BurnAuthorizationSet memory set)
-    {
-        set = data.decodeBurnAuthorizationSet();
-    }
-
-    function castAndValidateMintAuthorization(bytes memory data) external pure {
-        bytes29 auth = data.asMintAuthorization();
-        auth.validateMintAuthorization();
-    }
-
-    function decodeMintAuthorizationWrapper(bytes memory data) external view returns (MintAuthorization memory auth) {
-        auth = data.decodeMintAuthorization();
-    }
-
-    function castAndValidateMintAuthorizationSet(bytes memory data) external pure {
-        bytes29 set = data.asMintAuthorizationSet();
-        set.validateMintAuthorizationSet();
-    }
-
-    function decodeMintAuthorizationSetWrapper(bytes memory data)
-        external
-        view
-        returns (MintAuthorizationSet memory set)
-    {
-        set = data.decodeMintAuthorizationSet();
-    }
-}
-
 contract AuthorizationTestUtils is Test {
     using AuthorizationLib for bytes;
     using AuthorizationLib for bytes29;
