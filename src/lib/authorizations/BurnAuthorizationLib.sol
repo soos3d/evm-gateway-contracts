@@ -108,7 +108,7 @@ library BurnAuthorizationLib {
         }
 
         // 2. Total length consistency check
-        uint32 specLengthDeclaredInAuth = getBurnAuthorizationTransferSpecLength(
+        uint32 specLengthDeclaredInAuth = getTransferSpecLength(
                 authView
             );
         uint256 expectedAuthLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET +
@@ -136,7 +136,7 @@ library BurnAuthorizationLib {
         bytes29 authView
     ) internal pure onlyBurnAuthorization(authView) {
         _validateBurnAuthorizationOuterStructure(authView);
-        bytes29 specView = getBurnAuthorizationTransferSpec(authView);
+        bytes29 specView = getTransferSpec(authView);
         TransferSpecLib._validateTransferSpecStructure(specView);
     }
 
@@ -164,7 +164,7 @@ library BurnAuthorizationLib {
         }
 
         // 2. Read declared count
-        uint32 numAuths = getBurnAuthorizationSetNumAuthorizations(setView);
+        uint32 numAuths = getNumAuthorizations(setView);
         uint256 currentOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
 
         // 3. Iterate and validate each element
@@ -265,7 +265,7 @@ library BurnAuthorizationLib {
             return c;
         }
 
-        uint32 numAuths = getBurnAuthorizationSetNumAuthorizations(ref);
+        uint32 numAuths = getNumAuthorizations(ref);
         c.setOrAuthView = ref;
         c.offset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
         c.numAuths = numAuths;
@@ -348,7 +348,7 @@ library BurnAuthorizationLib {
     /// @notice Extract the max block height from an encoded BurnAuthorization
     /// @param ref The TypedMemView reference to the encoded BurnAuthorization
     /// @return The maxBlockHeight field
-    function getBurnAuthorizationMaxBlockHeight(
+    function getMaxBlockHeight(
         bytes29 ref
     ) internal pure onlyBurnAuthorization(ref) returns (uint256) {
         return
@@ -361,7 +361,7 @@ library BurnAuthorizationLib {
     /// @notice Extract the max fee from an encoded BurnAuthorization
     /// @param ref The TypedMemView reference to the encoded BurnAuthorization
     /// @return The maxFee field
-    function getBurnAuthorizationMaxFee(
+    function getMaxFee(
         bytes29 ref
     ) internal pure onlyBurnAuthorization(ref) returns (uint256) {
         return ref.indexUint(BURN_AUTHORIZATION_MAX_FEE_OFFSET, UINT256_BYTES);
@@ -370,7 +370,7 @@ library BurnAuthorizationLib {
     /// @notice Extract the transfer spec length from an encoded BurnAuthorization
     /// @param ref The TypedMemView reference to the encoded BurnAuthorization
     /// @return The transfer spec length
-    function getBurnAuthorizationTransferSpecLength(
+    function getTransferSpecLength(
         bytes29 ref
     ) internal pure onlyBurnAuthorization(ref) returns (uint32) {
         return
@@ -385,10 +385,10 @@ library BurnAuthorizationLib {
     /// @notice Extract the transfer spec from an encoded BurnAuthorization
     /// @param ref The TypedMemView reference to the encoded BurnAuthorization
     /// @return A TypedMemView reference to the transferSpec portion
-    function getBurnAuthorizationTransferSpec(
+    function getTransferSpec(
         bytes29 ref
     ) internal pure onlyBurnAuthorization(ref) returns (bytes29) {
-        uint32 specLength = getBurnAuthorizationTransferSpecLength(ref);
+        uint32 specLength = getTransferSpecLength(ref);
         bytes29 specRef = ref.slice(
             BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
             specLength,
@@ -408,7 +408,7 @@ library BurnAuthorizationLib {
     /// @notice Extract the number of authorizations from an encoded BurnAuthorizationSet
     /// @param ref The TypedMemView reference to the encoded BurnAuthorizationSet
     /// @return The number of authorizations in the set
-    function getBurnAuthorizationSetNumAuthorizations(
+    function getNumAuthorizations(
         bytes29 ref
     ) internal pure onlyBurnAuthorizationSet(ref) returns (uint32) {
         return

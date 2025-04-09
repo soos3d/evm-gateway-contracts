@@ -125,7 +125,7 @@ library MintAuthorizationLib {
         }
 
         // 2. Total length consistency check
-        uint32 specLengthDeclaredInAuth = getMintAuthorizationTransferSpecLength(
+        uint32 specLengthDeclaredInAuth = getTransferSpecLength(
                 authView
             );
         uint256 expectedAuthLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET +
@@ -153,7 +153,7 @@ library MintAuthorizationLib {
         bytes29 authView
     ) internal pure onlyMintAuthorization(authView) {
         _validateMintAuthorizationOuterStructure(authView);
-        bytes29 specView = getMintAuthorizationTransferSpec(authView);
+        bytes29 specView = getTransferSpec(authView);
         TransferSpecLib._validateTransferSpecStructure(specView);
     }
 
@@ -181,7 +181,7 @@ library MintAuthorizationLib {
         }
 
         // 2. Read declared count
-        uint32 numAuths = getMintAuthorizationSetNumAuthorizations(setView);
+        uint32 numAuths = getNumAuthorizations(setView);
         uint256 currentOffset = MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
 
         // 3. Iterate and validate each element
@@ -282,7 +282,7 @@ library MintAuthorizationLib {
             return c;
         }
 
-        uint32 numAuths = getMintAuthorizationSetNumAuthorizations(ref);
+        uint32 numAuths = getNumAuthorizations(ref);
         c.setOrAuthView = ref;
         c.offset = MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
         c.numAuths = numAuths;
@@ -365,7 +365,7 @@ library MintAuthorizationLib {
     /// @notice Extract the max block height from an encoded MintAuthorization
     /// @param ref The TypedMemView reference to the encoded MintAuthorization
     /// @return The maxBlockHeight field
-    function getMintAuthorizationMaxBlockHeight(bytes29 ref)
+    function getMaxBlockHeight(bytes29 ref)
         internal
         pure
         onlyMintAuthorization(ref)
@@ -381,7 +381,7 @@ library MintAuthorizationLib {
     /// @notice Extract the transfer spec length from an encoded MintAuthorization
     /// @param ref The TypedMemView reference to the encoded MintAuthorization
     /// @return The transfer spec length
-    function getMintAuthorizationTransferSpecLength(bytes29 ref)
+    function getTransferSpecLength(bytes29 ref)
         internal
         pure
         onlyMintAuthorization(ref)
@@ -399,13 +399,13 @@ library MintAuthorizationLib {
     /// @notice Extract the transfer spec from an encoded MintAuthorization
     /// @param ref The TypedMemView reference to the encoded MintAuthorization
     /// @return A TypedMemView reference to the transferSpec portion
-    function getMintAuthorizationTransferSpec(bytes29 ref)
+    function getTransferSpec(bytes29 ref)
         internal
         pure
         onlyMintAuthorization(ref)
         returns (bytes29)
     {
-        uint32 specLength = getMintAuthorizationTransferSpecLength(ref);
+        uint32 specLength = getTransferSpecLength(ref);
         bytes29 specRef = ref.slice(
             MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
             specLength,
@@ -425,7 +425,7 @@ library MintAuthorizationLib {
     /// @notice Extract the number of authorizations from an encoded MintAuthorizationSet
     /// @param ref The TypedMemView reference to the encoded MintAuthorizationSet
     /// @return The number of authorizations in the set
-    function getMintAuthorizationSetNumAuthorizations(bytes29 ref)
+    function getNumAuthorizations(bytes29 ref)
         internal
         pure
         onlyMintAuthorizationSet(ref)

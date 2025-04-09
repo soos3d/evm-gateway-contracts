@@ -30,7 +30,6 @@ import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.so
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 
 contract MintAuthorizationSetTest is AuthorizationTestUtils {
-    using MintAuthorizationLib for bytes;
     using MintAuthorizationLib for bytes29;
     using MintAuthorizationLib for AuthorizationCursor;
 
@@ -60,7 +59,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         pure
     {
         bytes29 setRef = MintAuthorizationLib._asAuthOrSetView(encodedAuthSet);
-        uint32 numAuths = setRef.getMintAuthorizationSetNumAuthorizations();
+        uint32 numAuths = setRef.getNumAuthorizations();
         assertEq(numAuths, authSet.authorizations.length, "Eq Fail: numAuths");
 
         AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);

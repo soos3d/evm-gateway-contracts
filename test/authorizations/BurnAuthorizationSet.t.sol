@@ -30,7 +30,6 @@ import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.so
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 
 contract BurnAuthorizationSetTest is AuthorizationTestUtils {
-    using BurnAuthorizationLib for bytes;
     using BurnAuthorizationLib for bytes29;
     using BurnAuthorizationLib for AuthorizationCursor;
 
@@ -60,7 +59,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         pure
     {
         bytes29 setRef = BurnAuthorizationLib._asAuthOrSetView(encodedAuthSet);
-        uint32 numAuths = setRef.getBurnAuthorizationSetNumAuthorizations();
+        uint32 numAuths = setRef.getNumAuthorizations();
         assertEq(numAuths, authSet.authorizations.length, "Eq Fail: numAuths");
 
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);

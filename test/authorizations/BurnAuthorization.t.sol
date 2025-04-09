@@ -26,7 +26,6 @@ import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.so
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 
 contract BurnAuthorizationTest is AuthorizationTestUtils {
-    using BurnAuthorizationLib for bytes;
     using BurnAuthorizationLib for bytes29;
     using BurnAuthorizationLib for AuthorizationCursor;
 

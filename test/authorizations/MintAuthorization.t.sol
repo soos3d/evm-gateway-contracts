@@ -26,7 +26,6 @@ import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.so
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 
 contract MintAuthorizationTest is AuthorizationTestUtils {
-    using MintAuthorizationLib for bytes;
     using MintAuthorizationLib for bytes29;
     using MintAuthorizationLib for AuthorizationCursor;
 

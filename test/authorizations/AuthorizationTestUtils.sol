@@ -19,17 +19,14 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
+import {TransferSpec, TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
+import {BurnAuthorization, BurnAuthorizationSet, BURN_AUTHORIZATION_MAGIC} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
-import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/MintAuthorizations.sol";
+import {MintAuthorization, MintAuthorizationSet, MINT_AUTHORIZATION_MAGIC} from "src/lib/authorizations/MintAuthorizations.sol";
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 
 contract AuthorizationTestUtils is Test {
-    using TransferSpecLib for bytes29;
-    using BurnAuthorizationLib for bytes29;
-    using MintAuthorizationLib for bytes29;
     using TypedMemView for bytes29; // For keccak/len on views
 
     uint16 internal constant TRANSFER_SPEC_METADATA_LENGTH_OFFSET = 336;
@@ -57,24 +54,25 @@ contract AuthorizationTestUtils is Test {
 
     // Verifies all fields read from a TransferSpec view match the original struct
     function _verifyTransferSpecFieldsFromView(bytes29 ref, TransferSpec memory spec) internal pure {
-        assertEq(ref.getTransferSpecVersion(), spec.version, "Eq Fail: version");
-        assertEq(ref.getTransferSpecSourceDomain(), spec.sourceDomain, "Eq Fail: sourceDomain");
-        assertEq(ref.getTransferSpecDestinationDomain(), spec.destinationDomain, "Eq Fail: destinationDomain");
-        assertEq(ref.getTransferSpecSourceContract(), spec.sourceContract, "Eq Fail: sourceContract");
-        assertEq(ref.getTransferSpecDestinationContract(), spec.destinationContract, "Eq Fail: destinationContract");
-        assertEq(ref.getTransferSpecSourceToken(), spec.sourceToken, "Eq Fail: sourceToken");
-        assertEq(ref.getTransferSpecDestinationToken(), spec.destinationToken, "Eq Fail: destinationToken");
-        assertEq(ref.getTransferSpecSourceDepositor(), spec.sourceDepositor, "Eq Fail: sourceDepositor");
-        assertEq(ref.getTransferSpecDestinationRecipient(), spec.destinationRecipient, "Eq Fail: destinationRecipient");
-        assertEq(ref.getTransferSpecSourceSigner(), spec.sourceSigner, "Eq Fail: sourceSigner");
-        assertEq(ref.getTransferSpecDestinationCaller(), spec.destinationCaller, "Eq Fail: destinationCaller");
-        assertEq(ref.getTransferSpecValue(), spec.value, "Eq Fail: value");
-        assertEq(ref.getTransferSpecNonce(), spec.nonce, "Eq Fail: nonce");
+        ref.assertType(TransferSpecLib._toMemViewType(TRANSFER_SPEC_MAGIC));
+        assertEq(TransferSpecLib.getVersion(ref), spec.version, "Eq Fail: version");
+        assertEq(TransferSpecLib.getSourceDomain(ref), spec.sourceDomain, "Eq Fail: sourceDomain");
+        assertEq(TransferSpecLib.getDestinationDomain(ref), spec.destinationDomain, "Eq Fail: destinationDomain");
+        assertEq(TransferSpecLib.getSourceContract(ref), spec.sourceContract, "Eq Fail: sourceContract");
+        assertEq(TransferSpecLib.getDestinationContract(ref), spec.destinationContract, "Eq Fail: destinationContract");
+        assertEq(TransferSpecLib.getSourceToken(ref), spec.sourceToken, "Eq Fail: sourceToken");
+        assertEq(TransferSpecLib.getDestinationToken(ref), spec.destinationToken, "Eq Fail: destinationToken");
+        assertEq(TransferSpecLib.getSourceDepositor(ref), spec.sourceDepositor, "Eq Fail: sourceDepositor");
+        assertEq(TransferSpecLib.getDestinationRecipient(ref), spec.destinationRecipient, "Eq Fail: destinationRecipient");
+        assertEq(TransferSpecLib.getSourceSigner(ref), spec.sourceSigner, "Eq Fail: sourceSigner");
+        assertEq(TransferSpecLib.getDestinationCaller(ref), spec.destinationCaller, "Eq Fail: destinationCaller");
+        assertEq(TransferSpecLib.getValue(ref), spec.value, "Eq Fail: value");
+        assertEq(TransferSpecLib.getNonce(ref), spec.nonce, "Eq Fail: nonce");
 
         // Metadata checks
-        uint32 metadataLength = ref.getTransferSpecMetadataLength();
+        uint32 metadataLength = TransferSpecLib.getMetadataLength(ref);
         assertEq(metadataLength, spec.metadata.length, "Mismatch: metadata.length");
-        bytes29 metadataView = ref.getTransferSpecMetadata();
+        bytes29 metadataView = TransferSpecLib.getMetadata(ref);
         if (metadataLength > 0) {
             assertEq(metadataView.keccak(), keccak256(spec.metadata), "Mismatch: metadata keccak");
         } else {
@@ -84,16 +82,18 @@ contract AuthorizationTestUtils is Test {
 
     // Verifies all fields read from a BurnAuthorization view match the original struct
     function _verifyBurnAuthorizationFieldsFromView(bytes29 ref, BurnAuthorization memory auth) internal pure {
-        assertEq(ref.getBurnAuthorizationMaxBlockHeight(), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
-        assertEq(ref.getBurnAuthorizationMaxFee(), auth.maxFee, "Eq Fail: maxFee");
-        bytes29 specRef = ref.getBurnAuthorizationTransferSpec();
+        ref.assertType(TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_MAGIC));
+        assertEq(BurnAuthorizationLib.getMaxBlockHeight(ref), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
+        assertEq(BurnAuthorizationLib.getMaxFee(ref), auth.maxFee, "Eq Fail: maxFee");
+        bytes29 specRef = BurnAuthorizationLib.getTransferSpec(ref);
         _verifyTransferSpecFieldsFromView(specRef, auth.spec);
     }
 
     // Verifies all fields read from a MintAuthorization view match the original struct
     function _verifyMintAuthorizationFieldsFromView(bytes29 ref, MintAuthorization memory auth) internal pure {
-        assertEq(ref.getMintAuthorizationMaxBlockHeight(), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
-        bytes29 specRef = ref.getMintAuthorizationTransferSpec();
+        ref.assertType(TransferSpecLib._toMemViewType(MINT_AUTHORIZATION_MAGIC));
+        assertEq(MintAuthorizationLib.getMaxBlockHeight(ref), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
+        bytes29 specRef = MintAuthorizationLib.getTransferSpec(ref);
         _verifyTransferSpecFieldsFromView(specRef, auth.spec);
     }
 

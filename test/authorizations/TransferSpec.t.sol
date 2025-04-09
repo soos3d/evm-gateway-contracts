@@ -77,7 +77,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         bytes29 ref = encodedSpec.asTransferSpec();
         
         bytes32 expectedHash = keccak256(encodedSpec);
-        bytes32 libHash = TransferSpecLib.getTransferSpecHash(ref);
+        bytes32 libHash = TransferSpecLib.getHash(ref);
 
         assertEq(libHash, expectedHash, "Hash mismatch for non-empty metadata");
     }
