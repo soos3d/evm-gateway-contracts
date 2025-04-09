@@ -32,20 +32,6 @@ library BurnAuthorizationLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
 
-    modifier onlyBurnAuthorization(bytes29 ref) {
-        ref.assertType(
-            TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_MAGIC)
-        );
-        _;
-    }
-
-    modifier onlyBurnAuthorizationSet(bytes29 ref) {
-        ref.assertType(
-            TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_SET_MAGIC)
-        );
-        _;
-    }
-
     function isSet(bytes29 ref) private pure returns (bool) {
         return ref.index(0, BYTES4_BYTES) == BURN_AUTHORIZATION_SET_MAGIC;
     }
@@ -123,7 +109,7 @@ library BurnAuthorizationLib {
     ///                 validate.
     function _validateBurnAuthorization(
         bytes29 authView
-    ) internal pure onlyBurnAuthorization(authView) {
+    ) internal pure {
         _validateBurnAuthorizationOuterStructure(authView);
         bytes29 specView = getTransferSpec(authView);
         TransferSpecLib._validateTransferSpecStructure(specView);
@@ -144,7 +130,7 @@ library BurnAuthorizationLib {
     /// @param setView The TypedMemView reference to the encoded BurnAuthorizationSet to validate.
     function _validateBurnAuthorizationSet(
         bytes29 setView
-    ) internal pure onlyBurnAuthorizationSet(setView) {
+    ) internal pure {
         // 1. Minimum header length check
         if (setView.len() < BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
             revert TransferSpecLib.AuthorizationSetHeaderTooShort(BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET, setView.len());
@@ -328,9 +314,11 @@ library BurnAuthorizationLib {
     /// @notice Extract the max block height from an encoded BurnAuthorization
     /// @param ref The TypedMemView reference to the encoded BurnAuthorization
     /// @return The maxBlockHeight field
-    function getMaxBlockHeight(
-        bytes29 ref
-    ) internal pure onlyBurnAuthorization(ref) returns (uint256) {
+    function getMaxBlockHeight(bytes29 ref)
+        internal
+        pure
+        returns (uint256)
+    {
         return
             ref.indexUint(
                 BURN_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET,
@@ -341,18 +329,22 @@ library BurnAuthorizationLib {
     /// @notice Extract the max fee from an encoded BurnAuthorization
     /// @param ref The TypedMemView reference to the encoded BurnAuthorization
     /// @return The maxFee field
-    function getMaxFee(
-        bytes29 ref
-    ) internal pure onlyBurnAuthorization(ref) returns (uint256) {
+    function getMaxFee(bytes29 ref)
+        internal
+        pure
+        returns (uint256)
+    {
         return ref.indexUint(BURN_AUTHORIZATION_MAX_FEE_OFFSET, UINT256_BYTES);
     }
 
     /// @notice Extract the transfer spec length from an encoded BurnAuthorization
     /// @param ref The TypedMemView reference to the encoded BurnAuthorization
     /// @return The transfer spec length
-    function getTransferSpecLength(
-        bytes29 ref
-    ) internal pure onlyBurnAuthorization(ref) returns (uint32) {
+    function getTransferSpecLength(bytes29 ref)
+        internal
+        pure
+        returns (uint32)
+    {
         return
             uint32(
                 ref.indexUint(
@@ -365,9 +357,11 @@ library BurnAuthorizationLib {
     /// @notice Extract the transfer spec from an encoded BurnAuthorization
     /// @param ref The TypedMemView reference to the encoded BurnAuthorization
     /// @return A TypedMemView reference to the transferSpec portion
-    function getTransferSpec(
-        bytes29 ref
-    ) internal pure onlyBurnAuthorization(ref) returns (bytes29) {
+    function getTransferSpec(bytes29 ref)
+        internal
+        pure
+        returns (bytes29)
+    {
         uint32 specLength = getTransferSpecLength(ref);
         bytes29 specRef = ref.slice(
             BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
@@ -387,9 +381,11 @@ library BurnAuthorizationLib {
     /// @notice Extract the number of authorizations from an encoded BurnAuthorizationSet
     /// @param ref The TypedMemView reference to the encoded BurnAuthorizationSet
     /// @return The number of authorizations in the set
-    function getNumAuthorizations(
-        bytes29 ref
-    ) internal pure onlyBurnAuthorizationSet(ref) returns (uint32) {
+    function getNumAuthorizations(bytes29 ref)
+        internal
+        pure
+        returns (uint32)
+    {
         return
             uint32(
                 ref.indexUint(

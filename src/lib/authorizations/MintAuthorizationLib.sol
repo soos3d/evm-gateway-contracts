@@ -44,20 +44,6 @@ library MintAuthorizationLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
 
-    modifier onlyMintAuthorization(bytes29 ref) {
-        ref.assertType(
-            TransferSpecLib._toMemViewType(MINT_AUTHORIZATION_MAGIC)
-        );
-        _;
-    }
-
-    modifier onlyMintAuthorizationSet(bytes29 ref) {
-        ref.assertType(
-            TransferSpecLib._toMemViewType(MINT_AUTHORIZATION_SET_MAGIC)
-        );
-        _;
-    }
-
     function isSet(bytes29 ref) private pure returns (bool) {
         return ref.index(0, BYTES4_BYTES) == MINT_AUTHORIZATION_SET_MAGIC;
     }
@@ -135,7 +121,7 @@ library MintAuthorizationLib {
     ///                 validate.
     function _validateMintAuthorization(
         bytes29 authView
-    ) internal pure onlyMintAuthorization(authView) {
+    ) internal pure {
         _validateMintAuthorizationOuterStructure(authView);
         bytes29 specView = getTransferSpec(authView);
         TransferSpecLib._validateTransferSpecStructure(specView);
@@ -156,7 +142,7 @@ library MintAuthorizationLib {
     /// @param setView The TypedMemView reference to the encoded MintAuthorizationSet to validate.
     function _validateMintAuthorizationSet(
         bytes29 setView
-    ) internal pure onlyMintAuthorizationSet(setView) {
+    ) internal pure {
         // 1. Minimum header length check
         if (setView.len() < MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
             revert TransferSpecLib.AuthorizationSetHeaderTooShort(MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET, setView.len());
@@ -343,7 +329,6 @@ library MintAuthorizationLib {
     function getMaxBlockHeight(bytes29 ref)
         internal
         pure
-        onlyMintAuthorization(ref)
         returns (uint256)
     {
         return
@@ -359,7 +344,6 @@ library MintAuthorizationLib {
     function getTransferSpecLength(bytes29 ref)
         internal
         pure
-        onlyMintAuthorization(ref)
         returns (uint32)
     {
         return
@@ -377,7 +361,6 @@ library MintAuthorizationLib {
     function getTransferSpec(bytes29 ref)
         internal
         pure
-        onlyMintAuthorization(ref)
         returns (bytes29)
     {
         uint32 specLength = getTransferSpecLength(ref);
@@ -402,7 +385,6 @@ library MintAuthorizationLib {
     function getNumAuthorizations(bytes29 ref)
         internal
         pure
-        onlyMintAuthorizationSet(ref)
         returns (uint32)
     {
         return
