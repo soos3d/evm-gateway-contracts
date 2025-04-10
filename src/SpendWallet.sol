@@ -702,9 +702,8 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         _verifyBurnerSignature(burnerSignature);
     }
 
-    /// Internal function to verify the signature of the `burnSigner` on the other arguments in calldata, using assembly
-    /// to hash the entire calldata portion rather than using abi.encode (which does a lot of copying and stack
-    /// manipulation).
+    /// Internal function to verify the signature of the `burnSigner` on the other arguments in calldata, hashing the
+    /// arguments from calldata rather than using abi.encode (which does a lot of copying and stack manipulation).
     ///
     /// @param burnerSignature   The signature from the `burnSigner` to verify
     function _verifyBurnerSignature(bytes memory burnerSignature) internal view {
@@ -713,32 +712,18 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
             revert InvalidBurnSigner();
         }
 
-        bytes memory calldataBytes;
-        bytes32 calldataHash;
+        // Isolate just the arguments that are signed in the calldata by slicing `msg.data`:
+        //     - Skips over the beginning of the calldata to get to the first argument
+        //         - 4 bytes for the function selector
+        //         - 128 bytes for the 4 argument offsets
+        //         - 4 + 128 = 132 = 0x84
+        //     - Does not include the last argument (the signature itself)
+        //         - We know it is 65 bytes (verified above), so takes up 128 (0x80) bytes
+        //           (32 for the length, and 96 for the 32-byte-aligned contents)
+        bytes memory calldataBytes = msg.data[0x84:msg.data.length - 0x80];
 
-        assembly {
-            // Get the size of the three arguments we're interested in:
-            //   - Start with the calldatasize
-            //   - Subtract 4 bytes for the function selector
-            //   - Subtract 128 (0x80) bytes for the 4 argument offsets
-            //   - Subtract 128 (0x80) bytes for the signature (last argument)
-            let size := sub(calldatasize(), 0x104)
-
-            // Allocate `size` bytes memory to copy to
-            calldataBytes := mload(0x40)
-            mstore(0x40, add(calldataBytes, size))
-
-            // Copy the calldata portion we're interested in to memory
-            //   - Skip the function selector (0x4 bytes)
-            //   - Skip the 4 argument offsets (0x80 bytes)
-            //   - Copy only `size` bytes, which excludes the signature argument
-            calldatacopy(calldataBytes, 0x84, size)
-
-            // Hash `calldataBytes`, which is the message that was signed by `burnSigner`
-            calldataHash := keccak256(calldataBytes, size)
-        }
-
-        address recoveredSigner = ECDSA.recover(calldataHash.toEthSignedMessageHash(), burnerSignature);
+        // Verify the signature and revert if it's invalid
+        address recoveredSigner = ECDSA.recover(keccak256(calldataBytes).toEthSignedMessageHash(), burnerSignature);
         if (recoveredSigner != burnSigner) {
             revert InvalidBurnSigner();
         }
