@@ -23,7 +23,7 @@ import {DeployUtils} from "test/util/DeployUtils.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract TestBurns is Test, DeployUtils {
-    using MessageHashUtils for bytes;
+    using MessageHashUtils for bytes32;
 
     SpendWallet private wallet;
     address private owner = makeAddr("owner");
@@ -106,16 +106,15 @@ contract TestBurns is Test, DeployUtils {
         // Generate a random address and key for the burn signer
         bytes memory encodedCalldata = abi.encode(authorizations, signatures, fees);
 
-        // Hash the calldata, this will be easier in JS but slices don't work for `bytes memory` so we need to drop to
-        // assembly. This slices off the first 4 bytes (the argument offsets) and fixes an off-by-one error.
-        bytes32 calldataHash;
-        uint256 len = encodedCalldata.length - 0x80 + 0x20;
-        assembly {
-            calldataHash := keccak256(add(encodedCalldata, 0x80), len)
+        // Slice off the first 128 bytes (the three argument offsets).
+        // This will be easier in TS, which is where it will happen in practice.
+        bytes memory slicedCalldata = new bytes(encodedCalldata.length - 0x60);
+        for (uint256 i = 0; i < slicedCalldata.length; i++) {
+            slicedCalldata[i] = encodedCalldata[i + 0x60];
         }
 
         // Sign the calldata hash as the burn signer
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, MessageHashUtils.toEthSignedMessageHash(calldataHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, keccak256(slicedCalldata).toEthSignedMessageHash());
         bytes memory burnerSignature = abi.encodePacked(r, s, v);
 
         // Call burnSpent with the arguments and signature
