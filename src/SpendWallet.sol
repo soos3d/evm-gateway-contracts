@@ -26,6 +26,7 @@ import {IERC7598} from "src/interfaces/IERC7598.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /// @title Spend Wallet
 ///
@@ -56,6 +57,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 /// `spendable` and `withdrawing` balances.
 contract SpendWallet is SpendCommon, IERC1155Balance {
     using SafeERC20 for IERC20;
+    using MessageHashUtils for bytes32;
 
     error DepositValueMustBePositive();
     error WithdrawalValueMustBePositive();
@@ -739,7 +741,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
             calldataHash := keccak256(calldataBytes, size)
         }
 
-        address recoveredSigner = ECDSA.recover(calldataHash, burnerSignature);
+        address recoveredSigner = ECDSA.recover(calldataHash.toEthSignedMessageHash(), burnerSignature);
         if (recoveredSigner != burnSigner) {
             revert InvalidBurnSigner();
         }

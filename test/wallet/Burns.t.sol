@@ -17,11 +17,14 @@
  */
 pragma solidity ^0.8.28;
 
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract TestBurns is Test, DeployUtils {
+    using MessageHashUtils for bytes;
+
     SpendWallet private wallet;
     address private owner = makeAddr("owner");
     address private burnSigner;
@@ -112,7 +115,7 @@ contract TestBurns is Test, DeployUtils {
         }
 
         // Sign the calldata hash as the burn signer
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, calldataHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, MessageHashUtils.toEthSignedMessageHash(calldataHash));
         bytes memory burnerSignature = abi.encodePacked(r, s, v);
 
         // Call burnSpent with the arguments and signature
