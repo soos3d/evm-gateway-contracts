@@ -305,6 +305,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
         bytes29 authView = MintAuthorizationLib._asAuthOrSetView(encodedAuth);
 
+        // Initial state
         AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuth);
         assertEq(cursor.setOrAuthView, authView);
         assertEq(cursor.offset, 0);
@@ -312,27 +313,15 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         assertEq(cursor.index, 0);
         assertEq(cursor.done, false);
 
-        bytes29 currentAuth = cursor.current();
+        // Advance the cursor
+        bytes29 currentAuth;
+        (currentAuth, cursor) = cursor.next();
         assertEq(currentAuth, authView);
-
-        cursor = cursor.next();
         assertEq(cursor.setOrAuthView, authView);
-        assertEq(cursor.offset, 0);
+        assertEq(cursor.offset, encodedAuth.length);
         assertEq(cursor.numAuths, 1);
         assertEq(cursor.index, 1);
         assertEq(cursor.done, true);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function test_cursor_revertsOnCurrentWhenDoneFuzz(MintAuthorization memory auth) public {
-        auth.spec.version = TRANSFER_SPEC_VERSION;
-        auth.spec.metadata = LONG_METADATA;
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
-
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuth);
-        cursor = cursor.next();
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
-        cursor.current();
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -342,7 +331,9 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
 
         AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuth);
-        cursor = cursor.next();
+        bytes29 currentAuth;
+        (currentAuth, cursor) = cursor.next();
+        assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
         cursor.next();
     }

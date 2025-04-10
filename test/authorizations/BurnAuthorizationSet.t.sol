@@ -67,9 +67,9 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         uint32 i = 0;
         while (!cursor.done) {
-            bytes29 authRef = cursor.current();
+            bytes29 authRef;
+            (authRef, cursor) = cursor.next();
             _verifyBurnAuthorizationFieldsFromView(authRef, authSet.authorizations[i]);
-            cursor = cursor.next();
             i++;
         }
         assertEq(i, numAuths, "Loop iteration count mismatch");
@@ -573,16 +573,6 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_cursor_revertsOnCurrentWhenEmptySet() public {
-        BurnAuthorization[] memory authorizations = new BurnAuthorization[](0);
-        BurnAuthorizationSet memory set = BurnAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(set);
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
-        cursor.current();
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_cursor_revertsOnNextWhenEmptySet() public {
         BurnAuthorization[] memory authorizations = new BurnAuthorization[](0);
         BurnAuthorizationSet memory set = BurnAuthorizationSet({authorizations: authorizations});
@@ -611,35 +601,18 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         assertEq(cursor.numAuths, 1);
         assertEq(cursor.index, 0);
 
-        // Verify first auth
-        bytes29 currentAuth = cursor.current();
-        _verifyBurnAuthorizationFieldsFromView(currentAuth, auth);
-
-        // Advance cursor
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
         uint256 expectedOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth.length;
-        cursor = cursor.next();
+
+        // Advance cursor and verify first auth
+        bytes29 currentAuth;
+        (currentAuth, cursor) = cursor.next();
+        _verifyBurnAuthorizationFieldsFromView(currentAuth, auth);
         assertEq(cursor.setOrAuthView, setRef);
         assertEq(cursor.offset, expectedOffset);
         assertEq(cursor.numAuths, 1);
         assertEq(cursor.index, 1);
         assertEq(cursor.done, true);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function test_cursor_revertsOnCurrentWhenDone_SingleAuthFuzz(BurnAuthorization memory auth) public {
-        auth.spec.version = TRANSFER_SPEC_VERSION;
-        auth.spec.metadata = LONG_METADATA;
-        BurnAuthorization[] memory authorizations = new BurnAuthorization[](1);
-        authorizations[0] = auth;
-        BurnAuthorizationSet memory set = BurnAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(set);
-
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
-        cursor = cursor.next();
-        assertEq(cursor.done, true);
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
-        cursor.current();
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -652,7 +625,8 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(set);
 
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
-        cursor = cursor.next();
+        bytes29 currentAuth;
+        (currentAuth, cursor) = cursor.next();
         assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
         cursor.next();
@@ -674,50 +648,30 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         assertEq(cursor.numAuths, 2);
         assertEq(cursor.index, 0);
 
-        // Verify first auth
-        bytes29 currentAuth = cursor.current();
-        _verifyBurnAuthorizationFieldsFromView(currentAuth, auth1);
-
-        // Advance cursor
         bytes memory encodedAuth1 = BurnAuthorizationLib.encodeBurnAuthorization(auth1);
-        uint256 expectedOffset1 = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length;
-        cursor = cursor.next();
+        uint256 expectedOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length;
+
+        // Advance cursor and verify first auth
+        bytes29 currentAuth;
+        (currentAuth, cursor) = cursor.next();
+        _verifyBurnAuthorizationFieldsFromView(currentAuth, auth1);
         assertEq(cursor.setOrAuthView, setRef);
-        assertEq(cursor.offset, expectedOffset1);
+        assertEq(cursor.offset, expectedOffset);
         assertEq(cursor.numAuths, 2);
         assertEq(cursor.index, 1);
         assertEq(cursor.done, false);
 
-        // Verify second auth
-        currentAuth = cursor.current();
-        _verifyBurnAuthorizationFieldsFromView(currentAuth, auth2);
-
-        // Advance cursor
         bytes memory encodedAuth2 = BurnAuthorizationLib.encodeBurnAuthorization(auth2);
-        uint256 expectedOffset2 = expectedOffset1 + encodedAuth2.length;
-        cursor = cursor.next();
+        uint256 expectedUpdatedOffset = expectedOffset + encodedAuth2.length;
+
+        // Advance cursor and verify second auth
+        (currentAuth, cursor) = cursor.next();
+        _verifyBurnAuthorizationFieldsFromView(currentAuth, auth2);
         assertEq(cursor.setOrAuthView, setRef);
-        assertEq(cursor.offset, expectedOffset2);
+        assertEq(cursor.offset, expectedUpdatedOffset);
         assertEq(cursor.numAuths, 2);
         assertEq(cursor.index, 2);
         assertEq(cursor.done, true);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function test_cursor_revertsOnCurrentWhenDone_MultipleAuthsFuzz(
-        BurnAuthorization memory auth1,
-        BurnAuthorization memory auth2
-    ) public {
-        BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, LONG_METADATA);
-        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
-        cursor = cursor.next();
-        cursor = cursor.next();
-        assertEq(cursor.done, true);
-
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
-        cursor.current();
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -728,8 +682,8 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
-        cursor = cursor.next();
-        cursor = cursor.next();
+        (, cursor) = cursor.next();
+        (, cursor) = cursor.next();
         assertEq(cursor.done, true);
 
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));

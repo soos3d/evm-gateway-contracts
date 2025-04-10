@@ -67,9 +67,9 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
         uint32 i = 0;
         while (!cursor.done) {
-            bytes29 authRef = cursor.current();
+            bytes29 authRef;
+            (authRef, cursor) = cursor.next();
             _verifyMintAuthorizationFieldsFromView(authRef, authSet.authorizations[i]);
-            cursor = cursor.next();
             i++;
         }
         assertEq(i, numAuths, "Loop iteration count mismatch");
@@ -575,16 +575,6 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_cursor_revertsOnCurrentWhenEmptySet() public {
-        MintAuthorization[] memory authorizations = new MintAuthorization[](0);
-        MintAuthorizationSet memory set = MintAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(set);
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
-        cursor.current();
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_cursor_revertsOnNextWhenEmptySet() public {
         MintAuthorization[] memory authorizations = new MintAuthorization[](0);
         MintAuthorizationSet memory set = MintAuthorizationSet({authorizations: authorizations});
@@ -613,35 +603,18 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         assertEq(cursor.numAuths, 1);
         assertEq(cursor.index, 0);
 
-        // Verify first auth
-        bytes29 currentAuth = cursor.current();
-        _verifyMintAuthorizationFieldsFromView(currentAuth, auth);
-
-        // Advance cursor
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
         uint256 expectedOffset = MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth.length;
-        cursor = cursor.next();
+
+        // Advance cursor and verify first auth
+        bytes29 currentAuth;
+        (currentAuth, cursor) = cursor.next();
+        _verifyMintAuthorizationFieldsFromView(currentAuth, auth);
         assertEq(cursor.setOrAuthView, setRef);
         assertEq(cursor.offset, expectedOffset);
         assertEq(cursor.numAuths, 1);
         assertEq(cursor.index, 1);
         assertEq(cursor.done, true);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function test_cursor_revertsOnCurrentWhenDone_SingleAuthFuzz(MintAuthorization memory auth) public {
-        auth.spec.version = TRANSFER_SPEC_VERSION;
-        auth.spec.metadata = LONG_METADATA;
-        MintAuthorization[] memory authorizations = new MintAuthorization[](1);
-        authorizations[0] = auth;
-        MintAuthorizationSet memory set = MintAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(set);
-
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
-        cursor = cursor.next();
-        assertEq(cursor.done, true);
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
-        cursor.current();
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -654,7 +627,8 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(set);
 
         AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
-        cursor = cursor.next();
+        bytes29 currentAuth;
+        (currentAuth, cursor) = cursor.next();
         assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
         cursor.next();
@@ -676,50 +650,30 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         assertEq(cursor.numAuths, 2);
         assertEq(cursor.index, 0);
 
-        // Verify first auth
-        bytes29 currentAuth = cursor.current();
-        _verifyMintAuthorizationFieldsFromView(currentAuth, auth1);
-
-        // Advance cursor
         bytes memory encodedAuth1 = MintAuthorizationLib.encodeMintAuthorization(auth1);
-        uint256 expectedOffset1 = MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length;
-        cursor = cursor.next();
+        uint256 expectedOffset = MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length;
+
+        // Advance cursor and verify first auth
+        bytes29 currentAuth;
+        (currentAuth, cursor) = cursor.next();
+        _verifyMintAuthorizationFieldsFromView(currentAuth, auth1);
         assertEq(cursor.setOrAuthView, setRef);
-        assertEq(cursor.offset, expectedOffset1);
+        assertEq(cursor.offset, expectedOffset);
         assertEq(cursor.numAuths, 2);
         assertEq(cursor.index, 1);
         assertEq(cursor.done, false);
 
-        // Verify second auth
-        currentAuth = cursor.current();
-        _verifyMintAuthorizationFieldsFromView(currentAuth, auth2);
-
-        // Advance cursor
         bytes memory encodedAuth2 = MintAuthorizationLib.encodeMintAuthorization(auth2);
-        uint256 expectedOffset2 = expectedOffset1 + encodedAuth2.length;
-        cursor = cursor.next();
+        uint256 expectedUpdatedOffset = expectedOffset + encodedAuth2.length;
+
+        // Advance cursor and verify second auth
+        (currentAuth, cursor) = cursor.next();
+        _verifyMintAuthorizationFieldsFromView(currentAuth, auth2);
         assertEq(cursor.setOrAuthView, setRef);
-        assertEq(cursor.offset, expectedOffset2);
+        assertEq(cursor.offset, expectedUpdatedOffset);
         assertEq(cursor.numAuths, 2);
         assertEq(cursor.index, 2);
         assertEq(cursor.done, true);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function test_cursor_revertsOnCurrentWhenDone_MultipleAuthsFuzz(
-        MintAuthorization memory auth1,
-        MintAuthorization memory auth2
-    ) public {
-        MintAuthorizationSet memory authSet = _createMintAuthSet(auth1, auth2, LONG_METADATA);
-        bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
-
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
-        cursor = cursor.next();
-        cursor = cursor.next();
-        assertEq(cursor.done, true);
-
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
-        cursor.current();
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -730,8 +684,8 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         MintAuthorizationSet memory authSet = _createMintAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
         AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
-        cursor = cursor.next();
-        cursor = cursor.next();
+        (, cursor) = cursor.next();
+        (, cursor) = cursor.next();
         assertEq(cursor.done, true);
 
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));

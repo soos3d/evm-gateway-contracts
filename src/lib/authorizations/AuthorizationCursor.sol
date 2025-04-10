@@ -22,9 +22,9 @@ pragma solidity ^0.8.28;
  * @notice Used to iterate over a single authorization or a set of authorizations.
  */
 struct AuthorizationCursor {
-    bytes29 setOrAuthView; // The view pointing to the start of the encoded authorization set or single authorization.
-    uint256 offset; // The byte offset within the `setOrAuthView` data where the current authorization begins. Always 0 for a single authorization.
+    bytes29 setOrAuthView; // The view pointing to the start of the encoded single authorization or authorization set.
+    uint256 offset; // The byte offset within the `setOrAuthView` data where the next authorization begins.
     uint32 numAuths; // The total number of authorizations contained within `setOrAuthView`. Always 1 for a single authorization.
-    uint32 index; // The 0-based index of the current authorization.
+    uint32 index; // The 0-based index of the next authorization.
     bool done; // A flag indicating whether iteration is complete (i.e., `index == numAuths`).
 }

@@ -223,17 +223,15 @@ library MintAuthorizationLib {
         return c;
     }
 
-    /// @notice Gets the TypedMemView reference for the element the cursor is currently pointing at.
-    /// @dev Reverts with CursorOutOfBounds if the cursor is already done.
+    /// @notice Gets the TypedMemView reference to the next element and advances the cursor.
+    /// @dev Updates the cursor's internal state (offset, index, done flag).
+    ///      Reverts with CursorOutOfBounds if called when no elements are remaining.
     /// @param c The AuthorizationCursor memory struct.
-    /// @return ref A TypedMemView reference to the current MintAuthorization.
-    function current(AuthorizationCursor memory c) internal pure returns (bytes29 ref) {
+    /// @return ref The current element the cursor is pointing at.
+    /// @return c The updated AuthorizationCursor.
+    function next(AuthorizationCursor memory c) internal pure returns (bytes29 ref, AuthorizationCursor memory) {
         if (c.done) {
             revert TransferSpecLib.CursorOutOfBounds();
-        }
-
-        if (!isSet(c.setOrAuthView)) {
-            return c.setOrAuthView;
         }
 
         uint32 currentSpecLength =
@@ -243,28 +241,6 @@ library MintAuthorizationLib {
         ref = c.setOrAuthView.slice(
             c.offset, currentAuthTotalLength, TransferSpecLib._toMemViewType(MINT_AUTHORIZATION_MAGIC)
         );
-        return ref;
-    }
-
-    /// @notice Advances the cursor to the next element.
-    /// @dev Updates the cursor's internal state (offset, index, done flag).
-    ///      Reverts with CursorOutOfBounds if called when no elements are remaining.
-    /// @param c The AuthorizationCursor memory struct.
-    /// @return The updated AuthorizationCursor memory struct.
-    function next(AuthorizationCursor memory c) internal pure returns (AuthorizationCursor memory) {
-        if (c.done) {
-            revert TransferSpecLib.CursorOutOfBounds();
-        }
-
-        if (!isSet(c.setOrAuthView)) {
-            c.index++;
-            c.done = true;
-            return c;
-        }
-
-        uint32 currentSpecLength =
-            uint32(c.setOrAuthView.indexUint(c.offset + MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
-        uint256 currentAuthTotalLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + currentSpecLength;
 
         c.offset += currentAuthTotalLength;
         c.index++;
@@ -272,7 +248,8 @@ library MintAuthorizationLib {
         if (c.index >= c.numAuths) {
             c.done = true;
         }
-        return c;
+
+        return (ref, c);
     }
 
     // --- View field accessors ---
