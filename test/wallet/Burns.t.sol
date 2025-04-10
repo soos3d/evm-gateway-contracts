@@ -64,6 +64,13 @@ contract TestBurns is Test, DeployUtils {
         _callBurnSpentSignedBy(authorizations, signatures, fees, wrongSignerKey);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_burnSpent_wrongSignatureLength() external {
+        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
+        vm.expectRevert(SpendWallet.InvalidBurnSigner.selector);
+        wallet.burnSpent(authorizations, signatures, fees, bytes(hex"aaaa"));
+    }
+
     function _emptyArgs()
         internal
         pure
