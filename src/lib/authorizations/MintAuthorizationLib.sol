@@ -42,7 +42,7 @@ library MintAuthorizationLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
 
-    function isSet(bytes29 ref) private pure returns (bool) {
+    function _isSet(bytes29 ref) private pure returns (bool) {
         return ref.index(0, BYTES4_BYTES) == MINT_AUTHORIZATION_SET_MAGIC;
     }
 
@@ -185,7 +185,7 @@ library MintAuthorizationLib {
     ///             encoded MintAuthorizationSet.
     function validate(bytes memory data) internal pure {
         bytes29 ref = _asAuthOrSetView(data);
-        if (isSet(ref)) {
+        if (_isSet(ref)) {
             _validateMintAuthorizationSet(ref);
         } else {
             _validateMintAuthorization(ref);
@@ -203,21 +203,19 @@ library MintAuthorizationLib {
     /// @dev Reverts with `AuthorizationDataTooShort` or `InvalidAuthorizationMagic` if casting fails.
     function cursor(bytes memory data) internal pure returns (AuthorizationCursor memory c) {
         bytes29 ref = _asAuthOrSetView(data);
+        c.setOrAuthView = ref;
+        c.index = 0;
 
-        if (!isSet(ref)) {
-            c.setOrAuthView = ref;
+        if (!_isSet(ref)) {
             c.offset = 0;
             c.numAuths = 1;
-            c.index = 0;
             c.done = false; // There's one element to process
             return c;
         }
 
         uint32 numAuths = getNumAuthorizations(ref);
-        c.setOrAuthView = ref;
         c.offset = MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
         c.numAuths = numAuths;
-        c.index = 0;
         // If the set is empty, the cursor is immediately done
         c.done = (numAuths == 0);
         return c;
