@@ -53,6 +53,16 @@ To add dependencies and make it compatible with our CI, you must do the followin
     - E.g `forge install openzeppelin=OpenZeppelin/openzeppelin-contracts@v5.0.2`
 2. Update `remappings.txt` to include your dependency
 
+### Important Considerations: Memory Initialization with TypedMemView
+
+This project relies heavily on the `TypedMemView` library (`lib/memview-sol/`) for efficient memory manipulation, particularly within `AuthorizationLib.sol`.
+
+**Warning:** As documented in the [TypedMemView](https://github.com/summa-tx/memview-sol/tree/main) library itself, it utilizes unallocated memory operations and **does not guarantee cleanup of unallocated memory regions** after its internal functions execute.
+
+**Implication:** This means that memory subsequently allocated by contracts in *this* project (e.g., declaring new `memory` variables like arrays or structs after `TypedMemView` operations have occurred within the same transaction execution path) **might not be zero-initialized**. It could contain residual data from previous operations.
+
+**Required Precaution:** Developers working on this codebase **must not** assume that newly allocated memory variables or structures are automatically zero-initialized. If the logic relies on a memory variable starting at zero (or `false`, `address(0)`, etc.), it **must** be explicitly initialized after allocation.
+
 ## Deployment
 
 Example: (this will simultaneously verify the contract as well)

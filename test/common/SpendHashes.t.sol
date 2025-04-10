@@ -21,7 +21,7 @@ import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SpendHashes} from "src/lib/common/SpendHashes.sol";
-import {SpendSpec} from "src/lib/Authorizations.sol";
+import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
 
 contract SpendHashesHarness is SpendHashes {
     function markSpendHashAsUsed(bytes32 spendHash) external {
@@ -45,17 +45,18 @@ contract SpendHashesTest is Test {
         spendHashes = new SpendHashesHarness();
     }
 
-    function _createFakeSpendSpec(uint256 seed) internal pure returns (SpendSpec memory) {
-        return SpendSpec({
+    function _createFakeTransferSpec(uint256 seed) internal pure returns (TransferSpec memory) {
+        return TransferSpec({
             version: 1,
             sourceDomain: 1,
             destinationDomain: 2,
+            sourceContract: keccak256(abi.encode("sourceContract", seed)),
+            destinationContract: keccak256(abi.encode("destinationContract", seed)),
             sourceToken: keccak256(abi.encode("sourceToken", seed)),
             destinationToken: keccak256(abi.encode("destinationToken", seed)),
-            sourceSpender: keccak256(abi.encode("sourceSpender", seed)),
             sourceDepositor: keccak256(abi.encode("sourceDepositor", seed)),
             destinationRecipient: keccak256(abi.encode("destinationRecipient", seed)),
-            destinationContract: keccak256(abi.encode("destinationContract", seed)),
+            sourceSigner: keccak256(abi.encode("sourceSigner", seed)),
             destinationCaller: keccak256(abi.encode("destinationCaller", seed)),
             value: seed,
             nonce: keccak256(abi.encode("nonce", seed)),
@@ -63,7 +64,7 @@ contract SpendHashesTest is Test {
         });
     }
 
-    function _hashSpendSpec(SpendSpec memory spec) internal pure returns (bytes32) {
+    function _hashTransferSpec(TransferSpec memory spec) internal pure returns (bytes32) {
         return keccak256(abi.encode(spec));
     }
 
@@ -73,14 +74,14 @@ contract SpendHashesTest is Test {
     }
 
     function test_spendHashes_ensureSpendHashNotUsedSucceedsIfNewSpendHashFuzz(uint256 seed) public view {
-        SpendSpec memory spec = _createFakeSpendSpec(seed);
-        bytes32 spendHash = _hashSpendSpec(spec);
+        TransferSpec memory spec = _createFakeTransferSpec(seed);
+        bytes32 spendHash = _hashTransferSpec(spec);
         spendHashes.ensureSpendHashNotUsed(spendHash);
     }
 
     function test_spendHashes_revertsIfSpendHashAlreadyUsedFuzz(uint256 seed) public {
-        SpendSpec memory spec = _createFakeSpendSpec(seed);
-        bytes32 spendHash = _hashSpendSpec(spec);
+        TransferSpec memory spec = _createFakeTransferSpec(seed);
+        bytes32 spendHash = _hashTransferSpec(spec);
 
         spendHashes.markSpendHashAsUsed(spendHash);
 
@@ -89,8 +90,8 @@ contract SpendHashesTest is Test {
     }
 
     function test_spendHashes_markSpendHashAsUsedIsIdempotentFuzz(uint256 seed) public {
-        SpendSpec memory spec = _createFakeSpendSpec(seed);
-        bytes32 spendHash = _hashSpendSpec(spec);
+        TransferSpec memory spec = _createFakeTransferSpec(seed);
+        bytes32 spendHash = _hashTransferSpec(spec);
 
         spendHashes.markSpendHashAsUsed(spendHash);
         spendHashes.markSpendHashAsUsed(spendHash);
@@ -101,10 +102,10 @@ contract SpendHashesTest is Test {
 
     function test_spendHashes_markMultipleSpendHashesAsUsedFuzz(uint256 seed1, uint256 seed2) public {
         vm.assume(seed1 != seed2);
-        SpendSpec memory spec1 = _createFakeSpendSpec(seed1);
-        SpendSpec memory spec2 = _createFakeSpendSpec(seed2);
-        bytes32 spendHash1 = _hashSpendSpec(spec1);
-        bytes32 spendHash2 = _hashSpendSpec(spec2);
+        TransferSpec memory spec1 = _createFakeTransferSpec(seed1);
+        TransferSpec memory spec2 = _createFakeTransferSpec(seed2);
+        bytes32 spendHash1 = _hashTransferSpec(spec1);
+        bytes32 spendHash2 = _hashTransferSpec(spec2);
 
         spendHashes.markSpendHashAsUsed(spendHash1);
         spendHashes.markSpendHashAsUsed(spendHash2);
@@ -125,8 +126,8 @@ contract SpendHashesTest is Test {
         address proxyAddr = _deploySpendHashesProxy(address(impl1));
         UpgradeableSpendHashesHarness proxyAsImpl = UpgradeableSpendHashesHarness(proxyAddr);
 
-        SpendSpec memory spec = _createFakeSpendSpec(seed);
-        bytes32 spendHash = _hashSpendSpec(spec);
+        TransferSpec memory spec = _createFakeTransferSpec(seed);
+        bytes32 spendHash = _hashTransferSpec(spec);
         proxyAsImpl.markSpendHashAsUsed(spendHash);
 
         vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, spendHash));

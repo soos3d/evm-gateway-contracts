@@ -19,7 +19,7 @@ pragma solidity ^0.8.28;
 
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
-import {BurnAuthorization} from "src/lib/Authorizations.sol";
+import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
 import {IERC7597} from "src/interfaces/IERC7597.sol";
 import {IERC7598} from "src/interfaces/IERC7598.sol";
