@@ -113,7 +113,7 @@ contract TestBurns is Test, DeployUtils {
         // Generate a random address and key for the burn signer
         bytes memory encodedCalldata = abi.encode(authorizations, signatures, fees);
 
-        // Slice off the first 128 bytes (the three argument offsets).
+        // Slice off the first 96 bytes (the three argument offsets).
         // This will be easier in TS, which is where it will happen in practice.
         bytes memory slicedCalldata = new bytes(encodedCalldata.length - 0x60);
         for (uint256 i = 0; i < slicedCalldata.length; i++) {
