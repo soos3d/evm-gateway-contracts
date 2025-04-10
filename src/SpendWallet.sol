@@ -700,9 +700,6 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         bytes memory burnerSignature
     ) external view whenNotPaused {
         _verifyBurnerSignature(burnerSignature);
-
-        // For each burn authorization:
-        // IBurnToken(token).burn(amountToBurn);
     }
 
     /// Internal function to verify the signature of the `burnSigner` on the other arguments in calldata, using assembly
