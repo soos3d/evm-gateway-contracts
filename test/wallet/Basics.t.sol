@@ -26,6 +26,8 @@ import {DeployUtils} from "test/util/DeployUtils.sol";
 
 /// Tests ownership and initialization functionality of SpendMinter
 contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
+    uint32 private domain = 99;
+
     SpendWallet private wallet;
 
     /// Used by OwnershipTest
@@ -40,7 +42,7 @@ contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
     function test_initialize_revertWhenReinitialized() public {
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
-        wallet.initialize(makeAddr("random"));
+        wallet.initialize(makeAddr("random"), domain);
     }
 
     function test_updateBurnSigner_revertWhenNotOwner() public {

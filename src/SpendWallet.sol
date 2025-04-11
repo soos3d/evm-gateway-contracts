@@ -113,8 +113,9 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// Initializes the contract with the counterpart minter address
     ///
     /// @param minter   The address of the minter contract on the same chain
-    function initialize(address minter) public reinitializer(2) {
-        __SpendCommon_init(minter);
+    /// @param domain   The operator-issued identifier for this chain
+    function initialize(address minter, uint32 domain) public reinitializer(2) {
+        __SpendCommon_init(minter, domain);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

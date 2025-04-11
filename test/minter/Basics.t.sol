@@ -27,6 +27,8 @@ import {DeployUtils} from "test/util/DeployUtils.sol";
 
 /// Tests ownership and initialization functionality of SpendMinter
 contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
+    uint32 private domain = 99;
+
     SpendMinter private minter;
 
     /// Used by OwnershipTest
@@ -41,7 +43,7 @@ contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
     function test_initialize_revertWhenReinitialized() public {
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
-        minter.initialize(makeAddr("random"));
+        minter.initialize(makeAddr("random"), domain);
     }
 
     function test_updateMintAuthority_revertWhenNotOwner() public {
