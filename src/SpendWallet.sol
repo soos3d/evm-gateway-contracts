@@ -681,18 +681,18 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
 
     /// Debit the depositor's balance and burn the tokens after a spend was authorized
     ///
-    /// @dev May only be called by the `burner` role
-    /// @dev `authorizations` and `signatures` must be the same length
+    /// @dev `authorizations`, `signatures`, and `fees` must all be the same length
     /// @dev Will revert if `destinationDomain` is the same as `sourceDomain` (since no burn is required)
     /// @dev For a set of burn authorizations, authorizations from other domains are ignored. The whole set is still
     ///      needed to verify the signature.
-    /// @dev See the docs for `BurnAuthorization` for encoding details
+    /// @dev See `lib/authorizations/BurnAuthorizations.sol` for encoding details
     ///
-    /// @param authorizations   An array of byte-encoded burn authorizations
-    /// @param signatures       One signature from the spender of each burn authorization
-    /// @param fees             The fees to be collected for each burn. Fees for burns on other domains are ignored and
-    ///                         may be passed as zero. Each fee must be no more than `maxFee` of the corresponding burn
-    ///                         authorization.
+    /// @param authorizations    An array of byte-encoded burn authorizations
+    /// @param signatures        One signature from the spender of each burn authorization
+    /// @param fees              The fees to be collected for each burn. Fees for burns on other domains are ignored and
+    ///                          may be passed as zero. Each fee must be no more than `maxFee` of the corresponding burn
+    ///                          authorization.
+    /// @param burnerSignature   A signature from `burnSigner` on the abi-encoded first three arguments
     function burnSpent(
         bytes[] memory authorizations,
         bytes[] memory signatures,
@@ -704,6 +704,8 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
 
     /// Internal function to verify the signature of the `burnSigner` on the other arguments in calldata, hashing the
     /// arguments from calldata rather than using abi.encode (which does a lot of copying and stack manipulation).
+    ///
+    /// @dev Must be called only from `burnSpent`, to ensure the calldata is as expected
     ///
     /// @param burnerSignature   The signature from the `burnSigner` to verify
     function _verifyBurnerSignature(bytes memory burnerSignature) internal view {
