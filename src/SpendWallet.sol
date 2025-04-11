@@ -25,6 +25,8 @@ import {IERC7597} from "src/interfaces/IERC7597.sol";
 import {IERC7598} from "src/interfaces/IERC7598.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /// @title Spend Wallet
 ///
@@ -55,6 +57,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 /// `spendable` and `withdrawing` balances.
 contract SpendWallet is SpendCommon, IERC1155Balance {
     using SafeERC20 for IERC20;
+    using MessageHashUtils for bytes32;
 
     error DepositValueMustBePositive();
     error WithdrawalValueMustBePositive();
@@ -65,6 +68,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     error CannotAddSelfAsSpender();
     error InputArrayLengthMismatch();
     error InvalidBalanceType(uint96 balanceType);
+    error InvalidBurnSigner();
 
     enum BalanceType {
         Total, // 0
@@ -677,24 +681,54 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
 
     /// Debit the depositor's balance and burn the tokens after a spend was authorized
     ///
-    /// @dev May only be called by the `burner` role
-    /// @dev `authorizations` and `signatures` must be the same length
+    /// @dev `authorizations`, `signatures`, and `fees` must all be the same length
     /// @dev Will revert if `destinationDomain` is the same as `sourceDomain` (since no burn is required)
     /// @dev For a set of burn authorizations, authorizations from other domains are ignored. The whole set is still
     ///      needed to verify the signature.
-    /// @dev See the docs for `BurnAuthorization` for encoding details
+    /// @dev See `lib/authorizations/BurnAuthorizations.sol` for encoding details
     ///
-    /// @param authorizations   An array of byte-encoded burn authorizations
-    /// @param signatures       One signature from the spender of each burn authorization
-    /// @param fees             The fees to be collected for each burn. Fees for burns on other domains are ignored and
-    ///                         may be passed as zero. Each fee must be no more than `maxFee` of the corresponding burn
-    ///                         authorization.
-    function burnSpent(bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees)
-        external
-        whenNotPaused
-    {
-        // For each burn authorization:
-        // IBurnToken(token).burn(amountToBurn);
+    /// @param authorizations    An array of byte-encoded burn authorizations
+    /// @param signatures        One signature from the spender of each burn authorization
+    /// @param fees              The fees to be collected for each burn. Fees for burns on other domains are ignored and
+    ///                          may be passed as zero. Each fee must be no more than `maxFee` of the corresponding burn
+    ///                          authorization.
+    /// @param burnerSignature   A signature from `burnSigner` on the abi-encoded first three arguments
+    function burnSpent(
+        bytes[] memory authorizations,
+        bytes[] memory signatures,
+        uint256[][] memory fees,
+        bytes memory burnerSignature
+    ) external view whenNotPaused {
+        _verifyBurnerSignature(burnerSignature);
+    }
+
+    /// Internal function to verify the signature of the `burnSigner` on the other arguments in calldata, hashing the
+    /// arguments from calldata rather than using abi.encode (which does a lot of copying and stack manipulation).
+    ///
+    /// @dev Must be called only from `burnSpent`, to ensure the calldata is as expected
+    ///
+    /// @param burnerSignature   The signature from the `burnSigner` to verify
+    function _verifyBurnerSignature(bytes memory burnerSignature) internal view {
+        // Ensure that the signature is the expected length, to correctly index into the calldata
+        if (burnerSignature.length != 65) {
+            revert InvalidBurnSigner();
+        }
+
+        // Isolate just the arguments that are signed in the calldata by slicing `msg.data`:
+        //     - Skips over the beginning of the calldata to get to the first argument
+        //         - 4 bytes for the function selector
+        //         - 128 bytes for the 4 argument offsets
+        //         - 4 + 128 = 132 = 0x84
+        //     - Does not include the last argument (the signature itself)
+        //         - We know it is 65 bytes (verified above), so takes up 128 (0x80) bytes
+        //           (32 for the length, and 96 for the 32-byte-aligned contents)
+        bytes memory calldataBytes = msg.data[0x84:msg.data.length - 0x80];
+
+        // Verify the signature and revert if it's invalid
+        address recoveredSigner = ECDSA.recover(keccak256(calldataBytes).toEthSignedMessageHash(), burnerSignature);
+        if (recoveredSigner != burnSigner) {
+            revert InvalidBurnSigner();
+        }
     }
 
     /// Emitted when a spend authorization is used on the same chain as its source, resulting in a same-chain spend that
