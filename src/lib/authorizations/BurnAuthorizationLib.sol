@@ -184,8 +184,8 @@ library BurnAuthorizationLib {
     ///      specific validation function (`_validateBurnAuthorization` or `_validateBurnAuthorizationSet`).
     ///      Reverts with specific errors if casting or validation fails.
     /// @param data The raw bytes representing either an encoded single BurnAuthorization or an encoded BurnAuthorizationSet.
-    function validate(bytes memory data) internal pure {
-        bytes29 ref = _asAuthOrSetView(data);
+    function _validate(bytes memory data) internal pure returns (bytes29 ref) {
+        ref = _asAuthOrSetView(data);
         if (_isSet(ref)) {
             _validateBurnAuthorizationSet(ref);
         } else {
@@ -202,7 +202,7 @@ library BurnAuthorizationLib {
     /// @return c An initialized AuthorizationCursor memory struct.
     /// @dev Reverts with `AuthorizationDataTooShort` or `InvalidAuthorizationMagic` if casting fails.
     function cursor(bytes memory data) internal pure returns (AuthorizationCursor memory c) {
-        bytes29 ref = _asAuthOrSetView(data);
+        bytes29 ref = _validate(data);
         c.setOrAuthView = ref;
         c.index = 0;
 

@@ -71,7 +71,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
-        BurnAuthorizationLib.validate(encodedAuth);
+        BurnAuthorizationLib._validate(encodedAuth);
     }
 
     // ===== Validation Failures: Burn Authorization Structure =====
@@ -93,7 +93,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        BurnAuthorizationLib.validate(shortData);
+        BurnAuthorizationLib._validate(shortData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -119,7 +119,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        BurnAuthorizationLib.validate(corruptedData);
+        BurnAuthorizationLib._validate(corruptedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -145,7 +145,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        BurnAuthorizationLib.validate(corruptedData);
+        BurnAuthorizationLib._validate(corruptedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -164,7 +164,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        BurnAuthorizationLib.validate(truncatedData);
+        BurnAuthorizationLib._validate(truncatedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -180,7 +180,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        BurnAuthorizationLib.validate(corruptedData);
+        BurnAuthorizationLib._validate(corruptedData);
     }
 
     // ===== Validation Failures: Inner TransferSpec Consistency =====
@@ -202,7 +202,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        BurnAuthorizationLib.validate(corruptedData);
+        BurnAuthorizationLib._validate(corruptedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -225,7 +225,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
             abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecMagic.selector, corruptedMagic);
 
         vm.expectRevert(expectedRevertData);
-        BurnAuthorizationLib.validate(encodedAuth);
+        BurnAuthorizationLib._validate(encodedAuth);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -241,7 +241,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        BurnAuthorizationLib.validate(corruptedData);
+        BurnAuthorizationLib._validate(corruptedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -253,7 +253,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
 
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecVersion.selector, invalidVersion));
-        BurnAuthorizationLib.validate(encodedAuth);
+        BurnAuthorizationLib._validate(encodedAuth);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -279,7 +279,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        BurnAuthorizationLib.validate(corruptedData);
+        BurnAuthorizationLib._validate(corruptedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -307,7 +307,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        BurnAuthorizationLib.validate(corruptedData);
+        BurnAuthorizationLib._validate(corruptedData);
     }
 
     // ===== Iteration Tests =====
