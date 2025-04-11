@@ -24,6 +24,11 @@ contract DomainHarness is Domain {
     function initialize(uint32 domain) public initializer {
         __Domain_init(domain);
     }
+
+    // Wraps the internal _isCurrentDomain function for testing
+    function isCurrentDomain(uint32 domain) public view returns (bool) {
+        return _isCurrentDomain(domain);
+    }
 }
 
 contract DomainTest is Test {
@@ -36,15 +41,18 @@ contract DomainTest is Test {
     }
 
     function test_initializeNonZeroDomain() public {
+        assertEq(domainHarness.domain(), 0, "Domain should be 0 before initialization.");
         assertTrue(domainHarness.isCurrentDomain(0), "Domain should be 0 before initialization.");
         domainHarness.initialize(testDomain);
-        assertFalse(domainHarness.isCurrentDomain(0), "Domain should not be 0 after initialization.");
+        assertEq(domainHarness.domain(), testDomain, "Domain should be set to the initialized domain.");
         assertTrue(domainHarness.isCurrentDomain(testDomain), "Domain should be set to the initialized domain.");
     }
 
     function test_initializeZeroDomain() public {
+        assertEq(domainHarness.domain(), 0, "Domain should be 0 before initialization.");
         assertTrue(domainHarness.isCurrentDomain(0), "Domain should be 0 before initialization.");
         domainHarness.initialize(0);
+        assertEq(domainHarness.domain(), 0, "Domain should still be 0 after initialization.");
         assertTrue(domainHarness.isCurrentDomain(0), "Domain should still be 0 after initialization.");
     }
 }

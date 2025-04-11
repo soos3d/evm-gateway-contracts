@@ -25,16 +25,23 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 contract Domain is Initializable {
     /// Sets the domain during initialization
     ///
-    /// @param domain The operator-issued identifier for the current chain
-    function __Domain_init(uint32 domain) internal onlyInitializing {
-        DomainStorage.get().domain = domain;
+    /// @param _domain The operator-issued identifier for the current chain
+    function __Domain_init(uint32 _domain) internal onlyInitializing {
+        DomainStorage.get().domain = _domain;
+    }
+
+    /// Returns the current domain
+    ///
+    /// @return The operator-issued identifier for the current chain
+    function domain() public view returns (uint32) {
+        return DomainStorage.get().domain;
     }
 
     /// Returns whether the given domain matches the current domain
     ///
-    /// @param domain   The domain identifier to check
-    function isCurrentDomain(uint32 domain) public view returns (bool) {
-        return DomainStorage.get().domain == domain;
+    /// @param _domain   The domain identifier to check
+    function _isCurrentDomain(uint32 _domain) internal view returns (bool) {
+        return DomainStorage.get().domain == _domain;
     }
 }
 
