@@ -42,8 +42,9 @@ contract SpendMinter is SpendCommon {
     /// Initializes the contract with the counterpart wallet address
     ///
     /// @param wallet   The address of the wallet contract on the same chain
-    function initialize(address wallet) public reinitializer(2) {
-        __SpendCommon_init(wallet);
+    /// @param domain   The operator-issued identifier for this chain
+    function initialize(address wallet, uint32 domain) public reinitializer(2) {
+        __SpendCommon_init(wallet, domain);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

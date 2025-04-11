@@ -25,6 +25,7 @@ import {Counterpart} from "src/lib/common/Counterpart.sol";
 import {Rejection} from "src/lib/common/Rejection.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {SpendHashes} from "src/lib/common/SpendHashes.sol";
+import {Domain} from "src/lib/common/Domain.sol";
 
 /// @title SpendCommon
 ///
@@ -37,7 +38,8 @@ contract SpendCommon is
     Rejection,
     Counterpart,
     TokenSupport,
-    SpendHashes
+    SpendHashes,
+    Domain
 {
     /**
      * @dev Reverts if an invalid address is set.
@@ -55,12 +57,15 @@ contract SpendCommon is
         _disableInitializers();
     }
 
-    /// Initializes the contract, setting the counterpart to the given address and the pauser to the owner initially
+    /// Initializes the contract, setting the counterpart to the given address, the pauser to the owner initially,
+    /// and the domain to the given domain
     ///
     /// @param counterpart   The address of the counterpart contract (either `SpendWallet` or `SpendMinter`)
-    function __SpendCommon_init(address counterpart) public onlyInitializing {
+    /// @param domain   The operator-issued identifier for this chain
+    function __SpendCommon_init(address counterpart, uint32 domain) public onlyInitializing {
         __Pausing_init(owner());
         __Counterpart_init(counterpart);
+        __Domain_init(domain);
     }
 
     /// Validates that an address is not the zero address

@@ -20,7 +20,7 @@ pragma solidity ^0.8.28;
 import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
-import {DeployUtils} from "test/util/DeployUtils.sol";
+import {DeployUtils, TEST_DOMAIN} from "test/util/DeployUtils.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract TestDeployUtils is Test, DeployUtils {
@@ -37,6 +37,8 @@ contract TestDeployUtils is Test, DeployUtils {
         assert(!minter.paused());
         assertEq(address(wallet.minterContract()), address(minter));
         assertEq(address(minter.walletContract()), address(wallet));
+        assertEq(wallet.domain(), TEST_DOMAIN);
+        assertEq(minter.domain(), TEST_DOMAIN);
     }
 
     function test_deployWalletOnly() external {
@@ -46,6 +48,7 @@ contract TestDeployUtils is Test, DeployUtils {
         assertEq(wallet.owner(), owner);
         assert(!wallet.paused());
         assertEq(address(wallet.minterContract()), address(0));
+        assertEq(wallet.domain(), TEST_DOMAIN);
     }
 
     function test_deployMinterOnly() external {
@@ -55,6 +58,7 @@ contract TestDeployUtils is Test, DeployUtils {
         assertEq(minter.owner(), owner);
         assert(!minter.paused());
         assertEq(address(minter.walletContract()), address(0));
+        assertEq(minter.domain(), TEST_DOMAIN);
     }
 
     function test_deployPlaceholder() external {
