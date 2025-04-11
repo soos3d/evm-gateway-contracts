@@ -30,6 +30,9 @@ contract SpendMinter is SpendCommon {
     /// The token minter contracts must have permission to mint the associated token.
     mapping(address token => address tokenMintAuthority) public tokenMintAuthorities;
 
+    /// The address of the operator that can sign mint authorizations
+    address public mintAuthorizationSigner;
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Initialization
 
@@ -99,6 +102,25 @@ contract SpendMinter is SpendCommon {
         address oldMintAuthority = tokenMintAuthorities[token];
         tokenMintAuthorities[token] = newMintAuthority;
         emit MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
+    }
+
+    /// Emitted when the mintAuthorizationSigner role is updated
+    ///
+    /// @param oldMintAuthorizationSigner   The previous mint authorization signer address
+    /// @param newMintAuthorizationSigner   The new mint authorization signer address
+    event MintAuthorizationSignerUpdated(address oldMintAuthorizationSigner, address newMintAuthorizationSigner);
+
+    /// Sets the operator address that may sign mint authorizations
+    ///
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param newMintAuthorizationSigner   The new mint authorization signer address
+    function updateMintAuthorizationSigner(address newMintAuthorizationSigner) external onlyOwner {
+        _checkNotZeroAddress(newMintAuthorizationSigner);
+
+        address oldMintAuthorizationSigner = mintAuthorizationSigner;
+        mintAuthorizationSigner = newMintAuthorizationSigner;
+        emit MintAuthorizationSignerUpdated(oldMintAuthorizationSigner, newMintAuthorizationSigner);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
