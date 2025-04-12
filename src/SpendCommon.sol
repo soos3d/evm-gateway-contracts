@@ -39,9 +39,6 @@ contract SpendCommon is
     TokenSupport,
     SpendHashes
 {
-    /**
-     * @dev Reverts if an invalid address is set.
-     */
     error InvalidAddress();
 
     /// Implements the UUPS upgrade pattern by restricting upgrades to the owner
@@ -61,14 +58,5 @@ contract SpendCommon is
     function __SpendCommon_init(address counterpart) public onlyInitializing {
         __Pausing_init(owner());
         __Counterpart_init(counterpart);
-    }
-
-    /// Validates that an address is not the zero address
-    ///
-    /// @param addr   The address being authorized to spend
-    function _checkNotZeroAddress(address addr) internal pure {
-        if (addr == address(0)) {
-            revert InvalidAddress();
-        }
     }
 }

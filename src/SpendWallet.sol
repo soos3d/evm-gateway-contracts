@@ -19,9 +19,11 @@ pragma solidity ^0.8.28;
 
 import {SpendCommon} from "src/SpendCommon.sol";
 import {WithdrawalDelayStorage} from "src/lib/wallet/WithdrawalDelay.sol";
+import {Delegation} from "src/lib/wallet/Delegation.sol";
 import {Balances, BalancesStorage} from "src/lib/wallet/Balances.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
+import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 import {IERC7597} from "src/interfaces/IERC7597.sol";
 import {IERC7598} from "src/interfaces/IERC7598.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -56,7 +58,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 /// the process of being withdrawn will no longer be spendable as soon as the withdrawal initiation is observed by the
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
 /// `spendable` and `withdrawing` balances.
-contract SpendWallet is SpendCommon, Balances {
+contract SpendWallet is SpendCommon, Balances, Delegation {
     using SafeERC20 for IERC20;
     using MessageHashUtils for bytes32;
 
@@ -65,13 +67,7 @@ contract SpendWallet is SpendCommon, Balances {
     error WithdrawalValueExceedsSpendableBalance();
     error WithdrawalNotYetAvailable();
     error NoWithdrawingBalance();
-    error UnauthorizedSpender();
-    error CannotAddSelfAsSpender();
     error InvalidBurnSigner();
-
-    /// The mapping to track authorized spenders for each depositor per token
-    mapping(address token => mapping(address depositor => mapping(address spender => bool isAuthorized))) private
-        spenderAuthorizations;
 
     /// The address that may sign the calldata for burning tokens that have been spent
     address public burnSigner;
@@ -285,92 +281,22 @@ contract SpendWallet is SpendCommon, Balances {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Spender authorization
-
-    /// Emitted when a spender is authorized to spend a depositor's balance
-    ///
-    /// @param token       The token that the spender is now authorized for
-    /// @param depositor   The depositor who added the spender
-    /// @param spender     The spender that was added
-    event SpenderAdded(address indexed token, address indexed depositor, address spender);
-
-    /// Allow `spender` to spend the caller's `token` balance
-    ///
-    /// @dev This acts as a full allowance for `spender` on the `token` balance of `msg.sender` in this contract
-    ///
-    /// @param token     The token that `spender` should be allowed to spend
-    /// @param spender   The address being authorized to spend
-    function addSpender(address token, address spender)
-        external
-        whenNotPaused
-        notRejected(msg.sender)
-        notRejected(spender)
-        tokenSupported(token)
-    {
-        _checkNotZeroAddress(spender);
-        if (spender == msg.sender) {
-            revert CannotAddSelfAsSpender();
-        }
-
-        spenderAuthorizations[token][msg.sender][spender] = true;
-        emit SpenderAdded(token, msg.sender, spender);
-    }
-
-    /// Emitted when a spender's authorization is revoked
-    ///
-    /// @param token       The token the spender is no longer authorized for
-    /// @param depositor   The depositor who removed the spender
-    /// @param spender     The spender that was removed
-    event SpenderRemoved(address indexed token, address indexed depositor, address spender);
-
-    /// Stop allowing `spender` to spend the caller's `token` balance
-    ///
-    /// @dev This revokes the allowance granted by `addSpender`
-    ///
-    /// @param token     The token that `spender` should be allowed to spend
-    /// @param spender   The address being authorized to spend
-    function removeSpender(address token, address spender)
-        external
-        whenNotPaused
-        notRejected(msg.sender)
-        tokenSupported(token)
-    {
-        _checkNotZeroAddress(spender);
-
-        spenderAuthorizations[token][msg.sender][spender] = false;
-        emit SpenderRemoved(token, msg.sender, spender);
-    }
-
-    /// Check if an spender is authorized to spend tokens on behalf of a depositor
-    ///
-    /// @dev This verifies if a spender is authorized or not for spending tokens on behalf of depositor
-    ///
-    /// @param token     The token that `spender` should be allowed to spend
-    /// @param spender   The address being authorized to spend
-    function isSpender(address token, address spender, address depositor) public view returns (bool) {
-        if (spender == depositor) {
-            return true;
-        }
-
-        return spenderAuthorizations[token][depositor][spender];
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Withdrawals
 
     /// Emitted when a withdrawal is initiated
     ///
     /// @param token              The token that is being withdrawn
     /// @param depositor          The owner of the funds being withdrawn
-    /// @param spender            The spender that authorized the withdrawal
+    /// @param authorizer         The address that initiated the withdrawal
     /// @param value              The value that is newly being withdrawn
     /// @param totalWithdrawing   The total value that is now being withdrawn
     /// @param withdrawableAt     The block number at which the withdrawal can
     ///                           be completed
+    // TODO make sure these fields are sufficient now that withdrawing balances are replaced rather than added to
     event WithdrawalInitiated(
         address indexed token,
         address indexed depositor,
-        address spender,
+        address authorizer,
         uint256 value,
         uint256 totalWithdrawing,
         uint256 withdrawableAt
@@ -380,9 +306,9 @@ contract SpendWallet is SpendCommon, Balances {
     ///
     /// @param token       The token to initiate a withdrawal for
     /// @param depositor   The owner of the balance from which the withdrawal should come
-    /// @param spender     The address initiating the withdrawal
+    /// @param authorizer  The address initiating the withdrawal
     /// @param value       The amount to be withdrawn
-    function _initiateWithdrawal(address token, address depositor, address spender, uint256 value) internal {
+    function _initiateWithdrawal(address token, address depositor, address authorizer, uint256 value) internal {
         if (value == 0) {
             revert WithdrawalValueMustBePositive();
         }
@@ -402,7 +328,7 @@ contract SpendWallet is SpendCommon, Balances {
         emit WithdrawalInitiated(
             token,
             depositor,
-            spender,
+            authorizer,
             value,
             balances$.withdrawingBalances[token][depositor],
             withdrawalDelay$.withdrawableAtBlocks[token][depositor]
@@ -423,7 +349,7 @@ contract SpendWallet is SpendCommon, Balances {
     /// `withdraw` may be called to complete the withdrawal. Once a withdrawal has been initiated, that amount can no
     /// longer be spent. Calling this again before `withdrawalDelay` is over will add to the amount and reset the timer.
     ///
-    /// @dev The caller of this method must be an authorized spender of `depositor` for `token`
+    /// @dev The caller of this method must be the depositor or an authorized delegate of `depositor` for `token`
     ///
     /// @param token       The token to initiate a withdrawal for
     /// @param depositor   The owner of the balance from which the withdrawal should come
@@ -433,21 +359,21 @@ contract SpendWallet is SpendCommon, Balances {
         whenNotPaused
         tokenSupported(token)
     {
-        if (!isSpender(token, msg.sender, depositor)) {
-            revert UnauthorizedSpender();
+        if (!isAuthorizedForBalance(token, depositor, msg.sender)) {
+            revert NotAuthorized();
         }
         _initiateWithdrawal(token, depositor, msg.sender, value);
     }
 
     /// Emitted when a withdrawal is completed and funds have been transferred to the recipient
     ///
-    /// @param token       The token that was withdrawn
-    /// @param depositor   The owner of the withdrawn funds
-    /// @param recipient   The recipient of the funds
-    /// @param spender     The spender that authorized the withdrawal
-    /// @param value       The value that was withdrawn
+    /// @param token        The token that was withdrawn
+    /// @param depositor    The owner of the withdrawn funds
+    /// @param recipient    The recipient of the funds
+    /// @param authorizer   The address that authorized the withdrawal completion
+    /// @param value        The value that was withdrawn
     event WithdrawalCompleted(
-        address indexed token, address indexed depositor, address indexed recipient, address spender, uint256 value
+        address indexed token, address indexed depositor, address indexed recipient, address authorizer, uint256 value
     );
 
     /// Internal helper function to complete a withdrawal
@@ -499,8 +425,8 @@ contract SpendWallet is SpendCommon, Balances {
         whenNotPaused
         tokenSupported(token)
     {
-        if (!isSpender(token, msg.sender, depositor)) {
-            revert UnauthorizedSpender();
+        if (!isAuthorizedForBalance(token, depositor, msg.sender)) {
+            revert NotAuthorized();
         }
         _withdraw(token, depositor, recipient);
     }
@@ -528,14 +454,14 @@ contract SpendWallet is SpendCommon, Balances {
     function encodeBurnAuthorizations(BurnAuthorization[] memory authorizations) external pure returns (bytes memory) {}
 
     /// Allows anyone to validate whether a set of burn authorizations is valid along with a signature from the
-    /// depositor or an authorized spender
+    /// depositor or an authorized delegate
     ///
     /// @dev Returns true if the authorizations and signature are valid
     /// @dev See the docs for `BurnAuthorization` for encoding details
     ///
-    /// @param authorizations   A byte-encoded (set of) burn authorization(s)
-    /// @param signature        The signature from the spender
-    function validateBurnAuthorizations(bytes memory authorizations, bytes calldata signature)
+    /// @param authorization   A byte-encoded (set of) burn authorization(s)
+    /// @param signature       The signature from the depositor or authorized delegate
+    function validateBurnAuthorizations(bytes memory authorization, bytes calldata signature)
         external
         pure
         returns (bool)
@@ -551,7 +477,7 @@ contract SpendWallet is SpendCommon, Balances {
     /// @param spendHash           The keccak256 hash of the `SpendSpec`
     /// @param destinationDomain   The domain the spend was used on
     /// @param recipient           The recipient of the funds at the destination
-    /// @param spender             The spender that authorized the spend
+    /// @param authorizer          The address that authorized the transfer
     /// @param value               The value that was spent
     /// @param fee                 The fee charged for the burn
     /// @param total               The total value burnt, including the fee
@@ -564,7 +490,7 @@ contract SpendWallet is SpendCommon, Balances {
         bytes32 indexed spendHash,
         uint32 destinationDomain,
         bytes32 recipient,
-        address spender,
+        address authorizer,
         uint256 value,
         uint256 fee,
         uint256 total,
@@ -582,7 +508,7 @@ contract SpendWallet is SpendCommon, Balances {
     /// @dev See `lib/authorizations/BurnAuthorizations.sol` for encoding details
     ///
     /// @param authorizations    An array of byte-encoded burn authorizations
-    /// @param signatures        One signature from the spender of each burn authorization
+    /// @param signatures        One signature from the authorizer of each burn authorization (set)
     /// @param fees              The fees to be collected for each burn. Fees for burns on other domains are ignored and
     ///                          may be passed as zero. Each fee must be no more than `maxFee` of the corresponding burn
     ///                          authorization.
@@ -632,7 +558,7 @@ contract SpendWallet is SpendCommon, Balances {
     /// @param depositor            The depositor who owned the spent balance
     /// @param spendHash            The keccak256 hash of the SpendSpec
     /// @param recipient            The recipient of the funds
-    /// @param spender              The spender that authorized the spend
+    /// @param authorizer           The address that authorized the transfer
     /// @param value                The value transferred to the recipient
     /// @param fromSpendable        The value transferred from the `spendable`
     ///                             balance
@@ -644,7 +570,7 @@ contract SpendWallet is SpendCommon, Balances {
         address indexed depositor,
         bytes32 indexed spendHash,
         bytes32 recipient,
-        address spender,
+        address authorizer,
         uint256 value,
         uint256 fromSpendable,
         uint256 fromWithdrawing,

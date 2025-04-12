@@ -19,6 +19,7 @@ pragma solidity ^0.8.28;
 
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
+import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 
 /// @title Spend Minter
 ///
