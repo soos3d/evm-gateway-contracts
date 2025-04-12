@@ -19,6 +19,7 @@ pragma solidity ^0.8.28;
 
 import {SpendWallet} from "src/SpendWallet.sol";
 import {Delegation} from "src/lib/wallet/Delegation.sol";
+import {Withdrawals} from "src/lib/wallet/Withdrawals.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -101,7 +102,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     ) internal {
         vm.startPrank(actor);
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.WithdrawalInitiated(
+        emit Withdrawals.WithdrawalInitiated(
             usdc, depositorAddress, actor, withdrawalAmount, expectedWithdrawingBalance, expectedWithdrawalBlock
         );
 
@@ -130,7 +131,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     ) internal {
         vm.startPrank(actor);
         vm.expectEmit(true, true, true, true);
-        emit SpendWallet.WithdrawalCompleted(usdc, depositorAddress, recipient, actor, expectedWithdrawalAmount);
+        emit Withdrawals.WithdrawalCompleted(usdc, depositorAddress, recipient, actor, expectedWithdrawalAmount);
         if (withdrawalType_ == WithdrawalType.Direct) {
             wallet.withdraw(usdc);
         } else {
@@ -149,7 +150,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     function test_directInitiateWithdrawal_revertIfValueIsZero() public {
         vm.startPrank(depositor);
-        vm.expectRevert(SpendWallet.WithdrawalValueMustBePositive.selector);
+        vm.expectRevert(Withdrawals.WithdrawalValueMustBePositive.selector);
         wallet.initiateWithdrawal(usdc, 0);
         vm.stopPrank();
     }
@@ -160,14 +161,14 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         vm.stopPrank();
 
         vm.startPrank(delegate);
-        vm.expectRevert(SpendWallet.WithdrawalValueMustBePositive.selector);
+        vm.expectRevert(Withdrawals.WithdrawalValueMustBePositive.selector);
         wallet.initiateWithdrawal(usdc, depositor, 0);
         vm.stopPrank();
     }
 
     function test_directInitiateWithdrawal_revertIfValueExceedsSpendableBalance() public {
         vm.startPrank(depositor);
-        vm.expectRevert(SpendWallet.WithdrawalValueExceedsSpendableBalance.selector);
+        vm.expectRevert(Withdrawals.WithdrawalValueExceedsSpendableBalance.selector);
         wallet.initiateWithdrawal(usdc, 2 * initialUsdcBalance);
         vm.stopPrank();
     }
@@ -178,7 +179,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         vm.stopPrank();
 
         vm.startPrank(delegate);
-        vm.expectRevert(SpendWallet.WithdrawalValueExceedsSpendableBalance.selector);
+        vm.expectRevert(Withdrawals.WithdrawalValueExceedsSpendableBalance.selector);
         wallet.initiateWithdrawal(usdc, depositor, 2 * initialUsdcBalance);
         vm.stopPrank();
     }
@@ -210,7 +211,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     function test_directWithdrawal_revertIfNoWithdrawingBalance() public {
         vm.startPrank(depositor);
-        vm.expectRevert(SpendWallet.NoWithdrawingBalance.selector);
+        vm.expectRevert(Withdrawals.NoWithdrawingBalance.selector);
         wallet.withdraw(usdc);
         vm.stopPrank();
     }
@@ -221,7 +222,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         vm.stopPrank();
 
         vm.startPrank(delegate);
-        vm.expectRevert(SpendWallet.NoWithdrawingBalance.selector);
+        vm.expectRevert(Withdrawals.NoWithdrawingBalance.selector);
         wallet.withdraw(usdc, depositor, delegate);
         vm.stopPrank();
     }
@@ -259,7 +260,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         // Attempt to withdraw immediately
         address actor = withdrawalType == WithdrawalType.Direct ? depositor : delegate;
         vm.startPrank(actor);
-        vm.expectRevert(SpendWallet.WithdrawalNotYetAvailable.selector);
+        vm.expectRevert(Withdrawals.WithdrawalNotYetAvailable.selector);
         if (withdrawalType == WithdrawalType.Direct) {
             wallet.withdraw(usdc);
         } else {
@@ -272,7 +273,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Attempt to withdraw again
         vm.startPrank(actor);
-        vm.expectRevert(SpendWallet.WithdrawalNotYetAvailable.selector);
+        vm.expectRevert(Withdrawals.WithdrawalNotYetAvailable.selector);
         if (withdrawalType == WithdrawalType.Direct) {
             wallet.withdraw(usdc);
         } else {
@@ -854,7 +855,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Second delegate tries to complete their withdrawal but should fail because nothing is left
         vm.startPrank(delegate2);
-        vm.expectRevert(SpendWallet.NoWithdrawingBalance.selector);
+        vm.expectRevert(Withdrawals.NoWithdrawingBalance.selector);
         wallet.withdraw(usdc, depositor, delegate2);
         vm.stopPrank();
 
