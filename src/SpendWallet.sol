@@ -18,9 +18,9 @@
 pragma solidity ^0.8.28;
 
 import {SpendCommon} from "src/SpendCommon.sol";
+import {Balances, BalancesStorage} from "src/lib/wallet/Balances.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
-import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
 import {IERC7597} from "src/interfaces/IERC7597.sol";
 import {IERC7598} from "src/interfaces/IERC7598.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -55,7 +55,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 /// the process of being withdrawn will no longer be spendable as soon as the withdrawal initiation is observed by the
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
 /// `spendable` and `withdrawing` balances.
-contract SpendWallet is SpendCommon, IERC1155Balance {
+contract SpendWallet is SpendCommon, Balances {
     using SafeERC20 for IERC20;
     using MessageHashUtils for bytes32;
 
@@ -66,23 +66,7 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     error NoWithdrawingBalance();
     error UnauthorizedSpender();
     error CannotAddSelfAsSpender();
-    error InputArrayLengthMismatch();
-    error InvalidBalanceType(uint96 balanceType);
     error InvalidBurnSigner();
-
-    enum BalanceType {
-        Total, // 0
-        Spendable, // 1
-        Withdrawing, // 2
-        Withdrawable // 3
-
-    }
-
-    /// The balances that have been deposited and are available for spending (after finalization)
-    mapping(address token => mapping(address depositor => uint256 value)) internal spendableBalances;
-
-    /// The balances that are in the process of being withdrawn and are no longer spendable
-    mapping(address token => mapping(address depositor => uint256 value)) internal withdrawingBalances;
 
     /// The block numbers at which in-progress withdrawals will be withdrawable
     mapping(address token => mapping(address depositor => uint256 block)) internal withdrawableAtBlocks;
@@ -142,8 +126,12 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         if (value == 0) {
             revert DepositValueMustBePositive();
         }
-        spendableBalances[token][msg.sender] += value;
+
+        BalancesStorage.Data storage balances$ = BalancesStorage.get();
+        balances$.spendableBalances[token][msg.sender] += value;
+
         IERC20(token).safeTransferFrom(msg.sender, address(this), value);
+
         emit Deposited(token, msg.sender, value);
     }
 
@@ -207,9 +195,13 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         if (value == 0) {
             revert DepositValueMustBePositive();
         }
-        spendableBalances[token][owner] += value;
+
+        BalancesStorage.Data storage balances$ = BalancesStorage.get();
+        balances$.spendableBalances[token][owner] += value;
+
         IERC7597(token).permit(owner, address(this), value, deadline, signature);
         IERC20(token).safeTransferFrom(owner, address(this), value);
+
         emit Deposited(token, owner, value);
     }
 
@@ -289,8 +281,12 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         if (value == 0) {
             revert DepositValueMustBePositive();
         }
-        spendableBalances[token][from] += value;
+
+        BalancesStorage.Data storage balances$ = BalancesStorage.get();
+        balances$.spendableBalances[token][from] += value;
+
         IERC7598(token).receiveWithAuthorization(from, address(this), value, validAfter, validBefore, nonce, signature);
+
         emit Deposited(token, from, value);
     }
 
@@ -396,18 +392,23 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         if (value == 0) {
             revert WithdrawalValueMustBePositive();
         }
-        if (value > spendableBalances[token][depositor]) {
+
+        BalancesStorage.Data storage balances$ = BalancesStorage.get();
+
+        if (value > balances$.spendableBalances[token][depositor]) {
             revert WithdrawalValueExceedsSpendableBalance();
         }
-        spendableBalances[token][depositor] -= value;
-        withdrawingBalances[token][depositor] += value;
+
+        balances$.spendableBalances[token][depositor] -= value;
+        balances$.withdrawingBalances[token][depositor] += value;
         withdrawableAtBlocks[token][depositor] = block.number + withdrawalDelay;
+
         emit WithdrawalInitiated(
             token,
             depositor,
             spender,
             value,
-            withdrawingBalances[token][depositor],
+            balances$.withdrawingBalances[token][depositor],
             withdrawableAtBlocks[token][depositor]
         );
     }
@@ -459,16 +460,22 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     /// @param depositor   The owner of the balance from which the withdrawal should come
     /// @param recipient   The recipient of the funds
     function _withdraw(address token, address depositor, address recipient) internal {
-        uint256 balanceToWithdraw = withdrawingBalances[token][depositor];
+        BalancesStorage.Data storage balances$ = BalancesStorage.get();
+
+        uint256 balanceToWithdraw = balances$.withdrawingBalances[token][depositor];
         if (balanceToWithdraw == 0) {
             revert NoWithdrawingBalance();
         }
+
         if (withdrawableAtBlocks[token][depositor] > block.number) {
             revert WithdrawalNotYetAvailable();
         }
-        withdrawingBalances[token][depositor] = 0;
+
+        balances$.withdrawingBalances[token][depositor] = 0;
         withdrawableAtBlocks[token][depositor] = 0;
+
         IERC20(token).safeTransfer(recipient, balanceToWithdraw);
+
         emit WithdrawalCompleted(token, depositor, recipient, msg.sender, balanceToWithdraw);
     }
 
@@ -513,33 +520,6 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Balances
 
-    /// The total balance of a depositor for a token. This will always be equal to the sum of `spendableBalance` and
-    /// `withdrawingBalance`.
-    ///
-    /// @param token       The token of the requested balance
-    /// @param depositor   The depositor of the requested balance
-    function totalBalance(address token, address depositor) public view returns (uint256) {
-        return spendableBalances[token][depositor] + withdrawingBalances[token][depositor];
-    }
-
-    /// The balance that is spendable by the depositor, subject to deposits having been observed by the API in a
-    /// finalized block and no spend authorizations having been issued but not yet burned by the operator or used on the
-    /// same chain
-    ///
-    /// @param token       The token of the requested balance
-    /// @param depositor   The depositor of the requested balance
-    function spendableBalance(address token, address depositor) public view returns (uint256) {
-        return spendableBalances[token][depositor];
-    }
-
-    /// The balance that is in the process of being withdrawn
-    ///
-    /// @param token       The token of the requested balance
-    /// @param depositor   The depositor of the requested balance
-    function withdrawingBalance(address token, address depositor) public view tokenSupported(token) returns (uint256) {
-        return withdrawingBalances[token][depositor];
-    }
-
     /// The balance that is withdrawable as of the current block. This will either be 0 or `withdrawingBalance`.
     ///
     /// @param token       The token of the requested balance
@@ -550,68 +530,14 @@ contract SpendWallet is SpendCommon, IERC1155Balance {
         tokenSupported(token)
         returns (uint256)
     {
-        uint256 balanceToWithdraw = withdrawingBalances[token][depositor];
+        BalancesStorage.Data storage balances$ = BalancesStorage.get();
+
+        uint256 balanceToWithdraw = balances$.withdrawingBalances[token][depositor];
         if (balanceToWithdraw == 0 || withdrawableAtBlocks[token][depositor] > block.number) {
             return 0;
         }
+
         return balanceToWithdraw;
-    }
-
-    /// The balance of a depositor for a particular balance specifier, compatible with ERC-1155
-    ///
-    /// @dev The token `id` should be encoded as `uint256(abi.encodePacked(uint12(BALANCE_TYPE), address(token)))`,
-    ///      where `BALANCE_TYPE` is 0 for total, 1 for spendable, 2 for withdrawing, and 3 for withdrawable.
-    ///
-    /// @param depositor   The depositor of the requested balance
-    /// @param id          The packed token and balance id specifier
-    function balanceOf(address depositor, uint256 id) public view override returns (uint256) {
-        // Verify token is supported
-        address token = address(uint160(id));
-        if (!isTokenSupported(token)) {
-            revert UnsupportedToken(token);
-        }
-
-        // Verify balance type is valid
-        uint96 balanceType = uint96(id >> 160);
-        if (balanceType > uint96(type(BalanceType).max)) {
-            revert InvalidBalanceType(balanceType);
-        }
-
-        // Return the appropriate balance
-        BalanceType balanceTypeEnum = BalanceType(balanceType);
-
-        if (balanceTypeEnum == BalanceType.Total) return totalBalance(token, depositor);
-        if (balanceTypeEnum == BalanceType.Spendable) return spendableBalance(token, depositor);
-        if (balanceTypeEnum == BalanceType.Withdrawing) return withdrawingBalance(token, depositor);
-        if (balanceTypeEnum == BalanceType.Withdrawable) return withdrawableBalance(token, depositor);
-
-        return 0;
-    }
-
-    /// The batch version of `balanceOf`, compatible with ERC-1155
-    ///
-    /// @dev `depositors` and `ids` must be the same length
-    /// @dev The token `id` should be encoded as `uint256(abi.encodePacked(uint12(BALANCE_TYPE), address(token)))`,
-    ///      where `BALANCE_TYPE` is 0 for total, 1 for spendable, 2 for withdrawing, and 3 for withdrawable.
-    ///
-    /// @param depositors   The depositor of the requested balance
-    /// @param ids          The packed token and balance id specifier
-    function balanceOfBatch(address[] calldata depositors, uint256[] memory ids)
-        external
-        view
-        override
-        returns (uint256[] memory)
-    {
-        if (depositors.length != ids.length) {
-            revert InputArrayLengthMismatch();
-        }
-
-        uint256[] memory batchBalances = new uint256[](depositors.length);
-        for (uint256 i = 0; i < depositors.length; i++) {
-            batchBalances[i] = balanceOf(depositors[i], ids[i]);
-        }
-
-        return batchBalances;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
