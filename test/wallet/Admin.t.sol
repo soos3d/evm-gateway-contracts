@@ -18,6 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {SpendWallet} from "src/SpendWallet.sol";
+import {WithdrawalDelay} from "src/lib/wallet/WithdrawalDelay.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Test} from "forge-std/Test.sol";
@@ -36,7 +37,7 @@ contract SpendWalletAdminTest is Test, DeployUtils {
         uint256 newDelay = 100;
         vm.startPrank(owner);
         vm.expectEmit(false, false, false, true);
-        emit SpendWallet.WithdrawalDelayUpdated(newDelay);
+        emit WithdrawalDelay.WithdrawalDelayUpdated(newDelay);
         wallet.updateWithdrawalDelay(newDelay);
         vm.stopPrank();
         assertEq(wallet.withdrawalDelay(), newDelay);
@@ -45,7 +46,7 @@ contract SpendWalletAdminTest is Test, DeployUtils {
         newDelay = 200;
         vm.startPrank(owner);
         vm.expectEmit(false, false, false, true);
-        emit SpendWallet.WithdrawalDelayUpdated(newDelay);
+        emit WithdrawalDelay.WithdrawalDelayUpdated(newDelay);
         wallet.updateWithdrawalDelay(newDelay);
         vm.stopPrank();
         assertEq(wallet.withdrawalDelay(), newDelay);

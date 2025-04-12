@@ -18,6 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {SpendCommon} from "src/SpendCommon.sol";
+import {WithdrawalDelayStorage} from "src/lib/wallet/WithdrawalDelay.sol";
 import {Balances, BalancesStorage} from "src/lib/wallet/Balances.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
@@ -68,16 +69,9 @@ contract SpendWallet is SpendCommon, Balances {
     error CannotAddSelfAsSpender();
     error InvalidBurnSigner();
 
-    /// The block numbers at which in-progress withdrawals will be withdrawable
-    mapping(address token => mapping(address depositor => uint256 block)) internal withdrawableAtBlocks;
-
     /// The mapping to track authorized spenders for each depositor per token
     mapping(address token => mapping(address depositor => mapping(address spender => bool isAuthorized))) private
         spenderAuthorizations;
-
-    /// The number of blocks a user must wait after initiating a withdrawal before that amount is withdrawable. This
-    /// value is added to the current block number when a withdrawal is initiated.
-    uint256 public withdrawalDelay;
 
     /// The address that may sign the calldata for burning tokens that have been spent
     address public burnSigner;
@@ -399,9 +393,11 @@ contract SpendWallet is SpendCommon, Balances {
             revert WithdrawalValueExceedsSpendableBalance();
         }
 
+        WithdrawalDelayStorage.Data storage withdrawalDelay$ = WithdrawalDelayStorage.get();
+
         balances$.spendableBalances[token][depositor] -= value;
         balances$.withdrawingBalances[token][depositor] += value;
-        withdrawableAtBlocks[token][depositor] = block.number + withdrawalDelay;
+        withdrawalDelay$.withdrawableAtBlocks[token][depositor] = block.number + withdrawalDelay$.withdrawalDelay;
 
         emit WithdrawalInitiated(
             token,
@@ -409,7 +405,7 @@ contract SpendWallet is SpendCommon, Balances {
             spender,
             value,
             balances$.withdrawingBalances[token][depositor],
-            withdrawableAtBlocks[token][depositor]
+            withdrawalDelay$.withdrawableAtBlocks[token][depositor]
         );
     }
 
@@ -467,12 +463,14 @@ contract SpendWallet is SpendCommon, Balances {
             revert NoWithdrawingBalance();
         }
 
-        if (withdrawableAtBlocks[token][depositor] > block.number) {
+        WithdrawalDelayStorage.Data storage withdrawalDelay$ = WithdrawalDelayStorage.get();
+
+        if (withdrawalDelay$.withdrawableAtBlocks[token][depositor] > block.number) {
             revert WithdrawalNotYetAvailable();
         }
 
         balances$.withdrawingBalances[token][depositor] = 0;
-        withdrawableAtBlocks[token][depositor] = 0;
+        withdrawalDelay$.withdrawableAtBlocks[token][depositor] = 0;
 
         IERC20(token).safeTransfer(recipient, balanceToWithdraw);
 
@@ -507,38 +505,8 @@ contract SpendWallet is SpendCommon, Balances {
         _withdraw(token, depositor, recipient);
     }
 
-    /// The block height at which an in-progress withdrawal is withdrawable
-    ///
-    /// @dev Returns 0 if there is no in-progress withdrawal
-    ///
-    /// @param token       The token of the requested balance
-    /// @param depositor   The depositor of the requested balance
-    function withdrawalBlock(address token, address depositor) external view returns (uint256) {
-        return withdrawableAtBlocks[token][depositor];
-    }
-
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Balances
-
-    /// The balance that is withdrawable as of the current block. This will either be 0 or `withdrawingBalance`.
-    ///
-    /// @param token       The token of the requested balance
-    /// @param depositor   The depositor of the requested balance
-    function withdrawableBalance(address token, address depositor)
-        public
-        view
-        tokenSupported(token)
-        returns (uint256)
-    {
-        BalancesStorage.Data storage balances$ = BalancesStorage.get();
-
-        uint256 balanceToWithdraw = balances$.withdrawingBalances[token][depositor];
-        if (balanceToWithdraw == 0 || withdrawableAtBlocks[token][depositor] > block.number) {
-            return 0;
-        }
-
-        return balanceToWithdraw;
-    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Informational
@@ -696,21 +664,6 @@ contract SpendWallet is SpendCommon, Balances {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Admin
-
-    /// Emitted when the withdrawal delay is updated
-    ///
-    /// @param newDelay   The new value of the delay, in blocks
-    event WithdrawalDelayUpdated(uint256 newDelay);
-
-    /// Sets the number of blocks that must pass before a withdrawal can be completed
-    ///
-    /// @dev May only be called by the `owner` role
-    ///
-    /// @param newDelay   The new value of the delay, in blocks
-    function updateWithdrawalDelay(uint256 newDelay) external onlyOwner {
-        withdrawalDelay = newDelay;
-        emit WithdrawalDelayUpdated(newDelay);
-    }
 
     /// Emitted when the burnSigner role is updated
     ///

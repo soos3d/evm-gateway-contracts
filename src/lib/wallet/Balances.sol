@@ -18,18 +18,29 @@
 pragma solidity ^0.8.28;
 
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
+import {WithdrawalDelay} from "src/lib/wallet/WithdrawalDelay.sol";
 import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
 
 /// @title Balances
 ///
 /// Manages balances for the SpendWallet contract
-contract Balances is TokenSupport, IERC1155Balance {
+contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     /// The various balances that are tracked, used for the ERC-1155 balance functions
     enum BalanceType {
         Total,
         Spendable,
         Withdrawing,
         Withdrawable
+    }
+
+    /// The total balance of a depositor for a token. This will always be equal to the sum of `spendableBalance` and
+    /// `withdrawingBalance`.
+    ///
+    /// @param token       The token of the requested balance
+    /// @param depositor   The depositor of the requested balance
+    function totalBalance(address token, address depositor) public view returns (uint256) {
+        BalancesStorage.Data storage balances$ = BalancesStorage.get();
+        return balances$.spendableBalances[token][depositor] + balances$.withdrawingBalances[token][depositor];
     }
 
     /// The balance that is spendable by the depositor, subject to deposits having been observed by the API in a
@@ -50,14 +61,22 @@ contract Balances is TokenSupport, IERC1155Balance {
         return BalancesStorage.get().withdrawingBalances[token][depositor];
     }
 
-    /// The total balance of a depositor for a token. This will always be equal to the sum of `spendableBalance` and
-    /// `withdrawingBalance`.
+    /// The balance that is withdrawable as of the current block. This will either be 0 or `withdrawingBalance`.
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
-    function totalBalance(address token, address depositor) public view returns (uint256) {
-        BalancesStorage.Data storage balances$ = BalancesStorage.get();
-        return balances$.spendableBalances[token][depositor] + balances$.withdrawingBalances[token][depositor];
+    function withdrawableBalance(address token, address depositor)
+        public
+        view
+        tokenSupported(token)
+        returns (uint256)
+    {
+        uint256 balanceToWithdraw = BalancesStorage.get().withdrawingBalances[token][depositor];
+        if (balanceToWithdraw == 0 || withdrawalBlock(token, depositor) > block.number) {
+            return 0;
+        }
+
+        return balanceToWithdraw;
     }
 
     /// Emitted when the ERC-1155 `balanceOf` function is called with an invalid `BalanceType`
@@ -86,8 +105,7 @@ contract Balances is TokenSupport, IERC1155Balance {
         if (BalanceType(balanceType) == BalanceType.Total) return totalBalance(token, depositor);
         if (BalanceType(balanceType) == BalanceType.Spendable) return spendableBalance(token, depositor);
         if (BalanceType(balanceType) == BalanceType.Withdrawing) return withdrawingBalance(token, depositor);
-        // TODO figure out how to share this with Withdrawable
-        // if (balanceTypeEnum == BalanceType.Withdrawable) return withdrawableBalance(token, depositor);
+        if (BalanceType(balanceType) == BalanceType.Withdrawable) return withdrawableBalance(token, depositor);
 
         return 0;
     }
