@@ -19,6 +19,7 @@ pragma solidity ^0.8.28;
 
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
+import {Delegation} from "src/lib/wallet/Delegation.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {Test} from "forge-std/Test.sol";
 
@@ -29,10 +30,6 @@ contract SpendAuthorizationTest is Test, DeployUtils {
 
     SpendWallet private wallet;
 
-    event SpenderAdded(address indexed token, address indexed depositor, address spender);
-
-    event SpenderRemoved(address indexed token, address indexed depositor, address spender);
-
     function setUp() public {
         wallet = deployWalletOnly(owner);
 
@@ -41,64 +38,64 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    function testSpenderAuthorizationFlow_addAndRemoveSpender() public {
-        address spender = makeAddr("spender");
+    function test_delegateAuthorizationFlow_addAndRemoveDelegate() public {
+        address delegate = makeAddr("delegate");
 
         vm.expectEmit(true, true, false, true);
-        emit SpenderAdded(usdc, owner, spender);
+        emit Delegation.DelegateAdded(usdc, owner, delegate);
 
-        assertFalse(wallet.isSpender(usdc, spender, owner));
-
-        vm.startPrank(owner);
-        wallet.addSpender(usdc, spender);
-        vm.stopPrank();
-
-        assertTrue(wallet.isSpender(usdc, spender, owner));
-        emit SpenderRemoved(usdc, owner, spender);
+        assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegate));
 
         vm.startPrank(owner);
-        wallet.removeSpender(usdc, spender);
+        wallet.addDelegate(usdc, delegate);
         vm.stopPrank();
 
-        assertFalse(wallet.isSpender(usdc, spender, owner));
+        assertTrue(wallet.isAuthorizedForBalance(usdc, owner, delegate));
+        emit Delegation.DelegateRemoved(usdc, owner, delegate);
+
+        vm.startPrank(owner);
+        wallet.removeDelegate(usdc, delegate);
+        vm.stopPrank();
+
+        assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegate));
     }
 
-    function testAddSpender_revertsWhenSpenderIsSelf() public {
+    function test_addDelegate_revertsWhenDelegateIsSelf() public {
         vm.startPrank(owner);
-        vm.expectRevert(abi.encodeWithSelector(SpendWallet.CannotAddSelfAsSpender.selector));
-        wallet.addSpender(usdc, owner);
+        vm.expectRevert(abi.encodeWithSelector(Delegation.CannotDelegateToSelf.selector));
+        wallet.addDelegate(usdc, owner);
         vm.stopPrank();
     }
 
-    function testAddSpender_revertsWhenSpenderIsZeroAddress() public {
-        address spender = address(0);
+    function test_addDelegate_revertsWhenDelegateIsZeroAddress() public {
+        address delegate = address(0);
 
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(SpendCommon.InvalidAddress.selector));
-        wallet.addSpender(usdc, spender);
+        wallet.addDelegate(usdc, delegate);
         vm.stopPrank();
     }
 
-    function testRemoveSpender_revertsWhenSpenderIsZeroAddress() public {
-        address spender = address(0);
+    function test_removeDelegate_revertsWhenDelegateIsZeroAddress() public {
+        address delegate = address(0);
 
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(SpendCommon.InvalidAddress.selector));
-        wallet.removeSpender(usdc, spender);
+        wallet.removeDelegate(usdc, delegate);
         vm.stopPrank();
     }
 
-    function testIsSpender_returnsTrueWhenSpenderAndDepositorSame() public {
+    function test_isAuthorizedForBalance_returnsTrueWhenDelegateAndDepositorSame() public {
         vm.startPrank(owner);
-        assertTrue(wallet.isSpender(usdc, owner, owner));
+        assertTrue(wallet.isAuthorizedForBalance(usdc, owner, owner));
         vm.stopPrank();
     }
 
-    function testIsSpender_returnsFalseWhenNoAuthorizationExists() public {
-        address spender = makeAddr("spender");
+    function test_isAuthorizedForBalance_returnsFalseWhenNoAuthorizationExists() public {
+        address delegate = makeAddr("delegate");
 
         vm.startPrank(owner);
-        assertFalse(wallet.isSpender(usdc, spender, owner));
+        assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegate));
         vm.stopPrank();
     }
 }

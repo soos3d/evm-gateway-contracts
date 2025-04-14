@@ -20,6 +20,7 @@ pragma solidity ^0.8.28;
 import {SpendWallet} from "src/SpendWallet.sol";
 import {Rejection} from "src/lib/common/Rejection.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
+import {Deposits} from "src/lib/wallet/Deposits.sol";
 import {MockERC1271Wallet} from "test/mock_fiattoken/contracts/test/MockERC1271Wallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
@@ -129,7 +130,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
 
     function test_depositWithPermit_with2612Interface_revertIfValueNonPositive() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(0);
-        vm.expectRevert(SpendWallet.DepositValueMustBePositive.selector);
+        vm.expectRevert(Deposits.DepositValueMustBePositive.selector);
         wallet.depositWithPermit(usdc, depositor, 0, eip2612PermitDeadline, v, r, s);
     }
 
@@ -155,7 +156,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
     function test_depositWithPermit_with2612Interface_spendableBalanceUpdatedAfterTransfer() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance);
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance);
+        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
         assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
     }
@@ -163,7 +164,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
     function test_depositWithPermit_with2612Interface_revertIfPermitReplayed() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance / 2);
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
+        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, v, r, s);
         assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
 
@@ -230,7 +231,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
 
     function test_depositWithPermit_with7597Interface_revertIfValueNonPositive() public {
         bytes memory signature = _create7597PermitEOASignature(0);
-        vm.expectRevert(SpendWallet.DepositValueMustBePositive.selector);
+        vm.expectRevert(Deposits.DepositValueMustBePositive.selector);
         wallet.depositWithPermit(usdc, depositor, 0, eip2612PermitDeadline, signature);
     }
 
@@ -256,7 +257,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
     function test_depositWithPermit_with7597Interface_withEOASignature_spendableBalanceUpdatedAfterTransfer() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance);
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance);
+        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance);
 
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
 
@@ -269,7 +270,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         depositorWallet.setSignatureValid(true);
         bytes memory signature = abi.encodePacked("random");
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositorWalletAddress, initialUsdcBalance);
+        emit Deposits.Deposited(usdc, depositorWalletAddress, initialUsdcBalance);
 
         wallet.depositWithPermit(usdc, depositorWalletAddress, initialUsdcBalance, eip2612PermitDeadline, signature);
 
@@ -279,7 +280,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
     function test_depositWithPermit_with7597Interface_revertIfPermitReplayed() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance / 2);
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
+        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, signature);
         assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
 

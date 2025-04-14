@@ -41,9 +41,7 @@ contract SpendCommon is
     SpendHashes,
     Domain
 {
-    /**
-     * @dev Reverts if an invalid address is set.
-     */
+    /// Thrown when an address is the zero address
     error InvalidAddress();
 
     /// Implements the UUPS upgrade pattern by restricting upgrades to the owner
@@ -66,14 +64,5 @@ contract SpendCommon is
         __Pausing_init(owner());
         __Counterpart_init(counterpart);
         __Domain_init(domain);
-    }
-
-    /// Validates that an address is not the zero address
-    ///
-    /// @param addr   The address being authorized to spend
-    function _checkNotZeroAddress(address addr) internal pure {
-        if (addr == address(0)) {
-            revert InvalidAddress();
-        }
     }
 }

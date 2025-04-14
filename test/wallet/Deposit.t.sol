@@ -18,6 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {SpendWallet} from "src/SpendWallet.sol";
+import {Deposits} from "src/lib/wallet/Deposits.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -57,7 +58,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
 
     function test_deposit_revertIfValueNonPositive() public {
         vm.startPrank(depositor);
-        vm.expectRevert(SpendWallet.DepositValueMustBePositive.selector);
+        vm.expectRevert(Deposits.DepositValueMustBePositive.selector);
         wallet.deposit(usdc, 0);
         vm.stopPrank();
     }
@@ -76,13 +77,13 @@ contract SpendWalletDepositTest is Test, DeployUtils {
 
         // Deposit half of the allowance
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
+        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.deposit(usdc, initialUsdcBalance / 2);
         assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Deposit the other half
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
+        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.deposit(usdc, initialUsdcBalance / 2);
         assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
 

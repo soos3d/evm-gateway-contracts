@@ -21,6 +21,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
+import {Burns} from "src/lib/wallet/Burns.sol";
 import {OwnershipTest} from "test/util/OwnershipTest.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 
@@ -66,7 +67,7 @@ contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
         address oldBurnSigner = wallet.burnSigner();
 
         vm.expectEmit(false, false, false, true);
-        emit SpendWallet.BurnSignerUpdated(oldBurnSigner, newBurnSigner);
+        emit Burns.BurnSignerUpdated(oldBurnSigner, newBurnSigner);
 
         vm.prank(owner);
         wallet.updateBurnSigner(newBurnSigner);
@@ -81,7 +82,7 @@ contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
         assertEq(wallet.burnSigner(), newBurnSigner);
 
         vm.expectEmit(false, false, false, true);
-        emit SpendWallet.BurnSignerUpdated(newBurnSigner, newBurnSigner);
+        emit Burns.BurnSignerUpdated(newBurnSigner, newBurnSigner);
         wallet.updateBurnSigner(newBurnSigner); // second update
 
         assertEq(wallet.burnSigner(), newBurnSigner);
@@ -108,7 +109,7 @@ contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
         address oldFeeRecipient = wallet.feeRecipient();
 
         vm.expectEmit(false, false, false, true);
-        emit SpendWallet.FeeRecipientUpdated(oldFeeRecipient, newFeeRecipient);
+        emit Burns.FeeRecipientUpdated(oldFeeRecipient, newFeeRecipient);
 
         vm.prank(owner);
         wallet.updateFeeRecipient(newFeeRecipient);
@@ -123,7 +124,7 @@ contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
         assertEq(wallet.feeRecipient(), newFeeRecipient);
 
         vm.expectEmit(false, false, false, true);
-        emit SpendWallet.FeeRecipientUpdated(newFeeRecipient, newFeeRecipient);
+        emit Burns.FeeRecipientUpdated(newFeeRecipient, newFeeRecipient);
         wallet.updateFeeRecipient(newFeeRecipient); // second update
 
         assertEq(wallet.feeRecipient(), newFeeRecipient);
