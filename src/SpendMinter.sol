@@ -19,6 +19,8 @@ pragma solidity ^0.8.28;
 
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /// @title Spend Minter
 ///
@@ -26,6 +28,10 @@ import {SpendWallet} from "src/SpendWallet.sol";
 /// chain. Spending requires a signed authorization from the operator. See the documentation for the SpendWallet
 /// contract for more details.
 contract SpendMinter is SpendCommon {
+    using MessageHashUtils for bytes32;
+
+    error InvalidMintAuthorizationSigner();
+
     /// Maps token addresses to their corresponding minter contract addresses.
     /// The token minter contracts must have permission to mint the associated token.
     mapping(address token => address tokenMintAuthority) public tokenMintAuthorities;
@@ -79,8 +85,17 @@ contract SpendMinter is SpendCommon {
     /// @param authorizations   The byte-encoded spend authorization(s)
     /// @param signature        The signature from the operator
     function spend(bytes memory authorizations, bytes memory signature) external whenNotPaused {
+        _verifyMintAuthorizationSignature(authorizations, signature);
         // For each spend authorization:
         // IMintToken(tokenMintAuthorities[token]).mint(to, amount);
+    }
+
+    function _verifyMintAuthorizationSignature(bytes memory authorizations, bytes memory signature) internal view {
+        bytes32 authorizationsHash = keccak256(authorizations);
+        address recoveredSigner = ECDSA.recover(authorizationsHash.toEthSignedMessageHash(), signature);
+        if (recoveredSigner != mintAuthorizationSigner) {
+            revert InvalidMintAuthorizationSigner();
+        }
     }
 
     /// Emitted when the mint authority is updated for a token

@@ -145,7 +145,7 @@ contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
         vm.startPrank(owner);
         minter.updateMintAuthorizationSigner(newMintAuthorizationSigner); // first update
         assertEq(minter.mintAuthorizationSigner(), newMintAuthorizationSigner);
-      
+
         vm.expectEmit(false, false, false, true);
         emit SpendMinter.MintAuthorizationSignerUpdated(newMintAuthorizationSigner, newMintAuthorizationSigner);
         minter.updateMintAuthorizationSigner(newMintAuthorizationSigner); // second update
