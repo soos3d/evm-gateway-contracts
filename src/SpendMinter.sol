@@ -20,6 +20,8 @@ pragma solidity ^0.8.28;
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
 import {MintAuthorization} from "src/lib/authorizations/MintAuthorizations.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /// @title Spend Minter
 ///
@@ -27,12 +29,16 @@ import {MintAuthorization} from "src/lib/authorizations/MintAuthorizations.sol";
 /// chain. Spending requires a signed authorization from the operator. See the documentation for the SpendWallet
 /// contract for more details.
 contract SpendMinter is SpendCommon {
+    using MessageHashUtils for bytes32;
+
+    error InvalidMintAuthorizationSigner();
+
     /// Maps token addresses to their corresponding minter contract addresses.
     /// The token minter contracts must have permission to mint the associated token.
     mapping(address token => address tokenMintAuthority) public tokenMintAuthorities;
 
-    /// @notice The address that signs mint authorizations
-    address public mintSigner;
+    /// The address of the operator that can sign mint authorizations
+    address public mintAuthorizationSigner;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Initialization
@@ -80,8 +86,17 @@ contract SpendMinter is SpendCommon {
     /// @param authorizations   The byte-encoded spend authorization(s)
     /// @param signature        The signature from the operator
     function spend(bytes memory authorizations, bytes memory signature) external whenNotPaused {
+        _verifyMintAuthorizationSignature(authorizations, signature);
         // For each spend authorization:
         // IMintToken(tokenMintAuthorities[token]).mint(to, amount);
+    }
+
+    function _verifyMintAuthorizationSignature(bytes memory authorizations, bytes memory signature) internal view {
+        bytes32 authorizationsHash = keccak256(authorizations);
+        address recoveredSigner = ECDSA.recover(authorizationsHash.toEthSignedMessageHash(), signature);
+        if (recoveredSigner != mintAuthorizationSigner) {
+            revert InvalidMintAuthorizationSigner();
+        }
     }
 
     /// Emitted when the mint authority is updated for a token
@@ -105,25 +120,6 @@ contract SpendMinter is SpendCommon {
         emit MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
     }
 
-    /// Emitted when the mintSigner role is updated
-    ///
-    /// @param oldMintSigner   The previous mint signer address
-    /// @param newMintSigner   The new mint signer address
-    event MintSignerUpdated(address oldMintSigner, address newMintSigner);
-
-    /// Updates the mint signer for the contract.
-    ///
-    /// @dev May only be called by the `owner` role
-    ///
-    /// @param newMintSigner   The new mint signer address
-    function updateMintSigner(address newMintSigner) external onlyOwner {
-        _checkNotZeroAddress(newMintSigner);
-
-        address oldMintSigner = mintSigner;
-        mintSigner = newMintSigner;
-        emit MintSignerUpdated(oldMintSigner, newMintSigner);
-    }
-
     /// Returns the byte encoding of a single mint authorization
     ///
     /// @param authorization   The mint authorization to encode
@@ -135,6 +131,25 @@ contract SpendMinter is SpendCommon {
     ///
     /// @param authorizations   The mint authorizations to encode
     function encodeMintAuthorizations(MintAuthorization[] memory authorizations) external pure returns (bytes memory) {}
+
+    /// Emitted when the mintAuthorizationSigner role is updated
+    ///
+    /// @param oldMintAuthorizationSigner   The previous mint authorization signer address
+    /// @param newMintAuthorizationSigner   The new mint authorization signer address
+    event MintAuthorizationSignerUpdated(address oldMintAuthorizationSigner, address newMintAuthorizationSigner);
+
+    /// Sets the operator address that may sign mint authorizations
+    ///
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param newMintAuthorizationSigner   The new mint authorization signer address
+    function updateMintAuthorizationSigner(address newMintAuthorizationSigner) external onlyOwner {
+        _checkNotZeroAddress(newMintAuthorizationSigner);
+
+        address oldMintAuthorizationSigner = mintAuthorizationSigner;
+        mintAuthorizationSigner = newMintAuthorizationSigner;
+        emit MintAuthorizationSignerUpdated(oldMintAuthorizationSigner, newMintAuthorizationSigner);
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Informational

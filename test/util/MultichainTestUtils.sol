@@ -71,7 +71,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         {
             // Configure minter settings
             minter.addSupportedToken(address(usdc));
-            minter.updateMintSigner(minterMintSigner);
+            minter.updateMintAuthorizationSigner(minterMintSigner);
             minter.updateMintAuthority(address(usdc), address(usdc));
 
             // Configure wallet settings

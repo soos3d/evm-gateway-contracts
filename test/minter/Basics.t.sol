@@ -108,45 +108,49 @@ contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
         assertEq(minter.tokenMintAuthorities(token), mintAuthority);
     }
 
-    function test_updateMintSigner_revertWhenZeroAddress() public {
-        vm.startPrank(owner);
-        vm.expectRevert(abi.encodeWithSelector(SpendCommon.InvalidAddress.selector));
-        minter.updateMintSigner(address(0));
-    }
-
-    function test_updateMintSigner_revertWhenNotOwner() public {
-        address newSigner = makeAddr("newSigner");
+    function test_updateMintAuthorizationSigner_revertWhenNotOwner() public {
         address randomCaller = makeAddr("random");
+        address newMintAuthorizationSigner = makeAddr("newMintAuthorizationSigner");
 
-        vm.prank(randomCaller);
+        vm.startPrank(randomCaller);
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, randomCaller));
-        minter.updateMintSigner(newSigner);
+        minter.updateMintAuthorizationSigner(newMintAuthorizationSigner);
+        vm.stopPrank();
     }
 
-    function test_updateMintSigner_successFuzz(address newSigner) public {
-        vm.assume(newSigner != address(0));
-        address oldSigner = minter.mintSigner();
-
+    function test_updateMintAuthorizationSigner_revertWhenZeroAddress() public {
         vm.startPrank(owner);
-        vm.expectEmit(false, false, false, true);
-        emit SpendMinter.MintSignerUpdated(oldSigner, newSigner);
-
-        minter.updateMintSigner(newSigner);
-        assertEq(minter.mintSigner(), newSigner);
+        vm.expectRevert(SpendCommon.InvalidAddress.selector);
+        minter.updateMintAuthorizationSigner(address(0));
+        vm.stopPrank();
     }
 
-    function test_updateMintSigner_idempotent() public {
-        address signer = makeAddr("signer");
+    function test_updateMintAuthorizationSigner_success(address newMintAuthorizationSigner) public {
+        vm.assume(newMintAuthorizationSigner != address(0));
 
-        // Set initial signer
-        vm.startPrank(owner);
-        minter.updateMintSigner(signer);
+        address oldMintAuthorizationSigner = minter.mintAuthorizationSigner();
 
-        // Update to same address again
         vm.expectEmit(false, false, false, true);
-        emit SpendMinter.MintSignerUpdated(signer, signer);
-        minter.updateMintSigner(signer);
+        emit SpendMinter.MintAuthorizationSignerUpdated(oldMintAuthorizationSigner, newMintAuthorizationSigner);
 
-        assertEq(minter.mintSigner(), signer);
+        vm.startPrank(owner);
+        minter.updateMintAuthorizationSigner(newMintAuthorizationSigner);
+        vm.stopPrank();
+
+        assertEq(minter.mintAuthorizationSigner(), newMintAuthorizationSigner);
+    }
+
+    function test_updateMintAuthorizationSigner_idempotent() public {
+        address newMintAuthorizationSigner = makeAddr("newMintAuthorizationSigner");
+        vm.startPrank(owner);
+        minter.updateMintAuthorizationSigner(newMintAuthorizationSigner); // first update
+        assertEq(minter.mintAuthorizationSigner(), newMintAuthorizationSigner);
+
+        vm.expectEmit(false, false, false, true);
+        emit SpendMinter.MintAuthorizationSignerUpdated(newMintAuthorizationSigner, newMintAuthorizationSigner);
+        minter.updateMintAuthorizationSigner(newMintAuthorizationSigner); // second update
+        vm.stopPrank();
+
+        assertEq(minter.mintAuthorizationSigner(), newMintAuthorizationSigner);
     }
 }
