@@ -20,24 +20,13 @@ pragma solidity ^0.8.28;
 import {Pausing} from "src/lib/common/Pausing.sol";
 import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
-import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
-import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
-import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
+import {BurnLib} from "src/lib/wallet/BurnLib.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /// @title Burns
 ///
 /// Manages burns for the SpendWallet contract
 contract Burns is Ownable2StepUpgradeable, Pausing {
-    using MessageHashUtils for bytes32;
-    using TransferSpecLib for bytes29;
-    using BurnAuthorizationLib for bytes29;
-
-    error InvalidBurnSigner();
-    error MismatchedBurn();
-
     /// Returns the byte encoding of a single burn authorization
     ///
     /// @param authorization   The burn authorization to encode
@@ -108,52 +97,12 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
     ///                          authorization.
     /// @param burnerSignature   A signature from `burnSigner` on the abi-encoded first three arguments
     function burnSpent(
-        bytes[] memory authorizations,
-        bytes[] memory signatures,
-        uint256[][] memory fees,
-        bytes memory burnerSignature
+        bytes[] calldata authorizations,
+        bytes[] calldata signatures,
+        uint256[][] calldata fees,
+        bytes calldata burnerSignature
     ) external view whenNotPaused {
-        _verifyBurnerSignature(burnerSignature);
-
-        if (signatures.length != authorizations.length || fees.length != authorizations.length) {
-            revert MismatchedBurn();
-        }
-
-        for (uint256 i = 0; i < authorizations.length; i++) {
-            AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(authorizations[i]);
-            while (!cursor.done) {
-                // TODO
-            }
-        }
-    }
-
-    /// Internal function to verify the signature of the `burnSigner` on the other arguments in calldata, hashing the
-    /// arguments from calldata rather than using abi.encode (which does a lot of copying and stack manipulation).
-    ///
-    /// @dev Must be called only from `burnSpent`, to ensure the calldata is as expected
-    ///
-    /// @param burnerSignature   The signature from the `burnSigner` to verify
-    function _verifyBurnerSignature(bytes memory burnerSignature) internal view {
-        // Ensure that the signature is the expected length, to correctly index into the calldata
-        if (burnerSignature.length != 65) {
-            revert InvalidBurnSigner();
-        }
-
-        // Isolate just the arguments that are signed in the calldata by slicing `msg.data`:
-        //     - Skips over the beginning of the calldata to get to the first argument
-        //         - 4 bytes for the function selector
-        //         - 128 bytes for the 4 argument offsets
-        //         - 4 + 128 = 132 = 0x84
-        //     - Does not include the last argument (the signature itself)
-        //         - We know it is 65 bytes (verified above), so takes up 128 (0x80) bytes
-        //           (32 for the length, and 96 for the 32-byte-aligned contents)
-        bytes memory calldataBytes = msg.data[0x84:msg.data.length - 0x80];
-
-        // Verify the signature and revert if it's invalid
-        address recoveredSigner = ECDSA.recover(keccak256(calldataBytes).toEthSignedMessageHash(), burnerSignature);
-        if (recoveredSigner != BurnsStorage.get().burnSigner) {
-            revert InvalidBurnSigner();
-        }
+        BurnLib.burnSpent(authorizations, signatures, fees, burnerSignature);
     }
 
     /// Emitted when a spend authorization is used on the same chain as its source, resulting in a same-chain spend that

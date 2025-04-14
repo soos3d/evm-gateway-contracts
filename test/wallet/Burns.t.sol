@@ -19,7 +19,7 @@ pragma solidity ^0.8.28;
 
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
-import {Burns} from "src/lib/wallet/Burns.sol";
+import {BurnLib} from "src/lib/wallet/BurnLib.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {Test} from "forge-std/Test.sol";
 
@@ -54,7 +54,7 @@ contract TestBurns is Test, DeployUtils {
     function test_burnSpent_emptyArgs_wrongSigner() external {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
         (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
-        vm.expectRevert(Burns.InvalidBurnSigner.selector);
+        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, wrongSignerKey);
     }
 
@@ -62,14 +62,14 @@ contract TestBurns is Test, DeployUtils {
     function test_burnSpent_randomArgs_wrongSigner() external {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
         (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
-        vm.expectRevert(Burns.InvalidBurnSigner.selector);
+        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, wrongSignerKey);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
     function test_burnSpent_wrongSignatureLength() external {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
-        vm.expectRevert(Burns.InvalidBurnSigner.selector);
+        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
         wallet.burnSpent(authorizations, signatures, fees, bytes(hex"aaaa"));
     }
 
