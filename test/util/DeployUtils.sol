@@ -23,6 +23,8 @@ import {SpendWallet} from "src/SpendWallet.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {CommonBase} from "forge-std/Base.sol";
 
+uint32 constant TEST_DOMAIN = 99;
+
 /// Helpers for deploying the contracts during tests
 abstract contract DeployUtils is CommonBase {
     function deploy(address owner) public returns (SpendWallet, SpendMinter) {
@@ -36,9 +38,13 @@ abstract contract DeployUtils is CommonBase {
 
         // Upgrade both placeholders and tell them about each other
         vm.prank(owner);
-        walletProxy.upgradeToAndCall(address(walletImpl), abi.encodeCall(SpendWallet.initialize, address(minterProxy)));
+        walletProxy.upgradeToAndCall(
+            address(walletImpl), abi.encodeCall(SpendWallet.initialize, (address(minterProxy), TEST_DOMAIN))
+        );
         vm.prank(owner);
-        minterProxy.upgradeToAndCall(address(minterImpl), abi.encodeCall(SpendMinter.initialize, address(walletProxy)));
+        minterProxy.upgradeToAndCall(
+            address(minterImpl), abi.encodeCall(SpendMinter.initialize, (address(walletProxy), TEST_DOMAIN))
+        );
         vm.stopPrank();
 
         // Return the upgraded proxies
@@ -51,7 +57,9 @@ abstract contract DeployUtils is CommonBase {
         UpgradeablePlaceholder walletProxy = deployPlaceholder(owner);
         SpendWallet walletImpl = new SpendWallet();
         vm.prank(owner);
-        walletProxy.upgradeToAndCall(address(walletImpl), abi.encodeCall(SpendWallet.initialize, address(0)));
+        walletProxy.upgradeToAndCall(
+            address(walletImpl), abi.encodeCall(SpendWallet.initialize, (address(0), TEST_DOMAIN))
+        );
         return SpendWallet(address(walletProxy));
     }
 
@@ -59,7 +67,9 @@ abstract contract DeployUtils is CommonBase {
         UpgradeablePlaceholder minterProxy = deployPlaceholder(owner);
         SpendMinter minterImpl = new SpendMinter();
         vm.prank(owner);
-        minterProxy.upgradeToAndCall(address(minterImpl), abi.encodeCall(SpendMinter.initialize, address(0)));
+        minterProxy.upgradeToAndCall(
+            address(minterImpl), abi.encodeCall(SpendMinter.initialize, (address(0), TEST_DOMAIN))
+        );
         return SpendMinter(address(minterProxy));
     }
 
