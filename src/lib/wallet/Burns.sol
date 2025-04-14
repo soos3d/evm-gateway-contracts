@@ -20,6 +20,9 @@ pragma solidity ^0.8.28;
 import {Pausing} from "src/lib/common/Pausing.sol";
 import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
+import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
+import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
+import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -29,8 +32,11 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 /// Manages burns for the SpendWallet contract
 contract Burns is Ownable2StepUpgradeable, Pausing {
     using MessageHashUtils for bytes32;
+    using TransferSpecLib for bytes29;
+    using BurnAuthorizationLib for bytes29;
 
     error InvalidBurnSigner();
+    error MismatchedBurn();
 
     /// Returns the byte encoding of a single burn authorization
     ///
@@ -108,6 +114,17 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
         bytes memory burnerSignature
     ) external view whenNotPaused {
         _verifyBurnerSignature(burnerSignature);
+
+        if (signatures.length != authorizations.length || fees.length != authorizations.length) {
+            revert MismatchedBurn();
+        }
+
+        for (uint256 i = 0; i < authorizations.length; i++) {
+            AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(authorizations[i]);
+            while (!cursor.done) {
+                // TODO
+            }
+        }
     }
 
     /// Internal function to verify the signature of the `burnSigner` on the other arguments in calldata, hashing the
