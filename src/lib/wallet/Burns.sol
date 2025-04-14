@@ -27,6 +27,9 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 ///
 /// Manages burns for the SpendWallet contract
 contract Burns is Ownable2StepUpgradeable, Pausing {
+    error InvalidBurnSigner();
+    error MismatchedBurn();
+
     /// Returns the byte encoding of a single burn authorization
     ///
     /// @param authorization   The burn authorization to encode
