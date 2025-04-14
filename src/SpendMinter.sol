@@ -19,8 +19,7 @@ pragma solidity ^0.8.28;
 
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
-import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/MintAuthorizations.sol";
-import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
+import {MintAuthorization} from "src/lib/authorizations/MintAuthorizations.sol";
 
 /// @title Spend Minter
 ///
