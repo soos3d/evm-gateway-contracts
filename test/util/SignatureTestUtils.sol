@@ -99,7 +99,7 @@ contract SignatureTestUtils is Test {
         return _signBurnAuths(auths, wallet, signerKey);
     }
 
-    function _signMultiBurnAuthWithTransferSpec(
+    function _signBurnAuthSetWithTransferSpec(
         TransferSpec[] memory transferSpecs,
         SpendWallet wallet,
         uint256 signerKey
@@ -121,7 +121,7 @@ contract SignatureTestUtils is Test {
         return _signMintAuths(auths, minter, signerKey);
     }
 
-    function _signMultiMintAuthWithTransferSpec(
+    function _signMintAuthSetWithTransferSpec(
         TransferSpec[] memory transferSpecs,
         SpendMinter minter,
         uint256 signerKey

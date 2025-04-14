@@ -57,10 +57,8 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         uint256 chainId = block.chainid;
         address owner = vm.addr(chainId + 1);
         address walletFeeRecipient = vm.addr(chainId + 2);
-        uint256 walletBurnSignerKey = chainId + 3;
-        address walletBurnSigner = vm.addr(walletBurnSignerKey);
-        uint256 minterMintSignerKey = chainId + 4;
-        address minterMintSigner = vm.addr(minterMintSignerKey);
+        (address walletBurnSigner, uint256 walletBurnSignerKey) = makeAddrAndKey(vm.toString(chainId + 3));
+        (address minterMintSigner, uint256 minterMintSignerKey) = makeAddrAndKey(vm.toString(chainId + 4));
 
         // Deploy core contracts
         (SpendWallet wallet, SpendMinter minter) = deploy(owner, domain);

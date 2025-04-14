@@ -52,19 +52,19 @@ library ForkTestUtils {
         }
 
         if (block.chainid == ARBITRUM_CHAIN_ID) {
-            return ForkVars({usdc: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831, domain: 2});
+            return ForkVars({usdc: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831, domain: 3});
         }
 
         if (block.chainid == ARBITRUM_SEPOLIA_CHAIN_ID) {
-            return ForkVars({usdc: 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d, domain: 2});
+            return ForkVars({usdc: 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d, domain: 3});
         }
 
         if (block.chainid == BASE_CHAIN_ID) {
-            return ForkVars({usdc: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, domain: 3});
+            return ForkVars({usdc: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, domain: 6});
         }
 
         if (block.chainid == BASE_SEPOLIA_CHAIN_ID) {
-            return ForkVars({usdc: 0x036CbD53842c5426634e7929541eC2318f3dCF7e, domain: 3});
+            return ForkVars({usdc: 0x036CbD53842c5426634e7929541eC2318f3dCF7e, domain: 6});
         }
 
         revert UnknownChain(block.chainid);
