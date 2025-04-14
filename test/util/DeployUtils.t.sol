@@ -27,7 +27,7 @@ contract TestDeployUtils is Test, DeployUtils {
     address private owner = makeAddr("owner");
 
     function test_deploy() external {
-        (SpendWallet wallet, SpendMinter minter) = deploy(owner);
+        (SpendWallet wallet, SpendMinter minter) = deploy(owner, TEST_DOMAIN);
 
         assertNotEq(address(wallet), address(0));
         assertNotEq(address(minter), address(0));

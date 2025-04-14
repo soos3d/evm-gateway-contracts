@@ -23,12 +23,11 @@ import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {MockERC1271Wallet} from "test/mock_fiattoken/contracts/test/MockERC1271Wallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
-import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {Test} from "forge-std/Test.sol";
 
 /// Tests EIP-2612 permit deposit functionality of SpendWallet
-contract SpendWalletDepositWithPermitTest is Test, DeployUtils {
+contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
     address private owner = makeAddr("owner");
     uint256 private depositorPrivateKey;
     address private depositor;
@@ -73,12 +72,7 @@ contract SpendWalletDepositWithPermitTest is Test, DeployUtils {
     // Signature Generation Helpers
 
     function _create2612PermitSignature(uint256 value) private view returns (uint8 v, bytes32 r, bytes32 s) {
-        uint256 nonce = IERC20Permit(usdc).nonces(depositor);
-        bytes32 structHash =
-            keccak256(abi.encode(PERMIT_TYPEHASH, depositor, address(wallet), value, nonce, eip2612PermitDeadline));
-        bytes32 domainSeparator = IERC20Permit(usdc).DOMAIN_SEPARATOR();
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
-        (v, r, s) = vm.sign(depositorPrivateKey, digest);
+        return _signPermit(usdc, address(wallet), value, eip2612PermitDeadline, depositorPrivateKey);
     }
 
     function _create7597PermitEOASignature(uint256 value) private view returns (bytes memory signature) {
@@ -222,6 +216,7 @@ contract SpendWalletDepositWithPermitTest is Test, DeployUtils {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance);
         r = 0;
         bytes memory signature = abi.encodePacked(r, s, v);
+
         vm.expectRevert(bytes(ECRECOVER_INVALID_SIGNATURE));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }

@@ -24,6 +24,7 @@ import {FiatTokenProxy} from "../mock_fiattoken/contracts/v1/FiatTokenProxy.sol"
 library ForkTestUtils {
     error UnknownChain(uint256 id);
 
+    uint32 public constant LOCAL_DOMAIN = 99;
     uint256 public constant LOCAL_CHAIN_ID = 31337;
     uint256 public constant ETHEREUM_CHAIN_ID = 1;
     uint256 public constant ETHEREUM_SEPOLIA_CHAIN_ID = 11155111;
@@ -34,35 +35,41 @@ library ForkTestUtils {
 
     struct ForkVars {
         address usdc;
+        uint32 domain;
     }
 
+    /// @notice Returns the USDC address and domain for the current chain
+    /// @dev Domain values are defined by Circle and can be found at https://developers.circle.com/stablecoins/supported-domains
+    /// @return ForkVars struct containing:
+    ///         - usdc: The USDC contract address for the current chain
+    ///         - domain: The Circle-defined domain ID for the current chain
     function forkVars() public returns (ForkVars memory) {
         if (block.chainid == LOCAL_CHAIN_ID) {
             return deployLocalDependencies();
         }
 
         if (block.chainid == ETHEREUM_CHAIN_ID) {
-            return ForkVars({usdc: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48});
+            return ForkVars({usdc: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, domain: 0});
         }
 
         if (block.chainid == ETHEREUM_SEPOLIA_CHAIN_ID) {
-            return ForkVars({usdc: 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238});
+            return ForkVars({usdc: 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238, domain: 0});
         }
 
         if (block.chainid == ARBITRUM_CHAIN_ID) {
-            return ForkVars({usdc: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831});
+            return ForkVars({usdc: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831, domain: 3});
         }
 
         if (block.chainid == ARBITRUM_SEPOLIA_CHAIN_ID) {
-            return ForkVars({usdc: 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d});
+            return ForkVars({usdc: 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d, domain: 3});
         }
 
         if (block.chainid == BASE_CHAIN_ID) {
-            return ForkVars({usdc: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913});
+            return ForkVars({usdc: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, domain: 6});
         }
 
         if (block.chainid == BASE_SEPOLIA_CHAIN_ID) {
-            return ForkVars({usdc: 0x036CbD53842c5426634e7929541eC2318f3dCF7e});
+            return ForkVars({usdc: 0x036CbD53842c5426634e7929541eC2318f3dCF7e, domain: 6});
         }
 
         revert UnknownChain(block.chainid);
@@ -71,6 +78,6 @@ library ForkTestUtils {
     function deployLocalDependencies() public returns (ForkVars memory) {
         DeployMockFiatToken mockTokenDeployer = new DeployMockFiatToken();
         (,, FiatTokenProxy proxy) = mockTokenDeployer.deploy();
-        return ForkVars({usdc: address(proxy)});
+        return ForkVars({usdc: address(proxy), domain: LOCAL_DOMAIN});
     }
 }
