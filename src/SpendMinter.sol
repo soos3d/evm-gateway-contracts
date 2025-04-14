@@ -19,6 +19,8 @@ pragma solidity ^0.8.28;
 
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
+import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/MintAuthorizations.sol";
+import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 
 /// @title Spend Minter
 ///
@@ -29,6 +31,9 @@ contract SpendMinter is SpendCommon {
     /// Maps token addresses to their corresponding minter contract addresses.
     /// The token minter contracts must have permission to mint the associated token.
     mapping(address token => address tokenMintAuthority) public tokenMintAuthorities;
+
+    /// @notice The address that signs mint authorizations
+    address public mintSigner;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Initialization
@@ -100,6 +105,37 @@ contract SpendMinter is SpendCommon {
         tokenMintAuthorities[token] = newMintAuthority;
         emit MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
     }
+
+    /// Emitted when the mintSigner role is updated
+    ///
+    /// @param oldMintSigner   The previous mint signer address
+    /// @param newMintSigner   The new mint signer address
+    event MintSignerUpdated(address oldMintSigner, address newMintSigner);
+
+    /// Updates the mint signer for the contract.
+    ///
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param newMintSigner   The new mint signer address
+    function updateMintSigner(address newMintSigner) external onlyOwner {
+        _checkNotZeroAddress(newMintSigner);
+
+        address oldMintSigner = mintSigner;
+        mintSigner = newMintSigner;
+        emit MintSignerUpdated(oldMintSigner, newMintSigner);
+    }
+
+    /// Returns the byte encoding of a single mint authorization
+    ///
+    /// @param authorization   The mint authorization to encode
+    function encodeMintAuthorization(MintAuthorization memory authorization) external pure returns (bytes memory) {}
+
+    /// Returns the byte encoding of a set of mint authorizations
+    ///
+    /// @dev The mint authorizations must be sorted by domain
+    ///
+    /// @param authorizations   The mint authorizations to encode
+    function encodeMintAuthorizations(MintAuthorization[] memory authorizations) external pure returns (bytes memory) {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Informational

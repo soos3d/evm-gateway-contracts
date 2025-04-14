@@ -27,7 +27,7 @@ uint32 constant TEST_DOMAIN = 99;
 
 /// Helpers for deploying the contracts during tests
 abstract contract DeployUtils is CommonBase {
-    function deploy(address owner) public returns (SpendWallet, SpendMinter) {
+    function deploy(address owner, uint32 domain) public returns (SpendWallet, SpendMinter) {
         // Deploy both placeholders
         UpgradeablePlaceholder walletProxy = deployPlaceholder(owner);
         UpgradeablePlaceholder minterProxy = deployPlaceholder(owner);
@@ -39,11 +39,11 @@ abstract contract DeployUtils is CommonBase {
         // Upgrade both placeholders and tell them about each other
         vm.prank(owner);
         walletProxy.upgradeToAndCall(
-            address(walletImpl), abi.encodeCall(SpendWallet.initialize, (address(minterProxy), TEST_DOMAIN))
+            address(walletImpl), abi.encodeCall(SpendWallet.initialize, (address(minterProxy), domain))
         );
         vm.prank(owner);
         minterProxy.upgradeToAndCall(
-            address(minterImpl), abi.encodeCall(SpendMinter.initialize, (address(walletProxy), TEST_DOMAIN))
+            address(minterImpl), abi.encodeCall(SpendMinter.initialize, (address(walletProxy), domain))
         );
         vm.stopPrank();
 

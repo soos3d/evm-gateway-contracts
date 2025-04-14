@@ -107,4 +107,46 @@ contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
 
         assertEq(minter.tokenMintAuthorities(token), mintAuthority);
     }
+
+    function test_updateMintSigner_revertWhenZeroAddress() public {
+        vm.startPrank(owner);
+        vm.expectRevert(abi.encodeWithSelector(SpendCommon.InvalidAddress.selector));
+        minter.updateMintSigner(address(0));
+    }
+
+    function test_updateMintSigner_revertWhenNotOwner() public {
+        address newSigner = makeAddr("newSigner");
+        address randomCaller = makeAddr("random");
+
+        vm.prank(randomCaller);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, randomCaller));
+        minter.updateMintSigner(newSigner);
+    }
+
+    function test_updateMintSigner_successFuzz(address newSigner) public {
+        vm.assume(newSigner != address(0));
+        address oldSigner = minter.mintSigner();
+
+        vm.startPrank(owner);
+        vm.expectEmit(false, false, false, true);
+        emit SpendMinter.MintSignerUpdated(oldSigner, newSigner);
+
+        minter.updateMintSigner(newSigner);
+        assertEq(minter.mintSigner(), newSigner);
+    }
+
+    function test_updateMintSigner_idempotent() public {
+        address signer = makeAddr("signer");
+
+        // Set initial signer
+        vm.startPrank(owner);
+        minter.updateMintSigner(signer);
+
+        // Update to same address again
+        vm.expectEmit(false, false, false, true);
+        emit SpendMinter.MintSignerUpdated(signer, signer);
+        minter.updateMintSigner(signer);
+
+        assertEq(minter.mintSigner(), signer);
+    }
 }

@@ -23,13 +23,12 @@ import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {MockERC1271Wallet} from "test/mock_fiattoken/contracts/test/MockERC1271Wallet.sol";
-import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {IERC3009} from "src/interfaces/IERC3009.sol";
-import {Test} from "forge-std/Test.sol";
+import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 
 /// Tests ERC-3009 authorization deposit functionality of SpendWallet
-contract SpendWalletDepositERC3009Test is Test, DeployUtils {
+contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
     address private owner = makeAddr("owner");
     uint256 private depositorPrivateKey;
     address private depositor;
@@ -83,27 +82,13 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
     // Signature Generation Helpers
 
     function _create3009AuthorizationSignature(uint256 value) private view returns (uint8 v, bytes32 r, bytes32 s) {
-        bytes32 structHash = keccak256(
-            abi.encode(
-                RECEIVE_WITH_AUTHORIZATION_TYPEHASH,
-                depositor,
-                address(wallet),
-                value,
-                erc3009ValidAfter,
-                erc3009ValidBefore,
-                erc3009Nonce
-            )
+        return _signReceiveWithAuthorization(
+            usdc, address(wallet), erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, value, depositorPrivateKey
         );
-        bytes32 domainSeparator = IERC20Permit(usdc).DOMAIN_SEPARATOR();
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
-        (v, r, s) = vm.sign(depositorPrivateKey, digest);
     }
 
     function _create3009CancellationSignature() private view returns (uint8 v, bytes32 r, bytes32 s) {
-        bytes32 structHash = keccak256(abi.encode(CANCEL_AUTHORIZATION_TYPEHASH, depositor, erc3009Nonce));
-        bytes32 domainSeparator = IERC20Permit(usdc).DOMAIN_SEPARATOR();
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
-        (v, r, s) = vm.sign(depositorPrivateKey, digest);
+        return _signCancelAuthorization(usdc, erc3009Nonce, depositorPrivateKey);
     }
 
     function _create7598AuthorizationSignatureBytes(uint256 value) private view returns (bytes memory signature) {
