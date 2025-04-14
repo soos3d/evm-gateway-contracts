@@ -41,6 +41,7 @@ contract SpendCommon is
     SpendHashes,
     Domain
 {
+    /// Thrown when an address is the zero address
     error InvalidAddress();
 
     /// Implements the UUPS upgrade pattern by restricting upgrades to the owner

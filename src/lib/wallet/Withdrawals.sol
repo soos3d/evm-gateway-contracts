@@ -88,8 +88,8 @@ contract Withdrawals is Pausing, TokenSupport, Delegation {
     }
 
     /// Starts the withdrawal process. After `withdrawalDelay`, `withdraw` may be called to complete the withdrawal.
-    /// Once a withdrawal has been initiated, that amount can no longer be spent. Calling this again before
-    /// `withdrawalDelay` is over will add to the amount and reset the timer.
+    /// Once a withdrawal has been initiated, that amount can no longer be spent. Repeated calls will add to the amount
+    /// and reset the timer.
     ///
     /// @param token   The token to initiate a withdrawal for
     /// @param value   The amount to be withdrawn
@@ -99,7 +99,7 @@ contract Withdrawals is Pausing, TokenSupport, Delegation {
 
     /// Starts the withdrawal process on behalf of a depositor who has authorized the caller. After `withdrawalDelay`,
     /// `withdraw` may be called to complete the withdrawal. Once a withdrawal has been initiated, that amount can no
-    /// longer be spent. Calling this again before `withdrawalDelay` is over will add to the amount and reset the timer.
+    /// longer be spent. Repeated calls will add to the amount and reset the timer.
     ///
     /// @dev The caller of this method must be the depositor or an authorized delegate of `depositor` for `token`
     ///

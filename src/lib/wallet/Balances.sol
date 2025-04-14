@@ -149,7 +149,6 @@ library BalancesStorage {
         /// The balances that are in the process of being withdrawn and are no longer spendable
         mapping(address token => mapping(address depositor => uint256 value)) withdrawingBalances;
     }
-    // Storage variables will be added here
 
     /// keccak256(abi.encode(uint256(keccak256("circle.gateway.Balances")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant SLOT = 0xdd3dca88e892815d13ea80f1982e32e4fe3d0a89f03d14d3565bf56d58c31a00;
