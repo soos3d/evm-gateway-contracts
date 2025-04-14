@@ -19,6 +19,7 @@ pragma solidity ^0.8.28;
 
 import {Rejection} from "src/lib/common/Rejection.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
+import {Deposits} from "src/lib/wallet/Deposits.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
@@ -241,7 +242,7 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
         skip(activeTimeOffset);
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance);
+        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance);
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
@@ -252,7 +253,7 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance / 2);
         skip(activeTimeOffset);
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
+        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance / 2, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
@@ -410,7 +411,7 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
         skip(activeTimeOffset);
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance);
+        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance);
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );
@@ -427,7 +428,7 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         skip(activeTimeOffset);
 
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositorWalletAddress, initialUsdcBalance);
+        emit Deposits.Deposited(usdc, depositorWalletAddress, initialUsdcBalance);
         wallet.depositWithAuthorization(
             usdc,
             depositorWalletAddress,
@@ -444,7 +445,7 @@ contract SpendWalletDepositERC3009Test is Test, DeployUtils {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance / 2);
         skip(activeTimeOffset);
         vm.expectEmit(true, true, false, true);
-        emit SpendWallet.Deposited(usdc, depositor, initialUsdcBalance / 2);
+        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance / 2, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );
