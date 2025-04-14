@@ -38,17 +38,22 @@ library ForkTestUtils {
         uint32 domain;
     }
 
+    /// @notice Returns the USDC address and domain for the current chain
+    /// @dev Domain values are defined by Circle and can be found at https://developers.circle.com/stablecoins/supported-domains
+    /// @return ForkVars struct containing:
+    ///         - usdc: The USDC contract address for the current chain
+    ///         - domain: The Circle-defined domain ID for the current chain
     function forkVars() public returns (ForkVars memory) {
         if (block.chainid == LOCAL_CHAIN_ID) {
             return deployLocalDependencies();
         }
 
         if (block.chainid == ETHEREUM_CHAIN_ID) {
-            return ForkVars({usdc: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, domain: 1});
+            return ForkVars({usdc: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48, domain: 0});
         }
 
         if (block.chainid == ETHEREUM_SEPOLIA_CHAIN_ID) {
-            return ForkVars({usdc: 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238, domain: 1});
+            return ForkVars({usdc: 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238, domain: 0});
         }
 
         if (block.chainid == ARBITRUM_CHAIN_ID) {
