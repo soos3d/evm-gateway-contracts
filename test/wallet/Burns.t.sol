@@ -21,9 +21,9 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {SpendWallet} from "src/SpendWallet.sol";
 import {BurnLib} from "src/lib/wallet/BurnLib.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
-import {Test} from "forge-std/Test.sol";
+import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 
-contract TestBurns is Test, DeployUtils {
+contract TestBurns is SignatureTestUtils, DeployUtils {
     using MessageHashUtils for bytes32;
 
     SpendWallet private wallet;
@@ -112,18 +112,7 @@ contract TestBurns is Test, DeployUtils {
         uint256[][] memory fees,
         uint256 signerKey
     ) internal view {
-        // Generate a random address and key for the burn signer
-        bytes memory encodedCalldata = abi.encode(authorizations, signatures, fees);
-
-        // Slice off the first 96 bytes (the three argument offsets)
-        bytes memory slicedCalldata = new bytes(encodedCalldata.length - 0x60);
-        for (uint256 i = 0; i < slicedCalldata.length; i++) {
-            slicedCalldata[i] = encodedCalldata[i + 0x60];
-        }
-
-        // Sign the calldata hash as the burn signer
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, keccak256(slicedCalldata).toEthSignedMessageHash());
-        bytes memory burnerSignature = abi.encodePacked(r, s, v);
+        bytes memory burnerSignature = _signBurnAuthorizations(authorizations, signatures, fees, signerKey);
 
         // Call burnSpent with the arguments and signature
         wallet.burnSpent(authorizations, signatures, fees, burnerSignature);
