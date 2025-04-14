@@ -18,8 +18,6 @@
 pragma solidity ^0.8.28;
 
 import {SpendCommon} from "src/SpendCommon.sol";
-import {Delegation} from "src/lib/wallet/Delegation.sol";
-import {Balances} from "src/lib/wallet/Balances.sol";
 import {Deposits} from "src/lib/wallet/Deposits.sol";
 import {Withdrawals} from "src/lib/wallet/Withdrawals.sol";
 import {Burns} from "src/lib/wallet/Burns.sol";
@@ -52,7 +50,7 @@ import {SpendMinter} from "src/SpendMinter.sol";
 /// the process of being withdrawn will no longer be spendable as soon as the withdrawal initiation is observed by the
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
 /// `spendable` and `withdrawing` balances.
-contract SpendWallet is SpendCommon, Balances, Deposits, Delegation, Withdrawals, Burns {
+contract SpendWallet is SpendCommon, Deposits, Withdrawals, Burns {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         // Ensure that the implementation contract cannot be initialized, only the proxy
@@ -66,11 +64,8 @@ contract SpendWallet is SpendCommon, Balances, Deposits, Delegation, Withdrawals
         __SpendCommon_init(minter);
     }
 
-    // TODO: Consider moving this to SpendCommon and make sure SpendMinter bytecode isn't included
+    /// The address of the corresponding minter contract on the same domain
     function minterContract() external view returns (SpendMinter) {
         return SpendMinter(_counterpart());
     }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Admin
 }
