@@ -21,6 +21,7 @@ import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {
     TransferSpec,
     TRANSFER_SPEC_MAGIC,
+    TRANSFER_SPEC_VERSION,
     TRANSFER_SPEC_VERSION_OFFSET,
     TRANSFER_SPEC_SOURCE_DOMAIN_OFFSET,
     TRANSFER_SPEC_DESTINATION_DOMAIN_OFFSET,
@@ -53,6 +54,7 @@ library TransferSpecLib {
 
     // TransferSpec errors
     error InvalidTransferSpecMagic(bytes4 actualMagic);
+    error InvalidTransferSpecVersion(uint32 actualVersion);
     error TransferSpecHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
     error TransferSpecOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
     error TransferSpecMetadataFieldTooLarge(uint256 actualLength, uint256 maxLength);
@@ -100,7 +102,8 @@ library TransferSpecLib {
     ///      Assumes outer magic number check has passed (via casting).
     /// Validation steps:
     /// 1. Minimum header length check.
-    /// 2. Total length consistency check (using declared TransferSpec length).
+    /// 2. Version check.
+    /// 3. Total length consistency check (using declared TransferSpec length).
     /// @param specView The TypedMemView reference to the encoded TransferSpec to validate.
     function _validateTransferSpecStructure(bytes29 specView) internal pure {
         // 1. Minimum header length check
@@ -108,7 +111,13 @@ library TransferSpecLib {
             revert TransferSpecHeaderTooShort(TRANSFER_SPEC_METADATA_OFFSET, specView.len());
         }
 
-        // 2. Total length consistency check
+        // 2. Version check
+        uint32 version = getVersion(specView);
+        if (version != TRANSFER_SPEC_VERSION) {
+            revert InvalidTransferSpecVersion(version);
+        }
+
+        // 3. Total length consistency check
         // (Reads declared metadata length from the view and checks against view's total length)
         uint32 metadataLength = getMetadataLength(specView);
         uint256 expectedInternalSpecLength = TRANSFER_SPEC_METADATA_OFFSET + metadataLength;

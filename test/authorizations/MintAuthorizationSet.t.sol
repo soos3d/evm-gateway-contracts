@@ -497,6 +497,30 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
+    function test_validate_set_revertsOnInnerSpec_InvalidVersionFuzz(
+        MintAuthorization memory auth1,
+        MintAuthorization memory auth2
+    ) public {
+        // The inner TransferSpec of the second auth has an invalid version
+        uint32 invalidVersion = TRANSFER_SPEC_VERSION + 1;
+        auth1.spec.version = TRANSFER_SPEC_VERSION;
+        auth1.spec.metadata = new bytes(0);
+        auth2.spec.version = invalidVersion;
+        auth2.spec.metadata = new bytes(0);
+
+        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        authorizations[0] = auth1;
+        authorizations[1] = auth2;
+        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
+        bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecVersion.selector, invalidVersion)
+        );
+        MintAuthorizationLib._validate(encodedAuthSet);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_set_revertsOnInnerSpec_DeclaredMetadataLengthTooBigFuzz(MintAuthorization memory auth1)
         public
     {

@@ -497,6 +497,30 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
+    function test_validate_set_revertsOnInnerSpec_InvalidVersionFuzz(
+        BurnAuthorization memory auth1,
+        BurnAuthorization memory auth2
+    ) public {
+        // The inner TransferSpec of the second auth has an invalid version
+        uint32 invalidVersion = TRANSFER_SPEC_VERSION + 1;
+        auth1.spec.version = TRANSFER_SPEC_VERSION;
+        auth1.spec.metadata = new bytes(0);
+        auth2.spec.version = invalidVersion;
+        auth2.spec.metadata = new bytes(0);
+
+        BurnAuthorization[] memory authorizations = new BurnAuthorization[](2);
+        authorizations[0] = auth1;
+        authorizations[1] = auth2;
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: authorizations});
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecVersion.selector, invalidVersion)
+        );
+        BurnAuthorizationLib.validate(encodedAuthSet);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_set_revertsOnInnerSpec_DeclaredMetadataLengthTooBigFuzz(BurnAuthorization memory auth1)
         public
     {
