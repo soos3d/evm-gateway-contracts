@@ -28,6 +28,7 @@ import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {DeployUtils, TEST_DOMAIN} from "test/util/DeployUtils.sol";
 import {Test} from "forge-std/Test.sol";
+import {Rejection} from "src/lib/common/Rejection.sol";
 
 /// Tests minting functionality of SpendMinter
 contract TestMints is Test, DeployUtils {
@@ -55,6 +56,7 @@ contract TestMints is Test, DeployUtils {
         (mintAuthorizationSigner, mintAuthorizationSignerKey) = makeAddrAndKey("mintAuthorizationSigner");
         vm.startPrank(owner);
         minter.updateMintAuthorizationSigner(mintAuthorizationSigner);
+        minter.updateRejecter(owner);
         vm.stopPrank();
 
         // Basic valid mint authorization
@@ -77,6 +79,18 @@ contract TestMints is Test, DeployUtils {
                 metadata: METADATA
             })
         });
+    }
+
+    // ==== Basic Denylist Tests ====
+
+    function test_spend_revertIfCallerDenylisted() public {
+        vm.startPrank(owner);
+        minter.rejectAddress(address(this));
+        vm.stopPrank();
+
+        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(baseAuth);
+        vm.expectRevert(abi.encodeWithSelector(Rejection.NotAllowed.selector, address(this)));
+        _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
     // ==== Signature Tests =====
@@ -234,36 +248,94 @@ contract TestMints is Test, DeployUtils {
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
     }
 
-    function test_spend_revertIfNonZeroAndInvalidDestinationCaller() public {
-        address invalidCaller = makeAddr("invalidCaller");
-        baseAuth.spec.destinationCaller = _addressToBytes32(invalidCaller);
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(baseAuth);
+    function test_spend_revertIfDestinationRecipientDenylisted() public {
+        vm.startPrank(owner);
+        minter.rejectAddress(recipient);
+        vm.stopPrank();
 
+        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(baseAuth);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationCaller.selector, 0, invalidCaller, address(this)
-            )
+            abi.encodeWithSelector(SpendMinter.DenylistedAuthorizationDestinationRecipient.selector, 0, recipient)
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
-    function test_spend_revertIfNonZeroAndInvalidDestinationCallerAuthSet() public {
-        MintAuthorization memory invalidCallerAuth = baseAuth; // storage -> memory creates a copy
-        address invalidCaller = makeAddr("invalidCaller");
-        invalidCallerAuth.spec.destinationCaller = _addressToBytes32(invalidCaller);
+    function test_spend_revertIfDestinationRecipientDenylistedAuthSet() public {
+        MintAuthorization memory denylistedRecipientAuth = baseAuth; // storage -> memory creates a copy
+        address denylistedRecipient = makeAddr("denylistedRecipient");
+        denylistedRecipientAuth.spec.destinationRecipient = _addressToBytes32(denylistedRecipient);
+
+        vm.startPrank(owner);
+        minter.rejectAddress(denylistedRecipient);
+        vm.stopPrank();
 
         MintAuthorization[] memory authorizations = new MintAuthorization[](2);
         authorizations[0] = baseAuth;
-        authorizations[1] = invalidCallerAuth;
+        authorizations[1] = denylistedRecipientAuth;
 
         MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationCaller.selector, 1, invalidCaller, address(this)
+                SpendMinter.DenylistedAuthorizationDestinationRecipient.selector, 1, denylistedRecipient
             )
         );
+        _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+    }
+
+    function test_spend_revertIfNonZeroAndInvalidDestinationCaller() public {
+        address invalidDestinationCaller = makeAddr("invalidDestinationCaller");
+        baseAuth.spec.destinationCaller = _addressToBytes32(invalidDestinationCaller);
+        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(baseAuth);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SpendMinter.InvalidAuthorizationDestinationCaller.selector, 0, invalidDestinationCaller, address(this)
+            )
+        );
+        _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
+    }
+
+    function test_spend_revertIfNonZeroAndInvalidDestinationCallerAuthSet() public {
+        MintAuthorization memory invalidDestinationCallerAuth = baseAuth; // storage -> memory creates a copy
+        address invalidDestinationCaller = makeAddr("invalidDestinationCaller");
+        invalidDestinationCallerAuth.spec.destinationCaller = _addressToBytes32(invalidDestinationCaller);
+
+        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        authorizations[0] = baseAuth;
+        authorizations[1] = invalidDestinationCallerAuth;
+
+        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SpendMinter.InvalidAuthorizationDestinationCaller.selector, 1, invalidDestinationCaller, address(this)
+            )
+        );
+        _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+    }
+
+    function test_spend_revertIfZeroValue() public {
+        baseAuth.spec.value = 0;
+        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(baseAuth);
+        vm.expectRevert(abi.encodeWithSelector(SpendMinter.MintValueMustBePositive.selector, 0));
+        _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
+    }
+
+    function test_spend_revertIfZeroValueAuthSet() public {
+        MintAuthorization memory zeroValueAuth = baseAuth; // storage -> memory creates a copy
+        zeroValueAuth.spec.value = 0;
+
+        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        authorizations[0] = baseAuth;
+        authorizations[1] = zeroValueAuth;
+
+        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+
+        vm.expectRevert(abi.encodeWithSelector(SpendMinter.MintValueMustBePositive.selector, 1));
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
     }
 

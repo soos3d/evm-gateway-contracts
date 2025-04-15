@@ -42,7 +42,9 @@ contract SpendMinter is SpendCommon {
     error AuthorizationExpired(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
     error InvalidAuthorizationDestinationDomain(uint32 index, uint32 expectedDestinationDomain, uint32 actualDomain);
     error InvalidAuthorizationDestinationContract(uint32 index, address expectedDestinationContract);
+    error DenylistedAuthorizationDestinationRecipient(uint32 index, address expectedDestinationRecipient);
     error InvalidAuthorizationDestinationCaller(uint32 index, address expectedDestinationCaller, address actualCaller);
+    error MintValueMustBePositive(uint32 index);
 
     /// Maps token addresses to their corresponding minter contract addresses.
     /// The token minter contracts must have permission to mint the associated token.
@@ -96,7 +98,11 @@ contract SpendMinter is SpendCommon {
     ///
     /// @param authorizations   The byte-encoded spend authorization(s)
     /// @param signature        The signature from the operator
-    function spend(bytes memory authorizations, bytes memory signature) external whenNotPaused {
+    function spend(bytes memory authorizations, bytes memory signature)
+        external
+        whenNotPaused
+        notRejected(msg.sender)
+    {
         _validateMintAuthorizationSignature(authorizations, signature);
 
         // Validate structural integrity of encoded auth
@@ -141,9 +147,19 @@ contract SpendMinter is SpendCommon {
             revert InvalidAuthorizationDestinationContract(index, destinationContract);
         }
 
+        address destinationRecipient = _bytes32ToAddress(spec.getDestinationRecipient());
+        if (isRejected(destinationRecipient)) {
+            revert DenylistedAuthorizationDestinationRecipient(index, destinationRecipient);
+        }
+
         address destinationCaller = _bytes32ToAddress(spec.getDestinationCaller());
         if (destinationCaller != address(0) && destinationCaller != msg.sender) {
             revert InvalidAuthorizationDestinationCaller(index, destinationCaller, msg.sender);
+        }
+
+        uint256 value = spec.getValue();
+        if (value == 0) {
+            revert MintValueMustBePositive(index);
         }
     }
 
