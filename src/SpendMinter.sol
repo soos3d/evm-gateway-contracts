@@ -101,7 +101,7 @@ contract SpendMinter is SpendCommon {
     function spend(bytes memory authorizations, bytes memory signature)
         external
         whenNotPaused
-        notRejected(msg.sender)
+        notDenylisted(msg.sender)
     {
         _validateMintAuthorizationSignature(authorizations, signature);
 
@@ -148,7 +148,7 @@ contract SpendMinter is SpendCommon {
         }
 
         address destinationRecipient = _bytes32ToAddress(spec.getDestinationRecipient());
-        if (isRejected(destinationRecipient)) {
+        if (isDenylisted(destinationRecipient)) {
             revert DenylistedAuthorizationDestinationRecipient(index, destinationRecipient);
         }
 

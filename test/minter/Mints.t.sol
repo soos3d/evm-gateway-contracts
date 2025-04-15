@@ -28,7 +28,7 @@ import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {DeployUtils, TEST_DOMAIN} from "test/util/DeployUtils.sol";
 import {Test} from "forge-std/Test.sol";
-import {Rejection} from "src/lib/common/Rejection.sol";
+import {Denylistable} from "src/lib/common/Denylistable.sol";
 
 /// Tests minting functionality of SpendMinter
 contract TestMints is Test, DeployUtils {
@@ -56,7 +56,7 @@ contract TestMints is Test, DeployUtils {
         (mintAuthorizationSigner, mintAuthorizationSignerKey) = makeAddrAndKey("mintAuthorizationSigner");
         vm.startPrank(owner);
         minter.updateMintAuthorizationSigner(mintAuthorizationSigner);
-        minter.updateRejecter(owner);
+        minter.updateDenylister(owner);
         vm.stopPrank();
 
         // Basic valid mint authorization
@@ -85,11 +85,11 @@ contract TestMints is Test, DeployUtils {
 
     function test_spend_revertIfCallerDenylisted() public {
         vm.startPrank(owner);
-        minter.rejectAddress(address(this));
+        minter.denylist(address(this));
         vm.stopPrank();
 
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(baseAuth);
-        vm.expectRevert(abi.encodeWithSelector(Rejection.NotAllowed.selector, address(this)));
+        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, address(this)));
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
@@ -250,7 +250,7 @@ contract TestMints is Test, DeployUtils {
 
     function test_spend_revertIfDestinationRecipientDenylisted() public {
         vm.startPrank(owner);
-        minter.rejectAddress(recipient);
+        minter.denylist(recipient);
         vm.stopPrank();
 
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(baseAuth);
@@ -266,7 +266,7 @@ contract TestMints is Test, DeployUtils {
         denylistedRecipientAuth.spec.destinationRecipient = _addressToBytes32(denylistedRecipient);
 
         vm.startPrank(owner);
-        minter.rejectAddress(denylistedRecipient);
+        minter.denylist(denylistedRecipient);
         vm.stopPrank();
 
         MintAuthorization[] memory authorizations = new MintAuthorization[](2);
