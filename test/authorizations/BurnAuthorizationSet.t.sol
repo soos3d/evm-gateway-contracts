@@ -514,9 +514,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecVersion.selector, invalidVersion)
-        );
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecVersion.selector, invalidVersion));
         BurnAuthorizationLib.validate(encodedAuthSet);
     }
 

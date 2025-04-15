@@ -248,13 +248,11 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     function test_validate_innerSpec_revertsOnInvalidVersionFuzz(BurnAuthorization memory auth) public {
         uint32 invalidVersion = TRANSFER_SPEC_VERSION + 1;
         auth.spec.version = invalidVersion;
-        auth.spec.metadata = LONG_METADATA; 
+        auth.spec.metadata = LONG_METADATA;
 
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecVersion.selector, invalidVersion)
-        );
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecVersion.selector, invalidVersion));
         BurnAuthorizationLib.validate(encodedAuth);
     }
 

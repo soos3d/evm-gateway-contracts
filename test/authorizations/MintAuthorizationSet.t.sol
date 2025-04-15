@@ -514,9 +514,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecVersion.selector, invalidVersion)
-        );
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecVersion.selector, invalidVersion));
         MintAuthorizationLib._validate(encodedAuthSet);
     }
 

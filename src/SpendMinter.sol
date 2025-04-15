@@ -40,11 +40,12 @@ contract SpendMinter is SpendCommon {
 
     error InvalidMintAuthorizationSigner();
     error AuthorizationExpired(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
+    error MintValueMustBePositive(uint32 index);
+    error InvalidAuthorizationDestinationCaller(uint32 index, address expectedDestinationCaller, address actualCaller);
     error InvalidAuthorizationDestinationDomain(uint32 index, uint32 expectedDestinationDomain, uint32 actualDomain);
     error InvalidAuthorizationDestinationContract(uint32 index, address expectedDestinationContract);
-    error DenylistedAuthorizationDestinationRecipient(uint32 index, address expectedDestinationRecipient);
-    error InvalidAuthorizationDestinationCaller(uint32 index, address expectedDestinationCaller, address actualCaller);
-    error MintValueMustBePositive(uint32 index);
+    error InvalidAuthorizationSourceContract(uint32 index, address sourceContract, address expectedSourceContract);
+    error InvalidAuthorizationToken(uint32 index, address sourceToken, address destinationToken);
 
     /// Maps token addresses to their corresponding minter contract addresses.
     /// The token minter contracts must have permission to mint the associated token.
@@ -133,6 +134,18 @@ contract SpendMinter is SpendCommon {
 
         bytes29 spec = auth.getTransferSpec();
 
+        uint256 value = spec.getValue();
+        if (value == 0) {
+            revert MintValueMustBePositive(index);
+        }
+
+        _ensureNotDenylisted(_bytes32ToAddress(spec.getDestinationRecipient()));
+
+        address destinationCaller = _bytes32ToAddress(spec.getDestinationCaller());
+        if (destinationCaller != address(0) && destinationCaller != msg.sender) {
+            revert InvalidAuthorizationDestinationCaller(index, destinationCaller, msg.sender);
+        }
+
         uint32 destinationDomain = spec.getDestinationDomain();
         if (!_isCurrentDomain(destinationDomain)) {
             revert InvalidAuthorizationDestinationDomain(index, destinationDomain, domain());
@@ -143,19 +156,19 @@ contract SpendMinter is SpendCommon {
             revert InvalidAuthorizationDestinationContract(index, destinationContract);
         }
 
-        address destinationRecipient = _bytes32ToAddress(spec.getDestinationRecipient());
-        if (isDenylisted(destinationRecipient)) {
-            revert DenylistedAuthorizationDestinationRecipient(index, destinationRecipient);
-        }
-
-        address destinationCaller = _bytes32ToAddress(spec.getDestinationCaller());
-        if (destinationCaller != address(0) && destinationCaller != msg.sender) {
-            revert InvalidAuthorizationDestinationCaller(index, destinationCaller, msg.sender);
-        }
-
-        uint256 value = spec.getValue();
-        if (value == 0) {
-            revert MintValueMustBePositive(index);
+        uint32 sourceDomain = spec.getSourceDomain();
+        if (sourceDomain == destinationDomain) {
+            // Same chain spend
+            address sourceContract = _bytes32ToAddress(spec.getSourceContract());
+            address walletAddr = _counterpart();
+            if (sourceContract != walletAddr) {
+                revert InvalidAuthorizationSourceContract(index, sourceContract, walletAddr);
+            }
+            address sourceToken = _bytes32ToAddress(spec.getSourceToken());
+            address destinationToken = _bytes32ToAddress(spec.getDestinationToken());
+            if (sourceToken != destinationToken) {
+                revert InvalidAuthorizationToken(index, sourceToken, destinationToken);
+            }
         }
     }
 

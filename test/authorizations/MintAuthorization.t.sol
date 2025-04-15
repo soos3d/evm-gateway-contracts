@@ -247,13 +247,11 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
     function test_validate_innerSpec_revertsOnInvalidVersionFuzz(MintAuthorization memory auth) public {
         uint32 invalidVersion = TRANSFER_SPEC_VERSION + 1;
         auth.spec.version = invalidVersion;
-        auth.spec.metadata = LONG_METADATA; 
+        auth.spec.metadata = LONG_METADATA;
 
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecVersion.selector, invalidVersion)
-        );
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecVersion.selector, invalidVersion));
         MintAuthorizationLib._validate(encodedAuth);
     }
 
