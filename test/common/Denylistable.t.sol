@@ -60,7 +60,7 @@ contract DenylistableTest is Test {
     }
 
     function test_updateDenylister_basicSuccess() public {
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, false, true);
         emit Denylistable.DenylisterChanged(address(0), denylister);
 
         vm.prank(owner);
@@ -79,7 +79,7 @@ contract DenylistableTest is Test {
         denylistable.updateDenylister(denylister);
 
         address newDenylister = makeAddr("newDenylister");
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, false, true);
         emit Denylistable.DenylisterChanged(denylister, newDenylister);
 
         // Update to new denylister
@@ -100,14 +100,14 @@ contract DenylistableTest is Test {
 
     function test_updateDenylister_isIdempotent() public {
         // Set initial denylister
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, false, true);
         emit Denylistable.DenylisterChanged(address(0), denylister);
 
         vm.prank(owner);
         denylistable.updateDenylister(denylister);
 
         // Set same denylister again
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, false, true);
         emit Denylistable.DenylisterChanged(denylister, denylister);
 
         vm.prank(owner);
@@ -164,7 +164,7 @@ contract DenylistableTest is Test {
         vm.prank(owner);
         denylistable.updateDenylister(denylister);
 
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, false, true);
         emit Denylistable.Denylisted(user);
 
         vm.prank(denylister);
@@ -188,7 +188,7 @@ contract DenylistableTest is Test {
         vm.prank(owner);
         denylistable.updateDenylister(denylister);
 
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, false, true);
         emit Denylistable.Denylisted(user);
 
         vm.prank(denylister);
@@ -196,7 +196,7 @@ contract DenylistableTest is Test {
 
         assertTrue(denylistable.isDenylisted(user), "User should be denylisted");
 
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, false, true);
         emit Denylistable.Denylisted(user);
 
         // Denylist the same address again
@@ -210,13 +210,13 @@ contract DenylistableTest is Test {
         vm.prank(owner);
         denylistable.updateDenylister(denylister);
 
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, false, true);
         emit Denylistable.Denylisted(user);
 
         vm.startPrank(denylister);
         denylistable.denylist(user);
         assertTrue(denylistable.isDenylisted(user), "User should be denylisted");
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, false, true);
         emit Denylistable.UnDenylisted(user);
         denylistable.unDenylist(user);
         vm.stopPrank();
@@ -228,7 +228,7 @@ contract DenylistableTest is Test {
         vm.prank(owner);
         denylistable.updateDenylister(denylister);
 
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, false, true);
         emit Denylistable.UnDenylisted(user);
 
         vm.prank(denylister);
@@ -241,13 +241,13 @@ contract DenylistableTest is Test {
         vm.prank(owner);
         denylistable.updateDenylister(denylister);
 
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, false, true);
         emit Denylistable.UnDenylisted(user);
 
         vm.startPrank(denylister);
         denylistable.unDenylist(user);
         assertFalse(denylistable.isDenylisted(user), "User should not be denylisted after first allow");
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(true, true, false, true);
         emit Denylistable.UnDenylisted(user);
         denylistable.unDenylist(user);
         vm.stopPrank();
