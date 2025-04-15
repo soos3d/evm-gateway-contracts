@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {Pausing} from "src/lib/common/Pausing.sol";
-import {Rejection} from "src/lib/common/Rejection.sol";
+import {Denylistable} from "src/lib/common/Denylistable.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {Balances, BalancesStorage} from "src/lib/wallet/Balances.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -29,7 +29,7 @@ import {IERC7598} from "src/interfaces/IERC7598.sol";
 /// @title Deposits
 ///
 /// Manages deposits for the SpendWallet contract
-contract Deposits is Pausing, Rejection, TokenSupport, Balances {
+contract Deposits is Pausing, Denylistable, TokenSupport, Balances {
     using SafeERC20 for IERC20;
 
     /// Thrown for deposits with a value of 0
@@ -51,7 +51,7 @@ contract Deposits is Pausing, Rejection, TokenSupport, Balances {
     function deposit(address token, uint256 value)
         external
         whenNotPaused
-        notRejected(msg.sender)
+        notDenylisted(msg.sender)
         tokenSupported(token)
     {
         if (value == 0) {
@@ -86,7 +86,7 @@ contract Deposits is Pausing, Rejection, TokenSupport, Balances {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external whenNotPaused notRejected(msg.sender) notRejected(owner) tokenSupported(token) {
+    ) external whenNotPaused notDenylisted(msg.sender) notDenylisted(owner) tokenSupported(token) {
         _depositWithPermit(token, owner, value, deadline, abi.encodePacked(r, s, v));
     }
 
@@ -105,8 +105,8 @@ contract Deposits is Pausing, Rejection, TokenSupport, Balances {
     function depositWithPermit(address token, address owner, uint256 value, uint256 deadline, bytes calldata signature)
         external
         whenNotPaused
-        notRejected(msg.sender)
-        notRejected(owner)
+        notDenylisted(msg.sender)
+        notDenylisted(owner)
         tokenSupported(token)
     {
         _depositWithPermit(token, owner, value, deadline, signature);
@@ -159,7 +159,7 @@ contract Deposits is Pausing, Rejection, TokenSupport, Balances {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external whenNotPaused notRejected(msg.sender) notRejected(from) tokenSupported(token) {
+    ) external whenNotPaused notDenylisted(msg.sender) notDenylisted(from) tokenSupported(token) {
         _depositWithAuthorization(token, from, value, validAfter, validBefore, nonce, abi.encodePacked(r, s, v));
     }
 
@@ -185,7 +185,7 @@ contract Deposits is Pausing, Rejection, TokenSupport, Balances {
         uint256 validBefore,
         bytes32 nonce,
         bytes calldata signature
-    ) external whenNotPaused notRejected(msg.sender) notRejected(from) tokenSupported(token) {
+    ) external whenNotPaused notDenylisted(msg.sender) notDenylisted(from) tokenSupported(token) {
         _depositWithAuthorization(token, from, value, validAfter, validBefore, nonce, signature);
     }
 

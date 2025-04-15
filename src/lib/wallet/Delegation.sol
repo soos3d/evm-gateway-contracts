@@ -18,14 +18,14 @@
 pragma solidity ^0.8.28;
 
 import {Pausing} from "src/lib/common/Pausing.sol";
-import {Rejection} from "src/lib/common/Rejection.sol";
+import {Denylistable} from "src/lib/common/Denylistable.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 
 /// @title Delegation
 ///
 /// Manages delegation for the SpendWallet contract
-contract Delegation is Pausing, Rejection, TokenSupport {
+contract Delegation is Pausing, Denylistable, TokenSupport {
     error NotAuthorized();
     error CannotDelegateToSelf();
 
@@ -45,8 +45,8 @@ contract Delegation is Pausing, Rejection, TokenSupport {
     function addDelegate(address token, address delegate)
         external
         whenNotPaused
-        notRejected(msg.sender)
-        notRejected(delegate)
+        notDenylisted(msg.sender)
+        notDenylisted(delegate)
         tokenSupported(token)
     {
         _checkNotZeroAddress(delegate);
@@ -76,7 +76,7 @@ contract Delegation is Pausing, Rejection, TokenSupport {
     function removeDelegate(address token, address delegate)
         external
         whenNotPaused
-        notRejected(msg.sender)
+        notDenylisted(msg.sender)
         tokenSupported(token)
     {
         _checkNotZeroAddress(delegate);
