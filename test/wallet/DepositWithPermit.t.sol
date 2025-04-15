@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {SpendWallet} from "src/SpendWallet.sol";
-import {Rejection} from "src/lib/common/Rejection.sol";
+import {Denylistable} from "src/lib/common/Denylistable.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {Deposits} from "src/lib/wallet/Deposits.sol";
 import {MockERC1271Wallet} from "test/mock_fiattoken/contracts/test/MockERC1271Wallet.sol";
@@ -99,25 +99,25 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         wallet.depositWithPermit(unsupportedToken, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
     }
 
-    function test_depositWithPermit_with2612Interface_revertWhenTxSenderRejected() public {
+    function test_depositWithPermit_with2612Interface_revertWhenTxSenderDenylisted() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance);
-        address rejecter = wallet.rejecter();
-        address rejectedSender = makeAddr("rejectedSender");
-        vm.prank(rejecter);
-        wallet.rejectAddress(rejectedSender);
+        address denylister = wallet.denylister();
+        address denylistedSender = makeAddr("denylistedSender");
+        vm.prank(denylister);
+        wallet.denylist(denylistedSender);
 
-        vm.prank(rejectedSender);
-        vm.expectRevert(abi.encodeWithSelector(Rejection.NotAllowed.selector, rejectedSender));
+        vm.prank(denylistedSender);
+        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
     }
 
-    function test_depositWithPermit_with2612Interface_revertWhenTokenOwnerRejected() public {
+    function test_depositWithPermit_with2612Interface_revertWhenTokenOwnerDenylisted() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance);
-        address rejecter = wallet.rejecter();
-        vm.prank(rejecter);
-        wallet.rejectAddress(depositor);
+        address denylister = wallet.denylister();
+        vm.prank(denylister);
+        wallet.denylist(depositor);
 
-        vm.expectRevert(abi.encodeWithSelector(Rejection.NotAllowed.selector, depositor));
+        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
     }
 
@@ -191,25 +191,25 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         wallet.depositWithPermit(unsupportedToken, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
-    function test_depositWithPermit_with7597Interface_revertWhenTxSenderRejected() public {
+    function test_depositWithPermit_with7597Interface_revertWhenTxSenderDenylisted() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance);
-        address rejecter = wallet.rejecter();
-        address rejectedSender = makeAddr("rejectedSender");
-        vm.prank(rejecter);
-        wallet.rejectAddress(rejectedSender);
+        address denylister = wallet.denylister();
+        address denylistedSender = makeAddr("denylistedSender");
+        vm.prank(denylister);
+        wallet.denylist(denylistedSender);
 
-        vm.prank(rejectedSender);
-        vm.expectRevert(abi.encodeWithSelector(Rejection.NotAllowed.selector, rejectedSender));
+        vm.prank(denylistedSender);
+        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
-    function test_depositWithPermit_with7597Interface_revertWhenTokenOwnerRejected() public {
+    function test_depositWithPermit_with7597Interface_revertWhenTokenOwnerDenylisted() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance);
-        address rejecter = wallet.rejecter();
-        vm.prank(rejecter);
-        wallet.rejectAddress(depositor);
+        address denylister = wallet.denylister();
+        vm.prank(denylister);
+        wallet.denylist(depositor);
 
-        vm.expectRevert(abi.encodeWithSelector(Rejection.NotAllowed.selector, depositor));
+        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 

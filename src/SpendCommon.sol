@@ -22,7 +22,7 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Pausing} from "src/lib/common/Pausing.sol";
 import {Counterpart} from "src/lib/common/Counterpart.sol";
-import {Rejection} from "src/lib/common/Rejection.sol";
+import {Denylistable} from "src/lib/common/Denylistable.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {SpendHashes} from "src/lib/common/SpendHashes.sol";
 import {Domain} from "src/lib/common/Domain.sol";
@@ -35,7 +35,7 @@ contract SpendCommon is
     UUPSUpgradeable,
     Ownable2StepUpgradeable,
     Pausing,
-    Rejection,
+    Denylistable,
     Counterpart,
     TokenSupport,
     SpendHashes,

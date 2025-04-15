@@ -1,0 +1,155 @@
+/*
+ * Copyright 2025 Circle Internet Group, Inc. All rights reserved.
+
+ * SPDX-License-Identifier: Apache-2.0
+
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+pragma solidity ^0.8.28;
+
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+
+/// @title Denylistable
+///
+/// A helper contract for maintaining a denylist.
+contract Denylistable is Ownable2StepUpgradeable {
+    /// Emitted when an address is added to the deny list
+    ///
+    /// @param addr   The address that is now being denied from interacting with the contract
+    event Denylisted(address indexed addr);
+
+    /// Emitted when an address is removed from the denied list
+    ///
+    /// @param addr   The address that is allowed to interact with the contract again
+    event UnDenylisted(address indexed addr);
+
+    /// Emitted when the denylister address is updated
+    ///
+    /// @param oldDenylister   The old denylister address
+    /// @param newDenylister   The new denylister address
+    event DenylisterChanged(address indexed oldDenylister, address indexed newDenylister);
+
+    /// Thrown when an address is denylisted from interacting with the contract
+    ///
+    /// @param addr   The denylisted address
+    error AccountDenylisted(address addr);
+
+    /// Thrown when an unauthorized address attempts to denylist or un-denylist addresses
+    ///
+    /// @param addr   The unauthorized address
+    error UnauthorizedDenylister(address addr);
+
+    /// Returns the address that has the denylister role, which can deny and un-deny addresses
+    function denylister() public view returns (address) {
+        return DenylistableStorage.get().denylister;
+    }
+
+    /// Whether or not a given address is denied from interacting with the contract
+    ///
+    /// @param addr   The address to check
+    function isDenylisted(address addr) public view returns (bool) {
+        return DenylistableStorage.get().denylistMapping[addr];
+    }
+
+    /// Sets the denylist status of an address
+    ///
+    /// @param addr       The address to set the denylist status for
+    /// @param denied   Whether or not the address should be denied
+    function _denylist(address addr, bool denied) internal {
+        DenylistableStorage.get().denylistMapping[addr] = denied;
+    }
+
+    /// Sets the address that is allowed to denylist and un-denylist addresses
+    ///
+    /// @param newDenylister   The new denylister address
+    function _setDenylister(address newDenylister) internal {
+        DenylistableStorage.get().denylister = newDenylister;
+    }
+
+    /// Restricts access to a function to addresses that are not denylisted
+    ///
+    /// @param addr   The address to check
+    modifier notDenylisted(address addr) {
+        _ensureNotDenylisted(addr);
+        _;
+    }
+
+    /// Restricts the caller to the `denylister` role, reverting with an error for other callers
+    modifier onlyDenylister() {
+        if (_msgSender() != DenylistableStorage.get().denylister) {
+            revert UnauthorizedDenylister(_msgSender());
+        }
+        _;
+    }
+
+    /// Reverts if the given address is denylisted
+    ///
+    /// @param addr   The address to check
+    function _ensureNotDenylisted(address addr) internal view {
+        if (isDenylisted(addr)) {
+            revert AccountDenylisted(addr);
+        }
+    }
+
+    /// Denylists an address from interacting with the contract
+    ///
+    /// @dev May only be called by the `denylister` role
+    ///
+    /// @param addr   The address to be denylisted
+    function denylist(address addr) external onlyDenylister {
+        _denylist(addr, true);
+        emit Denylisted(addr);
+    }
+
+    /// Allows a previously-denylisted address to interact with the contract again
+    ///
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param addr   The address to be allowed
+    function unDenylist(address addr) external onlyDenylister {
+        _denylist(addr, false);
+        emit UnDenylisted(addr);
+    }
+
+    /// Sets the address that is allowed to denylist and unDenylist addresses
+    ///
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param newDenylister   The new burner address
+    function updateDenylister(address newDenylister) external onlyOwner {
+        address oldDenylister = DenylistableStorage.get().denylister;
+        _setDenylister(newDenylister);
+        emit DenylisterChanged(oldDenylister, newDenylister);
+    }
+}
+
+/// Implements the EIP-7201 storage pattern for the Denylistable module
+library DenylistableStorage {
+    /// @custom:storage-location 7201:circle.spend.Denylistable
+    struct Data {
+        /// Mapping of addresses to their denylist status
+        mapping(address addr => bool denylisted) denylistMapping;
+        /// The address that is allowed to manage the denylist
+        address denylister;
+    }
+
+    /// keccak256(abi.encode(uint256(keccak256("circle.spend.Denylistable")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant SLOT = 0x16857e3bc6a56fe0dada8d43bbb86956ebe3dcbc971864d4514e03ecea65e300;
+
+    /// EIP-7201 getter for the storage slot
+    function get() internal pure returns (Data storage $) {
+        assembly {
+            $.slot := SLOT
+        }
+    }
+}
