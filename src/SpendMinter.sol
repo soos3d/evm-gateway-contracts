@@ -104,10 +104,6 @@ contract SpendMinter is SpendCommon {
         notDenylisted(msg.sender)
     {
         _validateMintAuthorizationSignature(authorizations, signature);
-
-        // Validate structural integrity of encoded auth
-        MintAuthorizationLib.validate(authorizations);
-
         AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(authorizations);
         while (!cursor.done) {
             bytes29 auth;

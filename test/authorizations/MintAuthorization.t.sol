@@ -71,7 +71,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
-        MintAuthorizationLib.validate(encodedAuth);
+        MintAuthorizationLib._validate(encodedAuth);
     }
 
     // ===== Validation Failures: Mint Authorization Structure =====
@@ -93,7 +93,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(shortData);
+        MintAuthorizationLib._validate(shortData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -119,7 +119,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(corruptedData);
+        MintAuthorizationLib._validate(corruptedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -145,7 +145,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(corruptedData);
+        MintAuthorizationLib._validate(corruptedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -164,7 +164,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(truncatedData);
+        MintAuthorizationLib._validate(truncatedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -180,7 +180,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(corruptedData);
+        MintAuthorizationLib._validate(corruptedData);
     }
 
     // ===== Validation Failures: Inner TransferSpec Consistency =====
@@ -202,7 +202,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(corruptedData);
+        MintAuthorizationLib._validate(corruptedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -225,7 +225,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
             abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecMagic.selector, corruptedMagic);
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(encodedAuth);
+        MintAuthorizationLib._validate(encodedAuth);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -240,7 +240,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(corruptedData);
+        MintAuthorizationLib._validate(corruptedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -266,7 +266,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(corruptedData);
+        MintAuthorizationLib._validate(corruptedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -294,7 +294,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(corruptedData);
+        MintAuthorizationLib._validate(corruptedData);
     }
 
     // ===== Iteration Tests =====

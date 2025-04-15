@@ -92,7 +92,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
     ) public pure {
         MintAuthorizationSet memory authSet = _createMintAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
-        MintAuthorizationLib.validate(encodedAuthSet);
+        MintAuthorizationLib._validate(encodedAuthSet);
     }
 
     // ===== Validation Failures: Set Structure =====
@@ -108,7 +108,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(shortData);
+        MintAuthorizationLib._validate(shortData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -124,7 +124,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
             TransferSpecLib.AuthorizationSetOverallLengthMismatch.selector, expectedLength, trailingBytesData.length
         );
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(trailingBytesData);
+        MintAuthorizationLib._validate(trailingBytesData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -144,7 +144,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(encodedSetHeaderOnly);
+        MintAuthorizationLib._validate(encodedSetHeaderOnly);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -180,7 +180,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(truncatedData);
+        MintAuthorizationLib._validate(truncatedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -212,7 +212,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(truncatedData);
+        MintAuthorizationLib._validate(truncatedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -254,7 +254,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(truncatedData);
+        MintAuthorizationLib._validate(truncatedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -291,7 +291,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(truncatedData);
+        MintAuthorizationLib._validate(truncatedData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -314,7 +314,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
             TransferSpecLib.AuthorizationSetOverallLengthMismatch.selector, expectedLength, trailingBytesData.length
         );
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(trailingBytesData);
+        MintAuthorizationLib._validate(trailingBytesData);
     }
 
     // ===== Validation Failures: Inner Authorization Consistency =====
@@ -348,7 +348,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(encodedAuthSet);
+        MintAuthorizationLib._validate(encodedAuthSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -384,7 +384,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(encodedAuthSet);
+        MintAuthorizationLib._validate(encodedAuthSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -424,7 +424,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(encodedAuthSet);
+        MintAuthorizationLib._validate(encodedAuthSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -463,7 +463,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(encodedAuthSet);
+        MintAuthorizationLib._validate(encodedAuthSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -493,7 +493,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
             abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecMagic.selector, corruptedMagic);
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(encodedAuthSet);
+        MintAuthorizationLib._validate(encodedAuthSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -527,7 +527,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(corruptedEncodedAuthSet);
+        MintAuthorizationLib._validate(corruptedEncodedAuthSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -561,7 +561,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        MintAuthorizationLib.validate(corruptedEncodedAuthSet);
+        MintAuthorizationLib._validate(corruptedEncodedAuthSet);
     }
 
     // ===== Iteration Tests =====
