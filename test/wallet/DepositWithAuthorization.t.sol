@@ -17,7 +17,7 @@
  */
 pragma solidity ^0.8.28;
 
-import {Rejection} from "src/lib/common/Rejection.sol";
+import {Denylistable} from "src/lib/common/Denylistable.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {Deposits} from "src/lib/wallet/Deposits.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
@@ -128,27 +128,27 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         );
     }
 
-    function test_depositWithAuthorization_with3009Interface_revertWhenTxSenderRejected() public {
+    function test_depositWithAuthorization_with3009Interface_revertWhenTxSenderDenylisted() public {
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
-        address rejecter = wallet.rejecter();
-        address rejectedSender = makeAddr("rejectedSender");
-        vm.prank(rejecter);
-        wallet.rejectAddress(rejectedSender);
+        address denylister = wallet.denylister();
+        address denylistedSender = makeAddr("denylistedSender");
+        vm.prank(denylister);
+        wallet.denylist(denylistedSender);
 
-        vm.prank(rejectedSender);
-        vm.expectRevert(abi.encodeWithSelector(Rejection.NotAllowed.selector, rejectedSender));
+        vm.prank(denylistedSender);
+        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
     }
 
-    function test_depositWithAuthorization_with3009Interface_revertWhenTokenOwnerRejected() public {
+    function test_depositWithAuthorization_with3009Interface_revertWhenTokenOwnerDenylisted() public {
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
-        address rejecter = wallet.rejecter();
-        vm.prank(rejecter);
-        wallet.rejectAddress(depositor);
+        address denylister = wallet.denylister();
+        vm.prank(denylister);
+        wallet.denylist(depositor);
 
-        vm.expectRevert(abi.encodeWithSelector(Rejection.NotAllowed.selector, depositor));
+        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
@@ -280,27 +280,27 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         );
     }
 
-    function test_depositWithAuthorization_with7598Interface_revertWhenTxSenderRejected() public {
+    function test_depositWithAuthorization_with7598Interface_revertWhenTxSenderDenylisted() public {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
-        address rejecter = wallet.rejecter();
-        address rejectedSender = makeAddr("rejectedSender");
-        vm.prank(rejecter);
-        wallet.rejectAddress(rejectedSender);
+        address denylister = wallet.denylister();
+        address denylistedSender = makeAddr("denylistedSender");
+        vm.prank(denylister);
+        wallet.denylist(denylistedSender);
 
-        vm.prank(rejectedSender);
-        vm.expectRevert(abi.encodeWithSelector(Rejection.NotAllowed.selector, rejectedSender));
+        vm.prank(denylistedSender);
+        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );
     }
 
-    function test_depositWithAuthorization_with7598Interface_revertWhenTokenOwnerRejected() public {
+    function test_depositWithAuthorization_with7598Interface_revertWhenTokenOwnerDenylisted() public {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
-        address rejecter = wallet.rejecter();
-        vm.prank(rejecter);
-        wallet.rejectAddress(depositor);
+        address denylister = wallet.denylister();
+        vm.prank(denylister);
+        wallet.denylist(depositor);
 
-        vm.expectRevert(abi.encodeWithSelector(Rejection.NotAllowed.selector, depositor));
+        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );
