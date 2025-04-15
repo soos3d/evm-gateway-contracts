@@ -19,8 +19,11 @@ pragma solidity ^0.8.28;
 
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
-import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
+import {_checkNotZeroAddress, _bytes32ToAddress} from "src/lib/util/addresses.sol";
+import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
+import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {MintAuthorization} from "src/lib/authorizations/MintAuthorizations.sol";
+import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
@@ -31,8 +34,18 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 /// contract for more details.
 contract SpendMinter is SpendCommon {
     using MessageHashUtils for bytes32;
+    using TransferSpecLib for bytes29;
+    using MintAuthorizationLib for bytes29;
+    using MintAuthorizationLib for AuthorizationCursor;
 
     error InvalidMintAuthorizationSigner();
+    error AuthorizationExpired(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
+    error MintValueMustBePositive(uint32 index);
+    error InvalidAuthorizationDestinationCaller(uint32 index, address expectedDestinationCaller, address actualCaller);
+    error InvalidAuthorizationDestinationDomain(uint32 index, uint32 expectedDestinationDomain, uint32 actualDomain);
+    error InvalidAuthorizationDestinationContract(uint32 index, address expectedDestinationContract);
+    error InvalidAuthorizationSourceContract(uint32 index, address sourceContract, address expectedSourceContract);
+    error InvalidAuthorizationToken(uint32 index, address sourceToken, address destinationToken);
 
     /// Maps token addresses to their corresponding minter contract addresses.
     /// The token minter contracts must have permission to mint the associated token.
@@ -86,17 +99,76 @@ contract SpendMinter is SpendCommon {
     ///
     /// @param authorizations   The byte-encoded spend authorization(s)
     /// @param signature        The signature from the operator
-    function spend(bytes memory authorizations, bytes memory signature) external whenNotPaused {
-        _verifyMintAuthorizationSignature(authorizations, signature);
-        // For each spend authorization:
-        // IMintToken(tokenMintAuthorities[token]).mint(to, amount);
+    function spend(bytes memory authorizations, bytes memory signature)
+        external
+        whenNotPaused
+        notDenylisted(msg.sender)
+    {
+        _validateMintAuthorizationSignature(authorizations, signature);
+        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(authorizations);
+        while (!cursor.done) {
+            bytes29 auth;
+            (auth, cursor) = cursor.next();
+            _validateMintAuthorization(auth, cursor.index - 1);
+            bytes29 spec = auth.getTransferSpec();
+            bytes32 specHash = spec.getHash();
+            _ensureSpendHashNotUsed(specHash);
+            _markSpendHashAsUsed(specHash);
+            // TODO: perform the mint / same-chain spend, emit event
+        }
     }
 
-    function _verifyMintAuthorizationSignature(bytes memory authorizations, bytes memory signature) internal view {
+    function _validateMintAuthorizationSignature(bytes memory authorizations, bytes memory signature) internal view {
         bytes32 authorizationsHash = keccak256(authorizations);
         address recoveredSigner = ECDSA.recover(authorizationsHash.toEthSignedMessageHash(), signature);
         if (recoveredSigner != mintAuthorizationSigner) {
             revert InvalidMintAuthorizationSigner();
+        }
+    }
+
+    function _validateMintAuthorization(bytes29 auth, uint32 index) internal view {
+        uint256 maxBlockHeight = auth.getMaxBlockHeight();
+        if (maxBlockHeight < block.number) {
+            revert AuthorizationExpired(index, maxBlockHeight, block.number);
+        }
+
+        bytes29 spec = auth.getTransferSpec();
+
+        uint256 value = spec.getValue();
+        if (value == 0) {
+            revert MintValueMustBePositive(index);
+        }
+
+        _ensureNotDenylisted(_bytes32ToAddress(spec.getDestinationRecipient()));
+
+        address destinationCaller = _bytes32ToAddress(spec.getDestinationCaller());
+        if (destinationCaller != address(0) && destinationCaller != msg.sender) {
+            revert InvalidAuthorizationDestinationCaller(index, destinationCaller, msg.sender);
+        }
+
+        uint32 destinationDomain = spec.getDestinationDomain();
+        if (!_isCurrentDomain(destinationDomain)) {
+            revert InvalidAuthorizationDestinationDomain(index, destinationDomain, domain());
+        }
+
+        address destinationContract = _bytes32ToAddress(spec.getDestinationContract());
+        if (destinationContract != address(this)) {
+            revert InvalidAuthorizationDestinationContract(index, destinationContract);
+        }
+
+        uint32 sourceDomain = spec.getSourceDomain();
+        if (sourceDomain == destinationDomain) {
+            // Same chain spend
+            address sourceContract = _bytes32ToAddress(spec.getSourceContract());
+            address walletAddr = _counterpart();
+            if (sourceContract != walletAddr) {
+                revert InvalidAuthorizationSourceContract(index, sourceContract, walletAddr);
+            }
+            address sourceToken = _bytes32ToAddress(spec.getSourceToken());
+            address destinationToken = _bytes32ToAddress(spec.getDestinationToken());
+            if (sourceToken != destinationToken) {
+                revert InvalidAuthorizationToken(index, sourceToken, destinationToken);
+            }
         }
     }
 

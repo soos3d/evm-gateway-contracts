@@ -181,10 +181,11 @@ library MintAuthorizationLib {
     ///      First casts the data using `_asAuthOrSetView`, then calls the appropriate specific
     ///      validation function (`_validateMintAuthorization` or `_validateMintAuthorizationSet`).
     ///      Reverts with specific errors if casting or validation fails.
+    /// @return ref The validated reference to the MintAuthorization or MintAuthorizationSet.
     /// @param data The raw bytes representing either an encoded single MintAuthorization or an
     ///             encoded MintAuthorizationSet.
-    function validate(bytes memory data) internal pure {
-        bytes29 ref = _asAuthOrSetView(data);
+    function _validate(bytes memory data) internal pure returns (bytes29 ref) {
+        ref = _asAuthOrSetView(data);
         if (_isSet(ref)) {
             _validateMintAuthorizationSet(ref);
         } else {
@@ -202,7 +203,7 @@ library MintAuthorizationLib {
     /// @return c An initialized AuthorizationCursor memory struct.
     /// @dev Reverts with `AuthorizationDataTooShort` or `InvalidAuthorizationMagic` if casting fails.
     function cursor(bytes memory data) internal pure returns (AuthorizationCursor memory c) {
-        bytes29 ref = _asAuthOrSetView(data);
+        bytes29 ref = _validate(data);
         c.setOrAuthView = ref;
         c.index = 0;
 

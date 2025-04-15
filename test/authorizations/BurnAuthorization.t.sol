@@ -245,6 +245,18 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
+    function test_validate_innerSpec_revertsOnInvalidVersionFuzz(BurnAuthorization memory auth) public {
+        uint32 invalidVersion = TRANSFER_SPEC_VERSION + 1;
+        auth.spec.version = invalidVersion;
+        auth.spec.metadata = LONG_METADATA;
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecVersion.selector, invalidVersion));
+        BurnAuthorizationLib.validate(encodedAuth);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_innerSpec_revertsOnDeclaredMetadataLengthTooBigFuzz(BurnAuthorization memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
