@@ -23,7 +23,7 @@ import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/Mi
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
-import {SpendHashes} from "src/lib/common/SpendHashes.sol";
+import {SpendHashes, SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
@@ -428,7 +428,7 @@ contract TestMints is Test, DeployUtils {
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(baseAuth.spec));
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(baseAuth);
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, specHash));
+        vm.expectRevert(abi.encodeWithSelector(SpendHashesStorage.SpendHashUsed.selector, specHash));
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 }
