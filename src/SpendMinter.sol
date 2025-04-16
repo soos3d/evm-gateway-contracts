@@ -24,6 +24,7 @@ import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.so
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {MintAuthorization} from "src/lib/authorizations/MintAuthorizations.sol";
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
+import {IMintToken} from "src/interfaces/IMintToken.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
@@ -110,14 +111,14 @@ contract SpendMinter is SpendCommon {
             bytes29 auth;
             (auth, cursor) = cursor.next();
             _validateMintAuthorization(auth, cursor.index - 1);
-            bytes29 spec = auth.getTransferSpec();
-            bytes32 specHash = spec.getHash();
-            _ensureSpendHashNotUsed(specHash);
-            _markSpendHashAsUsed(specHash);
-            // TODO: perform the mint / same-chain spend, emit event
+            _spend(auth.getTransferSpec(), authorizations);
         }
     }
 
+    /// @notice Validates the signature for a set of mint authorizations.
+    /// @dev Recovers the signer from the signature and compares it to the `mintAuthorizationSigner`.
+    /// @param authorizations The byte-encoded mint authorization(s).
+    /// @param signature The signature from the operator over the `authorizations` hash.
     function _validateMintAuthorizationSignature(bytes memory authorizations, bytes memory signature) internal view {
         bytes32 authorizationsHash = keccak256(authorizations);
         address recoveredSigner = ECDSA.recover(authorizationsHash.toEthSignedMessageHash(), signature);
@@ -126,6 +127,11 @@ contract SpendMinter is SpendCommon {
         }
     }
 
+    /// @notice Validates a single mint authorization.
+    /// @dev Checks expiration, value, recipient denylist status, destination caller, destination domain, destination
+    /// contract, and (for same-chain spends) source contract and token consistency.
+    /// @param auth A reference to the byte-encoded mint authorization.
+    /// @param index The index of the authorization within the batch (used for error reporting).
     function _validateMintAuthorization(bytes29 auth, uint32 index) internal view {
         uint256 maxBlockHeight = auth.getMaxBlockHeight();
         if (maxBlockHeight < block.number) {
@@ -170,6 +176,33 @@ contract SpendMinter is SpendCommon {
                 revert InvalidAuthorizationToken(index, sourceToken, destinationToken);
             }
         }
+    }
+
+    /// @notice Executes a single spend based on the provided transfer specification.
+    /// @dev Marks the spend hash as used. For same-chain spends, calls `sameChainSpend` on the wallet counterpart contract.
+    /// For cross-chain spends, mints tokens using the appropriate mint authority. Emits a `Spent` event.
+    /// @param spec A reference to the `TransferSpec` defining the spend details.
+    /// @param authorizations The full byte-encoded authorization(s) used.
+    function _spend(bytes29 spec, bytes memory authorizations) internal {
+        bytes32 specHash = spec.getHash();
+        _ensureSpendHashNotUsed(specHash);
+        _markSpendHashAsUsed(specHash);
+        address recipient = _bytes32ToAddress(spec.getDestinationRecipient());
+        uint256 value = spec.getValue();
+        address token = _bytes32ToAddress(spec.getDestinationToken());
+        bytes32 depositorBytes = spec.getSourceDepositor();
+        uint32 sourceDomain = spec.getSourceDomain();
+        if (sourceDomain == domain()) {
+            address sourceSigner = _bytes32ToAddress(spec.getSourceSigner());
+            SpendWallet(_counterpart()).sameChainSpend(
+                token, _bytes32ToAddress(depositorBytes), specHash, recipient, sourceSigner, value, authorizations
+            );
+        } else {
+            address mintAuthority = tokenMintAuthorities[token];
+            address minter = (mintAuthority == address(0)) ? token : mintAuthority;
+            IMintToken(minter).mint(recipient, value);
+        }
+        emit Spent(token, recipient, specHash, sourceDomain, depositorBytes, value, authorizations);
     }
 
     /// Emitted when the mint authority is updated for a token
