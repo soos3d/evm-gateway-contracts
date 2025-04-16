@@ -73,7 +73,7 @@ struct TransferSpec {
     bytes32 destinationToken; //       The token address on the destination domain
     bytes32 sourceDepositor; //        The address to debit within the wallet contract on the source domain
     bytes32 destinationRecipient; //   The address that should receive the funds on the destination domain
-    bytes32 sourceSigner; //           The signer who signed for the transfer, 0 if the same as the depositor
+    bytes32 sourceSigner; //           The signer who signed for the transfer, which may be the same as sourceDepositor
     bytes32 destinationCaller; //      The address of the caller who may use the authorization, 0 if any caller
     uint256 value; //                  The amount to be minted or transferred
     bytes32 nonce; //                  An arbitrary value chosen by the user to be unique

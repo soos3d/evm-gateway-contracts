@@ -191,6 +191,8 @@ library BurnAuthorizationLib {
         } else {
             _validateBurnAuthorization(ref);
         }
+
+        return ref;
     }
 
     // --- Iteration ---
