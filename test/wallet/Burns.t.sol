@@ -20,24 +20,89 @@ pragma solidity ^0.8.28;
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
+import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
+import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
+import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {BurnLib} from "src/lib/wallet/BurnLib.sol";
+import {_addressToBytes32} from "src/lib/util/addresses.sol";
+import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
+import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
+import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 
 contract TestBurns is SignatureTestUtils, DeployUtils {
     using MessageHashUtils for bytes32;
 
-    SpendWallet private wallet;
+    uint32 private domain;
     address private owner = makeAddr("owner");
+    address private depositor = makeAddr("depositor");
+    address private recipient = makeAddr("recipient");
+    address private destinationContract = makeAddr("destinationContract");
     address private burnSigner;
     uint256 private burnSignerKey;
+    uint256 private defaultMaxBlockHeightOffset = 100;
+    uint256 private defaultMaxFee = 10 ** 6;
+    uint256 private spendValue = 1000 * 10 ** 6;
+    bytes internal constant METADATA = "Test metadata";
+
+    FiatTokenV2_2 private usdc;
+
+    BurnAuthorization private baseAuth;
+
+    SpendWallet private wallet;
 
     function setUp() public {
-        wallet = deployWalletOnly(owner);
+        domain = ForkTestUtils.forkVars().domain;
+        usdc = FiatTokenV2_2(ForkTestUtils.forkVars().usdc);
+        wallet = deployWalletOnly(owner, domain);
+
         (burnSigner, burnSignerKey) = makeAddrAndKey("burnSigner");
-        vm.prank(owner);
-        wallet.updateBurnSigner(burnSigner);
+        vm.startPrank(owner);
+        {
+            wallet.addSupportedToken(address(usdc));
+            wallet.updateDenylister(owner);
+            wallet.updateBurnSigner(burnSigner);
+        }
         vm.stopPrank();
+
+        // Setup wallet as USDC burner
+        address masterMinterAddr = usdc.masterMinter();
+        if (masterMinterAddr.code.length > 0) {
+            MasterMinter masterMinter = MasterMinter(masterMinterAddr);
+            address masterMinterOwner = masterMinter.owner();
+            vm.startPrank(masterMinterOwner);
+            masterMinter.configureController(masterMinterOwner, address(wallet));
+            masterMinter.configureMinter(0); // zero allowance, burn only
+            vm.stopPrank();
+        } else {
+            // On testnet MasterMinter can be an EOA
+            vm.startPrank(masterMinterAddr);
+            usdc.configureMinter(address(wallet), 0); // zero allowance, burn only
+            vm.stopPrank();
+        }   
+
+        baseAuth = BurnAuthorization({
+            maxBlockHeight: block.number + defaultMaxBlockHeightOffset,
+            maxFee: defaultMaxFee,
+            spec: TransferSpec({
+                version: TRANSFER_SPEC_VERSION,
+                sourceDomain: domain,
+                destinationDomain: domain + 1, // A different destination domain
+                sourceContract: _addressToBytes32(address(wallet)),
+                destinationContract: _addressToBytes32(destinationContract),
+                sourceToken: _addressToBytes32(address(usdc)),
+                destinationToken: _addressToBytes32(address(usdc)),
+                sourceDepositor: _addressToBytes32(depositor),
+                destinationRecipient: _addressToBytes32(recipient),
+                sourceSigner: bytes32(0),
+                destinationCaller: bytes32(0),
+                value: spendValue,
+                nonce: keccak256("nonce"),
+                metadata: METADATA
+            })
+        });
+
     }
 
 
