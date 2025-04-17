@@ -60,11 +60,9 @@ library SpendHashesStorage {
     /// @param spendHash   The spend hash that was used
     error SpendHashUsed(bytes32 spendHash);
 
-    /// Marks the given spend hash as used
-    ///
-    /// @param spendHash   The spend hash to mark as used
-    function _markSpendHashAsUsed(bytes32 spendHash) internal {
-        get().usedSpendHashes[spendHash] = true;
+    function _checkAndMark(bytes32 spendHash) internal {
+        _ensureSpendHashNotUsed(spendHash);
+        _markSpendHashAsUsed(spendHash);
     }
 
     /// Reverts if the given spend hash has already been used
@@ -74,5 +72,12 @@ library SpendHashesStorage {
         if (get().usedSpendHashes[spendHash]) {
             revert SpendHashUsed(spendHash);
         }
+    }
+
+    /// Marks the given spend hash as used
+    ///
+    /// @param spendHash   The spend hash to mark as used
+    function _markSpendHashAsUsed(bytes32 spendHash) internal {
+        get().usedSpendHashes[spendHash] = true;
     }
 }
