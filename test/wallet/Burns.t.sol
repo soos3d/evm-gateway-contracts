@@ -44,7 +44,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     uint256 private burnSignerKey;
     uint256 private defaultMaxBlockHeightOffset = 100;
     uint256 private defaultMaxFee = 10 ** 6;
-    uint256 private spendValue = 1000 * 10 ** 6;
+    uint256 private depositorInitialBalance = 5 * 1000 * 10 ** 6;
     bytes internal constant METADATA = "Test metadata";
 
     FiatTokenV2_2 private usdc;
@@ -85,6 +85,15 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             vm.stopPrank();
         }   
 
+        // Setup initial depositor balance
+        deal(address(usdc), depositor, depositorInitialBalance);
+        vm.startPrank(depositor);
+        {
+            usdc.approve(address(wallet), type(uint256).max);
+            wallet.deposit(address(usdc), depositorInitialBalance);
+        }
+        vm.stopPrank();
+
         baseAuth = BurnAuthorization({
             maxBlockHeight: block.number + defaultMaxBlockHeightOffset,
             maxFee: defaultMaxFee,
@@ -100,14 +109,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
                 destinationRecipient: _addressToBytes32(recipient),
                 sourceSigner: bytes32(0),
                 destinationCaller: bytes32(0),
-                value: spendValue,
+                value: depositorInitialBalance / 2,
                 nonce: keccak256("nonce"),
                 metadata: METADATA
             })
         });
 
     }
-
 
     function _emptyArgs()
         internal
@@ -154,14 +162,14 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         wallet.burnSpent(authorizations, signatures, fees, burnerSignature);
     }
 
-    function _signAuthOrAuthSet(bytes memory authOrAuthSet, uint256 signerKey) internal returns (bytes memory signature) {
+    function _signAuthOrAuthSet(bytes memory authOrAuthSet, uint256 signerKey) internal pure returns (bytes memory signature) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, keccak256(authOrAuthSet).toEthSignedMessageHash());
         signature = abi.encodePacked(r, s, v);
     }
 
     // ===== Entry Checks / Modifier Tests =====
 
-    function test_burnSpent_revertIfPaused() external {
+    function test_burnSpent_revertIfPaused() public {
         vm.startPrank(owner);
         wallet.pause();
         vm.stopPrank();
@@ -174,19 +182,19 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     // ===== BurnSigner Signature Tests =====
 
     // TODO: add this test back after burns are implemented
-    // function test_burnSpent_randomArgs_correctSigner() external {
+    // function test_burnSpent_randomArgs_correctSigner() public {
     //     (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
     //     _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     // }
 
-    function test_burnSpent_randomArgs_wrongSigner() external {
+    function test_burnSpent_randomArgs_wrongSigner() public {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
         (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
         vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, wrongSignerKey);
     }
 
-    function test_burnSpent_randomArgs_wrongSignatureLength() external {
+    function test_burnSpent_randomArgs_wrongSignatureLength() public {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
         vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
         wallet.burnSpent(authorizations, signatures, fees, bytes(hex"aaaa"));
@@ -194,13 +202,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     // ===== Authorization Structural Validation Tests =====
 
-    function test_burnSpent_revertIfNoAuthorizations() external {
+    function test_burnSpent_revertIfNoAuthorizations() public {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
         vm.expectRevert(BurnLib.MustHaveAtLeastOneBurnAuthorization.selector);
         wallet.burnSpent(authorizations, signatures, fees, new bytes(0));
     }
 
-    function test_burnSpent_revertIfAuthSetIsEmpty() external {
+    function test_burnSpent_revertIfAuthSetIsEmpty() public {
         BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: new BurnAuthorization[](0)});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
 
@@ -214,7 +222,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_revertIfFeesLengthMismatch() external {
+    function test_burnSpent_revertIfFeesLengthMismatch() public {
         BurnAuthorization[] memory auths = new BurnAuthorization[](1);
         auths[0] = baseAuth;
         BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
@@ -230,14 +238,14 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_revertIfInputLengthsMismatched() external {
+    function test_burnSpent_revertIfInputLengthsMismatched() public {
         vm.expectRevert(BurnLib.MismatchedBurn.selector);
         wallet.burnSpent(new bytes[](2), new bytes[](1), new uint256[][](2), new bytes(0));
     }
 
     // ===== Authorization Content Validation Tests =====
 
-    function test_burnSpent_revertIfAuthContainsZeroValue() external {
+    function test_burnSpent_revertIfZeroValueAuth() public {
         baseAuth.spec.value = 0;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
         
@@ -249,6 +257,73 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](1);
 
         vm.expectRevert(abi.encodeWithSelector(BurnLib.BurnValueMustBePositive.selector, 0));
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpent_revertIfZeroValueAuthSet() public {
+        BurnAuthorization memory validAuth = baseAuth;
+        BurnAuthorization memory zeroValueAuth = baseAuth;
+        zeroValueAuth.spec.value = 0;
+
+        BurnAuthorization[] memory auths = new BurnAuthorization[](2);
+        auths[0] = validAuth;
+        auths[1] = zeroValueAuth;
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        // Prepare arguments for burnSpent
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuthSet;
+
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](2);
+
+        vm.expectRevert(abi.encodeWithSelector(BurnLib.BurnValueMustBePositive.selector, 1));
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpent_revertIfExpiredAuth() public {
+        // Set maxBlockHeight to a past block
+        baseAuth.maxBlockHeight = block.number - 1;
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
+        
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuth, depositorKey);
+        
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+
+        vm.expectRevert(abi.encodeWithSelector(BurnLib.AuthorizationExpired.selector, 0, baseAuth.maxBlockHeight, block.number));
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpent_revertIfExpiredAuthSet() public {
+        BurnAuthorization memory validAuth = baseAuth;
+        BurnAuthorization memory expiredAuth = baseAuth;
+        expiredAuth.maxBlockHeight = block.number - 1;
+
+        BurnAuthorization[] memory auths = new BurnAuthorization[](2);
+        auths[0] = validAuth;
+        auths[1] = expiredAuth;
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuthSet;
+
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](2); 
+
+        vm.expectRevert(abi.encodeWithSelector(BurnLib.AuthorizationExpired.selector, 1, expiredAuth.maxBlockHeight, block.number));
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
