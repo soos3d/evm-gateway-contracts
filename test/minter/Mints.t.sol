@@ -203,6 +203,15 @@ contract TestMints is Test, DeployUtils {
 
     // ===== Authorization Structural Validation Tests =====
 
+    function test_spend_revertIfNoAuthsProvided() public {
+        MintAuthorization[] memory authorizations = new MintAuthorization[](0);
+        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+
+        vm.expectRevert(SpendMinter.MustHaveAtLeastOneMintAuthorization.selector);
+        _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+    }
+
     function test_spend_revertIfInvalidMagic() public {
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
         // Corrupt magic

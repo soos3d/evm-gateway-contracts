@@ -40,6 +40,7 @@ contract SpendMinter is SpendCommon {
     using MintAuthorizationLib for AuthorizationCursor;
 
     error InvalidMintAuthorizationSigner();
+    error MustHaveAtLeastOneMintAuthorization();
     error AuthorizationExpired(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
     error MintValueMustBePositive(uint32 index);
     error InvalidAuthorizationDestinationCaller(uint32 index, address expectedDestinationCaller, address actualCaller);
@@ -107,6 +108,11 @@ contract SpendMinter is SpendCommon {
     {
         _validateMintAuthorizationSignature(authorizations, signature);
         AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(authorizations);
+
+        if (cursor.numAuths == 0) {
+            revert MustHaveAtLeastOneMintAuthorization();
+        }
+
         while (!cursor.done) {
             bytes29 auth;
             (auth, cursor) = cursor.next();
