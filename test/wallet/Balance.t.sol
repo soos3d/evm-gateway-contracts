@@ -35,7 +35,7 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
     SpendWallet private wallet;
 
     function setUp() public {
-        wallet = deployWalletOnly(owner);
+        wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
 
         usdc = ForkTestUtils.forkVars().usdc;
         // Mint initial USDC balance to depositor

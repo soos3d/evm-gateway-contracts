@@ -24,6 +24,7 @@ import {SpendWallet} from "src/SpendWallet.sol";
 import {Burns} from "src/lib/wallet/Burns.sol";
 import {OwnershipTest} from "test/util/OwnershipTest.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
+import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
 /// Tests ownership and initialization functionality of SpendMinter
 contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
@@ -37,7 +38,7 @@ contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
     }
 
     function setUp() public {
-        wallet = deployWalletOnly(owner);
+        wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
     }
 
     function test_initialize_revertWhenReinitialized() public {

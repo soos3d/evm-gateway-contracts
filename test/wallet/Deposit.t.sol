@@ -40,7 +40,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
 
     function setUp() public {
         (depositor, depositorPrivateKey) = makeAddrAndKey("spendWalletDepositor");
-        wallet = deployWalletOnly(owner);
+        wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
 
         usdc = ForkTestUtils.forkVars().usdc;
         vm.prank(owner);

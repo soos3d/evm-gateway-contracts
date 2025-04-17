@@ -21,6 +21,7 @@ import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
 import {Delegation} from "src/lib/wallet/Delegation.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
+import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {Test} from "forge-std/Test.sol";
 
 /// Tests Spend Authorization functionality of SpendWallet
@@ -31,7 +32,7 @@ contract SpendAuthorizationTest is Test, DeployUtils {
     SpendWallet private wallet;
 
     function setUp() public {
-        wallet = deployWalletOnly(owner);
+        wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
 
         vm.prank(owner);
         wallet.addSupportedToken(usdc);

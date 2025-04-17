@@ -27,7 +27,8 @@ import {SpendHashes, SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
-import {DeployUtils, TEST_DOMAIN} from "test/util/DeployUtils.sol";
+import {DeployUtils} from "test/util/DeployUtils.sol";
+import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {Test} from "forge-std/Test.sol";
 import {Denylistable} from "src/lib/common/Denylistable.sol";
 
@@ -35,6 +36,7 @@ import {Denylistable} from "src/lib/common/Denylistable.sol";
 contract TestMints is Test, DeployUtils {
     using MessageHashUtils for bytes32;
 
+    uint32 private domain;
     address private owner = makeAddr("owner");
     address private mintAuthorizationSigner;
     uint256 private mintAuthorizationSignerKey;
@@ -55,7 +57,8 @@ contract TestMints is Test, DeployUtils {
     MintAuthorization private sameChainBaseAuth;
 
     function setUp() public {
-        (wallet, minter) = deploy(owner, TEST_DOMAIN);
+        domain = ForkTestUtils.forkVars().domain;
+        (wallet, minter) = deploy(owner, domain);
         (mintAuthorizationSigner, mintAuthorizationSignerKey) = makeAddrAndKey("mintAuthorizationSigner");
         vm.startPrank(owner);
         minter.updateMintAuthorizationSigner(mintAuthorizationSigner);
@@ -66,8 +69,8 @@ contract TestMints is Test, DeployUtils {
             maxBlockHeight: block.number + defaultMaxBlockHeightOffset,
             spec: TransferSpec({
                 version: TRANSFER_SPEC_VERSION,
-                sourceDomain: 2 * TEST_DOMAIN,
-                destinationDomain: TEST_DOMAIN,
+                sourceDomain: 2 * domain,
+                destinationDomain: domain,
                 sourceContract: _addressToBytes32(sourceContract),
                 destinationContract: _addressToBytes32(address(minter)),
                 sourceToken: _addressToBytes32(sourceToken),
@@ -86,8 +89,8 @@ contract TestMints is Test, DeployUtils {
             maxBlockHeight: block.number + defaultMaxBlockHeightOffset,
             spec: TransferSpec({
                 version: TRANSFER_SPEC_VERSION,
-                sourceDomain: TEST_DOMAIN,
-                destinationDomain: TEST_DOMAIN,
+                sourceDomain: domain,
+                destinationDomain: domain,
                 sourceContract: _addressToBytes32(address(wallet)),
                 destinationContract: _addressToBytes32(address(minter)),
                 sourceToken: _addressToBytes32(destinationToken),
@@ -287,14 +290,14 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_spend_revertIfInvalidDestinationDomainAuth() public {
-        baseAuth.spec.destinationDomain = TEST_DOMAIN + 1;
+        baseAuth.spec.destinationDomain = domain + 1;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(baseAuth);
         vm.expectRevert(
             abi.encodeWithSelector(
                 SpendMinter.InvalidAuthorizationDestinationDomain.selector,
                 0,
                 baseAuth.spec.destinationDomain,
-                TEST_DOMAIN
+                domain
             )
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -302,7 +305,7 @@ contract TestMints is Test, DeployUtils {
 
     function test_spend_revertIfInvalidDestinationDomainAuthSet() public {
         MintAuthorization memory invalidDomainAuth = baseAuth; // storage -> memory creates a copy
-        invalidDomainAuth.spec.destinationDomain = TEST_DOMAIN + 1;
+        invalidDomainAuth.spec.destinationDomain = domain + 1;
 
         MintAuthorization[] memory authorizations = new MintAuthorization[](2);
         authorizations[0] = baseAuth;
@@ -316,7 +319,7 @@ contract TestMints is Test, DeployUtils {
                 SpendMinter.InvalidAuthorizationDestinationDomain.selector,
                 1,
                 invalidDomainAuth.spec.destinationDomain,
-                TEST_DOMAIN
+                domain
             )
         );
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
