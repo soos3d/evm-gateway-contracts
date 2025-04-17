@@ -18,6 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
 import {BurnLib} from "src/lib/wallet/BurnLib.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
@@ -39,39 +40,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
     }
 
-    function test_burnSpent_emptyArgs_correctSigner() external {
-        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
-    }
-
-    // TODO: add this test back after burns are implemented
-    // function test_burnSpent_randomArgs_correctSigner() external {
-    //     (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
-    //     _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
-    // }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function test_burnSpent_emptyArgs_wrongSigner() external {
-        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
-        (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
-        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, wrongSignerKey);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function test_burnSpent_randomArgs_wrongSigner() external {
-        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
-        (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
-        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, wrongSignerKey);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function test_burnSpent_wrongSignatureLength() external {
-        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
-        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
-        wallet.burnSpent(authorizations, signatures, fees, bytes(hex"aaaa"));
-    }
 
     function _emptyArgs()
         internal
@@ -117,4 +85,53 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Call burnSpent with the arguments and signature
         wallet.burnSpent(authorizations, signatures, fees, burnerSignature);
     }
+
+    // ===== Entry Checks / Modifier Tests =====
+
+    function test_burnSpent_revertIfPaused() external {
+        vm.startPrank(owner);
+        wallet.pause();
+        vm.stopPrank();
+
+        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
+        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        wallet.burnSpent(authorizations, signatures, fees, new bytes(0));
+    }
+
+    // ===== Signature Validation Tests =====
+
+    function test_burnSpent_emptyArgs_correctSigner() external {
+        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    // TODO: add this test back after burns are implemented
+    // function test_burnSpent_randomArgs_correctSigner() external {
+    //     (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
+    //     _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    // }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_burnSpent_emptyArgs_wrongSigner() external {
+        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
+        (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
+        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
+        _callBurnSpentSignedBy(authorizations, signatures, fees, wrongSignerKey);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_burnSpent_randomArgs_wrongSigner() external {
+        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
+        (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
+        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
+        _callBurnSpentSignedBy(authorizations, signatures, fees, wrongSignerKey);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_burnSpent_wrongSignatureLength() external {
+        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
+        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
+        wallet.burnSpent(authorizations, signatures, fees, bytes(hex"aaaa"));
+    }
+
 }
