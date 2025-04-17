@@ -121,6 +121,10 @@ library BurnLib {
         uint256[][] memory fees,
         bytes memory burnerSignature
     ) external {
+        if (authorizations.length == 0) {
+            revert MustHaveAtLeastOneBurnAuthorization();
+        }
+
         if (signatures.length != authorizations.length || fees.length != authorizations.length) {
             revert MismatchedBurn();
         }
