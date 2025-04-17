@@ -36,7 +36,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     uint32 private domain;
     address private owner = makeAddr("owner");
-    address private depositor = makeAddr("depositor");
+    uint256 private depositorKey;
+    address private depositor;
     address private recipient = makeAddr("recipient");
     address private destinationContract = makeAddr("destinationContract");
     address private burnSigner;
@@ -57,7 +58,9 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         usdc = FiatTokenV2_2(ForkTestUtils.forkVars().usdc);
         wallet = deployWalletOnly(owner, domain);
 
+        (depositor, depositorKey) = makeAddrAndKey("depositor");
         (burnSigner, burnSignerKey) = makeAddrAndKey("burnSigner");
+
         vm.startPrank(owner);
         {
             wallet.addSupportedToken(address(usdc));
@@ -151,6 +154,11 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         wallet.burnSpent(authorizations, signatures, fees, burnerSignature);
     }
 
+    function _signAuthOrAuthSet(bytes memory authOrAuthSet, uint256 signerKey) internal returns (bytes memory signature) {
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, keccak256(authOrAuthSet).toEthSignedMessageHash());
+        signature = abi.encodePacked(r, s, v);
+    }
+
     // ===== Entry Checks / Modifier Tests =====
 
     function test_burnSpent_revertIfPaused() external {
@@ -161,6 +169,27 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
         wallet.burnSpent(authorizations, signatures, fees, new bytes(0));
+    }
+
+    // ===== BurnSigner Signature Tests =====
+
+    // TODO: add this test back after burns are implemented
+    // function test_burnSpent_randomArgs_correctSigner() external {
+    //     (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
+    //     _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    // }
+
+    function test_burnSpent_randomArgs_wrongSigner() external {
+        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
+        (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
+        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
+        _callBurnSpentSignedBy(authorizations, signatures, fees, wrongSignerKey);
+    }
+
+    function test_burnSpent_randomArgs_wrongSignatureLength() external {
+        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
+        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
+        wallet.burnSpent(authorizations, signatures, fees, bytes(hex"aaaa"));
     }
 
     // ===== Authorization Structural Validation Tests =====
@@ -201,30 +230,26 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpentrevertIfInputLengthsMismatched() external {
+    function test_burnSpent_revertIfInputLengthsMismatched() external {
         vm.expectRevert(BurnLib.MismatchedBurn.selector);
         wallet.burnSpent(new bytes[](2), new bytes[](1), new uint256[][](2), new bytes(0));
     }
 
-    // ===== Signature Tests =====
+    // ===== Authorization Content Validation Tests =====
 
-    // TODO: add this test back after burns are implemented
-    // function test_burnSpent_randomArgs_correctSigner() external {
-    //     (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
-    //     _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
-    // }
+    function test_burnSpent_revertIfAuthContainsZeroValue() external {
+        baseAuth.spec.value = 0;
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
+        
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuth, depositorKey);
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
 
-    function test_burnSpent_randomArgs_wrongSigner() external {
-        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
-        (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
-        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, wrongSignerKey);
-    }
-
-    function test_burnSpent_randomArgs_wrongSignatureLength() external {
-        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
-        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
-        wallet.burnSpent(authorizations, signatures, fees, bytes(hex"aaaa"));
+        vm.expectRevert(abi.encodeWithSelector(BurnLib.BurnValueMustBePositive.selector, 0));
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
 }

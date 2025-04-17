@@ -163,8 +163,11 @@ library BurnLib {
         uint256 totalFee = 0;
         uint256 totalToBurn = 0;
         bytes29 auth;
+        uint32 index = 0;
 
         while (!cursor.done) {
+            index = cursor.index; // cursor.next() increments index
+            
             // Get the next burn authorization and skip if it's not relevant to this domain
             (auth, cursor) = cursor.next();
 
@@ -172,7 +175,7 @@ library BurnLib {
             bytes29 spec = auth.getTransferSpec();
 
             // Validate that everything about the burn authorization is as expected, and skip if it's not for this domain
-            bool relevant = _validateBurnAuthorization(auth, authorizer, fees[cursor.index], cursor.index);
+            bool relevant = _validateBurnAuthorization(auth, authorizer, fees[index], index);
             if (!relevant) {
                 continue;
             }
@@ -188,7 +191,7 @@ library BurnLib {
             }
 
             // Reduce the balance of the depositor(s) and add to the total fee and burn amount
-            uint256 fee = fees[cursor.index];
+            uint256 fee = fees[index];
             totalToBurn += _burn(spec, authorizer, fee);
             totalFee += fee;
         }
