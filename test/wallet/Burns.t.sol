@@ -171,6 +171,36 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         wallet.burnSpent(authorizations, signatures, fees, new bytes(0));
     }
 
+    function test_burnSpent_revertIfAuthSetIsEmpty() external {
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: new BurnAuthorization[](0)});
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuthSet;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = new bytes(0);
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](0);
+        vm.expectRevert(BurnLib.MustHaveAtLeastOneBurnAuthorization.selector);
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpent_revertIfFeesLengthMismatch() external {
+        BurnAuthorization[] memory auths = new BurnAuthorization[](1);
+        auths[0] = baseAuth;
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuthSet;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = new bytes(0);
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](0); // empty, but should have length 1 to match authorizations and signatures
+        vm.expectRevert(BurnLib.MismatchedBurn.selector);
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
     function test_burnSpentrevertIfInputLengthsMismatched() external {
         vm.expectRevert(BurnLib.MismatchedBurn.selector);
         wallet.burnSpent(new bytes[](2), new bytes[](1), new uint256[][](2), new bytes(0));
