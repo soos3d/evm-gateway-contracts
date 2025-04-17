@@ -245,6 +245,32 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     // ===== Authorization Content Validation Tests =====
 
+    function test_burnSpent_revertIfNotAllSameToken() external {
+        address notUsdc = makeAddr("notUsdc");
+        vm.startPrank(owner);
+        wallet.addSupportedToken(notUsdc);
+        vm.stopPrank();
+
+        BurnAuthorization memory nonUsdcAuth = baseAuth;
+        nonUsdcAuth.spec.sourceToken = _addressToBytes32(notUsdc);
+
+        BurnAuthorization[] memory auths = new BurnAuthorization[](2);
+        auths[0] = baseAuth;
+        auths[1] = nonUsdcAuth;
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuthSet;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](2);
+
+        vm.expectRevert(BurnLib.NotAllSameToken.selector);
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
     function test_burnSpent_revertIfZeroValueAuth() public {
         baseAuth.spec.value = 0;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
@@ -261,12 +287,11 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     }
 
     function test_burnSpent_revertIfZeroValueAuthSet() public {
-        BurnAuthorization memory validAuth = baseAuth;
         BurnAuthorization memory zeroValueAuth = baseAuth;
         zeroValueAuth.spec.value = 0;
 
         BurnAuthorization[] memory auths = new BurnAuthorization[](2);
-        auths[0] = validAuth;
+        auths[0] = baseAuth;
         auths[1] = zeroValueAuth;
         BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
@@ -304,12 +329,11 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     }
 
     function test_burnSpent_revertIfExpiredAuthSet() public {
-        BurnAuthorization memory validAuth = baseAuth;
         BurnAuthorization memory expiredAuth = baseAuth;
         expiredAuth.maxBlockHeight = block.number - 1;
 
         BurnAuthorization[] memory auths = new BurnAuthorization[](2);
-        auths[0] = validAuth;
+        auths[0] = baseAuth;
         auths[1] = expiredAuth;
         BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
@@ -327,4 +351,171 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
+    function test_burnSpent_revertIfFeeTooHighAuth() public {
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
+        
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuth, depositorKey);
+        
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        uint256 highFee = baseAuth.maxFee + 1;
+        fees[0][0] = highFee;
+
+        vm.expectRevert(abi.encodeWithSelector(BurnLib.BurnFeeTooHigh.selector, 0, baseAuth.maxFee, highFee));
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpent_revertIfFeeTooHighAuthSet() public {
+        BurnAuthorization memory highFeeAuth = baseAuth;
+
+        BurnAuthorization[] memory auths = new BurnAuthorization[](2);
+        auths[0] = baseAuth;
+        auths[1] = highFeeAuth;
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuthSet;
+
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](2);
+        fees[0][0] = highFeeAuth.maxFee;
+        uint256 highFee = highFeeAuth.maxFee + 1;
+        fees[0][1] = highFee;
+
+        vm.expectRevert(abi.encodeWithSelector(BurnLib.BurnFeeTooHigh.selector, 1, highFeeAuth.maxFee, highFee));
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpend_revertIfInvalidSourceContractAuth() public {
+        BurnAuthorization memory invalidSourceContractAuth = baseAuth;
+        address invalidSourceContract = makeAddr("invalidSourceContract");
+        invalidSourceContractAuth.spec.sourceContract = _addressToBytes32(invalidSourceContract);
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(invalidSourceContractAuth);
+        
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuth, depositorKey);
+        
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+
+        vm.expectRevert(abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceContract.selector, 0, invalidSourceContract));
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpend_revertIfInvalidSourceContractAuthSet() public {
+        BurnAuthorization memory invalidSourceContractAuth = baseAuth;
+        address invalidSourceContract = makeAddr("invalidSourceContract");
+        invalidSourceContractAuth.spec.sourceContract = _addressToBytes32(invalidSourceContract);
+
+        BurnAuthorization[] memory auths = new BurnAuthorization[](2);
+        auths[0] = baseAuth;
+        auths[1] = invalidSourceContractAuth;
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuthSet;
+
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](2); 
+
+        vm.expectRevert(abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceContract.selector, 1, invalidSourceContract));
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpend_revertIfUnsupportedTokenAuth() public {
+        address unsupportedToken = makeAddr("unsupportedToken");
+        baseAuth.spec.sourceToken = _addressToBytes32(unsupportedToken);
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
+        
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuth, depositorKey);
+        
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+
+        vm.expectRevert(abi.encodeWithSelector(BurnLib.UnsupportedToken.selector, 0, unsupportedToken));
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpend_revertIfUnsupportedTokenAuthSet() public {
+        BurnAuthorization memory unsupportedTokenAuth = baseAuth;
+        address unsupportedToken = makeAddr("unsupportedToken");
+        unsupportedTokenAuth.spec.sourceToken = _addressToBytes32(unsupportedToken);
+
+        BurnAuthorization[] memory auths = new BurnAuthorization[](2);
+        auths[0] = baseAuth;
+        auths[1] = unsupportedTokenAuth;
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuthSet;
+
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](2); 
+
+        vm.expectRevert(abi.encodeWithSelector(BurnLib.UnsupportedToken.selector, 1, unsupportedToken));
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+    
+    function test_burnSpend_revertIfWasNeverAuthorizedForBalanceAuth() public {
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
+        
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        
+        // Sign with a wrong key
+        (, uint256 wrongDepositorKey) = makeAddrAndKey("wrongDepositor");
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuth, wrongDepositorKey);
+        
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+
+        vm.expectRevert(DelegationStorage.NotAuthorized.selector);
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpend_revertIfWasNeverAuthorizedForBalanceAuthSet() public {
+        BurnAuthorization[] memory auths = new BurnAuthorization[](2);
+        auths[0] = baseAuth;
+        auths[1] = baseAuth;
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuthSet;
+
+        // Sign with a wrong key
+        (, uint256 wrongDepositorKey) = makeAddrAndKey("wrongDepositor");
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, wrongDepositorKey);
+
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](2);
+
+        vm.expectRevert(DelegationStorage.NotAuthorized.selector);
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
 }
