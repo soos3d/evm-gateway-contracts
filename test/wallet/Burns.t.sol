@@ -39,13 +39,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
     }
 
-    function test_burnSpent_emptyArgs_correctSigner() external view {
+    function test_burnSpent_emptyArgs_correctSigner() external {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
     // TODO: add this test back after burns are implemented
-    // function test_burnSpent_randomArgs_correctSigner() external view {
+    // function test_burnSpent_randomArgs_correctSigner() external {
     //     (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
     //     _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     // }
@@ -111,7 +111,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         bytes[] memory signatures,
         uint256[][] memory fees,
         uint256 signerKey
-    ) internal view {
+    ) internal {
         bytes memory burnerSignature = _signBurnAuthorizations(authorizations, signatures, fees, signerKey);
 
         // Call burnSpent with the arguments and signature
