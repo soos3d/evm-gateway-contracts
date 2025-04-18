@@ -966,7 +966,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     /// This demonstrates that signatures remain valid even if the delegate is later removed.
     ///
     /// Steps:
-    /// 1. Delegate Setup & Revocation: Authorize and then immediately revoke a delegate.
+    /// 1. Delegate Setup & Revocation: Authorize and then revoke a delegate.
     /// 2. Authorization Setup: Create `BurnAuthorization`, sign it with the delegate's key *before* revocation.
     /// 3. Initial State Check: Verify initial balances.
     /// 4. Event Expectation: Expect a `BurnedSpent` event, noting the (revoked) delegate as the authorizer.
@@ -1155,7 +1155,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
         expectedParams.destinationDomain = auth.spec.destinationDomain;
         expectedParams.recipient = auth.spec.destinationRecipient;
-        expectedParams.authorizer = delegate; // Delegate
+        expectedParams.authorizer = delegate;
         expectedParams.value = burnValue;
         expectedParams.fee = fee;
         expectedParams.fromSpendable = 0;
@@ -1204,7 +1204,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         bytes[] memory authorizations = new bytes[](1);
         authorizations[0] = encodedAuth;
         bytes[] memory signatures = new bytes[](1);
-        signatures[0] = signature; // Use signature from before revocation
+        signatures[0] = signature;
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](1);
         fees[0][0] = fee;
@@ -1375,7 +1375,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         });
         _assertBalances("Initial State (Both Balances)", depositor, feeRecipient, initialExpectedBalances);
 
-        // Expect event with inlined calculations
         ExpectedBurnEventParams memory expectedParams;
         expectedParams.token = address(usdc);
         expectedParams.depositor = depositor;
@@ -1485,6 +1484,176 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             usdcTotalSupply: finalUsdcTotalSupply
         });
         _assertBalances("Final State (Both Balances)", depositor, feeRecipient, finalExpectedBalances);
+    }
+
+    // Struct to hold test data for the multi-set mixed domain test to avoid stack too deep errors
+    struct MultiSetMixedDomainTestData {
+        uint256 fee1;
+        uint256 fee2;
+        uint256 fee3_irrelevant;
+        uint256 fee4;
+        uint256 value1;
+        uint256 value2;
+        uint256 value3_irrelevant;
+        uint256 value4;
+        BurnAuthorization auth1;
+        BurnAuthorization auth2;
+        BurnAuthorization auth3_irrelevant;
+        BurnAuthorization auth4;
+        BurnAuthorization[] authsForSet;
+        BurnAuthorizationSet authSet;
+        bytes encodedAuth1;
+        bytes encodedAuthSet;
+        bytes sig1;
+        bytes sigSet;
+        bytes[] authorizations;
+        bytes[] signatures;
+        uint256[][] fees;
+        uint256 initialTotalSupply;
+        uint256 expectedTotalValueBurned;
+        uint256 expectedTotalFeeCharged;
+        uint256 expectedTotalDeducted;
+        ExpectedBalances initialExpectedBalances;
+        ExpectedBalances finalExpectedBalances;
+        ExpectedBurnEventParams params1;
+        ExpectedBurnEventParams params2;
+        ExpectedBurnEventParams params4;
+    }
+
+    /// Tests burnSpent with multiple independent authorization inputs, including a set with mixed domain relevance.
+    /// - authorizations[0]: Single auth, current domain.
+    /// - authorizations[1]: Set of 3 auths (current, other, current).
+    /// Expects burns for the 3 current-domain auths to succeed and the other-domain auth to be skipped.
+    function test_burnSpent_multipleSets_mixedDomains_fromSpendable_depositorSigner() public {
+        MultiSetMixedDomainTestData memory testData;
+
+        testData.fee1 = defaultMaxFee / 10;
+        testData.fee2 = defaultMaxFee / 20;
+        testData.fee3_irrelevant = defaultMaxFee / 30; // Fee for the irrelevant auth (won't be charged)
+        testData.fee4 = defaultMaxFee / 40;
+
+        testData.value1 = depositorInitialBalance / 10;
+        testData.value2 = depositorInitialBalance / 20;
+        testData.value3_irrelevant = depositorInitialBalance / 30; // Value for irrelevant auth
+        testData.value4 = depositorInitialBalance / 40;
+
+        // Auth 1: Single, current domain
+        testData.auth1 = baseAuth;
+        testData.auth1.spec.value = testData.value1;
+        testData.auth1.maxFee = testData.fee1 * 2; // Ensure fee is allowed
+
+        // Auth 2: Part of set, current domain
+        testData.auth2 = baseAuth;
+        testData.auth2.spec.value = testData.value2;
+        testData.auth2.maxFee = testData.fee2 * 2;
+
+        // Auth 3: Part of set, a different domain (should be skipped)
+        testData.auth3_irrelevant = baseAuth;
+        testData.auth3_irrelevant.spec.value = testData.value3_irrelevant;
+        testData.auth3_irrelevant.spec.sourceDomain = domain + 1; // Different domain
+        testData.auth3_irrelevant.maxFee = testData.fee3_irrelevant * 2;
+
+        // Auth 4: Part of set, current domain
+        testData.auth4 = baseAuth;
+        testData.auth4.spec.value = testData.value4;
+        testData.auth4.maxFee = testData.fee4 * 2;
+
+        // Create auth set (containing auths 2, 3, 4)
+        testData.authsForSet = new BurnAuthorization[](3);
+        testData.authsForSet[0] = testData.auth2;
+        testData.authsForSet[1] = testData.auth3_irrelevant; // The irrelevant one
+        testData.authsForSet[2] = testData.auth4;
+        testData.authSet = BurnAuthorizationSet({authorizations: testData.authsForSet});
+
+        // Encode auths
+        testData.encodedAuth1 = BurnAuthorizationLib.encodeBurnAuthorization(testData.auth1);
+        testData.encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(testData.authSet);
+
+        // Sign auths
+        testData.sig1 = _signAuthOrAuthSet(testData.encodedAuth1, depositorKey);
+        testData.sigSet = _signAuthOrAuthSet(testData.encodedAuthSet, depositorKey);
+
+        testData.authorizations = new bytes[](2);
+        testData.authorizations[0] = testData.encodedAuth1;
+        testData.authorizations[1] = testData.encodedAuthSet;
+
+        testData.signatures = new bytes[](2);
+        testData.signatures[0] = testData.sig1;
+        testData.signatures[1] = testData.sigSet;
+
+        testData.fees = new uint256[][](2);
+        testData.fees[0] = new uint256[](1); // Fees for authorizations[0] (auth1)
+        testData.fees[0][0] = testData.fee1;
+        testData.fees[1] = new uint256[](3); // Fees for authorizations[1] (authSet: auth2, auth3, auth4)
+        testData.fees[1][0] = testData.fee2;
+        testData.fees[1][1] = testData.fee3_irrelevant; // Provide fee, though it shouldn't be used
+        testData.fees[1][2] = testData.fee4;
+
+        // Expected initial state
+        testData.initialTotalSupply = usdc.totalSupply();
+        testData.expectedTotalValueBurned = testData.value1 + testData.value2 + testData.value4; // value3 is skipped
+        testData.expectedTotalFeeCharged = testData.fee1 + testData.fee2 + testData.fee4; // fee3 is skipped
+        testData.expectedTotalDeducted = testData.expectedTotalValueBurned + testData.expectedTotalFeeCharged;
+        testData.initialExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: depositorInitialBalance,
+            depositorWithdrawing: 0,
+            feeRecipientExternalUsdc: 0,
+            walletExternalUsdc: depositorInitialBalance,
+            usdcTotalSupply: testData.initialTotalSupply
+        });
+        _assertBalances("Initial State (MultiSet Mixed)", depositor, feeRecipient, testData.initialExpectedBalances);
+
+        // Event for auth1
+        testData.params1.token = address(usdc);
+        testData.params1.depositor = depositor;
+        testData.params1.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec));
+        testData.params1.destinationDomain = testData.auth1.spec.destinationDomain;
+        testData.params1.recipient = testData.auth1.spec.destinationRecipient;
+        testData.params1.authorizer = depositor;
+        testData.params1.value = testData.value1;
+        testData.params1.fee = testData.fee1;
+        testData.params1.fromSpendable = testData.value1 + testData.fee1; // Assuming drawn from spendable first
+        testData.params1.fromWithdrawing = 0;
+        _expectBurnEvent(testData.params1);
+
+        // Event for auth2
+        testData.params2.token = address(usdc);
+        testData.params2.depositor = depositor;
+        testData.params2.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec));
+        testData.params2.destinationDomain = testData.auth2.spec.destinationDomain;
+        testData.params2.recipient = testData.auth2.spec.destinationRecipient;
+        testData.params2.authorizer = depositor;
+        testData.params2.value = testData.value2;
+        testData.params2.fee = testData.fee2;
+        testData.params2.fromSpendable = testData.value2 + testData.fee2;
+        testData.params2.fromWithdrawing = 0;
+        _expectBurnEvent(testData.params2);
+
+        // Event for auth4 (auth3 is skipped)
+        testData.params4.token = address(usdc);
+        testData.params4.depositor = depositor;
+        testData.params4.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth4.spec));
+        testData.params4.destinationDomain = testData.auth4.spec.destinationDomain;
+        testData.params4.recipient = testData.auth4.spec.destinationRecipient;
+        testData.params4.authorizer = depositor;
+        testData.params4.value = testData.value4;
+        testData.params4.fee = testData.fee4;
+        testData.params4.fromSpendable = testData.value4 + testData.fee4;
+        testData.params4.fromWithdrawing = 0;
+        _expectBurnEvent(testData.params4);
+
+        _callBurnSpentSignedBy(testData.authorizations, testData.signatures, testData.fees, burnSignerKey);
+
+        testData.finalExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: depositorInitialBalance - testData.expectedTotalDeducted,
+            depositorWithdrawing: 0,
+            feeRecipientExternalUsdc: testData.expectedTotalFeeCharged,
+            walletExternalUsdc: depositorInitialBalance - testData.expectedTotalDeducted,
+            usdcTotalSupply: testData.initialTotalSupply - testData.expectedTotalValueBurned
+        });
+        _assertBalances("Final State (MultiSet Mixed)", depositor, feeRecipient, testData.finalExpectedBalances);
     }
 
 }
