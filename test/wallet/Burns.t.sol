@@ -42,6 +42,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     address private feeRecipient = makeAddr("feeRecipient");
     uint256 private depositorKey;
     address private depositor;
+    uint256 private delegateKey;
+    address private delegate;
     address private recipient = makeAddr("recipient");
     address private destinationContract = makeAddr("destinationContract");
     address private burnSigner;
@@ -85,6 +87,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         wallet = deployWalletOnly(owner, domain);
 
         (depositor, depositorKey) = makeAddrAndKey("depositor");
+        (delegate, delegateKey) = makeAddrAndKey("delegate");
         (burnSigner, burnSignerKey) = makeAddrAndKey("burnSigner");
 
         vm.startPrank(owner);
@@ -653,14 +656,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
         expectedParams.destinationDomain = auth.spec.destinationDomain;
         expectedParams.recipient = auth.spec.destinationRecipient;
-        expectedParams.authorizer = depositor; // We signed with depositorKey
+        expectedParams.authorizer = depositor;
         expectedParams.value = burnValue;
-        expectedParams.fee = fee; // The actual fee being paid
+        expectedParams.fee = fee;
         expectedParams.fromSpendable = burnValue + fee;
         expectedParams.fromWithdrawing = 0;
         _expectBurnEvent(expectedParams);
 
-        // Call burnSpent (using helper which includes burner signature)
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
 
         // Assert final state
@@ -673,6 +675,531 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             usdcTotalSupply: initialTotalSupply - burnValue
         });
         _assertBalances("Final State", depositor, feeRecipient, finalExpectedBalances);
+    }
+
+    function test_burnSpent_singleAuth_currentDomain_fromSpendableBalance_delegateSigner() public {
+        // Setup delegate
+        vm.startPrank(depositor);
+        wallet.addDelegate(address(usdc), delegate);
+        vm.stopPrank();
+
+        BurnAuthorization memory auth = baseAuth;
+        uint256 burnValue = auth.spec.value;
+        uint256 fee = defaultMaxFee / 2;
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, delegateKey);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature;
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        fees[0][0] = fee;
+
+        // Assert initial state
+        uint256 initialTotalSupply = usdc.totalSupply();
+        ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: depositorInitialBalance,
+            depositorWithdrawing: 0,
+            feeRecipientExternalUsdc: 0,
+            walletExternalUsdc: depositorInitialBalance,
+            usdcTotalSupply: initialTotalSupply
+        });
+        _assertBalances("Initial State (Delegate)", depositor, feeRecipient, initialExpectedBalances);
+
+        ExpectedBurnEventParams memory expectedParams;
+        expectedParams.token = address(usdc);
+        expectedParams.depositor = depositor;
+        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.destinationDomain = auth.spec.destinationDomain;
+        expectedParams.recipient = auth.spec.destinationRecipient;
+        expectedParams.authorizer = delegate; // Authorizer is the delegate
+        expectedParams.value = burnValue;
+        expectedParams.fee = fee;
+        expectedParams.fromSpendable = burnValue + fee;
+        expectedParams.fromWithdrawing = 0;
+        _expectBurnEvent(expectedParams);
+
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+
+        // Assert final state
+        ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: depositorInitialBalance - (burnValue + fee),
+            depositorWithdrawing: 0,
+            feeRecipientExternalUsdc: fee,
+            walletExternalUsdc: depositorInitialBalance - (burnValue + fee),
+            usdcTotalSupply: initialTotalSupply - burnValue
+        });
+        _assertBalances("Final State (Delegate)", depositor, feeRecipient, finalExpectedBalances);
+    }
+
+    function test_burnSpent_singleAuth_currentDomain_fromSpendableBalance_revokedDelegateSigner() public {
+        // Setup and revoke delegate
+        vm.startPrank(depositor);
+        wallet.addDelegate(address(usdc), delegate);
+        wallet.removeDelegate(address(usdc), delegate);
+        vm.stopPrank();
+
+        BurnAuthorization memory auth = baseAuth;
+        uint256 burnValue = auth.spec.value;
+        uint256 fee = defaultMaxFee / 2;
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, delegateKey);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature;
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        fees[0][0] = fee;
+
+        // Assert initial state
+        uint256 initialTotalSupply = usdc.totalSupply();
+        ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: depositorInitialBalance,
+            depositorWithdrawing: 0,
+            feeRecipientExternalUsdc: 0,
+            walletExternalUsdc: depositorInitialBalance,
+            usdcTotalSupply: initialTotalSupply
+        });
+        _assertBalances("Initial State (Revoked Delegate)", depositor, feeRecipient, initialExpectedBalances);
+
+        ExpectedBurnEventParams memory expectedParams;
+        expectedParams.token = address(usdc);
+        expectedParams.depositor = depositor;
+        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.destinationDomain = auth.spec.destinationDomain;
+        expectedParams.recipient = auth.spec.destinationRecipient;
+        expectedParams.authorizer = delegate; // Revoked delegate
+        expectedParams.value = burnValue;
+        expectedParams.fee = fee;
+        expectedParams.fromSpendable = burnValue + fee;
+        expectedParams.fromWithdrawing = 0;
+        _expectBurnEvent(expectedParams);
+
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+
+        // Assert final state
+        ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: depositorInitialBalance - (burnValue + fee),
+            depositorWithdrawing: 0,
+            feeRecipientExternalUsdc: fee,
+            walletExternalUsdc: depositorInitialBalance - (burnValue + fee),
+            usdcTotalSupply: initialTotalSupply - burnValue
+        });
+        _assertBalances("Final State (Revoked Delegate)", depositor, feeRecipient, finalExpectedBalances);
+    }
+
+    function test_burnSpent_singleAuth_currentDomain_fromWithdrawingBalance_depositorSigner() public {
+        // Move all depositor funds to withdrawing balance
+        vm.startPrank(depositor);
+        wallet.initiateWithdrawal(address(usdc), depositorInitialBalance);
+        vm.stopPrank();
+
+        BurnAuthorization memory auth = baseAuth;
+        uint256 burnValue = auth.spec.value;
+        uint256 fee = defaultMaxFee / 2;
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, depositorKey);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature;
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        fees[0][0] = fee;
+
+        // Assert initial state
+        uint256 initialTotalSupply = usdc.totalSupply();
+        ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: 0,
+            depositorWithdrawing: depositorInitialBalance,
+            feeRecipientExternalUsdc: 0,
+            walletExternalUsdc: depositorInitialBalance,
+            usdcTotalSupply: initialTotalSupply
+        });
+        _assertBalances("Initial State (Withdrawing)", depositor, feeRecipient, initialExpectedBalances);
+
+        ExpectedBurnEventParams memory expectedParams;
+        expectedParams.token = address(usdc);
+        expectedParams.depositor = depositor;
+        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.destinationDomain = auth.spec.destinationDomain;
+        expectedParams.recipient = auth.spec.destinationRecipient;
+        expectedParams.authorizer = depositor;
+        expectedParams.value = burnValue;
+        expectedParams.fee = fee;
+        expectedParams.fromSpendable = 0;
+        expectedParams.fromWithdrawing = burnValue + fee;
+        _expectBurnEvent(expectedParams);
+
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+
+        // Assert final state
+        ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: 0,
+            depositorWithdrawing: depositorInitialBalance - (burnValue + fee),
+            feeRecipientExternalUsdc: fee,
+            walletExternalUsdc: depositorInitialBalance - (burnValue + fee),
+            usdcTotalSupply: initialTotalSupply - burnValue
+        });
+        _assertBalances("Final State (Withdrawing)", depositor, feeRecipient, finalExpectedBalances);
+    }
+
+    function test_burnSpent_singleAuth_currentDomain_fromWithdrawingBalance_delegateSigner() public {
+        // Move all depositor funds to withdrawing balance
+        vm.startPrank(depositor);
+        wallet.initiateWithdrawal(address(usdc), depositorInitialBalance);
+        vm.stopPrank();
+
+        // Setup delegate
+        vm.startPrank(depositor);
+        wallet.addDelegate(address(usdc), delegate);
+        vm.stopPrank();
+
+        BurnAuthorization memory auth = baseAuth;
+        uint256 burnValue = auth.spec.value;
+        uint256 fee = defaultMaxFee / 2;
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, delegateKey); // Signed by delegate
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature;
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        fees[0][0] = fee;
+
+        // Assert initial state
+        uint256 initialTotalSupply = usdc.totalSupply();
+        ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: 0,
+            depositorWithdrawing: depositorInitialBalance,
+            feeRecipientExternalUsdc: 0,
+            walletExternalUsdc: depositorInitialBalance,
+            usdcTotalSupply: initialTotalSupply
+        });
+        _assertBalances("Initial State (Withdrawing, Delegate)", depositor, feeRecipient, initialExpectedBalances);
+
+        ExpectedBurnEventParams memory expectedParams;
+        expectedParams.token = address(usdc);
+        expectedParams.depositor = depositor;
+        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.destinationDomain = auth.spec.destinationDomain;
+        expectedParams.recipient = auth.spec.destinationRecipient;
+        expectedParams.authorizer = delegate; // Delegate
+        expectedParams.value = burnValue;
+        expectedParams.fee = fee;
+        expectedParams.fromSpendable = 0;
+        expectedParams.fromWithdrawing = burnValue + fee;
+        _expectBurnEvent(expectedParams);
+
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+
+        // Assert final state
+        ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: 0,
+            depositorWithdrawing: depositorInitialBalance - (burnValue + fee),
+            feeRecipientExternalUsdc: fee,
+            walletExternalUsdc: depositorInitialBalance - (burnValue + fee),
+            usdcTotalSupply: initialTotalSupply - burnValue
+        });
+        _assertBalances("Final State (Withdrawing, Delegate)", depositor, feeRecipient, finalExpectedBalances);
+    }
+
+    function test_burnSpent_singleAuth_currentDomain_fromWithdrawingBalance_revokedDelegateSigner() public {
+        // Move all depositor funds to withdrawing balance
+        vm.startPrank(depositor);
+        wallet.initiateWithdrawal(address(usdc), depositorInitialBalance);
+        vm.stopPrank();
+
+        // Setup and revoke delegate
+        vm.startPrank(depositor);
+        wallet.addDelegate(address(usdc), delegate);
+        wallet.removeDelegate(address(usdc), delegate);
+        vm.stopPrank();
+
+        BurnAuthorization memory auth = baseAuth;
+        uint256 burnValue = auth.spec.value;
+        uint256 fee = defaultMaxFee / 2;
+
+        // Encode and sign auth with delegate key *before* revocation
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, delegateKey);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature; // Use signature from before revocation
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        fees[0][0] = fee;
+
+        // Assert initial state
+        uint256 initialTotalSupply = usdc.totalSupply();
+        ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: 0,
+            depositorWithdrawing: depositorInitialBalance,
+            feeRecipientExternalUsdc: 0,
+            walletExternalUsdc: depositorInitialBalance,
+            usdcTotalSupply: initialTotalSupply
+        });
+        _assertBalances("Initial State (Withdrawing, Revoked Delegate)", depositor, feeRecipient, initialExpectedBalances);
+
+        ExpectedBurnEventParams memory expectedParams;
+        expectedParams.token = address(usdc);
+        expectedParams.depositor = depositor;
+        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.destinationDomain = auth.spec.destinationDomain;
+        expectedParams.recipient = auth.spec.destinationRecipient;
+        expectedParams.authorizer = delegate;
+        expectedParams.value = burnValue;
+        expectedParams.fee = fee;
+        expectedParams.fromSpendable = 0;
+        expectedParams.fromWithdrawing = burnValue + fee;
+        _expectBurnEvent(expectedParams);
+
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+
+        uint256 finalDepositorWithdrawing = depositorInitialBalance - (burnValue + fee);
+        uint256 finalWalletExternalUsdc = depositorInitialBalance - (burnValue + fee);
+        uint256 finalUsdcTotalSupply = initialTotalSupply - burnValue;
+
+        // Assert final state
+        ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: 0,
+            depositorWithdrawing: finalDepositorWithdrawing,
+            feeRecipientExternalUsdc: fee,
+            walletExternalUsdc: finalWalletExternalUsdc,
+            usdcTotalSupply: finalUsdcTotalSupply
+        });
+        _assertBalances("Final State (Withdrawing, Revoked Delegate)", depositor, feeRecipient, finalExpectedBalances);
+    }
+
+    function test_burnSpent_singleAuth_currentDomain_fromBothBalances_depositorSigner() public {
+        // Move some funds to withdrawing balance
+        uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
+        uint256 remainingSpendable = depositorInitialBalance - withdrawAmount;
+        vm.startPrank(depositor);
+        wallet.initiateWithdrawal(address(usdc), withdrawAmount);
+        vm.stopPrank();
+
+        BurnAuthorization memory auth = baseAuth;
+        uint256 burnValue = auth.spec.value;
+        uint256 fee = defaultMaxFee / 2;
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, depositorKey);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature;
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        fees[0][0] = fee;
+
+        // Assert initial state
+        uint256 initialTotalSupply = usdc.totalSupply();
+        ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: remainingSpendable,
+            depositorWithdrawing: withdrawAmount,
+            feeRecipientExternalUsdc: 0,
+            walletExternalUsdc: depositorInitialBalance,
+            usdcTotalSupply: initialTotalSupply
+        });
+        _assertBalances("Initial State (Both Balances)", depositor, feeRecipient, initialExpectedBalances);
+
+        // Expect event with inlined calculations
+        ExpectedBurnEventParams memory expectedParams;
+        expectedParams.token = address(usdc);
+        expectedParams.depositor = depositor;
+        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.destinationDomain = auth.spec.destinationDomain;
+        expectedParams.recipient = auth.spec.destinationRecipient;
+        expectedParams.authorizer = depositor;
+        expectedParams.value = burnValue;
+        expectedParams.fee = fee;
+        expectedParams.fromSpendable = remainingSpendable;
+        expectedParams.fromWithdrawing = (burnValue + fee) - remainingSpendable;
+        _expectBurnEvent(expectedParams);
+
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+
+        uint256 finalDepositorWithdrawing = withdrawAmount - ((burnValue + fee) - remainingSpendable);
+        uint256 finalWalletExternalUsdc = depositorInitialBalance - (burnValue + fee);
+        uint256 finalUsdcTotalSupply = initialTotalSupply - burnValue;
+
+        // Assert final state
+        ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: 0, // Spendable used up
+            depositorWithdrawing: finalDepositorWithdrawing,
+            feeRecipientExternalUsdc: fee,
+            walletExternalUsdc: finalWalletExternalUsdc,
+            usdcTotalSupply: finalUsdcTotalSupply
+        });
+        _assertBalances("Final State (Both Balances)", depositor, feeRecipient, finalExpectedBalances);
+    }
+
+    function test_burnSpent_singleAuth_currentDomain_fromBothBalances_delegateSigner() public {
+        // Move some funds to withdrawing balance
+        uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
+        uint256 remainingSpendable = depositorInitialBalance - withdrawAmount;
+        
+        // Setup delegate
+        vm.startPrank(depositor);
+        wallet.initiateWithdrawal(address(usdc), withdrawAmount);
+        wallet.addDelegate(address(usdc), delegate);
+        vm.stopPrank();
+
+        BurnAuthorization memory auth = baseAuth;
+        uint256 burnValue = auth.spec.value;
+        uint256 fee = defaultMaxFee / 2;
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, delegateKey);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature;
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        fees[0][0] = fee;
+
+        // Assert initial state
+        uint256 initialTotalSupply = usdc.totalSupply();
+        ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: remainingSpendable,
+            depositorWithdrawing: withdrawAmount,
+            feeRecipientExternalUsdc: 0,
+            walletExternalUsdc: depositorInitialBalance,
+            usdcTotalSupply: initialTotalSupply
+        });
+        _assertBalances("Initial State (Both Balances)", depositor, feeRecipient, initialExpectedBalances);
+
+        // Expect event with inlined calculations
+        ExpectedBurnEventParams memory expectedParams;
+        expectedParams.token = address(usdc);
+        expectedParams.depositor = depositor;
+        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.destinationDomain = auth.spec.destinationDomain;
+        expectedParams.recipient = auth.spec.destinationRecipient;
+        expectedParams.authorizer = delegate;
+        expectedParams.value = burnValue;
+        expectedParams.fee = fee;
+        expectedParams.fromSpendable = remainingSpendable;
+        expectedParams.fromWithdrawing = (burnValue + fee) - remainingSpendable;
+        _expectBurnEvent(expectedParams);
+
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+
+        uint256 finalDepositorWithdrawing = withdrawAmount - ((burnValue + fee) - remainingSpendable);
+        uint256 finalWalletExternalUsdc = depositorInitialBalance - (burnValue + fee);
+        uint256 finalUsdcTotalSupply = initialTotalSupply - burnValue;
+
+        // Assert final state
+        ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: 0, // Spendable used up
+            depositorWithdrawing: finalDepositorWithdrawing,
+            feeRecipientExternalUsdc: fee,
+            walletExternalUsdc: finalWalletExternalUsdc,
+            usdcTotalSupply: finalUsdcTotalSupply
+        });
+        _assertBalances("Final State (Both Balances)", depositor, feeRecipient, finalExpectedBalances);
+    }
+
+    function test_burnSpent_singleAuth_currentDomain_fromBothBalances_revokedDelegateSigner() public {
+        // Move some funds to withdrawing balance
+        uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
+        uint256 remainingSpendable = depositorInitialBalance - withdrawAmount;
+        
+        // Setup and revoke delegate
+        vm.startPrank(depositor);
+        wallet.initiateWithdrawal(address(usdc), withdrawAmount);
+        wallet.addDelegate(address(usdc), delegate);
+        wallet.removeDelegate(address(usdc), delegate);
+        vm.stopPrank();
+
+        BurnAuthorization memory auth = baseAuth;
+        uint256 burnValue = auth.spec.value;
+        uint256 fee = defaultMaxFee / 2;
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, delegateKey);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature;
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        fees[0][0] = fee;
+
+        // Assert initial state
+        uint256 initialTotalSupply = usdc.totalSupply();
+        ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: remainingSpendable,
+            depositorWithdrawing: withdrawAmount,
+            feeRecipientExternalUsdc: 0,
+            walletExternalUsdc: depositorInitialBalance,
+            usdcTotalSupply: initialTotalSupply
+        });
+        _assertBalances("Initial State (Both Balances)", depositor, feeRecipient, initialExpectedBalances);
+
+        // Expect event with inlined calculations
+        ExpectedBurnEventParams memory expectedParams;
+        expectedParams.token = address(usdc);
+        expectedParams.depositor = depositor;
+        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.destinationDomain = auth.spec.destinationDomain;
+        expectedParams.recipient = auth.spec.destinationRecipient;
+        expectedParams.authorizer = delegate;
+        expectedParams.value = burnValue;
+        expectedParams.fee = fee;
+        expectedParams.fromSpendable = remainingSpendable;
+        expectedParams.fromWithdrawing = (burnValue + fee) - remainingSpendable;
+        _expectBurnEvent(expectedParams);
+
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+
+        uint256 finalDepositorWithdrawing = withdrawAmount - ((burnValue + fee) - remainingSpendable);
+        uint256 finalWalletExternalUsdc = depositorInitialBalance - (burnValue + fee);
+        uint256 finalUsdcTotalSupply = initialTotalSupply - burnValue;
+
+        // Assert final state
+        ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: 0, // Spendable used up
+            depositorWithdrawing: finalDepositorWithdrawing,
+            feeRecipientExternalUsdc: fee,
+            walletExternalUsdc: finalWalletExternalUsdc,
+            usdcTotalSupply: finalUsdcTotalSupply
+        });
+        _assertBalances("Final State (Both Balances)", depositor, feeRecipient, finalExpectedBalances);
     }
 
 }
