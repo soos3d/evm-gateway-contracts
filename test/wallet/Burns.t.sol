@@ -26,6 +26,7 @@ import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {BurnLib} from "src/lib/wallet/BurnLib.sol";
+import {SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
 import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
@@ -291,32 +292,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     // ===== Authorization Content Validation Tests =====
 
-    function test_burnSpent_revertIfNotAllSameToken() external {
-        address notUsdc = makeAddr("notUsdc");
-        vm.startPrank(owner);
-        wallet.addSupportedToken(notUsdc);
-        vm.stopPrank();
-
-        BurnAuthorization memory nonUsdcAuth = baseAuth;
-        nonUsdcAuth.spec.sourceToken = _addressToBytes32(notUsdc);
-
-        BurnAuthorization[] memory auths = new BurnAuthorization[](2);
-        auths[0] = baseAuth;
-        auths[1] = nonUsdcAuth;
-        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
-        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-
-        bytes[] memory authorizations = new bytes[](1);
-        authorizations[0] = encodedAuthSet;
-        bytes[] memory signatures = new bytes[](1);
-        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
-        uint256[][] memory fees = new uint256[][](1);
-        fees[0] = new uint256[](2);
-
-        vm.expectRevert(BurnLib.NotAllSameToken.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
-    }
-
     function test_burnSpent_revertIfZeroValueAuth() public {
         baseAuth.spec.value = 0;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
@@ -567,6 +542,54 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     // ===== Burn Failure Scenarios =====
 
+    function test_burnSpent_revertIfReplayed() public {
+        BurnAuthorization memory auth = baseAuth;
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, depositorKey);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature;
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        fees[0][0] = 0;
+
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+
+        // Replay the same authorization
+        bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        vm.expectRevert(abi.encodeWithSelector(SpendHashesStorage.SpendHashUsed.selector, specHash));
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpent_revertIfNotAllSameToken() external {
+        address notUsdc = makeAddr("notUsdc");
+        vm.startPrank(owner);
+        wallet.addSupportedToken(notUsdc);
+        vm.stopPrank();
+
+        BurnAuthorization memory nonUsdcAuth = baseAuth;
+        nonUsdcAuth.spec.sourceToken = _addressToBytes32(notUsdc);
+
+        BurnAuthorization[] memory auths = new BurnAuthorization[](2);
+        auths[0] = baseAuth;
+        auths[1] = nonUsdcAuth;
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuthSet;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](2);
+
+        vm.expectRevert(BurnLib.NotAllSameToken.selector);
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
     function test_burnSpent_singleAuth_revertIfOtherDomain() public {
         BurnAuthorization memory otherDomainAuth = baseAuth;
         otherDomainAuth.spec.sourceDomain = domain + 1; // A different domain
@@ -582,6 +605,29 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](1);
         fees[0][0] = baseAuth.maxFee;
 
+
+        vm.expectRevert(BurnLib.NoRelevantBurnAuthorizations.selector);
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpent_singleAuthSet_revertIfOtherDomain() public {
+        BurnAuthorization memory otherDomainAuth = baseAuth;
+        otherDomainAuth.spec.sourceDomain = domain + 1; // A different domain
+
+        BurnAuthorization[] memory auths = new BurnAuthorization[](2);
+        auths[0] = otherDomainAuth;
+        auths[1] = otherDomainAuth;
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuthSet;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](2);
+        fees[0][0] = baseAuth.maxFee;
+        fees[0][1] = baseAuth.maxFee;
 
         vm.expectRevert(BurnLib.NoRelevantBurnAuthorizations.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
