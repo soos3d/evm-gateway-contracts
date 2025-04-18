@@ -48,6 +48,7 @@ library BurnLib {
     error AuthorizationExpired(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
     error BurnValueMustBePositive(uint32 index);
     error InvalidAuthorizationSourceContract(uint32 index, address expectedSourceContract);
+    error NotAllSameToken();
     error UnsupportedToken(uint32 index, address sourceToken);
     error BurnFeeTooHigh(uint32 index, uint256 maxFee, uint256 actualFee);
 
@@ -193,8 +194,9 @@ library BurnLib {
 
             // Reduce the balance of the depositor(s) and add to the total fee and burn amount
             uint256 fee = fees[index];
-            totalDeductedAmount += _burn(spec, authorizer, fee);
-            totalFee += fee;
+            (uint256 deductedAmount, uint256 actualFeeCharged) = _burn(spec, authorizer, fee);
+            totalDeductedAmount += deductedAmount;
+            totalFee += actualFeeCharged;
         }
 
         if (totalDeductedAmount == 0) {
@@ -207,7 +209,7 @@ library BurnLib {
         IBurnToken(token).burn(totalDeductedAmount - totalFee);
     }
 
-    function _burn(bytes29 spec, address authorizer, uint256 fee) internal returns (uint256 burnAmount) {
+    function _burn(bytes29 spec, address authorizer, uint256 fee) internal returns (uint256 deductedAmount, uint256 actualFeeCharged) {
         // Mark the spend hash as used
         SpendHashesStorage._checkAndMark(spec.getHash());
 
@@ -218,6 +220,15 @@ library BurnLib {
 
         // Reduce the balances of the depositor by amount being burned + the fee, returning the overall amounts that were drawn from each balance type
         (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value + fee);
+        deductedAmount = fromSpendable + fromWithdrawing;
+
+        // If the full amount could not be deducted, charge a partial fee if possible
+        if (deductedAmount <= value) {
+            actualFeeCharged = 0;
+        } else {
+            uint256 potentialFee = deductedAmount - value;
+            actualFeeCharged = potentialFee < fee ? potentialFee : fee;
+        }
 
         // Emit an event with all the information about the burn
         emit BurnedSpent(
@@ -228,13 +239,13 @@ library BurnLib {
             spec.getDestinationRecipient(),
             authorizer,
             value,
-            fee,
+            actualFeeCharged,
             fromSpendable,
             fromWithdrawing
         );
 
-        // Return the amount that was actually deducted from the depositor's balance
-        return fromSpendable + fromWithdrawing;
+        // Return the amount that was actually deducted and the actual fee charged
+        return (deductedAmount, actualFeeCharged);
     }
 
     /// Internal function to verify the signature of the `burnSigner` on the other arguments in calldata, hashing the

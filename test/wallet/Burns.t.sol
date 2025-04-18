@@ -43,6 +43,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     address private feeRecipient = makeAddr("feeRecipient");
     uint256 private depositorKey;
     address private depositor;
+    uint256 private underFundedDepositorKey;
+    address private underFundedDepositor;
     uint256 private delegateKey;
     address private delegate;
     address private recipient = makeAddr("recipient");
@@ -88,6 +90,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         wallet = deployWalletOnly(owner, domain);
 
         (depositor, depositorKey) = makeAddrAndKey("depositor");
+        (underFundedDepositor, underFundedDepositorKey) = makeAddrAndKey("underFundedDepositor");
         (delegate, delegateKey) = makeAddrAndKey("delegate");
         (burnSigner, burnSignerKey) = makeAddrAndKey("burnSigner");
 
@@ -631,6 +634,155 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         vm.expectRevert(BurnLib.NoRelevantBurnAuthorizations.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpent_singleAuth_insufficientBalanceForBurnValue() public {
+        // Setup the under funded depositor
+        deal(address(usdc), underFundedDepositor, depositorInitialBalance, true); // Fund externally with initial $5000
+        vm.startPrank(underFundedDepositor);
+        usdc.approve(address(wallet), type(uint256).max);
+        wallet.deposit(address(usdc), depositorInitialBalance / 4); // Deposit $1250 (1/4 of initial)
+        vm.stopPrank();
+
+        // Use the original logic with local auth struct copy
+        BurnAuthorization memory auth = baseAuth;
+        auth.spec.sourceDepositor = _addressToBytes32(underFundedDepositor);
+        // auth.spec.value ($2500) > deposited amount ($1250)
+        uint256 fee = defaultMaxFee / 2; // $0.50
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, underFundedDepositorKey);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature;
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        fees[0][0] = fee;
+
+        // Assert initial state using ExpectedBalances struct
+        uint256 initialTotalSupply = usdc.totalSupply();
+        ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: depositorInitialBalance * 3 / 4, // $3750 external
+            depositorSpendable: depositorInitialBalance / 4, // $1250 spendable
+            depositorWithdrawing: 0,
+            feeRecipientExternalUsdc: 0,
+            walletExternalUsdc: depositorInitialBalance + depositorInitialBalance / 4, // $5000 (original depositor) + $1250 (underFundedDepositor) = $6250 total in wallet
+            usdcTotalSupply: initialTotalSupply
+        });
+        _assertBalances("Initial State", underFundedDepositor, feeRecipient, initialExpectedBalances);
+
+        vm.expectEmit(true, true, true, true);
+        emit BurnLib.InsufficientBalanceForBurning(
+            address(usdc),
+            underFundedDepositor,
+            auth.spec.value + fee, // Total needed: $2500 + $0.50 = $2500.50
+            depositorInitialBalance / 4, // Spendable available: $1250
+            0 // Withdrawing available: $0
+        );
+
+        // Expect BurnedSpent event with correct parameters for insufficient balance
+        ExpectedBurnEventParams memory expectedParams;
+        expectedParams.token = address(usdc);
+        expectedParams.depositor = underFundedDepositor;
+        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.destinationDomain = auth.spec.destinationDomain;
+        expectedParams.recipient = auth.spec.destinationRecipient;
+        expectedParams.authorizer = underFundedDepositor;
+        expectedParams.value = auth.spec.value; // Requested value: $2500
+        expectedParams.fee = 0; // Actual fee charged: $0 (waived)
+        expectedParams.fromSpendable = depositorInitialBalance / 4; // Actual amount deducted from spendable: $1250
+        expectedParams.fromWithdrawing = 0;
+        _expectBurnEvent(expectedParams);
+
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+
+        // Assert final state using ExpectedBalances struct
+        ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: depositorInitialBalance * 3 / 4, // $3750
+            depositorSpendable: 0, // Spendable becomes $0
+            depositorWithdrawing: 0,
+            feeRecipientExternalUsdc: 0, // Fee recipient gets $0
+            walletExternalUsdc: depositorInitialBalance, // Wallet balance: $6250 - $1250 = $5000
+            usdcTotalSupply: initialTotalSupply - depositorInitialBalance / 4 // Total supply reduced by $1250
+        });
+        _assertBalances("Final State", underFundedDepositor, feeRecipient, finalExpectedBalances);
+    }
+
+    function test_burnSpent_singleAuth_insufficientBalanceForBurnFee() public {
+        uint256 fee = defaultMaxFee / 2; // $0.50
+
+          // Setup the under funded depositor
+        deal(address(usdc), underFundedDepositor, depositorInitialBalance, true); // Fund externally with initial $5000
+        vm.startPrank(underFundedDepositor);
+        usdc.approve(address(wallet), type(uint256).max);
+        wallet.deposit(address(usdc), depositorInitialBalance / 4 + fee / 2); // Deposit $1250 (1/4 of initial) + $0.25 (half of fee)
+        vm.stopPrank();
+
+        // Use the original logic with local auth struct copy
+        BurnAuthorization memory auth = baseAuth;
+        auth.spec.value = depositorInitialBalance / 4; // $1250
+        auth.spec.sourceDepositor = _addressToBytes32(underFundedDepositor);
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, underFundedDepositorKey);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature;
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        fees[0][0] = fee;
+
+        // Assert initial state using ExpectedBalances struct
+        uint256 initialTotalSupply = usdc.totalSupply();
+        ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: depositorInitialBalance * 3 / 4 - fee / 2, // $3750 external - $0.25 (half of fee)
+            depositorSpendable: depositorInitialBalance / 4 + fee / 2, // $1250 spendable + $0.25 (half of fee)
+            depositorWithdrawing: 0,
+            feeRecipientExternalUsdc: 0,
+            walletExternalUsdc: depositorInitialBalance + depositorInitialBalance / 4 + fee / 2, // $5000 (original depositor) + $1250 (underFundedDepositor) + $0.25 (half of fee) = $6250.25 total in wallet
+            usdcTotalSupply: initialTotalSupply
+        });
+        _assertBalances("Initial State", underFundedDepositor, feeRecipient, initialExpectedBalances);
+
+        vm.expectEmit(true, true, true, true);
+        emit BurnLib.InsufficientBalanceForBurning(
+            address(usdc),
+            underFundedDepositor,
+            auth.spec.value + fee, // Total needed: $1250 + $0.50 = $1250.50
+            depositorInitialBalance / 4 + fee / 2, // Spendable available: $1250 + $0.25 (half of fee)
+            0 // Withdrawing available: $0
+        );
+
+        // Expect BurnedSpent event with correct parameters for insufficient balance
+        ExpectedBurnEventParams memory expectedParams;
+        expectedParams.token = address(usdc);
+        expectedParams.depositor = underFundedDepositor;
+        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.destinationDomain = auth.spec.destinationDomain;
+        expectedParams.recipient = auth.spec.destinationRecipient;
+        expectedParams.authorizer = underFundedDepositor;
+        expectedParams.value = auth.spec.value; // Requested value: $1250
+        expectedParams.fee = fee / 2; // Actual fee charged: $0.25 (half of fee)
+        expectedParams.fromSpendable = depositorInitialBalance / 4 + fee / 2; // Actual amount deducted from spendable: $1250.25
+        expectedParams.fromWithdrawing = 0;
+        _expectBurnEvent(expectedParams);
+
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+
+        // Assert final state using ExpectedBalances struct
+        ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: depositorInitialBalance * 3 / 4 - fee / 2, // $3750 external - $0.25 (half of fee)
+            depositorSpendable: 0, // Spendable becomes $0
+            depositorWithdrawing: 0,
+            feeRecipientExternalUsdc: fee / 2, // Fee recipient gets $0.25 (half of fee)
+            walletExternalUsdc: depositorInitialBalance, // Wallet balance: $6250 - $1250 = $5000
+            usdcTotalSupply: initialTotalSupply - depositorInitialBalance / 4 // Total supply reduced by $1250
+        });
+        _assertBalances("Final State", underFundedDepositor, feeRecipient, finalExpectedBalances);
     }
 
     /*
