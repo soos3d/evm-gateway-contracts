@@ -161,7 +161,7 @@ library BurnLib {
     ) internal {
         address token;
         uint256 totalFee = 0;
-        uint256 totalToBurn = 0;
+        uint256 totalDeductedAmount = 0;
         bytes29 auth;
         uint32 index = 0;
 
@@ -192,12 +192,14 @@ library BurnLib {
 
             // Reduce the balance of the depositor(s) and add to the total fee and burn amount
             uint256 fee = fees[index];
-            totalToBurn += _burn(spec, authorizer, fee);
+            totalDeductedAmount += _burn(spec, authorizer, fee);
             totalFee += fee;
         }
 
+        // Collect the fee
         IERC20(token).safeTransfer(feeRecipient, totalFee);
-        IBurnToken(token).burn(totalToBurn);
+        // Burn everything else
+        IBurnToken(token).burn(totalDeductedAmount - totalFee);
     }
 
     function _burn(bytes29 spec, address authorizer, uint256 fee) internal returns (uint256 burnAmount) {
@@ -209,7 +211,7 @@ library BurnLib {
         address depositor = _bytes32ToAddress(spec.getSourceDepositor());
         uint256 value = spec.getValue();
 
-        // Reduce the balances of the depositor by the amount being burned, returning the amounts that came from each
+        // Reduce the balances of the depositor by amount being burned + the fee, returning the overall amounts that were drawn from each balance type
         (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value + fee);
 
         // Emit an event with all the information about the burn
