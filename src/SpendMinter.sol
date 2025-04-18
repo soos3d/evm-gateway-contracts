@@ -201,7 +201,7 @@ contract SpendMinter is SpendCommon {
         if (sourceDomain == domain()) {
             address sourceSigner = _bytes32ToAddress(spec.getSourceSigner());
             SpendWallet(_counterpart()).sameChainSpend(
-                token, _bytes32ToAddress(depositorBytes), specHash, recipient, sourceSigner, value, authorizations
+                token, _bytes32ToAddress(depositorBytes), recipient, sourceSigner, value, specHash, authorizations
             );
         } else {
             address mintAuthority = tokenMintAuthorities[token];

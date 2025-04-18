@@ -143,18 +143,18 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
     ///
     /// @param token                The token address being transferred
     /// @param depositor            The address of the owner of the funds within the wallet
-    /// @param spendHash            The keccak256 hash of the SpendSpec
     /// @param recipient            The address receiving the funds
     /// @param authorizer           The address that authorized the spend
     /// @param value                The amount of tokens transferred
+    /// @param spendHash            The keccak256 hash of the SpendSpec
     /// @param spendAuthorization   The byte-encoded SpendAuthorization or SpendAuthorizationSet
     function sameChainSpend(
         address token,
         address depositor,
-        bytes32 spendHash,
         address recipient,
         address authorizer,
         uint256 value,
+        bytes32 spendHash,
         bytes memory spendAuthorization
     ) external whenNotPaused {}
 
