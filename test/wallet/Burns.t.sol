@@ -624,8 +624,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         assertEq(actualUsdcTotalSupply, expected.usdcTotalSupply, string.concat(context, ": USDC Total Supply mismatch"));
     }
 
-    /// Tests a simple burn scenario: single authorization, signed by the depositor, burning from spendable balance.
-    /// 
+    /// Tests a burn scenario using a single authorization signed by the depositor, burning from the spendable balance.
+    ///
     /// Steps:
     /// 1. Initial State Check: Use `_assertBalances` to verify initial balances:
     ///    - Depositor: External USDC (0), Internal Spendable (`depositorInitialBalance`), Internal Withdrawing (0).
@@ -695,6 +695,15 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Final State", depositor, feeRecipient, finalExpectedBalances);
     }
 
+    /// Tests a burn scenario using a single authorization signed by an authorized delegate, burning from the spendable balance.
+    ///
+    /// Steps:
+    /// 1. Delegate Setup: Authorize a delegate for the depositor.
+    /// 2. Initial State Check: Verify initial balances (same as depositor signer).
+    /// 3. Authorization Setup: Create `BurnAuthorization`, sign it with the delegate's key.
+    /// 4. Event Expectation: Expect a `BurnedSpent` event, noting the delegate as the authorizer.
+    /// 5. Call `burnSpent`: Execute with delegate signature.
+    /// 6. Final State Check: Verify final balances (similar to depositor signer, fee deducted).
     function test_burnSpent_singleAuth_currentDomain_fromSpendableBalance_delegateSigner() public {
         // Setup delegate
         vm.startPrank(depositor);
@@ -755,6 +764,16 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Final State (Delegate)", depositor, feeRecipient, finalExpectedBalances);
     }
 
+    /// Tests a burn scenario using a single authorization signed by a delegate whose authorization has since been revoked, burning from the spendable balance.
+    /// This demonstrates that signatures remain valid even if the delegate is later removed.
+    ///
+    /// Steps:
+    /// 1. Delegate Setup & Revocation: Authorize and then immediately revoke a delegate.
+    /// 2. Authorization Setup: Create `BurnAuthorization`, sign it with the delegate's key *before* revocation.
+    /// 3. Initial State Check: Verify initial balances.
+    /// 4. Event Expectation: Expect a `BurnedSpent` event, noting the (revoked) delegate as the authorizer.
+    /// 5. Call `burnSpent`: Execute with the pre-revocation delegate signature.
+    /// 6. Final State Check: Verify final balances; burn should succeed.
     function test_burnSpent_singleAuth_currentDomain_fromSpendableBalance_revokedDelegateSigner() public {
         // Setup and revoke delegate
         vm.startPrank(depositor);
@@ -816,6 +835,15 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Final State (Revoked Delegate)", depositor, feeRecipient, finalExpectedBalances);
     }
 
+    /// Tests a burn scenario using a single authorization signed by the depositor, burning entirely from the withdrawing balance.
+    ///
+    /// Steps:
+    /// 1. Balance Setup: Initiate a withdrawal of the depositor's entire spendable balance.
+    /// 2. Initial State Check: Verify balances: Spendable (0), Withdrawing (`depositorInitialBalance`).
+    /// 3. Authorization Setup: Create `BurnAuthorization`, sign with depositor key.
+    /// 4. Event Expectation: Expect `BurnedSpent` event with `fromWithdrawing` equal to `value + fee` and `fromSpendable` as 0.
+    /// 5. Call `burnSpent`: Execute the function.
+    /// 6. Final State Check: Verify final balances: Withdrawing balance reduced, Spendable remains 0.
     function test_burnSpent_singleAuth_currentDomain_fromWithdrawingBalance_depositorSigner() public {
         // Move all depositor funds to withdrawing balance
         vm.startPrank(depositor);
@@ -876,6 +904,15 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Final State (Withdrawing)", depositor, feeRecipient, finalExpectedBalances);
     }
 
+    /// Tests a burn scenario using a single authorization signed by an authorized delegate, burning entirely from the withdrawing balance.
+    ///
+    /// Steps:
+    /// 1. Balance & Delegate Setup: Initiate withdrawal, authorize delegate.
+    /// 2. Initial State Check: Verify balances: Spendable (0), Withdrawing (`depositorInitialBalance`).
+    /// 3. Authorization Setup: Create `BurnAuthorization`, sign with delegate key.
+    /// 4. Event Expectation: Expect `BurnedSpent` event, `fromWithdrawing` = `value + fee`, authorizer is delegate.
+    /// 5. Call `burnSpent`: Execute with delegate signature.
+    /// 6. Final State Check: Verify final balances: Withdrawing balance reduced.
     function test_burnSpent_singleAuth_currentDomain_fromWithdrawingBalance_delegateSigner() public {
         // Move all depositor funds to withdrawing balance
         vm.startPrank(depositor);
@@ -941,14 +978,19 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Final State (Withdrawing, Delegate)", depositor, feeRecipient, finalExpectedBalances);
     }
 
+    /// Tests a burn scenario using a single authorization signed by a revoked delegate, burning entirely from the withdrawing balance.
+    ///
+    /// Steps:
+    /// 1. Balance & Delegate Setup/Revocation: Initiate withdrawal, authorize and revoke delegate.
+    /// 2. Authorization Setup: Create `BurnAuthorization`, sign with delegate key *before* revocation.
+    /// 3. Initial State Check: Verify balances: Spendable (0), Withdrawing (`depositorInitialBalance`).
+    /// 4. Event Expectation: Expect `BurnedSpent` event, `fromWithdrawing` = `value + fee`, authorizer is revoked delegate.
+    /// 5. Call `burnSpent`: Execute with pre-revocation delegate signature.
+    /// 6. Final State Check: Verify final balances: Withdrawing balance reduced.
     function test_burnSpent_singleAuth_currentDomain_fromWithdrawingBalance_revokedDelegateSigner() public {
         // Move all depositor funds to withdrawing balance
         vm.startPrank(depositor);
         wallet.initiateWithdrawal(address(usdc), depositorInitialBalance);
-        vm.stopPrank();
-
-        // Setup and revoke delegate
-        vm.startPrank(depositor);
         wallet.addDelegate(address(usdc), delegate);
         wallet.removeDelegate(address(usdc), delegate);
         vm.stopPrank();
@@ -1003,7 +1045,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Assert final state
         ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
+            depositorSpendable: 0, // Spendable used up
             depositorWithdrawing: finalDepositorWithdrawing,
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: finalWalletExternalUsdc,
@@ -1012,6 +1054,15 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Final State (Withdrawing, Revoked Delegate)", depositor, feeRecipient, finalExpectedBalances);
     }
 
+    /// Tests a burn scenario using a single authorization signed by the depositor, burning from both spendable and withdrawing balances.
+    ///
+    /// Steps:
+    /// 1. Balance Setup: Initiate a withdrawal for a portion of the spendable balance, leaving some spendable.
+    /// 2. Initial State Check: Verify balances: Both Spendable and Withdrawing have funds.
+    /// 3. Authorization Setup: Create `BurnAuthorization` (value > remaining spendable), sign with depositor key.
+    /// 4. Event Expectation: Expect `BurnedSpent` event with `fromSpendable` covering the remaining spendable amount, and `fromWithdrawing` covering the rest of `value + fee`.
+    /// 5. Call `burnSpent`: Execute the function.
+    /// 6. Final State Check: Verify final balances: Spendable is 0, Withdrawing is reduced by the remainder.
     function test_burnSpent_singleAuth_currentDomain_fromBothBalances_depositorSigner() public {
         // Move some funds to withdrawing balance
         uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
@@ -1079,6 +1130,15 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Final State (Both Balances)", depositor, feeRecipient, finalExpectedBalances);
     }
 
+    /// Tests a burn scenario using a single authorization signed by an authorized delegate, burning from both spendable and withdrawing balances.
+    ///
+    /// Steps:
+    /// 1. Balance & Delegate Setup: Initiate partial withdrawal, authorize delegate.
+    /// 2. Initial State Check: Verify both balances have funds.
+    /// 3. Authorization Setup: Create `BurnAuthorization` (value > remaining spendable), sign with delegate key.
+    /// 4. Event Expectation: Expect `BurnedSpent` event, funds split between `fromSpendable` and `fromWithdrawing`, authorizer is delegate.
+    /// 5. Call `burnSpent`: Execute with delegate signature.
+    /// 6. Final State Check: Verify final balances: Spendable is 0, Withdrawing reduced.
     function test_burnSpent_singleAuth_currentDomain_fromBothBalances_delegateSigner() public {
         // Move some funds to withdrawing balance
         uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
@@ -1149,6 +1209,15 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Final State (Both Balances)", depositor, feeRecipient, finalExpectedBalances);
     }
 
+    /// Tests a burn scenario using a single authorization signed by a revoked delegate, burning from both spendable and withdrawing balances.
+    ///
+    /// Steps:
+    /// 1. Balance & Delegate Setup/Revocation: Initiate partial withdrawal, authorize and revoke delegate.
+    /// 2. Authorization Setup: Create `BurnAuthorization` (value > remaining spendable), sign with delegate key *before* revocation.
+    /// 3. Initial State Check: Verify both balances have funds.
+    /// 4. Event Expectation: Expect `BurnedSpent` event, funds split, authorizer is revoked delegate.
+    /// 5. Call `burnSpent`: Execute with pre-revocation delegate signature.
+    /// 6. Final State Check: Verify final balances: Spendable is 0, Withdrawing reduced.
     function test_burnSpent_singleAuth_currentDomain_fromBothBalances_revokedDelegateSigner() public {
         // Move some funds to withdrawing balance
         uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
