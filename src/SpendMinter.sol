@@ -113,9 +113,9 @@ contract SpendMinter is SpendCommon {
             revert MustHaveAtLeastOneMintAuthorization();
         }
 
+        bytes29 auth;
         while (!cursor.done) {
-            bytes29 auth;
-            (auth, cursor) = cursor.next();
+            auth = cursor.next();
             _validateMintAuthorization(auth, cursor.index - 1);
             _spend(auth.getTransferSpec(), authorizations);
         }

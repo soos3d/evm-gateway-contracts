@@ -326,8 +326,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         assertEq(cursor.done, false);
 
         // Advance the cursor
-        bytes29 currentAuth;
-        (currentAuth, cursor) = cursor.next();
+        bytes29 currentAuth = cursor.next();
         assertEq(currentAuth, authView);
         assertEq(cursor.setOrAuthView, authView);
         assertEq(cursor.offset, encodedAuth.length);
@@ -343,8 +342,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
 
         AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuth);
-        bytes29 currentAuth;
-        (currentAuth, cursor) = cursor.next();
+        cursor.next();
         assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
         cursor.next();
