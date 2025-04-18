@@ -20,9 +20,11 @@ pragma solidity ^0.8.28;
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
+import {DelegationStorage} from "src/lib/wallet/Delegation.sol";
 import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
+import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {BurnLib} from "src/lib/wallet/BurnLib.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
@@ -30,12 +32,14 @@ import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
+import {console} from "forge-std/console.sol";
 
 contract TestBurns is SignatureTestUtils, DeployUtils {
     using MessageHashUtils for bytes32;
 
     uint32 private domain;
     address private owner = makeAddr("owner");
+    address private feeRecipient = makeAddr("feeRecipient");
     uint256 private depositorKey;
     address private depositor;
     address private recipient = makeAddr("recipient");
@@ -46,6 +50,28 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     uint256 private defaultMaxFee = 10 ** 6;
     uint256 private depositorInitialBalance = 5 * 1000 * 10 ** 6;
     bytes internal constant METADATA = "Test metadata";
+
+    struct ExpectedBurnEventParams {
+        address token;
+        address depositor;
+        bytes32 spendHash;
+        uint32 destinationDomain;
+        bytes32 recipient;
+        address authorizer;
+        uint256 value;
+        uint256 fee;
+        uint256 fromSpendable;
+        uint256 fromWithdrawing;
+    }
+
+    struct ExpectedBalances {
+        uint256 depositorExternalUsdc;
+        uint256 depositorSpendable;
+        uint256 depositorWithdrawing;
+        uint256 feeRecipientExternalUsdc;
+        uint256 walletExternalUsdc;
+        uint256 usdcTotalSupply;
+    }
 
     FiatTokenV2_2 private usdc;
 
@@ -66,6 +92,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             wallet.addSupportedToken(address(usdc));
             wallet.updateDenylister(owner);
             wallet.updateBurnSigner(burnSigner);
+            wallet.updateFeeRecipient(feeRecipient);
         }
         vm.stopPrank();
 
@@ -86,7 +113,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         }   
 
         // Setup initial depositor balance
-        deal(address(usdc), depositor, depositorInitialBalance);
+        deal(address(usdc), depositor, depositorInitialBalance, true);
         vm.startPrank(depositor);
         {
             usdc.approve(address(wallet), type(uint256).max);
@@ -165,6 +192,22 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     function _signAuthOrAuthSet(bytes memory authOrAuthSet, uint256 signerKey) internal pure returns (bytes memory signature) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, keccak256(authOrAuthSet).toEthSignedMessageHash());
         signature = abi.encodePacked(r, s, v);
+    }
+
+    function _expectBurnEvent(ExpectedBurnEventParams memory params) internal {
+        vm.expectEmit(true, true, true, true);
+        emit BurnLib.BurnedSpent(
+            params.token,
+            params.depositor,
+            params.spendHash,
+            params.destinationDomain,
+            params.recipient,
+            params.authorizer,
+            params.value,
+            params.fee,
+            params.fromSpendable,
+            params.fromWithdrawing
+        );
     }
 
     // ===== Entry Checks / Modifier Tests =====
@@ -518,4 +561,118 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.expectRevert(DelegationStorage.NotAuthorized.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
+
+    // ===== Burn Failure Scenarios =====
+
+    // TODO
+
+    /*
+     * Test Matrix for Successful Burns:
+     *
+     * This section tests successful `burnSpent` calls by varying several parameters:
+     * 1. Input Structure: How authorizations are grouped (single vs. multiple sets, single vs. multiple auths per set).
+     * 2. Domain Relevance: Whether authorizations are for the current domain (processed) or another (skipped).
+     * 3. Balance Source: Where funds are drawn from (spendable only, withdrawing only, or both).
+     * 4. Authorization Signer: Who signed the authorization (the depositor, an authorized delegate, or a now revoked delegate).
+     *
+     */
+
+    // ===== Burn Success Scenarios - Single Authorization, Single Authorization Set =====
+
+    // General purpose state assertion helper
+    function _assertBalances(
+        string memory context, // e.g., "Initial State", "After Burn"
+        address depositorAddr,
+        address feeRecipientAddr,
+        ExpectedBalances memory expected
+    ) internal view {
+        // Fetch actual balances
+        uint256 actualDepositorExternalUsdc = usdc.balanceOf(depositorAddr);
+        uint256 actualDepositorSpendable = wallet.spendableBalance(address(usdc), depositorAddr);
+        uint256 actualDepositorWithdrawing = wallet.withdrawingBalance(address(usdc), depositorAddr);
+        uint256 actualFeeRecipientExternalUsdc = usdc.balanceOf(feeRecipientAddr);
+        uint256 actualWalletExternalUsdc = usdc.balanceOf(address(wallet));
+        uint256 actualUsdcTotalSupply = usdc.totalSupply();
+
+        // Assertions
+        assertEq(actualDepositorExternalUsdc, expected.depositorExternalUsdc, string.concat(context, ": Depositor External USDC mismatch"));
+        assertEq(actualDepositorSpendable, expected.depositorSpendable, string.concat(context, ": Depositor Spendable mismatch"));
+        assertEq(actualDepositorWithdrawing, expected.depositorWithdrawing, string.concat(context, ": Depositor Withdrawing mismatch"));
+        assertEq(actualFeeRecipientExternalUsdc, expected.feeRecipientExternalUsdc, string.concat(context, ": Fee Recipient External USDC mismatch"));
+        assertEq(actualWalletExternalUsdc, expected.walletExternalUsdc, string.concat(context, ": Wallet External USDC mismatch"));
+        assertEq(actualUsdcTotalSupply, expected.usdcTotalSupply, string.concat(context, ": USDC Total Supply mismatch"));
+    }
+
+    /// Tests a simple burn scenario: single authorization, signed by the depositor, burning from spendable balance.
+    /// 
+    /// Steps:
+    /// 1. Initial State Check: Use `_assertBalances` to verify initial balances:
+    ///    - Depositor: External USDC (0), Internal Spendable (`depositorInitialBalance`), Internal Withdrawing (0).
+    ///    - Fee Recipient: External USDC (0).
+    ///    - SpendWallet Contract: External USDC (`depositorInitialBalance`).
+    ///    - USDC Token: `totalSupply`.
+    /// 2. Authorization Setup: Create `BurnAuthorization` for `value` + `fee` and sign it using the depositor's key.
+    /// 3. Event Expectation: Set up `_expectBurnEvent` with expected parameters.
+    /// 4. Call `burnSpent`: Execute the function via `_callBurnSpentSignedBy` with the authorization, depositor signature, fee, and a valid burner signature.
+    /// 5. Final State Check: Use `_assertBalances` to verify final balances.
+    ///    - Depositor: External USDC (0), Internal Spendable (`depositorInitialBalance - value - fee`), Internal Withdrawing (0).
+    ///    - Fee Recipient: External USDC (`fee`).
+    ///    - SpendWallet Contract: External USDC (`depositorInitialBalance - value - fee`).
+    ///    - USDC Token: `totalSupply` (should be `initialTotalSupply - value`).
+    function test_burnSpent_singleAuth_currentDomain_fromSpendableBalance_depositorSigner() public {
+        BurnAuthorization memory auth = baseAuth;
+        uint256 burnValue = auth.spec.value;
+        uint256 fee = defaultMaxFee / 2;
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, depositorKey);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature;
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        fees[0][0] = fee;
+
+        // Assert initial state
+        uint256 initialTotalSupply = usdc.totalSupply();
+        ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: depositorInitialBalance,
+            depositorWithdrawing: 0,
+            feeRecipientExternalUsdc: 0,
+            walletExternalUsdc: depositorInitialBalance,
+            usdcTotalSupply: initialTotalSupply
+        });
+        _assertBalances("Initial State", depositor, feeRecipient, initialExpectedBalances);
+
+        ExpectedBurnEventParams memory expectedParams;
+        expectedParams.token = address(usdc);
+        expectedParams.depositor = depositor;
+        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.destinationDomain = auth.spec.destinationDomain;
+        expectedParams.recipient = auth.spec.destinationRecipient;
+        expectedParams.authorizer = depositor; // We signed with depositorKey
+        expectedParams.value = burnValue;
+        expectedParams.fee = fee; // The actual fee being paid
+        expectedParams.fromSpendable = burnValue + fee;
+        expectedParams.fromWithdrawing = 0;
+        _expectBurnEvent(expectedParams);
+
+        // Call burnSpent (using helper which includes burner signature)
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+
+        // Assert final state
+        ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
+            depositorExternalUsdc: 0,
+            depositorSpendable: depositorInitialBalance - (burnValue + fee),
+            depositorWithdrawing: 0,
+            feeRecipientExternalUsdc: fee,
+            walletExternalUsdc: depositorInitialBalance - (burnValue + fee),
+            usdcTotalSupply: initialTotalSupply - burnValue
+        });
+        _assertBalances("Final State", depositor, feeRecipient, finalExpectedBalances);
+    }
+
 }
