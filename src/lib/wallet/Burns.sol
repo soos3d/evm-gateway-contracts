@@ -138,12 +138,25 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
     /// happens on the same chain to avoid burning and minting. No fee is charged.
     ///
     /// @dev The caller of this method must be the `minterContract`
-    /// @dev The source and destination domains must both be this contract's domain
+    /// @dev The source and destination domains must both be this contract's domain (enforced by `minterContract`)
     /// @dev See the docs for `SpendAuthorization` for encoding details
     ///
-    /// @param authorization   The spend authorization that was passed to the minter contract
-    /// @param signature       The signature from the operator
-    function sameChainSpend(bytes memory authorization, bytes calldata signature) external whenNotPaused {}
+    /// @param token                The token address being transferred
+    /// @param depositor            The address of the owner of the funds within the wallet
+    /// @param recipient            The address receiving the funds
+    /// @param authorizer           The address that authorized the spend
+    /// @param value                The amount of tokens transferred
+    /// @param spendHash            The keccak256 hash of the SpendSpec
+    /// @param spendAuthorization   The byte-encoded SpendAuthorization or SpendAuthorizationSet
+    function sameChainSpend(
+        address token,
+        address depositor,
+        address recipient,
+        address authorizer,
+        uint256 value,
+        bytes32 spendHash,
+        bytes memory spendAuthorization
+    ) external whenNotPaused {}
 
     /// The address that may sign the calldata for burning tokens that have been spent
     function burnSigner() public view returns (address) {
