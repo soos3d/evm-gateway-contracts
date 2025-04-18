@@ -44,6 +44,7 @@ library BurnLib {
     error InvalidBurnSigner();
     error MismatchedBurn();
     error MustHaveAtLeastOneBurnAuthorization();
+    error NoRelevantBurnAuthorizations();
     error AuthorizationExpired(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
     error BurnValueMustBePositive(uint32 index);
     error InvalidAuthorizationSourceContract(uint32 index, address expectedSourceContract);
@@ -194,6 +195,10 @@ library BurnLib {
             uint256 fee = fees[index];
             totalDeductedAmount += _burn(spec, authorizer, fee);
             totalFee += fee;
+        }
+
+        if (totalDeductedAmount == 0) {
+            revert NoRelevantBurnAuthorizations();
         }
 
         // Collect the fee

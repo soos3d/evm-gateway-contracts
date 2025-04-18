@@ -567,7 +567,25 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     // ===== Burn Failure Scenarios =====
 
-    // TODO
+    function test_burnSpent_singleAuth_revertIfOtherDomain() public {
+        BurnAuthorization memory otherDomainAuth = baseAuth;
+        otherDomainAuth.spec.sourceDomain = domain + 1; // A different domain
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(otherDomainAuth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, depositorKey);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature;
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+        fees[0][0] = baseAuth.maxFee;
+
+
+        vm.expectRevert(BurnLib.NoRelevantBurnAuthorizations.selector);
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
 
     /*
      * Test Matrix for Successful Burns:
