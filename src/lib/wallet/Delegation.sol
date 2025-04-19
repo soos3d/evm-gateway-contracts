@@ -22,6 +22,12 @@ import {Denylistable} from "src/lib/common/Denylistable.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 
+enum AuthorizationStatus {
+    Unauthorized,
+    Authorized,
+    Revoked
+}
+
 /// @title Delegation
 ///
 /// Manages delegation for the SpendWallet contract
@@ -55,7 +61,7 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
             revert CannotDelegateToSelf();
         }
 
-        DelegationStorage.get().authorizedDelegates[token][msg.sender][delegate] = true;
+        DelegationStorage.get().authorizedDelegates[token][msg.sender][delegate] = AuthorizationStatus.Authorized;
         emit DelegateAdded(token, msg.sender, delegate);
     }
 
@@ -81,7 +87,20 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
     {
         _checkNotZeroAddress(delegate);
 
-        DelegationStorage.get().authorizedDelegates[token][msg.sender][delegate] = false;
+        DelegationStorage.Data storage delegation$ = DelegationStorage.get();
+        AuthorizationStatus existingStatus = delegation$.authorizedDelegates[token][msg.sender][delegate];
+
+        // If the address has never been authorized, take no action
+        if (existingStatus == AuthorizationStatus.Unauthorized) {
+            return;
+        }
+
+        // Otherwise, mark the authorization as revoked. The API will treat this the same as Unauthorized for the
+        // purpose of issuing mint authorizations, but the wallet contract will allow burn authorizations signed by
+        // revoked delegates in order to prevent a front-running attack where an authorization is revoked before the
+        // burn has a chance to happen.
+        delegation$.authorizedDelegates[token][msg.sender][delegate] = AuthorizationStatus.Revoked;
+
         emit DelegateRemoved(token, msg.sender, delegate);
     }
 
@@ -91,18 +110,22 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
     /// @param depositor   The depositor to check
     /// @param addr        The address to check
     function isAuthorizedForBalance(address token, address depositor, address addr) public view returns (bool) {
-        if (addr == depositor) return true;
+        return DelegationStorage._isAuthorizedForBalance(token, depositor, addr);
+    }
 
-        return DelegationStorage.get().authorizedDelegates[token][depositor][addr];
+    function _ensureAuthorizedForBalance(address token, address depositor, address addr) internal view {
+        DelegationStorage._ensureAuthorizedForBalance(token, depositor, addr);
     }
 }
 
 /// Implements the EIP-7201 storage pattern for the Delegation module
 library DelegationStorage {
+    error NotAuthorized();
+
     /// @custom:storage-location 7201:circle.gateway.Delegation
     struct Data {
         /// The addresses that are authorized to withdraw and transfer the balances of other depositors for a given token
-        mapping(address token => mapping(address depositor => mapping(address delegate => bool isAuthorized)))
+        mapping(address token => mapping(address depositor => mapping(address delegate => AuthorizationStatus status)))
             authorizedDelegates;
     }
 
@@ -113,6 +136,28 @@ library DelegationStorage {
     function get() internal pure returns (Data storage $) {
         assembly {
             $.slot := SLOT
+        }
+    }
+
+    /// Check if an address is authorized to withdraw and transfer tokens on behalf of a depositor
+    ///
+    /// @param token       The token to check
+    /// @param depositor   The depositor to check
+    /// @param addr        The address to check
+    function _isAuthorizedForBalance(address token, address depositor, address addr) internal view returns (bool) {
+        if (addr == depositor) return true;
+
+        return get().authorizedDelegates[token][depositor][addr] == AuthorizationStatus.Authorized;
+    }
+
+    /// Revert if an address is not authorized to withdraw and transfer tokens on behalf of a depositor
+    ///
+    /// @param token       The token to check
+    /// @param depositor   The depositor to check
+    /// @param addr        The address to check
+    function _ensureAuthorizedForBalance(address token, address depositor, address addr) internal view {
+        if (!_isAuthorizedForBalance(token, depositor, addr)) {
+            revert NotAuthorized();
         }
     }
 }
