@@ -22,18 +22,18 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
 import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/MintAuthorizations.sol";
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
 import {Denylistable} from "src/lib/common/Denylistable.sol";
-import {SpendHashes} from "src/lib/common/SpendHashes.sol";
+import {SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
 import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
+import {BurnLib} from "src/lib/wallet/BurnLib.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract MockMintableToken is ERC20 {
@@ -42,6 +42,25 @@ contract MockMintableToken is ERC20 {
     function mint(address to, uint256 amount) external returns (bool) {
         _mint(to, amount);
         return true;
+    }
+}
+
+/// @notice Mock implementation of SpendWallet for testing mints
+/// @dev Implements minimal sameChainSpend functionality needed for tests
+contract MockSpendWallet {
+    function sameChainSpend(
+        address token,
+        address depositor,
+        address recipient,
+        address authorizer,
+        uint256 value,
+        bytes32 spendHash,
+        bytes memory spendAuthorization
+    ) external {
+        ERC20(token).transfer(recipient, value);
+        emit BurnLib.TransferredSpent(
+            token, depositor, spendHash, recipient, authorizer, value, value, 0, spendAuthorization
+        );
     }
 }
 
@@ -70,17 +89,19 @@ contract TestMints is Test, DeployUtils {
     MintAuthorization private sameChainBaseAuth;
 
     SpendMinter private minter;
-    SpendWallet private wallet;
+    MockSpendWallet private wallet;
 
     function setUp() public {
         domain = ForkTestUtils.forkVars().domain;
         usdc = FiatTokenV2_2(ForkTestUtils.forkVars().usdc);
-        (wallet, minter) = deploy(owner, domain);
+        (, minter) = deploy(owner, domain);
+        wallet = new MockSpendWallet();
         mockToken = new MockMintableToken();
 
         (mintAuthorizationSigner, mintAuthorizationSignerKey) = makeAddrAndKey("mintAuthorizationSigner");
         vm.startPrank(owner);
         {
+            minter.updateCounterpart(address(wallet));
             minter.addSupportedToken(address(usdc));
             minter.addSupportedToken(address(mockToken));
             minter.updateDenylister(owner);
@@ -89,6 +110,12 @@ contract TestMints is Test, DeployUtils {
         }
         vm.stopPrank();
 
+        vm.startPrank(depositor);
+        {
+            deal(address(usdc), address(wallet), spendValue * 3);
+            deal(address(mockToken), address(wallet), spendValue * 3);
+        }
+        vm.stopPrank();
         // Setup minter as USDC minter
         address masterMinterAddr = usdc.masterMinter();
         if (masterMinterAddr.code.length > 0) {
@@ -486,7 +513,7 @@ contract TestMints is Test, DeployUtils {
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(crossChainBaseAuth.spec));
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, specHash));
+        vm.expectRevert(abi.encodeWithSelector(SpendHashesStorage.SpendHashUsed.selector, specHash));
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
@@ -817,8 +844,7 @@ contract TestMints is Test, DeployUtils {
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
 
-        // TODO: uncomment when same chain spend is implemented on the wallet contract
-        // assertEq(usdc.balanceOf(recipient), spendValue);
+        assertEq(usdc.balanceOf(recipient), spendValue);
     }
 
     function test_spend_sameChain_sameRecipient_sameToken_successValidAuthSet() public {
@@ -859,8 +885,7 @@ contract TestMints is Test, DeployUtils {
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
 
-        // TODO: uncomment when same chain spend is implemented on the wallet contract
-        // assertEq(usdc.balanceOf(recipient), auth1.spec.value + auth2.spec.value);
+        assertEq(usdc.balanceOf(recipient), auth1.spec.value + auth2.spec.value);
     }
 
     function test_spend_sameChain_sameRecipient_differentTokens_successValidAuthSet() public {
@@ -908,9 +933,8 @@ contract TestMints is Test, DeployUtils {
 
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
 
-        // TODO: uncomment when same chain spend is implemented on the wallet contract
-        // assertEq(usdc.balanceOf(recipient), auth1.spec.value);
-        // assertEq(mockToken.balanceOf(recipient), auth2.spec.value);
+        assertEq(usdc.balanceOf(recipient), auth1.spec.value);
+        assertEq(mockToken.balanceOf(recipient), auth2.spec.value);
     }
 
     function test_spend_sameChain_differentRecipients_sameToken_successValidAuthSet() public {
@@ -957,9 +981,8 @@ contract TestMints is Test, DeployUtils {
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
 
-        // TODO: uncomment when same chain spend is implemented on the wallet contract
-        // assertEq(usdc.balanceOf(recipient1), auth1.spec.value);
-        // assertEq(usdc.balanceOf(recipient2), auth2.spec.value);
+        assertEq(usdc.balanceOf(recipient1), auth1.spec.value);
+        assertEq(usdc.balanceOf(recipient2), auth2.spec.value);
     }
 
     function test_spend_sameChain_differentRecipients_differentTokens_successValidAuthSet() public {
@@ -1010,8 +1033,7 @@ contract TestMints is Test, DeployUtils {
 
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
 
-        // TODO: uncomment when same chain spend is implemented on the wallet contract
-        // assertEq(usdc.balanceOf(recipient1), auth1.spec.value);
-        // assertEq(mockToken.balanceOf(recipient2), auth2.spec.value);
+        assertEq(usdc.balanceOf(recipient1), auth1.spec.value);
+        assertEq(mockToken.balanceOf(recipient2), auth2.spec.value);
     }
 }
