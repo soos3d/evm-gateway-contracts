@@ -152,9 +152,6 @@ library BurnLib {
         _burnAll(cursor, authorizer, fees, BurnsStorage.get().feeRecipient);
     }
 
-    /// Thrown when the burns relevant to this domain are not all for the same token
-    error NotAllSameToken();
-
     function _burnAll(
         AuthorizationCursor memory cursor,
         address authorizer,
@@ -222,7 +219,7 @@ library BurnLib {
         (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value + fee);
         deductedAmount = fromSpendable + fromWithdrawing;
 
-        // If the full amount could not be deducted, charge a partial fee if possible
+        // If the full amount could not be deducted, we want to take as much of the fee as possible
         if (deductedAmount <= value) {
             actualFeeCharged = 0;
         } else {
