@@ -138,6 +138,13 @@ library BurnLib {
         }
     }
 
+    /**
+     * @notice Validates a single authorization or authorization set, recovers the signer, and processes all relevant burns.
+     * @param authorization The byte-encoded set of authorizations (potentially containing multiple individual auths).
+     * @param signature The ECDSA signature over the `keccak256` hash of `authorization`.
+     * @param fees An array containing the fee proposed for each individual authorization within the set. Must match
+     *             the number of authorizations encoded in `authorization`.
+     */
     function _validateAndBurn(bytes memory authorization, bytes memory signature, uint256[] memory fees) internal {
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(authorization);
         if (cursor.numAuths == 0) {
@@ -152,6 +159,13 @@ library BurnLib {
         _burnAll(cursor, authorizer, fees, BurnsStorage.get().feeRecipient);
     }
 
+    /**
+     * @notice Iterates through a set of burn authorizations, validates and processes relevant ones.
+     * @param cursor An initialized `AuthorizationCursor` pointing to the start of the authorization set.
+     * @param authorizer The address recovered from the signature covering the entire authorization set.
+     * @param fees An array containing the fee proposed for each individual authorization.
+     * @param feeRecipient The address designated to receive the collected fees.
+     */
     function _burnAll(
         AuthorizationCursor memory cursor,
         address authorizer,
@@ -206,6 +220,19 @@ library BurnLib {
         IBurnToken(token).burn(totalDeductedAmount - totalFee);
     }
 
+    /**
+     * @notice Processes a single valid burn authorization: marks the spend hash, reduces balance, and emits event.
+     * @dev Assumes the associated `TransferSpec` (`spec`) has already been validated for relevance to the current
+     *      domain and basic validity checks (e.g., non-zero value, expiry). It calculates the actual fee charged based
+     *      on available balance after deducting the value.
+     * @param spec The `TransferSpec` (`bytes29`) derived from the validated burn authorization.
+     * @param authorizer The address that signed the authorization set containing this spec.
+     * @param fee The fee requested for this specific burn operation.
+     * @return deductedAmount The total amount actually deducted from the depositor's balances (value + actualFeeCharged).
+     *                        May be less than `value + fee` if the depositor had insufficient balance.
+     * @return actualFeeCharged The fee amount actually charged and collected. May be less than `fee` if the depositor
+     *                          had insufficient balance to cover the full value and fee.
+     */
     function _burn(bytes29 spec, address authorizer, uint256 fee) internal returns (uint256 deductedAmount, uint256 actualFeeCharged) {
         // Mark the spend hash as used
         SpendHashesStorage._checkAndMark(spec.getHash());
@@ -274,6 +301,12 @@ library BurnLib {
         }
     }
 
+    /**
+     * @notice Recovers the signer address from an ECDSA signature over the EIP-712 hash of authorization bytes.
+     * @param authorizations The byte array representing the set of authorizations that were signed.
+     * @param signature The 65-byte ECDSA signature (r, s, v).
+     * @return address The address recovered from the signature. Returns address(0) if the signature is invalid.
+     */
     function _recoverAuthorizationSigner(bytes memory authorizations, bytes memory signature)
         internal
         pure
@@ -282,6 +315,19 @@ library BurnLib {
         return ECDSA.recover(keccak256(authorizations).toEthSignedMessageHash(), signature);
     }
 
+    /**
+     * @notice Validates contents of a single burn authorization based on various criteria for the current chain context.
+     * @dev Checks include: non-zero value, source domain match, expiry block, fee limit, source contract address,
+     *      token support, and signer delegation.
+     * @param auth The `bytes29` encoded burn authorization to validate.
+     * @param authorizationSigner The address recovered from the signature covering the entire authorization set.
+     *                            This address must have been delegated authority for the specified balance.
+     * @param fee The fee proposed for this specific burn authorization.
+     * @param index The index of this authorization within the original array (used for detailed error messages).
+     * @return relevant A boolean indicating if the authorization is for the current domain (`true`) or a different
+     *                  domain (`false`). If `false`, the authorization should be skipped for processing on this chain.
+     *                  Further validation checks are skipped if the domain doesn't match.
+     */
     function _validateBurnAuthorization(bytes29 auth, address authorizationSigner, uint256 fee, uint32 index)
         internal
         view
@@ -352,6 +398,14 @@ library BurnLib {
         uint256 withdrawingBalance
     );
 
+    /**
+     * @notice Reduces a depositor's balances by a specified value, prioritizing the spendable balance.
+     * @param token The address of the token whose balance is being reduced.
+     * @param depositor The address of the account whose balance is being reduced.
+     * @param value The total amount to be deducted.
+     * @return fromSpendable The amount deducted from the `spendable` balance.
+     * @return fromWithdrawing The amount deducted from the `withdrawing` balance.
+     */
     function _reduceBalance(address token, address depositor, uint256 value)
         internal
         returns (uint256 fromSpendable, uint256 fromWithdrawing)

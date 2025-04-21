@@ -145,7 +145,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
                 destinationToken: _addressToBytes32(address(usdc)),
                 sourceDepositor: _addressToBytes32(depositor),
                 destinationRecipient: _addressToBytes32(recipient),
-                sourceSigner: bytes32(0), // TODO: revisit
+                sourceSigner: bytes32(0),
                 destinationCaller: bytes32(0),
                 value: depositorInitialBalance / 2,
                 nonce: keccak256("nonce"),
