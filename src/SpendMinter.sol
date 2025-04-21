@@ -25,7 +25,6 @@ import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {MintAuthorization} from "src/lib/authorizations/MintAuthorizations.sol";
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {IMintToken} from "src/interfaces/IMintToken.sol";
-import {SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
@@ -192,7 +191,7 @@ contract SpendMinter is SpendCommon {
     /// @param authorizations The full byte-encoded authorization(s) used.
     function _spend(bytes29 spec, bytes memory authorizations) internal {
         bytes32 specHash = spec.getHash();
-        SpendHashesStorage._checkAndMark(specHash);
+        _checkAndMark(specHash);
         address recipient = _bytes32ToAddress(spec.getDestinationRecipient());
         uint256 value = spec.getValue();
         address token = _bytes32ToAddress(spec.getDestinationToken());

@@ -35,6 +35,11 @@ contract SpendHashes {
     function _ensureSpendHashNotUsed(bytes32 spendHash) internal view {
         SpendHashesStorage._ensureSpendHashNotUsed(spendHash);
     }
+
+    function _checkAndMark(bytes32 spendHash) internal {
+        _ensureSpendHashNotUsed(spendHash);
+        _markSpendHashAsUsed(spendHash);
+    }
 }
 
 /// Implements the EIP-7201 storage pattern for the SpendHashes module

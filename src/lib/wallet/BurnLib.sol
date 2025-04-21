@@ -181,10 +181,8 @@ library BurnLib {
         while (!cursor.done) {
             index = cursor.index; // cursor.next() increments index
 
-            // Get the next burn authorization and skip if it's not relevant to this domain
+            // Get the next burn authorization and extract its transfer spec
             auth = cursor.next();
-
-            // Get the transfer spec
             bytes29 spec = auth.getTransferSpec();
 
             // Validate that everything about the burn authorization is as expected, and skip if it's not for this domain
@@ -193,7 +191,7 @@ library BurnLib {
                 continue;
             }
 
-            // Get the TransferSpec and ensure that each one we've seen so far is for the same token
+            // Ensure that each one we've seen so far is for the same token
             address _token = _bytes32ToAddress(spec.getSourceToken());
             if (token != address(0)) {
                 if (_token != token) {
@@ -249,7 +247,7 @@ library BurnLib {
         (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value + fee);
         deductedAmount = fromSpendable + fromWithdrawing;
 
-        // If the full amount could not be deducted, we want to take as much of the fee as possible
+        // If the full amount could not be deducted, we want to prioritize burning over taking the fee
         if (deductedAmount <= value) {
             actualFeeCharged = 0;
         } else {

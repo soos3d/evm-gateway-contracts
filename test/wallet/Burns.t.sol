@@ -51,6 +51,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     address private delegate;
     address private recipient = makeAddr("recipient");
     address private destinationContract = makeAddr("destinationContract");
+    address private destinationToken = makeAddr("destinationToken");
     address private burnSigner;
     uint256 private burnSignerKey;
     uint256 private defaultMaxBlockHeightOffset = 100;
@@ -142,7 +143,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
                 sourceContract: _addressToBytes32(address(wallet)),
                 destinationContract: _addressToBytes32(destinationContract),
                 sourceToken: _addressToBytes32(address(usdc)),
-                destinationToken: _addressToBytes32(address(usdc)),
+                destinationToken: _addressToBytes32(destinationToken),
                 sourceDepositor: _addressToBytes32(depositor),
                 destinationRecipient: _addressToBytes32(recipient),
                 sourceSigner: bytes32(0),
