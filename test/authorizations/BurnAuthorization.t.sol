@@ -327,8 +327,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         assertEq(cursor.done, false);
 
         // Advance the cursor
-        bytes29 currentAuth;
-        (currentAuth, cursor) = cursor.next();
+        bytes29 currentAuth = cursor.next();
         assertEq(currentAuth, authView);
         assertEq(cursor.setOrAuthView, authView);
         assertEq(cursor.offset, encodedAuth.length);
@@ -344,8 +343,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
 
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuth);
-        bytes29 currentAuth;
-        (currentAuth, cursor) = cursor.next();
+        cursor.next();
         assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
         cursor.next();

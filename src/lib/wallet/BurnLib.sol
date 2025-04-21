@@ -182,7 +182,7 @@ library BurnLib {
             index = cursor.index; // cursor.next() increments index
             
             // Get the next burn authorization and skip if it's not relevant to this domain
-            (auth, cursor) = cursor.next();
+            auth = cursor.next();
 
             // Get the transfer spec
             bytes29 spec = auth.getTransferSpec();

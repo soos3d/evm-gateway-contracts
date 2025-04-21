@@ -226,8 +226,7 @@ library BurnAuthorizationLib {
     ///      Reverts with CursorOutOfBounds if called when no elements are remaining.
     /// @param c The AuthorizationCursor memory struct.
     /// @return ref The current element the cursor is pointing at.
-    /// @return c The updated AuthorizationCursor.
-    function next(AuthorizationCursor memory c) internal pure returns (bytes29 ref, AuthorizationCursor memory) {
+    function next(AuthorizationCursor memory c) internal pure returns (bytes29 ref) {
         if (c.done) {
             revert TransferSpecLib.CursorOutOfBounds();
         }
@@ -247,7 +246,7 @@ library BurnAuthorizationLib {
             c.done = true;
         }
 
-        return (ref, c);
+        return ref;
     }
 
     // --- View field accessors ---

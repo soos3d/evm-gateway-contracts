@@ -66,9 +66,9 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
 
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         uint32 i = 0;
+        bytes29 authRef;
         while (!cursor.done) {
-            bytes29 authRef;
-            (authRef, cursor) = cursor.next();
+            authRef = cursor.next();
             _verifyBurnAuthorizationFieldsFromView(authRef, authSet.authorizations[i]);
             i++;
         }
@@ -627,8 +627,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint256 expectedOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth.length;
 
         // Advance cursor and verify first auth
-        bytes29 currentAuth;
-        (currentAuth, cursor) = cursor.next();
+        bytes29 currentAuth = cursor.next();
         _verifyBurnAuthorizationFieldsFromView(currentAuth, auth);
         assertEq(cursor.setOrAuthView, setRef);
         assertEq(cursor.offset, expectedOffset);
@@ -647,8 +646,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(set);
 
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
-        bytes29 currentAuth;
-        (currentAuth, cursor) = cursor.next();
+        cursor.next();
         assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
         cursor.next();
@@ -674,8 +672,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint256 expectedOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length;
 
         // Advance cursor and verify first auth
-        bytes29 currentAuth;
-        (currentAuth, cursor) = cursor.next();
+        bytes29 currentAuth = cursor.next();
         _verifyBurnAuthorizationFieldsFromView(currentAuth, auth1);
         assertEq(cursor.setOrAuthView, setRef);
         assertEq(cursor.offset, expectedOffset);
@@ -687,7 +684,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint256 expectedUpdatedOffset = expectedOffset + encodedAuth2.length;
 
         // Advance cursor and verify second auth
-        (currentAuth, cursor) = cursor.next();
+        currentAuth = cursor.next();
         _verifyBurnAuthorizationFieldsFromView(currentAuth, auth2);
         assertEq(cursor.setOrAuthView, setRef);
         assertEq(cursor.offset, expectedUpdatedOffset);
@@ -704,8 +701,8 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
-        (, cursor) = cursor.next();
-        (, cursor) = cursor.next();
+        cursor.next();
+        cursor.next();
         assertEq(cursor.done, true);
 
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
