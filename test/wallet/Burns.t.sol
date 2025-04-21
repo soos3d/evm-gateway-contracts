@@ -304,7 +304,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](1);
 
-        vm.expectRevert(abi.encodeWithSelector(BurnLib.BurnValueMustBePositive.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(BurnLib.AuthorizationValueMustBePositive.selector, 0));
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -328,7 +328,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](2);
 
-        vm.expectRevert(abi.encodeWithSelector(BurnLib.BurnValueMustBePositive.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(BurnLib.AuthorizationValueMustBePositive.selector, 1));
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 

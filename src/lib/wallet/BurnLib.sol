@@ -44,13 +44,13 @@ library BurnLib {
     error InvalidBurnSigner();
     error MismatchedBurn();
     error MustHaveAtLeastOneBurnAuthorization();
-    error NoRelevantBurnAuthorizations();
+    error AuthorizationValueMustBePositive(uint32 index);
     error AuthorizationExpired(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
-    error BurnValueMustBePositive(uint32 index);
     error InvalidAuthorizationSourceContract(uint32 index, address expectedSourceContract);
-    error NotAllSameToken();
     error UnsupportedToken(uint32 index, address sourceToken);
     error BurnFeeTooHigh(uint32 index, uint256 maxFee, uint256 actualFee);
+    error NotAllSameToken();
+    error NoRelevantBurnAuthorizations();
 
     /// Emitted when the operator burns tokens that have been spent on another domain
     ///
@@ -339,7 +339,7 @@ library BurnLib {
         // they all fail together across all source domains
         uint256 value = spec.getValue();
         if (value == 0) {
-            revert BurnValueMustBePositive(index);
+            revert AuthorizationValueMustBePositive(index);
         }
 
         // If the burn authorization is for a different domain, ignore futher checks and indicate that to the caller

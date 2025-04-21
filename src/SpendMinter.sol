@@ -42,13 +42,13 @@ contract SpendMinter is SpendCommon {
 
     error InvalidMintAuthorizationSigner();
     error MustHaveAtLeastOneMintAuthorization();
+    error AuthorizationValueMustBePositive(uint32 index);
     error AuthorizationExpired(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
-    error MintValueMustBePositive(uint32 index);
-    error InvalidAuthorizationDestinationCaller(uint32 index, address expectedDestinationCaller, address actualCaller);
     error InvalidAuthorizationDestinationDomain(uint32 index, uint32 expectedDestinationDomain, uint32 actualDomain);
     error InvalidAuthorizationDestinationContract(uint32 index, address expectedDestinationContract);
     error InvalidAuthorizationSourceContract(uint32 index, address sourceContract, address expectedSourceContract);
     error InvalidAuthorizationToken(uint32 index, address sourceToken, address destinationToken);
+    error InvalidAuthorizationDestinationCaller(uint32 index, address expectedDestinationCaller, address actualCaller);
 
     /// Maps token addresses to their corresponding minter contract addresses.
     /// The token minter contracts must have permission to mint the associated token.
@@ -149,7 +149,7 @@ contract SpendMinter is SpendCommon {
 
         uint256 value = spec.getValue();
         if (value == 0) {
-            revert MintValueMustBePositive(index);
+            revert AuthorizationValueMustBePositive(index);
         }
 
         _ensureNotDenylisted(_bytes32ToAddress(spec.getDestinationRecipient()));

@@ -263,7 +263,7 @@ contract TestMints is Test, DeployUtils {
     function test_spend_revertIfZeroValue() public {
         crossChainBaseAuth.spec.value = 0;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
-        vm.expectRevert(abi.encodeWithSelector(SpendMinter.MintValueMustBePositive.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(SpendMinter.AuthorizationValueMustBePositive.selector, 0));
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
@@ -278,7 +278,7 @@ contract TestMints is Test, DeployUtils {
         MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendMinter.MintValueMustBePositive.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(SpendMinter.AuthorizationValueMustBePositive.selector, 1));
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
     }
 
