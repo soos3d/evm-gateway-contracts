@@ -66,9 +66,9 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
 
         AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
         uint32 i = 0;
+        bytes29 authRef;
         while (!cursor.done) {
-            bytes29 authRef;
-            (authRef, cursor) = cursor.next();
+            authRef = cursor.next();
             _verifyMintAuthorizationFieldsFromView(authRef, authSet.authorizations[i]);
             i++;
         }
@@ -629,8 +629,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         uint256 expectedOffset = MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth.length;
 
         // Advance cursor and verify first auth
-        bytes29 currentAuth;
-        (currentAuth, cursor) = cursor.next();
+        bytes29 currentAuth = cursor.next();
         _verifyMintAuthorizationFieldsFromView(currentAuth, auth);
         assertEq(cursor.setOrAuthView, setRef);
         assertEq(cursor.offset, expectedOffset);
@@ -649,8 +648,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(set);
 
         AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
-        bytes29 currentAuth;
-        (currentAuth, cursor) = cursor.next();
+        cursor.next();
         assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
         cursor.next();
@@ -676,8 +674,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         uint256 expectedOffset = MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length;
 
         // Advance cursor and verify first auth
-        bytes29 currentAuth;
-        (currentAuth, cursor) = cursor.next();
+        bytes29 currentAuth = cursor.next();
         _verifyMintAuthorizationFieldsFromView(currentAuth, auth1);
         assertEq(cursor.setOrAuthView, setRef);
         assertEq(cursor.offset, expectedOffset);
@@ -689,7 +686,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         uint256 expectedUpdatedOffset = expectedOffset + encodedAuth2.length;
 
         // Advance cursor and verify second auth
-        (currentAuth, cursor) = cursor.next();
+        currentAuth = cursor.next();
         _verifyMintAuthorizationFieldsFromView(currentAuth, auth2);
         assertEq(cursor.setOrAuthView, setRef);
         assertEq(cursor.offset, expectedUpdatedOffset);
@@ -706,8 +703,8 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         MintAuthorizationSet memory authSet = _createMintAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
         AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
-        (, cursor) = cursor.next();
-        (, cursor) = cursor.next();
+        cursor.next();
+        cursor.next();
         assertEq(cursor.done, true);
 
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
