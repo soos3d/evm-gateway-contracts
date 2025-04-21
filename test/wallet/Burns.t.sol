@@ -1111,7 +1111,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     // 2. Domain Relevance: Whether authorizations are for the current domain (processed) or another (skipped).
     // 3. Balance Source: Where funds are drawn from (spendable only, withdrawing only, or both).
     // 4. Authorization Signer: Who signed the authorization (the depositor, an authorized delegate, or a now revoked delegate).
-    //
 
     struct SingleBurnTestConfig {
         string contextSuffix; // Short description (e.g., "(Spendable, Depositor)")

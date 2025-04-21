@@ -17,9 +17,12 @@
  */
 pragma solidity ^0.8.28;
 
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
 import {Delegation} from "src/lib/wallet/Delegation.sol";
+import {Denylistable} from "src/lib/common/Denylistable.sol";
+import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {Test} from "forge-std/Test.sol";
@@ -61,6 +64,51 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegate));
     }
 
+    function test_addDelegate_canAddRevokedDelegate() public {
+        address delegate = makeAddr("delegate");
+
+        vm.startPrank(owner);
+        wallet.addDelegate(usdc, delegate);
+        vm.stopPrank();
+
+        assertTrue(wallet.isAuthorizedForBalance(usdc, owner, delegate));
+
+        vm.startPrank(owner);
+        wallet.removeDelegate(usdc, delegate);
+        vm.stopPrank();
+
+        assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegate));
+
+        vm.expectEmit(true, true, true, true);
+        emit Delegation.DelegateAdded(usdc, owner, delegate);
+
+        vm.startPrank(owner);
+        wallet.addDelegate(usdc, delegate);
+        vm.stopPrank();
+
+        assertTrue(wallet.isAuthorizedForBalance(usdc, owner, delegate));
+    }
+
+    function test_addDelegate_isIdempotent() public {
+        address delegate = makeAddr("delegate");
+
+        vm.expectEmit(true, true, true, true);
+        emit Delegation.DelegateAdded(usdc, owner, delegate);
+
+        vm.startPrank(owner);
+        wallet.addDelegate(usdc, delegate);
+        vm.stopPrank();
+        assertTrue(wallet.isAuthorizedForBalance(usdc, owner, delegate));
+
+        vm.expectEmit(true, true, true, true);
+        emit Delegation.DelegateAdded(usdc, owner, delegate);
+
+        vm.startPrank(owner);
+        wallet.addDelegate(usdc, delegate);
+        vm.stopPrank();
+        assertTrue(wallet.isAuthorizedForBalance(usdc, owner, delegate));
+    }
+
     function test_addDelegate_revertsWhenDelegateIsSelf() public {
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(Delegation.CannotDelegateToSelf.selector));
@@ -77,12 +125,158 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
+    function test_addDelegate_revertsWhenPaused() public {
+        address delegate = makeAddr("delegate");
+
+        vm.startPrank(owner);
+        wallet.pause();
+        vm.stopPrank();
+
+        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        vm.startPrank(owner);
+        wallet.addDelegate(usdc, delegate);
+        vm.stopPrank();
+    }
+
+    function test_addDelegate_revertsWhenDelegateDenylisted() public {
+        address denylistedDelegate = makeAddr("denylistedDelegate");
+
+        vm.startPrank(owner);
+        wallet.updateDenylister(owner);
+        wallet.denylist(denylistedDelegate);
+        vm.stopPrank();
+
+        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedDelegate));
+        vm.startPrank(owner);
+        wallet.addDelegate(usdc, denylistedDelegate);
+        vm.stopPrank();
+    }
+
+    function test_addDelegate_revertsWhenSenderDenylisted() public {
+        address delegate = makeAddr("delegate");
+        address denylistedSender = makeAddr("denylistedSender");
+
+        vm.startPrank(owner);
+        wallet.updateDenylister(owner);
+        wallet.denylist(denylistedSender);
+        vm.stopPrank();
+
+        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
+        vm.startPrank(denylistedSender);
+        wallet.addDelegate(usdc, delegate);
+        vm.stopPrank();
+    }
+
+    function test_addDelegate_revertsWhenTokenNotSupported() public {
+        address delegate = makeAddr("delegate");
+        address unsupportedToken = makeAddr("unsupportedToken");
+
+        vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
+        vm.startPrank(owner);
+        wallet.addDelegate(unsupportedToken, delegate);
+        vm.stopPrank();
+    }
+
+    function test_removeDelegate_doesNothingWhenDelegateUnauthorized() public {
+        address delegate = makeAddr("delegate");
+
+        assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegate));
+
+        vm.startPrank(owner);
+        wallet.removeDelegate(usdc, delegate);
+        vm.stopPrank();
+
+        assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegate));
+    }
+
+    function test_removeDelegate_doesNothingWhenDelegateRevoked() public {
+        address delegate = makeAddr("delegate");
+
+        assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegate));
+
+        vm.startPrank(owner);
+        wallet.addDelegate(usdc, delegate);
+        assertTrue(wallet.isAuthorizedForBalance(usdc, owner, delegate));
+        wallet.removeDelegate(usdc, delegate); // State is now Revoked
+        assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegate));
+        wallet.removeDelegate(usdc, delegate);
+        vm.stopPrank();
+
+        assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegate));
+    }
+
     function test_removeDelegate_revertsWhenDelegateIsZeroAddress() public {
         address delegate = address(0);
 
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(SpendCommon.InvalidAddress.selector));
         wallet.removeDelegate(usdc, delegate);
+        vm.stopPrank();
+    }
+
+    function test_removeDelegate_revertsWhenPaused() public {
+        address delegate = makeAddr("delegate");
+
+        vm.startPrank(owner);
+        wallet.addDelegate(usdc, delegate);
+        wallet.pause();
+        vm.stopPrank();
+
+        vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
+        vm.startPrank(owner);
+        wallet.removeDelegate(usdc, delegate);
+        vm.stopPrank();
+    }
+
+    function test_removeDelegate_succeedsWhenDelegateDenylisted() public {
+        address delegateToRemove = makeAddr("delegateToRemove");
+
+        vm.startPrank(owner);
+        wallet.addDelegate(usdc, delegateToRemove);
+        vm.stopPrank();
+
+        assertTrue(wallet.isAuthorizedForBalance(usdc, owner, delegateToRemove));
+
+        vm.startPrank(owner);
+        wallet.updateDenylister(owner);
+        wallet.denylist(delegateToRemove);
+        vm.stopPrank();
+
+        assertTrue(wallet.isDenylisted(delegateToRemove));
+
+        vm.startPrank(owner);
+        wallet.removeDelegate(usdc, delegateToRemove);
+        vm.stopPrank();
+
+        assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegateToRemove));
+    }
+
+    function test_removeDelegate_revertsWhenSenderDenylisted() public {
+        address delegate = makeAddr("delegate");
+        address denylistedSender = makeAddr("denylistedSender");
+
+        vm.startPrank(owner);
+        wallet.addDelegate(usdc, delegate);
+        vm.stopPrank();
+
+        vm.startPrank(owner);
+        wallet.updateDenylister(owner);
+        wallet.denylist(denylistedSender);
+        vm.stopPrank();
+
+        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
+        vm.startPrank(denylistedSender);
+        wallet.removeDelegate(usdc, delegate);
+        vm.stopPrank();
+    }
+
+    function test_removeDelegate_revertsWhenTokenNotSupported() public {
+        address delegate = makeAddr("delegate");
+        address unsupportedToken = makeAddr("unsupportedToken");
+
+        vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
+        vm.startPrank(owner);
+        wallet.removeDelegate(unsupportedToken, delegate);
         vm.stopPrank();
     }
 
@@ -98,5 +292,63 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         vm.startPrank(owner);
         assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegate));
         vm.stopPrank();
+    }
+
+    function test_multipleDelegates_differentTokens() public {
+        address delegateA = makeAddr("delegateA");
+        address delegateB = makeAddr("delegateB");
+        address otherToken = makeAddr("otherToken");
+
+        vm.startPrank(owner);
+        wallet.addSupportedToken(otherToken);
+        wallet.addDelegate(usdc, delegateA);
+        wallet.addDelegate(otherToken, delegateB);
+        vm.stopPrank();
+
+        assertTrue(wallet.isAuthorizedForBalance(usdc, owner, delegateA));
+        assertTrue(wallet.isAuthorizedForBalance(otherToken, owner, delegateB));
+        assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegateB));
+        assertFalse(wallet.isAuthorizedForBalance(otherToken, owner, delegateA));
+    }
+
+    function test_multipleDelegates_sameToken() public {
+        address delegateA = makeAddr("delegateA");
+        address delegateB = makeAddr("delegateB");
+
+        vm.startPrank(owner);
+        wallet.addDelegate(usdc, delegateA);
+        wallet.addDelegate(usdc, delegateB);
+        vm.stopPrank();
+
+        assertTrue(wallet.isAuthorizedForBalance(usdc, owner, delegateA));
+        assertTrue(wallet.isAuthorizedForBalance(usdc, owner, delegateB));
+
+        vm.startPrank(owner);
+        wallet.removeDelegate(usdc, delegateA);
+        vm.stopPrank();
+
+        assertFalse(wallet.isAuthorizedForBalance(usdc, owner, delegateA));
+        assertTrue(wallet.isAuthorizedForBalance(usdc, owner, delegateB));
+    }
+
+    function test_multipleDepositors() public {
+        address depositor1 = makeAddr("depositor1");
+        address depositor2 = makeAddr("depositor2");
+        address delegateA = makeAddr("delegateA");
+        address delegateB = makeAddr("delegateB");
+
+        vm.startPrank(depositor1);
+        wallet.addDelegate(usdc, delegateA);
+        vm.stopPrank();
+
+        vm.startPrank(depositor2);
+        wallet.addDelegate(usdc, delegateB);
+        vm.stopPrank();
+
+        assertTrue(wallet.isAuthorizedForBalance(usdc, depositor1, delegateA));
+        assertFalse(wallet.isAuthorizedForBalance(usdc, depositor2, delegateA));
+
+        assertTrue(wallet.isAuthorizedForBalance(usdc, depositor2, delegateB));
+        assertFalse(wallet.isAuthorizedForBalance(usdc, depositor1, delegateB));
     }
 }
