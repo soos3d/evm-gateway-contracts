@@ -26,7 +26,7 @@ import {TokenSupportStorage} from "src/lib/common/TokenSupport.sol";
 import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {_checkNotZeroAddress, _bytes32ToAddress} from "src/lib/util/addresses.sol";
+import {_bytes32ToAddress} from "src/lib/util/addresses.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -180,7 +180,7 @@ library BurnLib {
 
         while (!cursor.done) {
             index = cursor.index; // cursor.next() increments index
-            
+
             // Get the next burn authorization and skip if it's not relevant to this domain
             auth = cursor.next();
 
@@ -233,7 +233,10 @@ library BurnLib {
      * @return actualFeeCharged The fee amount actually charged and collected. May be less than `fee` if the depositor
      *                          had insufficient balance to cover the full value and fee.
      */
-    function _burn(bytes29 spec, address authorizer, uint256 fee) internal returns (uint256 deductedAmount, uint256 actualFeeCharged) {
+    function _burn(bytes29 spec, address authorizer, uint256 fee)
+        internal
+        returns (uint256 deductedAmount, uint256 actualFeeCharged)
+    {
         // Mark the spend hash as used
         SpendHashesStorage._checkAndMark(spec.getHash());
 

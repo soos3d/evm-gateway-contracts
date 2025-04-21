@@ -33,8 +33,8 @@ import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
-import {console} from "forge-std/console.sol";
 
+// solhint-disable max-states-count
 contract TestBurns is SignatureTestUtils, DeployUtils {
     using MessageHashUtils for bytes32;
 
@@ -42,7 +42,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     address private owner = makeAddr("owner");
     address private feeRecipient = makeAddr("feeRecipient");
     uint256 private depositorKey;
-    address private depositor;    
+    address private depositor;
     uint256 private depositor2Key;
     address private depositor2;
     uint256 private underFundedDepositorKey;
@@ -121,7 +121,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             vm.startPrank(masterMinterAddr);
             usdc.configureMinter(address(wallet), 0); // zero allowance, burn only
             vm.stopPrank();
-        }   
+        }
 
         // Setup initial depositor balance
         deal(address(usdc), depositor, depositorInitialBalance, true);
@@ -152,7 +152,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
                 metadata: METADATA
             })
         });
-
     }
 
     function _emptyArgs()
@@ -200,7 +199,11 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         wallet.burnSpent(authorizations, signatures, fees, burnerSignature);
     }
 
-    function _signAuthOrAuthSet(bytes memory authOrAuthSet, uint256 signerKey) internal pure returns (bytes memory signature) {
+    function _signAuthOrAuthSet(bytes memory authOrAuthSet, uint256 signerKey)
+        internal
+        pure
+        returns (bytes memory signature)
+    {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, keccak256(authOrAuthSet).toEthSignedMessageHash());
         signature = abi.encodePacked(r, s, v);
     }
@@ -296,7 +299,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     function test_burnSpent_revertIfZeroValueAuth() public {
         baseAuth.spec.value = 0;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
-        
+
         bytes[] memory authorizations = new bytes[](1);
         authorizations[0] = encodedAuth;
         bytes[] memory signatures = new bytes[](1);
@@ -336,17 +339,19 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Set maxBlockHeight to a past block
         baseAuth.maxBlockHeight = block.number - 1;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
-        
+
         bytes[] memory authorizations = new bytes[](1);
         authorizations[0] = encodedAuth;
-        
+
         bytes[] memory signatures = new bytes[](1);
         signatures[0] = _signAuthOrAuthSet(encodedAuth, depositorKey);
-        
+
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](1);
 
-        vm.expectRevert(abi.encodeWithSelector(BurnLib.AuthorizationExpired.selector, 0, baseAuth.maxBlockHeight, block.number));
+        vm.expectRevert(
+            abi.encodeWithSelector(BurnLib.AuthorizationExpired.selector, 0, baseAuth.maxBlockHeight, block.number)
+        );
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -367,21 +372,23 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
 
         uint256[][] memory fees = new uint256[][](1);
-        fees[0] = new uint256[](2); 
+        fees[0] = new uint256[](2);
 
-        vm.expectRevert(abi.encodeWithSelector(BurnLib.AuthorizationExpired.selector, 1, expiredAuth.maxBlockHeight, block.number));
+        vm.expectRevert(
+            abi.encodeWithSelector(BurnLib.AuthorizationExpired.selector, 1, expiredAuth.maxBlockHeight, block.number)
+        );
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
     function test_burnSpent_revertIfFeeTooHighAuth() public {
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
-        
+
         bytes[] memory authorizations = new bytes[](1);
         authorizations[0] = encodedAuth;
-        
+
         bytes[] memory signatures = new bytes[](1);
         signatures[0] = _signAuthOrAuthSet(encodedAuth, depositorKey);
-        
+
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](1);
         uint256 highFee = baseAuth.maxFee + 1;
@@ -421,17 +428,19 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         address invalidSourceContract = makeAddr("invalidSourceContract");
         invalidSourceContractAuth.spec.sourceContract = _addressToBytes32(invalidSourceContract);
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(invalidSourceContractAuth);
-        
+
         bytes[] memory authorizations = new bytes[](1);
         authorizations[0] = encodedAuth;
-        
+
         bytes[] memory signatures = new bytes[](1);
         signatures[0] = _signAuthOrAuthSet(encodedAuth, depositorKey);
-        
+
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](1);
 
-        vm.expectRevert(abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceContract.selector, 0, invalidSourceContract));
+        vm.expectRevert(
+            abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceContract.selector, 0, invalidSourceContract)
+        );
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -453,9 +462,11 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
 
         uint256[][] memory fees = new uint256[][](1);
-        fees[0] = new uint256[](2); 
+        fees[0] = new uint256[](2);
 
-        vm.expectRevert(abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceContract.selector, 1, invalidSourceContract));
+        vm.expectRevert(
+            abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceContract.selector, 1, invalidSourceContract)
+        );
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -463,13 +474,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         address unsupportedToken = makeAddr("unsupportedToken");
         baseAuth.spec.sourceToken = _addressToBytes32(unsupportedToken);
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
-        
+
         bytes[] memory authorizations = new bytes[](1);
         authorizations[0] = encodedAuth;
-        
+
         bytes[] memory signatures = new bytes[](1);
         signatures[0] = _signAuthOrAuthSet(encodedAuth, depositorKey);
-        
+
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](1);
 
@@ -495,23 +506,23 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
 
         uint256[][] memory fees = new uint256[][](1);
-        fees[0] = new uint256[](2); 
+        fees[0] = new uint256[](2);
 
         vm.expectRevert(abi.encodeWithSelector(BurnLib.UnsupportedToken.selector, 1, unsupportedToken));
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
-    
+
     function test_burnSpend_revertIfWasNeverAuthorizedForBalanceAuth() public {
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
-        
+
         bytes[] memory authorizations = new bytes[](1);
         authorizations[0] = encodedAuth;
-        
+
         // Sign with a wrong key
         (, uint256 wrongDepositorKey) = makeAddrAndKey("wrongDepositor");
         bytes[] memory signatures = new bytes[](1);
         signatures[0] = _signAuthOrAuthSet(encodedAuth, wrongDepositorKey);
-        
+
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](1);
 
@@ -604,7 +615,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](1);
         fees[0][0] = baseAuth.maxFee;
-
 
         vm.expectRevert(BurnLib.NoRelevantBurnAuthorizations.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
@@ -710,7 +720,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     function test_burnSpent_singleAuth_insufficientBalanceForBurnFee() public {
         uint256 fee = defaultMaxFee / 2; // $0.50
 
-          // Setup the under funded depositor
+        // Setup the under funded depositor
         deal(address(usdc), underFundedDepositor, depositorInitialBalance, true); // Fund externally with initial $5000
         vm.startPrank(underFundedDepositor);
         usdc.approve(address(wallet), type(uint256).max);
@@ -795,12 +805,12 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     // ===== Burn Success Scenarios - Single Authorization, Single Authorization Set =====
 
     struct SingleBurnTestConfig {
-        string contextSuffix;           // Short description (e.g., "(Spendable, Depositor)")
-        BurnAuthorization auth;         // The specific authorization to test
-        uint256 fee;                    // The fee for this specific burn
-        uint256 signerKey;              // Private key of the authorizer (depositor or delegate)
+        string contextSuffix; // Short description (e.g., "(Spendable, Depositor)")
+        BurnAuthorization auth; // The specific authorization to test
+        uint256 fee; // The fee for this specific burn
+        uint256 signerKey; // Private key of the authorizer (depositor or delegate)
         ExpectedBalances initialBalances; // Expected state before the burn
-        ExpectedBalances finalBalances;   // Expected state after the burn
+        ExpectedBalances finalBalances; // Expected state after the burn
         ExpectedBurnEventParams eventParams; // Expected event details
     }
 
@@ -818,12 +828,34 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 actualWalletExternalUsdc = usdc.balanceOf(address(wallet));
         uint256 actualUsdcTotalSupply = usdc.totalSupply();
 
-        assertEq(actualDepositorExternalUsdc, expected.depositorExternalUsdc, string.concat(context, ": Depositor External USDC mismatch"));
-        assertEq(actualDepositorSpendable, expected.depositorSpendable, string.concat(context, ": Depositor Spendable mismatch"));
-        assertEq(actualDepositorWithdrawing, expected.depositorWithdrawing, string.concat(context, ": Depositor Withdrawing mismatch"));
-        assertEq(actualFeeRecipientExternalUsdc, expected.feeRecipientExternalUsdc, string.concat(context, ": Fee Recipient External USDC mismatch"));
-        assertEq(actualWalletExternalUsdc, expected.walletExternalUsdc, string.concat(context, ": Wallet External USDC mismatch"));
-        assertEq(actualUsdcTotalSupply, expected.usdcTotalSupply, string.concat(context, ": USDC Total Supply mismatch"));
+        assertEq(
+            actualDepositorExternalUsdc,
+            expected.depositorExternalUsdc,
+            string.concat(context, ": Depositor External USDC mismatch")
+        );
+        assertEq(
+            actualDepositorSpendable,
+            expected.depositorSpendable,
+            string.concat(context, ": Depositor Spendable mismatch")
+        );
+        assertEq(
+            actualDepositorWithdrawing,
+            expected.depositorWithdrawing,
+            string.concat(context, ": Depositor Withdrawing mismatch")
+        );
+        assertEq(
+            actualFeeRecipientExternalUsdc,
+            expected.feeRecipientExternalUsdc,
+            string.concat(context, ": Fee Recipient External USDC mismatch")
+        );
+        assertEq(
+            actualWalletExternalUsdc,
+            expected.walletExternalUsdc,
+            string.concat(context, ": Wallet External USDC mismatch")
+        );
+        assertEq(
+            actualUsdcTotalSupply, expected.usdcTotalSupply, string.concat(context, ": USDC Total Supply mismatch")
+        );
     }
 
     function _executeAndAssertSingleBurn(SingleBurnTestConfig memory config) internal {
@@ -831,7 +863,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances(
             string.concat("Initial State ", config.contextSuffix),
             config.eventParams.depositor, // Get depositor from event params
-            feeRecipient,               // Global fee recipient
+            feeRecipient, // Global fee recipient
             config.initialBalances
         );
 
@@ -867,14 +899,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         string memory contextSuffix = "(Spendable, Depositor)";
         uint256 expectedTotalDeducted = burnValue + fee;
 
-
         SingleBurnTestConfig memory config;
         config.contextSuffix = contextSuffix;
         config.auth = auth;
         config.fee = fee;
         config.signerKey = signerKey;
 
-       uint256 initialTotalSupply = usdc.totalSupply();
+        uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
             depositorSpendable: depositorInitialBalance,
@@ -1250,7 +1281,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Move some funds to withdrawing balance
         uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
         uint256 remainingSpendable = depositorInitialBalance - withdrawAmount;
-        
+
         // Setup delegate
         vm.startPrank(depositor);
         wallet.initiateWithdrawal(address(usdc), withdrawAmount);
@@ -1310,7 +1341,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Move some funds to withdrawing balance
         uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
         uint256 remainingSpendable = depositorInitialBalance - withdrawAmount;
-        
+
         // Setup and revoke delegate
         vm.startPrank(depositor);
         wallet.initiateWithdrawal(address(usdc), withdrawAmount);
@@ -1331,7 +1362,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.auth = auth;
         config.fee = fee;
         config.signerKey = signerKey;
-
 
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
@@ -1372,15 +1402,15 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     struct MultiSetMixedDomainTestData {
         uint256 fee1;
         uint256 fee2;
-        uint256 fee3_irrelevant;
+        uint256 fee3Irrelevant;
         uint256 fee4;
         uint256 value1;
         uint256 value2;
-        uint256 value3_irrelevant;
+        uint256 value3Irrelevant;
         uint256 value4;
         BurnAuthorization auth1;
         BurnAuthorization auth2;
-        BurnAuthorization auth3_irrelevant;
+        BurnAuthorization auth3Irrelevant;
         BurnAuthorization auth4;
         BurnAuthorization[] authsForSet;
         BurnAuthorizationSet authSet;
@@ -1411,12 +1441,12 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         testData.fee1 = defaultMaxFee / 10;
         testData.fee2 = defaultMaxFee / 20;
-        testData.fee3_irrelevant = defaultMaxFee / 30; // Fee for the irrelevant auth (won't be charged)
+        testData.fee3Irrelevant = defaultMaxFee / 30; // Fee for the irrelevant auth (won't be charged)
         testData.fee4 = defaultMaxFee / 40;
 
         testData.value1 = depositorInitialBalance / 10;
         testData.value2 = depositorInitialBalance / 20;
-        testData.value3_irrelevant = depositorInitialBalance / 30; // Value for irrelevant auth
+        testData.value3Irrelevant = depositorInitialBalance / 30; // Value for irrelevant auth
         testData.value4 = depositorInitialBalance / 40;
 
         // Auth 1: Single, current domain
@@ -1430,10 +1460,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.auth2.maxFee = testData.fee2 * 2;
 
         // Auth 3: Part of set, a different domain (should be skipped)
-        testData.auth3_irrelevant = baseAuth;
-        testData.auth3_irrelevant.spec.value = testData.value3_irrelevant;
-        testData.auth3_irrelevant.spec.sourceDomain = domain + 1; // Different domain
-        testData.auth3_irrelevant.maxFee = testData.fee3_irrelevant * 2;
+        testData.auth3Irrelevant = baseAuth;
+        testData.auth3Irrelevant.spec.value = testData.value3Irrelevant;
+        testData.auth3Irrelevant.spec.sourceDomain = domain + 1; // Different domain
+        testData.auth3Irrelevant.maxFee = testData.fee3Irrelevant * 2;
 
         // Auth 4: Part of set, current domain
         testData.auth4 = baseAuth;
@@ -1443,7 +1473,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Create auth set (containing auths 2, 3, 4)
         testData.authsForSet = new BurnAuthorization[](3);
         testData.authsForSet[0] = testData.auth2;
-        testData.authsForSet[1] = testData.auth3_irrelevant; // The irrelevant one
+        testData.authsForSet[1] = testData.auth3Irrelevant; // The irrelevant one
         testData.authsForSet[2] = testData.auth4;
         testData.authSet = BurnAuthorizationSet({authorizations: testData.authsForSet});
 
@@ -1468,7 +1498,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.fees[0][0] = testData.fee1;
         testData.fees[1] = new uint256[](3); // Fees for authorizations[1] (authSet: auth2, auth3, auth4)
         testData.fees[1][0] = testData.fee2;
-        testData.fees[1][1] = testData.fee3_irrelevant; // Provide fee, though it shouldn't be used
+        testData.fees[1][1] = testData.fee3Irrelevant; // Provide fee, though it shouldn't be used
         testData.fees[1][2] = testData.fee4;
 
         // Expected initial state
@@ -1571,7 +1601,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             wallet.deposit(address(usdc), depositor2InitialBalance);
         }
         vm.stopPrank();
-    
+
         MultiDepositorTestData memory testData;
 
         testData.burnValue1 = depositorInitialBalance / 5; // $1000 from depositor1
@@ -1657,18 +1687,35 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.expectedTotalDeducted = (testData.burnValue1 + testData.fee1) + (testData.burnValue2 + testData.fee2);
 
         // Check Depositor 1 Final State
-        assertEq(wallet.spendableBalance(address(usdc), depositor), depositorInitialBalance - (testData.burnValue1 + testData.fee1), "Final D1 Spendable");
+        assertEq(
+            wallet.spendableBalance(address(usdc), depositor),
+            depositorInitialBalance - (testData.burnValue1 + testData.fee1),
+            "Final D1 Spendable"
+        );
         assertEq(wallet.withdrawingBalance(address(usdc), depositor), 0, "Final D1 Withdrawing");
         assertEq(usdc.balanceOf(depositor), 0, "Final D1 External");
 
         // Check Depositor 2 Final State
-        assertEq(wallet.spendableBalance(address(usdc), depositor2), depositor2InitialBalance - (testData.burnValue2 + testData.fee2), "Final D2 Spendable");
+        assertEq(
+            wallet.spendableBalance(address(usdc), depositor2),
+            depositor2InitialBalance - (testData.burnValue2 + testData.fee2),
+            "Final D2 Spendable"
+        );
         assertEq(wallet.withdrawingBalance(address(usdc), depositor2), 0, "Final D2 Withdrawing");
         assertEq(usdc.balanceOf(depositor2), 0, "Final D2 External");
 
-        assertEq(usdc.balanceOf(feeRecipient), testData.initialFeeRecipientBalance + testData.expectedTotalFee, "Final Fee Recipient Balance");
-        assertEq(usdc.balanceOf(address(wallet)), testData.initialWalletBalance - testData.expectedTotalDeducted, "Final Wallet Balance");
-        assertEq(usdc.totalSupply(), testData.initialTotalSupply - testData.expectedTotalValueBurned, "Final Total Supply");
+        assertEq(
+            usdc.balanceOf(feeRecipient),
+            testData.initialFeeRecipientBalance + testData.expectedTotalFee,
+            "Final Fee Recipient Balance"
+        );
+        assertEq(
+            usdc.balanceOf(address(wallet)),
+            testData.initialWalletBalance - testData.expectedTotalDeducted,
+            "Final Wallet Balance"
+        );
+        assertEq(
+            usdc.totalSupply(), testData.initialTotalSupply - testData.expectedTotalValueBurned, "Final Total Supply"
+        );
     }
-
 }

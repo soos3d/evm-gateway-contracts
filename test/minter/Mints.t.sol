@@ -28,7 +28,7 @@ import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
 import {Denylistable} from "src/lib/common/Denylistable.sol";
-import {SpendHashes, SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
+import {SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {SpendWallet} from "src/SpendWallet.sol";

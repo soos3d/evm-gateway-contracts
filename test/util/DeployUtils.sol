@@ -55,9 +55,7 @@ abstract contract DeployUtils is CommonBase {
         UpgradeablePlaceholder walletProxy = deployPlaceholder(owner);
         SpendWallet walletImpl = new SpendWallet();
         vm.prank(owner);
-        walletProxy.upgradeToAndCall(
-            address(walletImpl), abi.encodeCall(SpendWallet.initialize, (address(0), domain))
-        );
+        walletProxy.upgradeToAndCall(address(walletImpl), abi.encodeCall(SpendWallet.initialize, (address(0), domain)));
         return SpendWallet(address(walletProxy));
     }
 
@@ -65,9 +63,7 @@ abstract contract DeployUtils is CommonBase {
         UpgradeablePlaceholder minterProxy = deployPlaceholder(owner);
         SpendMinter minterImpl = new SpendMinter();
         vm.prank(owner);
-        minterProxy.upgradeToAndCall(
-            address(minterImpl), abi.encodeCall(SpendMinter.initialize, (address(0), domain))
-        );
+        minterProxy.upgradeToAndCall(address(minterImpl), abi.encodeCall(SpendMinter.initialize, (address(0), domain)));
         return SpendMinter(address(minterProxy));
     }
 
