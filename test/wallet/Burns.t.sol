@@ -42,7 +42,9 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     address private owner = makeAddr("owner");
     address private feeRecipient = makeAddr("feeRecipient");
     uint256 private depositorKey;
-    address private depositor;
+    address private depositor;    
+    uint256 private depositor2Key;
+    address private depositor2;
     uint256 private underFundedDepositorKey;
     address private underFundedDepositor;
     uint256 private delegateKey;
@@ -54,6 +56,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     uint256 private defaultMaxBlockHeightOffset = 100;
     uint256 private defaultMaxFee = 10 ** 6;
     uint256 private depositorInitialBalance = 5 * 1000 * 10 ** 6;
+    uint256 private depositor2InitialBalance = 3 * 1000 * 10 ** 6;
     bytes internal constant METADATA = "Test metadata";
 
     struct ExpectedBurnEventParams {
@@ -90,6 +93,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         wallet = deployWalletOnly(owner, domain);
 
         (depositor, depositorKey) = makeAddrAndKey("depositor");
+        (depositor2, depositor2Key) = makeAddrAndKey("depositor2");
         (underFundedDepositor, underFundedDepositorKey) = makeAddrAndKey("underFundedDepositor");
         (delegate, delegateKey) = makeAddrAndKey("delegate");
         (burnSigner, burnSignerKey) = makeAddrAndKey("burnSigner");
@@ -856,7 +860,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     function test_burnSpent_singleAuth_currentDomain_fromSpendableBalance_depositorSigner() public {
         BurnAuthorization memory auth = baseAuth;
-        uint256 burnValue = auth.spec.value;
+        uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = depositorKey;
         address expectedAuthorizer = depositor;
@@ -912,7 +916,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        uint256 burnValue = auth.spec.value;
+        uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate
         address expectedAuthorizer = delegate; // Authorizer is delegate
@@ -968,7 +972,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        uint256 burnValue = auth.spec.value;
+        uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate (before revocation)
         address expectedAuthorizer = delegate; // Authorizer is revoked delegate
@@ -1022,7 +1026,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        uint256 burnValue = auth.spec.value;
+        uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = depositorKey;
         address expectedAuthorizer = depositor;
@@ -1080,7 +1084,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        uint256 burnValue = auth.spec.value;
+        uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate
         address expectedAuthorizer = delegate;
@@ -1136,7 +1140,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        uint256 burnValue = auth.spec.value;
+        uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate
         address expectedAuthorizer = delegate;
@@ -1194,7 +1198,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        uint256 burnValue = auth.spec.value;
+        uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = depositorKey;
         address expectedAuthorizer = depositor;
@@ -1254,7 +1258,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        uint256 burnValue = auth.spec.value;
+        uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate
         address expectedAuthorizer = delegate;
@@ -1315,7 +1319,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        uint256 burnValue = auth.spec.value;
+        uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate
         address expectedAuthorizer = delegate;
@@ -1532,6 +1536,139 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             usdcTotalSupply: testData.initialTotalSupply - testData.expectedTotalValueBurned
         });
         _assertBalances("Final State (MultiSet Mixed)", depositor, feeRecipient, testData.finalExpectedBalances);
+    }
+
+    struct MultiDepositorTestData {
+        uint256 burnValue1;
+        uint256 fee1;
+        uint256 burnValue2;
+        uint256 fee2;
+        BurnAuthorization auth1;
+        BurnAuthorization auth2;
+        bytes encodedAuth1;
+        bytes encodedAuth2;
+        bytes sig1;
+        bytes sig2;
+        bytes[] authorizations;
+        bytes[] signatures;
+        uint256[][] fees;
+        uint256 initialTotalSupply;
+        uint256 initialFeeRecipientBalance;
+        uint256 initialWalletBalance;
+        uint256 expectedTotalFee;
+        uint256 expectedTotalValueBurned;
+        uint256 expectedTotalDeducted;
+        ExpectedBurnEventParams params1;
+        ExpectedBurnEventParams params2;
+    }
+
+    function test_burnSpent_multipleDepositors_currentDomain_fromSpendable_depositorSigners() public {
+        // Setup second depositor balance
+        deal(address(usdc), depositor2, depositor2InitialBalance, true);
+        vm.startPrank(depositor2);
+        {
+            usdc.approve(address(wallet), type(uint256).max);
+            wallet.deposit(address(usdc), depositor2InitialBalance);
+        }
+        vm.stopPrank();
+    
+        MultiDepositorTestData memory testData;
+
+        testData.burnValue1 = depositorInitialBalance / 5; // $1000 from depositor1
+        testData.fee1 = defaultMaxFee / 10; // $0.10 fee for depositor1
+        testData.burnValue2 = depositor2InitialBalance / 3; // $1000 from depositor2
+        testData.fee2 = defaultMaxFee / 20; // $0.05 fee for depositor2
+
+        // Authorization for depositor 1
+        testData.auth1 = baseAuth;
+        testData.auth1.spec.sourceDepositor = _addressToBytes32(depositor);
+        testData.auth1.spec.value = testData.burnValue1;
+        testData.auth1.maxFee = defaultMaxFee; // Ensure provided fee1 is allowed
+
+        // Authorization for depositor 2
+        testData.auth2 = baseAuth;
+        testData.auth2.spec.sourceDepositor = _addressToBytes32(depositor2);
+        testData.auth2.spec.value = testData.burnValue2;
+        testData.auth2.maxFee = defaultMaxFee;
+
+        testData.encodedAuth1 = BurnAuthorizationLib.encodeBurnAuthorization(testData.auth1);
+        testData.sig1 = _signAuthOrAuthSet(testData.encodedAuth1, depositorKey);
+
+        testData.encodedAuth2 = BurnAuthorizationLib.encodeBurnAuthorization(testData.auth2);
+        testData.sig2 = _signAuthOrAuthSet(testData.encodedAuth2, depositor2Key);
+
+        testData.authorizations = new bytes[](2);
+        testData.authorizations[0] = testData.encodedAuth1;
+        testData.authorizations[1] = testData.encodedAuth2;
+
+        testData.signatures = new bytes[](2);
+        testData.signatures[0] = testData.sig1;
+        testData.signatures[1] = testData.sig2;
+
+        testData.fees = new uint256[][](2);
+        testData.fees[0] = new uint256[](1);
+        testData.fees[0][0] = testData.fee1;
+        testData.fees[1] = new uint256[](1);
+        testData.fees[1][0] = testData.fee2;
+
+        testData.initialTotalSupply = usdc.totalSupply();
+        testData.initialFeeRecipientBalance = usdc.balanceOf(feeRecipient);
+        testData.initialWalletBalance = usdc.balanceOf(address(wallet));
+
+        // Depositor 1 Initial State
+        assertEq(wallet.spendableBalance(address(usdc), depositor), depositorInitialBalance, "Initial D1 Spendable");
+        assertEq(wallet.withdrawingBalance(address(usdc), depositor), 0, "Initial D1 Withdrawing");
+
+        // Depositor 2 Initial State
+        assertEq(wallet.spendableBalance(address(usdc), depositor2), depositor2InitialBalance, "Initial D2 Spendable");
+        assertEq(wallet.withdrawingBalance(address(usdc), depositor2), 0, "Initial D2 Withdrawing");
+
+        // Event for Depositor 1's burn
+        testData.params1.token = address(usdc);
+        testData.params1.depositor = depositor;
+        testData.params1.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec));
+        testData.params1.destinationDomain = testData.auth1.spec.destinationDomain;
+        testData.params1.recipient = testData.auth1.spec.destinationRecipient;
+        testData.params1.authorizer = depositor;
+        testData.params1.value = testData.burnValue1;
+        testData.params1.fee = testData.fee1;
+        testData.params1.fromSpendable = testData.burnValue1 + testData.fee1;
+        testData.params1.fromWithdrawing = 0;
+        _expectBurnEvent(testData.params1);
+
+        // Event for Depositor 2's burn
+        testData.params2.token = address(usdc);
+        testData.params2.depositor = depositor2;
+        testData.params2.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec));
+        testData.params2.destinationDomain = testData.auth2.spec.destinationDomain;
+        testData.params2.recipient = testData.auth2.spec.destinationRecipient;
+        testData.params2.authorizer = depositor2;
+        testData.params2.value = testData.burnValue2;
+        testData.params2.fee = testData.fee2;
+        testData.params2.fromSpendable = testData.burnValue2 + testData.fee2;
+        testData.params2.fromWithdrawing = 0;
+        _expectBurnEvent(testData.params2);
+
+        // --- Execute Burn ---
+        _callBurnSpentSignedBy(testData.authorizations, testData.signatures, testData.fees, burnSignerKey);
+
+        testData.expectedTotalFee = testData.fee1 + testData.fee2;
+        testData.expectedTotalValueBurned = testData.burnValue1 + testData.burnValue2;
+        testData.expectedTotalDeducted = (testData.burnValue1 + testData.fee1) + (testData.burnValue2 + testData.fee2);
+
+        // Check Depositor 1 Final State
+        assertEq(wallet.spendableBalance(address(usdc), depositor), depositorInitialBalance - (testData.burnValue1 + testData.fee1), "Final D1 Spendable");
+        assertEq(wallet.withdrawingBalance(address(usdc), depositor), 0, "Final D1 Withdrawing");
+        assertEq(usdc.balanceOf(depositor), 0, "Final D1 External");
+
+        // Check Depositor 2 Final State
+        assertEq(wallet.spendableBalance(address(usdc), depositor2), depositor2InitialBalance - (testData.burnValue2 + testData.fee2), "Final D2 Spendable");
+        assertEq(wallet.withdrawingBalance(address(usdc), depositor2), 0, "Final D2 Withdrawing");
+        assertEq(usdc.balanceOf(depositor2), 0, "Final D2 External");
+
+        assertEq(usdc.balanceOf(feeRecipient), testData.initialFeeRecipientBalance + testData.expectedTotalFee, "Final Fee Recipient Balance");
+        assertEq(usdc.balanceOf(address(wallet)), testData.initialWalletBalance - testData.expectedTotalDeducted, "Final Wallet Balance");
+        assertEq(usdc.totalSupply(), testData.initialTotalSupply - testData.expectedTotalValueBurned, "Final Total Supply");
     }
 
 }
