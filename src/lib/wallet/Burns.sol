@@ -19,7 +19,6 @@ pragma solidity ^0.8.28;
 
 import {Pausing} from "src/lib/common/Pausing.sol";
 import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
-import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 import {BurnLib} from "src/lib/wallet/BurnLib.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
@@ -108,32 +107,6 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
         BurnLib.burnSpent(authorizations, signatures, fees, burnerSignature);
     }
 
-    /// Emitted when a spend authorization is used on the same chain as its source, resulting in a same-chain spend that
-    /// transfers funds to the recipient instead of minting and burning them
-    ///
-    /// @param token                The token that was spent
-    /// @param depositor            The depositor who owned the spent balance
-    /// @param spendHash            The keccak256 hash of the SpendSpec
-    /// @param recipient            The recipient of the funds
-    /// @param authorizer           The address that authorized the transfer
-    /// @param value                The value transferred to the recipient
-    /// @param fromSpendable        The value transferred from the `spendable`
-    ///                             balance
-    /// @param fromWithdrawing      The value transferred from the `withdrawing`
-    ///                             balance
-    /// @param spendAuthorization   The entire spend authorization that was used
-    event TransferredSpent(
-        address indexed token,
-        address indexed depositor,
-        bytes32 indexed spendHash,
-        bytes32 recipient,
-        address authorizer,
-        uint256 value,
-        uint256 fromSpendable,
-        uint256 fromWithdrawing,
-        bytes spendAuthorization
-    );
-
     /// Debits the depositor's balance like `burnSpent`, but transfers funds instead of burning them. Used when a spend
     /// happens on the same chain to avoid burning and minting. No fee is charged.
     ///
@@ -156,18 +129,14 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
         uint256 value,
         bytes32 spendHash,
         bytes memory spendAuthorization
-    ) external whenNotPaused {}
+    ) external whenNotPaused {
+        BurnLib.sameChainSpend(token, depositor, recipient, authorizer, value, spendHash, spendAuthorization);
+    }
 
     /// The address that may sign the calldata for burning tokens that have been spent
     function burnSigner() public view returns (address) {
         return BurnsStorage.get().burnSigner;
     }
-
-    /// Emitted when the burnSigner role is updated
-    ///
-    /// @param oldBurnSigner   The previous burn signer address
-    /// @param newBurnSigner   The new burn signer address
-    event BurnSignerUpdated(address oldBurnSigner, address newBurnSigner);
 
     /// Sets the address that may call `burnSpent`
     ///
@@ -175,12 +144,7 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
     ///
     /// @param newBurnSigner   The new burn caller address
     function updateBurnSigner(address newBurnSigner) external onlyOwner {
-        _checkNotZeroAddress(newBurnSigner);
-
-        BurnsStorage.Data storage burns$ = BurnsStorage.get();
-        address oldBurnSigner = burns$.burnSigner;
-        burns$.burnSigner = newBurnSigner;
-        emit BurnSignerUpdated(oldBurnSigner, newBurnSigner);
+        BurnLib.updateBurnSigner(newBurnSigner);
     }
 
     /// The address that will receive the onchain fee for burns
@@ -188,24 +152,13 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
         return BurnsStorage.get().feeRecipient;
     }
 
-    /// Emitted when the feeRecipient role is updated
-    ///
-    /// @param oldFeeRecipient   The previous fee recipient address
-    /// @param newFeeRecipient   The new fee recipient address
-    event FeeRecipientUpdated(address oldFeeRecipient, address newFeeRecipient);
-
     /// Sets the address that will receive the fee for burns
     ///
     /// @dev May only be called by the `owner` role
     ///
     /// @param newFeeRecipient   The new fee recipient address
     function updateFeeRecipient(address newFeeRecipient) external onlyOwner {
-        _checkNotZeroAddress(newFeeRecipient);
-
-        BurnsStorage.Data storage burns$ = BurnsStorage.get();
-        address oldFeeRecipient = burns$.feeRecipient;
-        burns$.feeRecipient = newFeeRecipient;
-        emit FeeRecipientUpdated(oldFeeRecipient, newFeeRecipient);
+        BurnLib.updateFeeRecipient(newFeeRecipient);
     }
 }
 

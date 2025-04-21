@@ -18,20 +18,65 @@
 pragma solidity ^0.8.28;
 
 import {BurnsStorage} from "src/lib/wallet/Burns.sol";
+import {CounterpartStorage} from "src/lib/common/Counterpart.sol";
+import {DelegationStorage} from "src/lib/wallet/Delegation.sol";
+import {DenylistableStorage} from "src/lib/common/Denylistable.sol";
+import {BalancesStorage} from "src/lib/wallet/Balances.sol";
+import {TokenSupportStorage} from "src/lib/common/TokenSupport.sol";
 import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
+import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Counterpart} from "src/lib/common/Counterpart.sol";
+import {TokenSupport} from "src/lib/common/TokenSupport.sol";
+import {Denylistable} from "src/lib/common/Denylistable.sol";
 
 /// Handles the implementation of burning, split out as an external library for bytecode size
 library BurnLib {
     using MessageHashUtils for bytes32;
     using TransferSpecLib for bytes29;
     using BurnAuthorizationLib for bytes29;
+    using SafeERC20 for IERC20;
 
     error InvalidBurnSigner();
     error MismatchedBurn();
+    error InsufficientBalanceForSameChainSpend();
+
+    /// Emitted when the burnSigner role is updated
+    event BurnSignerUpdated(address oldBurnSigner, address newBurnSigner);
+
+    /// Emitted when the feeRecipient role is updated
+    event FeeRecipientUpdated(address oldFeeRecipient, address newFeeRecipient);
+
+    /// Emitted when a spend authorization is used on the same chain as its source, resulting in a same-chain spend that
+    /// transfers funds to the recipient instead of minting and burning them
+    ///
+    /// @param token                The token that was spent
+    /// @param depositor            The depositor who owned the spent balance
+    /// @param spendHash            The keccak256 hash of the SpendSpec
+    /// @param recipient            The recipient of the funds
+    /// @param authorizer           The address that authorized the transfer
+    /// @param value                The value transferred to the recipient
+    /// @param fromSpendable        The value transferred from the `spendable`
+    ///                             balance
+    /// @param fromWithdrawing      The value transferred from the `withdrawing`
+    ///                             balance
+    /// @param spendAuthorization   The entire spend authorization that was used
+    event TransferredSpent(
+        address indexed token,
+        address indexed depositor,
+        bytes32 indexed spendHash,
+        address recipient,
+        address authorizer,
+        uint256 value,
+        uint256 fromSpendable,
+        uint256 fromWithdrawing,
+        bytes spendAuthorization
+    );
 
     /// Debit the depositor's balance and burn the tokens after a spend was authorized
     ///
@@ -67,6 +112,62 @@ library BurnLib {
         }
     }
 
+    /// @notice Transfers funds between accounts on the same chain after a spend authorization
+    /// @dev The caller must be the `minterContract`
+    /// @dev Source and destination domains must match this contract's domain (enforced by `minterContract`)
+    /// @dev No fee is charged for same-chain transfers
+    /// @dev See {SpendAuthorization} for authorization encoding details
+    /// @param token The token being transferred
+    /// @param depositor The owner of the funds in the wallet
+    /// @param spendHash The keccak256 hash of the SpendSpec
+    /// @param recipient The recipient of the transfer
+    /// @param authorizer The address that authorized the spend
+    /// @param value The transfer amount
+    /// @param spendAuthorization The encoded SpendAuthorization or SpendAuthorizationSet
+    function sameChainSpend(
+        address token,
+        address depositor,
+        address recipient,
+        address authorizer,
+        uint256 value,
+        bytes32 spendHash,
+        bytes memory spendAuthorization
+    ) external {
+        if (msg.sender != CounterpartStorage.get().counterpart) {
+            revert Counterpart.UnauthorizedCounterpart(msg.sender);
+        }
+
+        if (!TokenSupportStorage.get().supportedTokens[token]) {
+            revert TokenSupport.UnsupportedToken(token);
+        }
+
+        if (DenylistableStorage.get().denylistMapping[depositor]) {
+            revert Denylistable.AccountDenylisted(depositor);
+        }
+        if (DenylistableStorage.get().denylistMapping[authorizer]) {
+            revert Denylistable.AccountDenylisted(authorizer);
+        }
+
+        DelegationStorage._ensureAuthorizedForBalance(token, depositor, authorizer);
+
+        (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value);
+        if (fromSpendable + fromWithdrawing != value) {
+            revert InsufficientBalanceForSameChainSpend();
+        }
+        IERC20(token).safeTransfer(recipient, value);
+        emit TransferredSpent(
+            token,
+            depositor,
+            spendHash,
+            recipient,
+            authorizer,
+            value,
+            fromSpendable,
+            fromWithdrawing,
+            spendAuthorization
+        );
+    }
+
     /// Internal function to verify the signature of the `burnSigner` on the other arguments in calldata, hashing the
     /// arguments from calldata rather than using abi.encode (which does a lot of copying and stack manipulation).
     ///
@@ -94,5 +195,65 @@ library BurnLib {
         if (recoveredSigner != BurnsStorage.get().burnSigner) {
             revert InvalidBurnSigner();
         }
+    }
+
+    function _reduceBalance(address token, address depositor, uint256 value)
+        internal
+        returns (uint256 fromSpendable, uint256 fromWithdrawing)
+    {
+        BalancesStorage.Data storage balances$ = BalancesStorage.get();
+
+        uint256 needed = value;
+        uint256 spendable = balances$.spendableBalances[token][depositor];
+
+        if (spendable >= needed) {
+            // If there is enough in the spendable balance, deduct from it and return
+            balances$.spendableBalances[token][depositor] -= needed;
+            return (needed, 0);
+        }
+
+        // Otherwise, take it all and continue for the rest
+        balances$.spendableBalances[token][depositor] = 0;
+        needed -= spendable;
+
+        uint256 withdrawing = balances$.withdrawingBalances[token][depositor];
+
+        if (withdrawing >= needed) {
+            // If there is enough in the withdrawing balance, deduct from it and return
+            balances$.withdrawingBalances[token][depositor] -= needed;
+            return (spendable, needed);
+        }
+
+        // Otherwise, take it all
+        balances$.withdrawingBalances[token][depositor] = 0;
+        return (spendable, withdrawing);
+    }
+
+    /// Sets the address that may call `burnSpent`
+    ///
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param newBurnSigner   The new burn caller address
+    function updateBurnSigner(address newBurnSigner) external {
+        _checkNotZeroAddress(newBurnSigner);
+
+        BurnsStorage.Data storage burns$ = BurnsStorage.get();
+        address oldBurnSigner = burns$.burnSigner;
+        burns$.burnSigner = newBurnSigner;
+        emit BurnSignerUpdated(oldBurnSigner, newBurnSigner);
+    }
+
+    /// Sets the address that will receive the fee for burns
+    ///
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param newFeeRecipient   The new fee recipient address
+    function updateFeeRecipient(address newFeeRecipient) external {
+        _checkNotZeroAddress(newFeeRecipient);
+
+        BurnsStorage.Data storage burns$ = BurnsStorage.get();
+        address oldFeeRecipient = burns$.feeRecipient;
+        burns$.feeRecipient = newFeeRecipient;
+        emit FeeRecipientUpdated(oldFeeRecipient, newFeeRecipient);
     }
 }
