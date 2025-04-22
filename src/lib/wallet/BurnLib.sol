@@ -289,6 +289,10 @@ library BurnLib {
 
         // Reduce the balances of the depositor by amount being burned + the fee, returning the overall amounts that were drawn from each balance type
         (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value + fee);
+        if (fromSpendable + fromWithdrawing < value + fee) {
+            emit InsufficientBalanceForBurning(token, depositor, value + fee, fromSpendable, fromWithdrawing);
+        }
+
         deductedAmount = fromSpendable + fromWithdrawing;
 
         // If the full amount could not be deducted, we want to prioritize burning over taking the fee
@@ -479,9 +483,6 @@ library BurnLib {
 
         // Otherwise, take it all
         balances$.withdrawingBalances[token][depositor] = 0;
-
-        // Emit an event to alert that something has gone wrong
-        emit InsufficientBalanceForBurning(token, depositor, value, spendable, withdrawing);
 
         return (spendable, withdrawing);
     }
