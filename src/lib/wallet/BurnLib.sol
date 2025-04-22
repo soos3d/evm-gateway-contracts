@@ -134,7 +134,7 @@ library BurnLib {
         _verifyBurnerSignature(burnerSignature);
 
         for (uint256 i = 0; i < authorizations.length; i++) {
-            _validateAndBurn(authorizations[i], signatures[i], fees[i]);
+            _validateAndProcessAuthorizationPayload(authorizations[i], signatures[i], fees[i]);
         }
     }
 
@@ -145,7 +145,11 @@ library BurnLib {
      * @param fees An array containing the fee proposed for each individual authorization within the set. Must match
      *             the number of authorizations encoded in `authorization`.
      */
-    function _validateAndBurn(bytes memory authorization, bytes memory signature, uint256[] memory fees) internal {
+    function _validateAndProcessAuthorizationPayload(
+        bytes memory authorization,
+        bytes memory signature,
+        uint256[] memory fees
+    ) internal {
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(authorization);
         if (cursor.numAuths == 0) {
             revert MustHaveAtLeastOneBurnAuthorization();
@@ -156,7 +160,7 @@ library BurnLib {
         }
 
         address authorizer = _recoverAuthorizationSigner(authorization, signature);
-        _burnAll(cursor, authorizer, fees, BurnsStorage.get().feeRecipient);
+        _processAuthorizationsAndBurn(cursor, authorizer, fees, BurnsStorage.get().feeRecipient);
     }
 
     /**
@@ -166,7 +170,7 @@ library BurnLib {
      * @param fees An array containing the fee proposed for each individual authorization.
      * @param feeRecipient The address designated to receive the collected fees.
      */
-    function _burnAll(
+    function _processAuthorizationsAndBurn(
         AuthorizationCursor memory cursor,
         address authorizer,
         uint256[] memory fees,
@@ -203,7 +207,7 @@ library BurnLib {
 
             // Reduce the balance of the depositor(s) and add to the total fee and burn amount
             uint256 fee = fees[index];
-            (uint256 deductedAmount, uint256 actualFeeCharged) = _burn(spec, authorizer, fee);
+            (uint256 deductedAmount, uint256 actualFeeCharged) = _applySingleBurnAuthorization(spec, authorizer, fee);
             totalDeductedAmount += deductedAmount;
             totalFee += actualFeeCharged;
         }
@@ -231,7 +235,7 @@ library BurnLib {
      * @return actualFeeCharged The fee amount actually charged and collected. May be less than `fee` if the depositor
      *                          had insufficient balance to cover the full value and fee.
      */
-    function _burn(bytes29 spec, address authorizer, uint256 fee)
+    function _applySingleBurnAuthorization(bytes29 spec, address authorizer, uint256 fee)
         internal
         returns (uint256 deductedAmount, uint256 actualFeeCharged)
     {
