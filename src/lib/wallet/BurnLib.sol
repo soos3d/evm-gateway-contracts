@@ -251,8 +251,7 @@ library BurnLib {
         if (deductedAmount <= value) {
             actualFeeCharged = 0;
         } else {
-            uint256 potentialFee = deductedAmount - value;
-            actualFeeCharged = potentialFee < fee ? potentialFee : fee;
+            actualFeeCharged = deductedAmount - value;
         }
 
         // Emit an event with all the information about the burn

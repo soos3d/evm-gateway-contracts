@@ -22,9 +22,16 @@ import {Denylistable} from "src/lib/common/Denylistable.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 
+/// @title Authorization Status
+///
+/// Represents the possible states of a delegate's authorization for a specific token and depositor.
 enum AuthorizationStatus {
+    /// @notice The delegate has never been authorized.
     Unauthorized,
+    /// @notice The delegate is currently authorized to act on behalf of the depositor for the token.
     Authorized,
+    /// @notice The delegate was previously authorized, but the authorization has been revoked.
+    /// @dev This state is distinct from Unauthorized to handle specific scenarios like signed burn authorizations.
     Revoked
 }
 

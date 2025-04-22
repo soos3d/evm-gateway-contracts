@@ -36,6 +36,9 @@ contract SpendHashes {
         SpendHashesStorage._ensureSpendHashNotUsed(spendHash);
     }
 
+    /// Asserts that the given spend hash has not been used, reverting if it has, and marks it as used
+    ///
+    /// @param spendHash    The spend hash to check and mark
     function _checkAndMark(bytes32 spendHash) internal {
         _ensureSpendHashNotUsed(spendHash);
         _markSpendHashAsUsed(spendHash);
