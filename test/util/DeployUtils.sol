@@ -23,8 +23,6 @@ import {SpendWallet} from "src/SpendWallet.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {CommonBase} from "forge-std/Base.sol";
 
-uint32 constant TEST_DOMAIN = 99;
-
 /// Helpers for deploying the contracts during tests
 abstract contract DeployUtils is CommonBase {
     function deploy(address owner, uint32 domain) public returns (SpendWallet, SpendMinter) {
@@ -53,23 +51,19 @@ abstract contract DeployUtils is CommonBase {
         return (wallet, minter);
     }
 
-    function deployWalletOnly(address owner) public returns (SpendWallet) {
+    function deployWalletOnly(address owner, uint32 domain) public returns (SpendWallet) {
         UpgradeablePlaceholder walletProxy = deployPlaceholder(owner);
         SpendWallet walletImpl = new SpendWallet();
         vm.prank(owner);
-        walletProxy.upgradeToAndCall(
-            address(walletImpl), abi.encodeCall(SpendWallet.initialize, (address(0), TEST_DOMAIN))
-        );
+        walletProxy.upgradeToAndCall(address(walletImpl), abi.encodeCall(SpendWallet.initialize, (address(0), domain)));
         return SpendWallet(address(walletProxy));
     }
 
-    function deployMinterOnly(address owner) public returns (SpendMinter) {
+    function deployMinterOnly(address owner, uint32 domain) public returns (SpendMinter) {
         UpgradeablePlaceholder minterProxy = deployPlaceholder(owner);
         SpendMinter minterImpl = new SpendMinter();
         vm.prank(owner);
-        minterProxy.upgradeToAndCall(
-            address(minterImpl), abi.encodeCall(SpendMinter.initialize, (address(0), TEST_DOMAIN))
-        );
+        minterProxy.upgradeToAndCall(address(minterImpl), abi.encodeCall(SpendMinter.initialize, (address(0), domain)));
         return SpendMinter(address(minterProxy));
     }
 

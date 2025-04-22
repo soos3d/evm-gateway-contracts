@@ -28,8 +28,10 @@ import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
 import {Denylistable} from "src/lib/common/Denylistable.sol";
-import {SpendHashes} from "src/lib/common/SpendHashes.sol";
+import {SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
+import {SpendMinter} from "src/SpendMinter.sol";
+import {SpendWallet} from "src/SpendWallet.sol";
 import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
 import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
@@ -261,7 +263,7 @@ contract TestMints is Test, DeployUtils {
     function test_spend_revertIfZeroValue() public {
         crossChainBaseAuth.spec.value = 0;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
-        vm.expectRevert(abi.encodeWithSelector(SpendMinter.MintValueMustBePositive.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(SpendMinter.AuthorizationValueMustBePositive.selector, 0));
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
@@ -276,7 +278,7 @@ contract TestMints is Test, DeployUtils {
         MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendMinter.MintValueMustBePositive.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(SpendMinter.AuthorizationValueMustBePositive.selector, 1));
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
     }
 
@@ -486,7 +488,7 @@ contract TestMints is Test, DeployUtils {
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(crossChainBaseAuth.spec));
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, specHash));
+        vm.expectRevert(abi.encodeWithSelector(SpendHashesStorage.SpendHashUsed.selector, specHash));
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 

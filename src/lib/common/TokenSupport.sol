@@ -37,7 +37,7 @@ contract TokenSupport is Ownable2StepUpgradeable {
     ///
     /// @param token   The token to check
     function isTokenSupported(address token) public view returns (bool) {
-        return TokenSupportStorage.get().supportedTokens[token];
+        return TokenSupportStorage._isTokenSupported(token);
     }
 
     /// Ensures that the given token is supported
@@ -83,5 +83,12 @@ library TokenSupportStorage {
         assembly {
             $.slot := SLOT
         }
+    }
+
+    /// Whether or not a token is supported
+    ///
+    /// @param token   The token to check
+    function _isTokenSupported(address token) internal view returns (bool) {
+        return get().supportedTokens[token];
     }
 }

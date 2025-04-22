@@ -27,9 +27,6 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 ///
 /// Manages burns for the SpendWallet contract
 contract Burns is Ownable2StepUpgradeable, Pausing {
-    error InvalidBurnSigner();
-    error MismatchedBurn();
-
     /// Returns the byte encoding of a single burn authorization
     ///
     /// @param authorization   The burn authorization to encode
@@ -56,35 +53,6 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
         returns (bool)
     {}
 
-    /// Emitted when the operator burns tokens that have been spent on another domain
-    ///
-    /// @param token               The token that was spent
-    /// @param depositor           The depositor who owned the spent balance
-    /// @param spendHash           The keccak256 hash of the `SpendSpec`
-    /// @param destinationDomain   The domain the spend was used on
-    /// @param recipient           The recipient of the funds at the destination
-    /// @param authorizer          The address that authorized the transfer
-    /// @param value               The value that was spent
-    /// @param fee                 The fee charged for the burn
-    /// @param total               The total value burnt, including the fee
-    /// @param fromSpendable       The value burnt from the `spendable` balance
-    /// @param fromWithdrawing     The value burnt from the `withdrawing` balance
-    /// @param burnAuthorization   The entire burn authorization that was used
-    event BurnedSpent(
-        address indexed token,
-        address indexed depositor,
-        bytes32 indexed spendHash,
-        uint32 destinationDomain,
-        bytes32 recipient,
-        address authorizer,
-        uint256 value,
-        uint256 fee,
-        uint256 total,
-        uint256 fromSpendable,
-        uint256 fromWithdrawing,
-        bytes burnAuthorization
-    );
-
     /// Debit the depositor's balance and burn the tokens after a spend was authorized
     ///
     /// @dev `authorizations`, `signatures`, and `fees` must all be the same length
@@ -104,35 +72,9 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
         bytes[] calldata signatures,
         uint256[][] calldata fees,
         bytes calldata burnerSignature
-    ) external view whenNotPaused {
+    ) external whenNotPaused {
         BurnLib.burnSpent(authorizations, signatures, fees, burnerSignature);
     }
-
-    /// Emitted when a spend authorization is used on the same chain as its source, resulting in a same-chain spend that
-    /// transfers funds to the recipient instead of minting and burning them
-    ///
-    /// @param token                The token that was spent
-    /// @param depositor            The depositor who owned the spent balance
-    /// @param spendHash            The keccak256 hash of the SpendSpec
-    /// @param recipient            The recipient of the funds
-    /// @param authorizer           The address that authorized the transfer
-    /// @param value                The value transferred to the recipient
-    /// @param fromSpendable        The value transferred from the `spendable`
-    ///                             balance
-    /// @param fromWithdrawing      The value transferred from the `withdrawing`
-    ///                             balance
-    /// @param spendAuthorization   The entire spend authorization that was used
-    event TransferredSpent(
-        address indexed token,
-        address indexed depositor,
-        bytes32 indexed spendHash,
-        bytes32 recipient,
-        address authorizer,
-        uint256 value,
-        uint256 fromSpendable,
-        uint256 fromWithdrawing,
-        bytes spendAuthorization
-    );
 
     /// Debits the depositor's balance like `burnSpent`, but transfers funds instead of burning them. Used when a spend
     /// happens on the same chain to avoid burning and minting. No fee is charged.

@@ -24,6 +24,7 @@ import {SpendMinter} from "src/SpendMinter.sol";
 import {TokenSupport} from "src/lib//common/TokenSupport.sol";
 import {OwnershipTest} from "test/util/OwnershipTest.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
+import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
 /// Tests ownership and initialization functionality of SpendMinter
 contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
@@ -37,7 +38,7 @@ contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
     }
 
     function setUp() public {
-        minter = deployMinterOnly(owner);
+        minter = deployMinterOnly(owner, ForkTestUtils.forkVars().domain);
     }
 
     function test_initialize_revertWhenReinitialized() public {
