@@ -51,7 +51,7 @@ contract TokenSupport is Ownable2StepUpgradeable {
     /// Reverts if the given token is not supported
     ///
     /// @param token   The token to check
-    function _ensureTokenSupported(address token) private view {
+    function _ensureTokenSupported(address token) internal view {
         if (!isTokenSupported(token)) {
             revert UnsupportedToken(token);
         }

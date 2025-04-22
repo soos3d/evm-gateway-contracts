@@ -168,6 +168,9 @@ contract SpendMinter is SpendCommon {
             revert InvalidAuthorizationDestinationContract(index, destinationContract);
         }
 
+        address destinationToken = _bytes32ToAddress(spec.getDestinationToken());
+        _ensureTokenSupported(destinationToken);
+
         uint32 sourceDomain = spec.getSourceDomain();
         if (sourceDomain == destinationDomain) {
             // Same chain spend
@@ -177,7 +180,6 @@ contract SpendMinter is SpendCommon {
                 revert InvalidAuthorizationSourceContract(index, sourceContract, walletAddr);
             }
             address sourceToken = _bytes32ToAddress(spec.getSourceToken());
-            address destinationToken = _bytes32ToAddress(spec.getDestinationToken());
             if (sourceToken != destinationToken) {
                 revert InvalidAuthorizationToken(index, sourceToken, destinationToken);
             }
