@@ -17,15 +17,17 @@
  */
 pragma solidity ^0.8.28;
 
-import {Pausing} from "src/lib/common/Pausing.sol";
 import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
+import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 import {BurnLib} from "src/lib/wallet/BurnLib.sol";
-import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {SpendCommon} from "src/SpendCommon.sol";
+import {Delegation} from "src/lib/wallet/Delegation.sol";
 
 /// @title Burns
 ///
 /// Manages burns for the SpendWallet contract
-contract Burns is Ownable2StepUpgradeable, Pausing {
+
+contract Burns is SpendCommon, Delegation {
     error InvalidBurnSigner();
     error MismatchedBurn();
 
@@ -129,7 +131,8 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
         uint256 value,
         bytes32 spendHash,
         bytes memory spendAuthorization
-    ) external whenNotPaused {
+    ) external whenNotPaused onlyCounterpart tokenSupported(token) notDenylisted(depositor) notDenylisted(authorizer) {
+        _ensureAuthorizedForBalance(token, depositor, authorizer);
         BurnLib.sameChainSpend(token, depositor, recipient, authorizer, value, spendHash, spendAuthorization);
     }
 
@@ -138,13 +141,24 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
         return BurnsStorage.get().burnSigner;
     }
 
+    /// Emitted when the burnSigner role is updated
+    ///
+    /// @param oldBurnSigner   The previous burn signer address
+    /// @param newBurnSigner   The new burn signer address
+    event BurnSignerUpdated(address oldBurnSigner, address newBurnSigner);
+
     /// Sets the address that may call `burnSpent`
     ///
     /// @dev May only be called by the `owner` role
     ///
     /// @param newBurnSigner   The new burn caller address
     function updateBurnSigner(address newBurnSigner) external onlyOwner {
-        BurnLib.updateBurnSigner(newBurnSigner);
+        _checkNotZeroAddress(newBurnSigner);
+
+        BurnsStorage.Data storage burns$ = BurnsStorage.get();
+        address oldBurnSigner = burns$.burnSigner;
+        burns$.burnSigner = newBurnSigner;
+        emit BurnSignerUpdated(oldBurnSigner, newBurnSigner);
     }
 
     /// The address that will receive the onchain fee for burns
@@ -152,13 +166,24 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
         return BurnsStorage.get().feeRecipient;
     }
 
+    /// Emitted when the feeRecipient role is updated
+    ///
+    /// @param oldFeeRecipient   The previous fee recipient address
+    /// @param newFeeRecipient   The new fee recipient address
+    event FeeRecipientUpdated(address oldFeeRecipient, address newFeeRecipient);
+
     /// Sets the address that will receive the fee for burns
     ///
     /// @dev May only be called by the `owner` role
     ///
     /// @param newFeeRecipient   The new fee recipient address
     function updateFeeRecipient(address newFeeRecipient) external onlyOwner {
-        BurnLib.updateFeeRecipient(newFeeRecipient);
+        _checkNotZeroAddress(newFeeRecipient);
+
+        BurnsStorage.Data storage burns$ = BurnsStorage.get();
+        address oldFeeRecipient = burns$.feeRecipient;
+        burns$.feeRecipient = newFeeRecipient;
+        emit FeeRecipientUpdated(oldFeeRecipient, newFeeRecipient);
     }
 }
 

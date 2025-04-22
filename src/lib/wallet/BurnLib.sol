@@ -18,22 +18,14 @@
 pragma solidity ^0.8.28;
 
 import {BurnsStorage} from "src/lib/wallet/Burns.sol";
-import {CounterpartStorage} from "src/lib/common/Counterpart.sol";
-import {DelegationStorage} from "src/lib/wallet/Delegation.sol";
-import {DenylistableStorage} from "src/lib/common/Denylistable.sol";
 import {BalancesStorage} from "src/lib/wallet/Balances.sol";
-import {TokenSupportStorage} from "src/lib/common/TokenSupport.sol";
 import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Counterpart} from "src/lib/common/Counterpart.sol";
-import {TokenSupport} from "src/lib/common/TokenSupport.sol";
-import {Denylistable} from "src/lib/common/Denylistable.sol";
 
 /// Handles the implementation of burning, split out as an external library for bytecode size
 library BurnLib {
@@ -45,12 +37,6 @@ library BurnLib {
     error InvalidBurnSigner();
     error MismatchedBurn();
     error InsufficientBalanceForSameChainSpend();
-
-    /// Emitted when the burnSigner role is updated
-    event BurnSignerUpdated(address oldBurnSigner, address newBurnSigner);
-
-    /// Emitted when the feeRecipient role is updated
-    event FeeRecipientUpdated(address oldFeeRecipient, address newFeeRecipient);
 
     /// Emitted when a spend authorization is used on the same chain as its source, resulting in a same-chain spend that
     /// transfers funds to the recipient instead of minting and burning them
@@ -133,23 +119,6 @@ library BurnLib {
         bytes32 spendHash,
         bytes memory spendAuthorization
     ) external {
-        if (msg.sender != CounterpartStorage.get().counterpart) {
-            revert Counterpart.UnauthorizedCounterpart(msg.sender);
-        }
-
-        if (!TokenSupportStorage.get().supportedTokens[token]) {
-            revert TokenSupport.UnsupportedToken(token);
-        }
-
-        if (DenylistableStorage.get().denylistMapping[depositor]) {
-            revert Denylistable.AccountDenylisted(depositor);
-        }
-        if (DenylistableStorage.get().denylistMapping[authorizer]) {
-            revert Denylistable.AccountDenylisted(authorizer);
-        }
-
-        DelegationStorage._ensureAuthorizedForBalance(token, depositor, authorizer);
-
         (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value);
         if (fromSpendable + fromWithdrawing != value) {
             revert InsufficientBalanceForSameChainSpend();
@@ -227,33 +196,5 @@ library BurnLib {
         // Otherwise, take it all
         balances$.withdrawingBalances[token][depositor] = 0;
         return (spendable, withdrawing);
-    }
-
-    /// Sets the address that may call `burnSpent`
-    ///
-    /// @dev May only be called by the `owner` role
-    ///
-    /// @param newBurnSigner   The new burn caller address
-    function updateBurnSigner(address newBurnSigner) external {
-        _checkNotZeroAddress(newBurnSigner);
-
-        BurnsStorage.Data storage burns$ = BurnsStorage.get();
-        address oldBurnSigner = burns$.burnSigner;
-        burns$.burnSigner = newBurnSigner;
-        emit BurnSignerUpdated(oldBurnSigner, newBurnSigner);
-    }
-
-    /// Sets the address that will receive the fee for burns
-    ///
-    /// @dev May only be called by the `owner` role
-    ///
-    /// @param newFeeRecipient   The new fee recipient address
-    function updateFeeRecipient(address newFeeRecipient) external {
-        _checkNotZeroAddress(newFeeRecipient);
-
-        BurnsStorage.Data storage burns$ = BurnsStorage.get();
-        address oldFeeRecipient = burns$.feeRecipient;
-        burns$.feeRecipient = newFeeRecipient;
-        emit FeeRecipientUpdated(oldFeeRecipient, newFeeRecipient);
     }
 }

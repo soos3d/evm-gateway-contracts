@@ -22,18 +22,25 @@ pragma solidity ^0.8.28;
 /// Manages a set of "spend hashes" that have been used, in order to prevent replay. A "spend hash" is the `keccak256`
 /// hash of a `SpendSpec` struct, which is common to both `BurnAuthorization` and `SpendAuthorization`.
 contract SpendHashes {
+    /// Thrown when a given spend hash has already been used, to prevent replay
+    ///
+    /// @param spendHash   The spend hash that was used
+    error SpendHashUsed(bytes32 spendHash);
+
     /// Marks the given spend hash as used
     ///
     /// @param spendHash   The spend hash to mark as used
     function _markSpendHashAsUsed(bytes32 spendHash) internal {
-        SpendHashesStorage._markSpendHashAsUsed(spendHash);
+        SpendHashesStorage.get().usedSpendHashes[spendHash] = true;
     }
 
     /// Reverts if the given spend hash has already been used
     ///
     /// @param spendHash   The spend hash to check
     function _ensureSpendHashNotUsed(bytes32 spendHash) internal view {
-        SpendHashesStorage._ensureSpendHashNotUsed(spendHash);
+        if (SpendHashesStorage.get().usedSpendHashes[spendHash]) {
+            revert SpendHashUsed(spendHash);
+        }
     }
 }
 
@@ -53,31 +60,5 @@ library SpendHashesStorage {
         assembly {
             $.slot := SLOT
         }
-    }
-
-    /// Thrown when a given spend hash has already been used, to prevent replay
-    ///
-    /// @param spendHash   The spend hash that was used
-    error SpendHashUsed(bytes32 spendHash);
-
-    function _checkAndMark(bytes32 spendHash) internal {
-        _ensureSpendHashNotUsed(spendHash);
-        _markSpendHashAsUsed(spendHash);
-    }
-
-    /// Reverts if the given spend hash has already been used
-    ///
-    /// @param spendHash   The spend hash to check
-    function _ensureSpendHashNotUsed(bytes32 spendHash) internal view {
-        if (get().usedSpendHashes[spendHash]) {
-            revert SpendHashUsed(spendHash);
-        }
-    }
-
-    /// Marks the given spend hash as used
-    ///
-    /// @param spendHash   The spend hash to mark as used
-    function _markSpendHashAsUsed(bytes32 spendHash) internal {
-        get().usedSpendHashes[spendHash] = true;
     }
 }
