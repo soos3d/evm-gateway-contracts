@@ -20,7 +20,7 @@ pragma solidity ^0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {SpendHashes} from "src/lib/common/SpendHashes.sol";
+import {SpendHashes, SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
 import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
 
 contract SpendHashesHarness is SpendHashes {
@@ -85,7 +85,7 @@ contract SpendHashesTest is Test {
 
         spendHashes.markSpendHashAsUsed(spendHash);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, spendHash));
+        vm.expectRevert(abi.encodeWithSelector(SpendHashesStorage.SpendHashUsed.selector, spendHash));
         spendHashes.ensureSpendHashNotUsed(spendHash);
     }
 
@@ -96,7 +96,7 @@ contract SpendHashesTest is Test {
         spendHashes.markSpendHashAsUsed(spendHash);
         spendHashes.markSpendHashAsUsed(spendHash);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, spendHash));
+        vm.expectRevert(abi.encodeWithSelector(SpendHashesStorage.SpendHashUsed.selector, spendHash));
         spendHashes.ensureSpendHashNotUsed(spendHash);
     }
 
@@ -110,10 +110,10 @@ contract SpendHashesTest is Test {
         spendHashes.markSpendHashAsUsed(spendHash1);
         spendHashes.markSpendHashAsUsed(spendHash2);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, spendHash1));
+        vm.expectRevert(abi.encodeWithSelector(SpendHashesStorage.SpendHashUsed.selector, spendHash1));
         spendHashes.ensureSpendHashNotUsed(spendHash1);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, spendHash2));
+        vm.expectRevert(abi.encodeWithSelector(SpendHashesStorage.SpendHashUsed.selector, spendHash2));
         spendHashes.ensureSpendHashNotUsed(spendHash2);
     }
 
@@ -130,14 +130,14 @@ contract SpendHashesTest is Test {
         bytes32 spendHash = _hashTransferSpec(spec);
         proxyAsImpl.markSpendHashAsUsed(spendHash);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, spendHash));
+        vm.expectRevert(abi.encodeWithSelector(SpendHashesStorage.SpendHashUsed.selector, spendHash));
         proxyAsImpl.ensureSpendHashNotUsed(spendHash);
 
         // Upgrade to the second implementation
         proxyAsImpl.upgradeToAndCall(address(impl2), new bytes(0));
 
         // Check that the spend hash is still marked as used despite the upgrade
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, spendHash));
+        vm.expectRevert(abi.encodeWithSelector(SpendHashesStorage.SpendHashUsed.selector, spendHash));
         proxyAsImpl.ensureSpendHashNotUsed(spendHash);
 
         // Verify that implementation storage is not affected by the upgrade

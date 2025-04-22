@@ -46,7 +46,7 @@ contract TestSameChainSpend is Test, DeployUtils {
     bytes private emptyAuthorization = new bytes(0);
 
     function setUp() public {
-        wallet = deployWalletOnly(owner);
+        wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
         usdc = ForkTestUtils.forkVars().usdc;
 
         vm.startPrank(owner);

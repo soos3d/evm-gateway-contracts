@@ -20,14 +20,15 @@ pragma solidity ^0.8.28;
 import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
-import {DeployUtils, TEST_DOMAIN} from "test/util/DeployUtils.sol";
+import {DeployUtils} from "test/util/DeployUtils.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract TestDeployUtils is Test, DeployUtils {
     address private owner = makeAddr("owner");
+    uint32 private domain = 99;
 
     function test_deploy() external {
-        (SpendWallet wallet, SpendMinter minter) = deploy(owner, TEST_DOMAIN);
+        (SpendWallet wallet, SpendMinter minter) = deploy(owner, domain);
 
         assertNotEq(address(wallet), address(0));
         assertNotEq(address(minter), address(0));
@@ -37,28 +38,28 @@ contract TestDeployUtils is Test, DeployUtils {
         assert(!minter.paused());
         assertEq(address(wallet.minterContract()), address(minter));
         assertEq(address(minter.walletContract()), address(wallet));
-        assertEq(wallet.domain(), TEST_DOMAIN);
-        assertEq(minter.domain(), TEST_DOMAIN);
+        assertEq(wallet.domain(), domain);
+        assertEq(minter.domain(), domain);
     }
 
     function test_deployWalletOnly() external {
-        SpendWallet wallet = deployWalletOnly(owner);
+        SpendWallet wallet = deployWalletOnly(owner, domain);
 
         assertNotEq(address(wallet), address(0));
         assertEq(wallet.owner(), owner);
         assert(!wallet.paused());
         assertEq(address(wallet.minterContract()), address(0));
-        assertEq(wallet.domain(), TEST_DOMAIN);
+        assertEq(wallet.domain(), domain);
     }
 
     function test_deployMinterOnly() external {
-        SpendMinter minter = deployMinterOnly(owner);
+        SpendMinter minter = deployMinterOnly(owner, domain);
 
         assertNotEq(address(minter), address(0));
         assertEq(minter.owner(), owner);
         assert(!minter.paused());
         assertEq(address(minter.walletContract()), address(0));
-        assertEq(minter.domain(), TEST_DOMAIN);
+        assertEq(minter.domain(), domain);
     }
 
     function test_deployPlaceholder() external {

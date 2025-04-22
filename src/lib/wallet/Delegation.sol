@@ -22,9 +22,16 @@ import {Denylistable} from "src/lib/common/Denylistable.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 
+/// @title Authorization Status
+///
+/// Represents the possible states of a delegate's authorization for a specific token and depositor.
 enum AuthorizationStatus {
+    /// @notice The delegate has never been authorized.
     Unauthorized,
+    /// @notice The delegate is currently authorized to act on behalf of the depositor for the token.
     Authorized,
+    /// @notice The delegate was previously authorized, but the authorization has been revoked.
+    /// @dev This state is distinct from Unauthorized to handle specific scenarios like signed burn authorizations.
     Revoked
 }
 
@@ -32,7 +39,6 @@ enum AuthorizationStatus {
 ///
 /// Manages delegation for the SpendWallet contract
 contract Delegation is Pausing, Denylistable, TokenSupport {
-    error NotAuthorized();
     error CannotDelegateToSelf();
 
     /// Emitted when a delegate is authorized for a depositor's balance
@@ -91,7 +97,7 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
         AuthorizationStatus existingStatus = delegation$.authorizedDelegates[token][msg.sender][delegate];
 
         // If the address has never been authorized, take no action
-        if (existingStatus == AuthorizationStatus.Unauthorized) {
+        if (existingStatus == AuthorizationStatus.Unauthorized || existingStatus == AuthorizationStatus.Revoked) {
             return;
         }
 
@@ -159,5 +165,20 @@ library DelegationStorage {
         if (!_isAuthorizedForBalance(token, depositor, addr)) {
             revert NotAuthorized();
         }
+    }
+
+    /// Check if an address has ever been authorized to withdraw and transfer tokens on behalf of a depositor
+    ///
+    /// @param token       The token to check
+    /// @param depositor   The depositor to check
+    /// @param addr        The address to check
+    function _wasEverAuthorizedForBalance(address token, address depositor, address addr)
+        internal
+        view
+        returns (bool)
+    {
+        if (addr == depositor) return true;
+
+        return get().authorizedDelegates[token][depositor][addr] != AuthorizationStatus.Unauthorized;
     }
 }

@@ -111,9 +111,7 @@ contract Withdrawals is Pausing, TokenSupport, Delegation {
         whenNotPaused
         tokenSupported(token)
     {
-        if (!isAuthorizedForBalance(token, depositor, msg.sender)) {
-            revert NotAuthorized();
-        }
+        _ensureAuthorizedForBalance(token, depositor, msg.sender);
         _initiateWithdrawal(token, depositor, msg.sender, value);
     }
 
@@ -177,9 +175,7 @@ contract Withdrawals is Pausing, TokenSupport, Delegation {
         whenNotPaused
         tokenSupported(token)
     {
-        if (!isAuthorizedForBalance(token, depositor, msg.sender)) {
-            revert NotAuthorized();
-        }
+        _ensureAuthorizedForBalance(token, depositor, msg.sender);
         _withdraw(token, depositor, recipient);
     }
 }

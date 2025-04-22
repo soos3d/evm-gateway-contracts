@@ -21,6 +21,7 @@ import {SpendWallet} from "src/SpendWallet.sol";
 import {WithdrawalDelay} from "src/lib/wallet/WithdrawalDelay.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {Test} from "forge-std/Test.sol";
 
 /// Tests admin functionality of SpendWallet
@@ -30,7 +31,7 @@ contract SpendWalletAdminTest is Test, DeployUtils {
     SpendWallet private wallet;
 
     function setUp() public {
-        wallet = deployWalletOnly(owner);
+        wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
     }
 
     function test_updateWithdrawalDelay_withdrawalDelayUpdatedByOwner() public {

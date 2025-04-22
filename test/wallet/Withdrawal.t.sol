@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {SpendWallet} from "src/SpendWallet.sol";
-import {Delegation} from "src/lib/wallet/Delegation.sol";
+import {DelegationStorage} from "src/lib/wallet/Delegation.sol";
 import {Withdrawals} from "src/lib/wallet/Withdrawals.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
@@ -44,7 +44,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     WithdrawalType private withdrawalType;
 
     function setUp() public {
-        wallet = deployWalletOnly(owner);
+        wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
 
         usdc = ForkTestUtils.forkVars().usdc;
         // Mint initial USDC balance to depositor
@@ -187,7 +187,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     function test_initiateWithdrawal_revertIfNotAuthorized() public {
         address unauthorized = makeAddr("unauthorized");
         vm.startPrank(unauthorized);
-        vm.expectRevert(Delegation.NotAuthorized.selector);
+        vm.expectRevert(DelegationStorage.NotAuthorized.selector);
         wallet.initiateWithdrawal(usdc, depositor, initialUsdcBalance / 4);
         vm.stopPrank();
     }
@@ -204,7 +204,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         // Try to complete withdrawal as unauthorized delegate
         address unauthorized = makeAddr("unauthorized");
         vm.startPrank(unauthorized);
-        vm.expectRevert(Delegation.NotAuthorized.selector);
+        vm.expectRevert(DelegationStorage.NotAuthorized.selector);
         wallet.withdraw(usdc, depositor, unauthorized);
         vm.stopPrank();
     }
@@ -764,7 +764,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Delegate tries to complete the withdrawal but should fail
         vm.startPrank(delegate);
-        vm.expectRevert(Delegation.NotAuthorized.selector);
+        vm.expectRevert(DelegationStorage.NotAuthorized.selector);
         wallet.withdraw(usdc, depositor, delegate);
         vm.stopPrank();
 
