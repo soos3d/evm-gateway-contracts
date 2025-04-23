@@ -18,16 +18,25 @@
 pragma solidity ^0.8.28;
 
 import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
-import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 import {BurnLib} from "src/lib/wallet/BurnLib.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
 import {Delegation} from "src/lib/wallet/Delegation.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
+import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
+import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
+import {_bytes32ToAddress} from "src/lib/util/addresses.sol";
 
 /// @title Burns
 ///
 /// Manages burns for the SpendWallet contract
 contract Burns is SpendCommon, Delegation {
+    using MessageHashUtils for bytes32;
+    using TransferSpecLib for bytes29;
+    using BurnAuthorizationLib for bytes29;
+    using BurnAuthorizationLib for AuthorizationCursor;
+
     /// Returns the byte encoding of a single burn authorization
     ///
     /// @param authorization   The burn authorization to encode
@@ -55,10 +64,37 @@ contract Burns is SpendCommon, Delegation {
     /// @param signature       The signature from the depositor or authorized delegate
     function validateBurnAuthorizations(bytes memory authorization, bytes calldata signature)
         external
-        pure
+        view
         returns (bool)
     {
-        // TODO: add actual validation logic
+        address token;
+        address recoveredSigner = BurnLib._recoverAuthorizationSigner(authorization, signature);
+        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(authorization);
+
+        uint32 index = 0;
+        while (!cursor.done) {
+            index = cursor.index;
+
+            bytes29 auth = cursor.next();
+            bytes29 spec = auth.getTransferSpec();
+
+            // Validate that everything about the burn authorization is as expected, and skip if it's not for this domain
+            bool relevant = BurnLib._validateBurnAuthorization(auth, recoveredSigner, 0, index);
+            if (!relevant) {
+                continue;
+            }
+
+            // Ensure that each one we've seen so far is for the same token
+            address _token = _bytes32ToAddress(spec.getSourceToken());
+            if (token != address(0)) {
+                if (_token != token) {
+                    revert BurnLib.NotAllSameToken();
+                }
+            } else {
+                token = _token;
+            }
+        }
+
         return true;
     }
 
