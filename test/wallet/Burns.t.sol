@@ -2165,11 +2165,16 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
 
         // Sign with a different key (attacker)
-        (, uint256 attackerKey) = makeAddrAndKey("attacker");
+        (address attacker, uint256 attackerKey) = makeAddrAndKey("attacker");
         bytes memory invalidSignature = _signAuthOrAuthSet(encodedAuth, attackerKey);
 
         // Expect revert because the recovered signer (attacker) is not authorized for the depositor's balance
-        vm.expectRevert(DelegationStorage.NotAuthorized.selector);
+        vm.expectRevert(abi.encodeWithSelector(
+            BurnLib.InvalidAuthorizationSourceSigner.selector,
+            uint32(0),
+            depositor,
+            attacker
+        ));
         wallet.validateBurnAuthorizations(encodedAuth, invalidSignature);
     }
 
@@ -2198,8 +2203,12 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
 
         // Expect revert because the recovered signer (depositor) won't match auth2's sourceSigner (otherSignerAddr)
-        // TODO: Actually check for revert. This will happen in _validateBurnAuthorization in a future PR.
-        // vm.expectRevert(...);
+        vm.expectRevert(abi.encodeWithSelector(
+            BurnLib.InvalidAuthorizationSourceSigner.selector,
+            uint32(1),
+            otherSignerAddr,
+            depositor
+        ));
         wallet.validateBurnAuthorizations(encodedAuthSet, signature);
     }
 
