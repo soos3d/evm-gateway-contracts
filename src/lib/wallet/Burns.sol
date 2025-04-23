@@ -98,8 +98,15 @@ contract Burns is SpendCommon, Delegation {
         uint256 value,
         bytes32 spendHash,
         bytes memory spendAuthorization
-    ) external whenNotPaused onlyCounterpart tokenSupported(token) notDenylisted(depositor) notDenylisted(authorizer) {
-        _ensureAuthorizedForBalance(token, depositor, authorizer);
+    )
+        external
+        whenNotPaused
+        onlyCounterpart
+        tokenSupported(token)
+        notDenylisted(depositor)
+        notDenylisted(authorizer)
+        authorizedForBalance(token, depositor, authorizer)
+    {
         BurnLib.sameChainSpend(token, depositor, recipient, authorizer, value, spendHash, spendAuthorization);
     }
 
