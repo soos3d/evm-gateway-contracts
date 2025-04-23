@@ -146,7 +146,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
                 destinationToken: _addressToBytes32(destinationToken),
                 sourceDepositor: _addressToBytes32(depositor),
                 destinationRecipient: _addressToBytes32(recipient),
-                sourceSigner: bytes32(0),
+                sourceSigner: _addressToBytes32(depositor),
                 destinationCaller: bytes32(0),
                 value: depositorInitialBalance / 2,
                 nonce: keccak256("nonce"),
@@ -514,15 +514,16 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     }
 
     function test_burnSpend_revertIfWasNeverAuthorizedForBalanceAuth() public {
-        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
-
+        BurnAuthorization memory neverAuthorizedAuth = baseAuth;
+        (address neverAuthorizedSigner, uint256 neverAuthorizedSignerKey) = makeAddrAndKey("neverAuthorizedSigner");
+        neverAuthorizedAuth.spec.sourceSigner = _addressToBytes32(neverAuthorizedSigner);
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(neverAuthorizedAuth);
         bytes[] memory authorizations = new bytes[](1);
         authorizations[0] = encodedAuth;
 
         // Sign with a wrong key
-        (, uint256 wrongDepositorKey) = makeAddrAndKey("wrongDepositor");
         bytes[] memory signatures = new bytes[](1);
-        signatures[0] = _signAuthOrAuthSet(encodedAuth, wrongDepositorKey);
+        signatures[0] = _signAuthOrAuthSet(encodedAuth, neverAuthorizedSignerKey);
 
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](1);
@@ -533,22 +534,72 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     function test_burnSpend_revertIfWasNeverAuthorizedForBalanceAuthSet() public {
         BurnAuthorization[] memory auths = new BurnAuthorization[](2);
+        (address neverAuthorizedSigner, uint256 neverAuthorizedSignerKey) = makeAddrAndKey("neverAuthorizedSigner");
         auths[0] = baseAuth;
+        auths[0].spec.sourceSigner = _addressToBytes32(neverAuthorizedSigner);
         auths[1] = baseAuth;
+        auths[1].spec.sourceSigner = _addressToBytes32(neverAuthorizedSigner);
         BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
 
         bytes[] memory authorizations = new bytes[](1);
         authorizations[0] = encodedAuthSet;
 
-        (, uint256 wrongDepositorKey) = makeAddrAndKey("wrongDepositor");
         bytes[] memory signatures = new bytes[](1);
-        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, wrongDepositorKey);
+        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, neverAuthorizedSignerKey);
 
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](2);
 
         vm.expectRevert(DelegationStorage.NotAuthorized.selector);
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpend_revertIfInvalidSourceSignerAuth() public {
+        BurnAuthorization memory mismatchedSignerAuth = baseAuth;
+        address anotherAddress = makeAddr("anotherAddress");
+        mismatchedSignerAuth.spec.sourceSigner = _addressToBytes32(anotherAddress);
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(mismatchedSignerAuth);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuth;
+
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuth, depositorKey); // Signed by depositor but sourceSigner is anotherAddress
+
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](1);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceSigner.selector, 0, anotherAddress, depositor)
+        );
+        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+    }
+
+    function test_burnSpend_revertIfInvalidSourceSignerAuthSet() public {
+        BurnAuthorization memory auth1 = baseAuth;
+        BurnAuthorization memory auth2MismatchedSigner = baseAuth;
+        address anotherAddress = makeAddr("anotherAddress");
+        auth2MismatchedSigner.spec.sourceSigner = _addressToBytes32(anotherAddress);
+
+        BurnAuthorization[] memory auths = new BurnAuthorization[](2);
+        auths[0] = auth1;
+        auths[1] = auth2MismatchedSigner;
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        bytes[] memory authorizations = new bytes[](1);
+        authorizations[0] = encodedAuthSet;
+
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey); // Signed by depositor
+
+        uint256[][] memory fees = new uint256[][](1);
+        fees[0] = new uint256[](2);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceSigner.selector, 1, anotherAddress, depositor)
+        );
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -728,6 +779,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         BurnAuthorization memory auth = baseAuth;
         auth.spec.value = 2500 * 10 ** 6; // $2500
         auth.spec.sourceDepositor = _addressToBytes32(underFundedDepositor);
+        auth.spec.sourceSigner = _addressToBytes32(underFundedDepositor);
         uint256 fee = defaultMaxFee / 2; // $0.50
 
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
@@ -812,12 +864,14 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Auth 1 (should succeed)
         testData.auth1 = baseAuth;
         testData.auth1.spec.sourceDepositor = _addressToBytes32(testData.depositorAddr);
+        testData.auth1.spec.sourceSigner = _addressToBytes32(testData.depositorAddr);
         testData.auth1.spec.value = testData.value1;
         testData.auth1.maxFee = defaultMaxFee;
 
         // Auth 2 (should have insufficient funds after Auth 1)
         testData.auth2 = baseAuth;
         testData.auth2.spec.sourceDepositor = _addressToBytes32(testData.depositorAddr);
+        testData.auth2.spec.sourceSigner = _addressToBytes32(testData.depositorAddr);
         testData.auth2.spec.value = testData.value2;
         testData.auth2.maxFee = defaultMaxFee;
 
@@ -942,7 +996,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         BurnAuthorization memory auth = baseAuth;
         auth.spec.value = depositorInitialBalance / 4; // $1250
         auth.spec.sourceDepositor = _addressToBytes32(underFundedDepositor);
-
+        auth.spec.sourceSigner = _addressToBytes32(underFundedDepositor);
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
         bytes memory signature = _signAuthOrAuthSet(encodedAuth, underFundedDepositorKey);
 
@@ -1025,12 +1079,14 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Auth 1 (designed to succeed)
         testData.auth1 = baseAuth;
         testData.auth1.spec.sourceDepositor = _addressToBytes32(testData.depositorAddr);
+        testData.auth1.spec.sourceSigner = _addressToBytes32(testData.depositorAddr);
         testData.auth1.spec.value = testData.value1;
         testData.auth1.maxFee = defaultMaxFee;
 
         // Auth 2 (designed to have insufficient funds for full fee after Auth 1)
         testData.auth2 = baseAuth;
         testData.auth2.spec.sourceDepositor = _addressToBytes32(testData.depositorAddr);
+        testData.auth2.spec.sourceSigner = _addressToBytes32(testData.depositorAddr);
         testData.auth2.spec.value = testData.value2;
         testData.auth2.maxFee = defaultMaxFee;
 
@@ -1297,6 +1353,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
+        auth.spec.sourceSigner = _addressToBytes32(delegate);
+
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate
@@ -1353,6 +1411,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
+        auth.spec.sourceSigner = _addressToBytes32(delegate);
+
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate (before revocation)
@@ -1465,6 +1525,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
+        auth.spec.sourceSigner = _addressToBytes32(delegate);
+
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate
@@ -1521,6 +1583,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
+        auth.spec.sourceSigner = _addressToBytes32(delegate);
+
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate
@@ -1639,6 +1703,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
+        auth.spec.sourceSigner = _addressToBytes32(delegate);
+
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate
@@ -1700,6 +1766,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
+        auth.spec.sourceSigner = _addressToBytes32(delegate);
+
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate
@@ -1968,6 +2036,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Authorization for depositor 2
         testData.auth2 = baseAuth;
         testData.auth2.spec.sourceDepositor = _addressToBytes32(depositor2);
+        testData.auth2.spec.sourceSigner = _addressToBytes32(depositor2);
         testData.auth2.spec.value = testData.burnValue2;
         testData.auth2.maxFee = defaultMaxFee;
 
