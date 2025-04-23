@@ -67,7 +67,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    function test_sameChainSpend_revertsWhenPaused() external {
+    function test_sameChainSpend_revertsWhenPaused() public {
         vm.prank(pauser);
         wallet.pause();
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
@@ -78,7 +78,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         );
     }
 
-    function test_sameChainSpend_revertsWhenCallerIsNotCounterpart() external {
+    function test_sameChainSpend_revertsWhenCallerIsNotCounterpart() public {
         address randomCaller = makeAddr("randomCaller");
         vm.expectRevert(abi.encodeWithSelector(Counterpart.UnauthorizedCounterpart.selector, address(randomCaller)));
 
@@ -88,7 +88,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         );
     }
 
-    function test_sameChainSpend_revertsWhenTokenNotSupported() external {
+    function test_sameChainSpend_revertsWhenTokenNotSupported() public {
         address unsupportedToken = makeAddr("unsupportedToken");
         vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
 
@@ -104,7 +104,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         );
     }
 
-    function test_sameChainSpend_revertsWhenDepositorIsDenylisted() external {
+    function test_sameChainSpend_revertsWhenDepositorIsDenylisted() public {
         vm.prank(denylister);
         wallet.denylist(depositor);
         vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
@@ -115,7 +115,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         );
     }
 
-    function test_sameChainSpend_revertsWhenAuthorizerIsDenylisted() external {
+    function test_sameChainSpend_revertsWhenAuthorizerIsDenylisted() public {
         vm.prank(denylister);
         wallet.denylist(authorizer);
         vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, authorizer));
@@ -126,7 +126,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         );
     }
 
-    function test_sameChainSpend_revertsWhenAuthorizerIsNotDelegate() external {
+    function test_sameChainSpend_revertsWhenAuthorizerIsNotDelegate() public {
         address notDelegate = makeAddr("notDelegate");
         vm.expectRevert(DelegationStorage.NotAuthorized.selector);
 
@@ -136,7 +136,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         );
     }
 
-    function test_sameChainSpend_revertsIfBalanceInsufficient() external {
+    function test_sameChainSpend_revertsIfBalanceInsufficient() public {
         bytes32 spendHash = keccak256(emptyAuthorization);
         vm.prank(depositor);
         wallet.deposit(usdc, spendValue - 1); // Deposit less than spend amount
@@ -146,7 +146,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, spendHash, emptyAuthorization);
     }
 
-    function test_sameChainSpend_succeedsWithSpendableBalanceOnly() external {
+    function test_sameChainSpend_succeedsWithSpendableBalanceOnly() public {
         bytes32 spendHash = keccak256(emptyAuthorization);
         vm.prank(depositor);
         wallet.deposit(usdc, spendValue);
@@ -163,7 +163,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         assertEq(wallet.totalBalance(usdc, depositor), 0);
     }
 
-    function test_sameChainSpend_succeedsWithWithdrawingBalanceOnly() external {
+    function test_sameChainSpend_succeedsWithWithdrawingBalanceOnly() public {
         bytes32 spendHash = keccak256(emptyAuthorization);
         vm.startPrank(depositor);
         {
@@ -184,7 +184,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         assertEq(wallet.totalBalance(usdc, depositor), 0);
     }
 
-    function test_sameChainSpend_succeedsWithBothBalances() external {
+    function test_sameChainSpend_succeedsWithBothBalances() public {
         bytes32 spendHash = keccak256(emptyAuthorization);
         uint256 withdrawingAmount = 10;
         uint256 spendableAmount = spendValue - withdrawingAmount;

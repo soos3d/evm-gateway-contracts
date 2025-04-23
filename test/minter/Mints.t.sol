@@ -95,7 +95,7 @@ contract TestMints is Test, DeployUtils {
     function setUp() public {
         domain = ForkTestUtils.forkVars().domain;
         usdc = FiatTokenV2_2(ForkTestUtils.forkVars().usdc);
-        (, minter) = deploy(owner, domain);
+        minter = deployMinterOnly(owner, domain);
         wallet = new MockSpendWallet();
         mockToken = new MockMintableToken();
 
@@ -111,12 +111,9 @@ contract TestMints is Test, DeployUtils {
         }
         vm.stopPrank();
 
-        vm.startPrank(depositor);
-        {
-            deal(address(usdc), address(wallet), spendValue * 3);
-            deal(address(mockToken), address(wallet), spendValue * 3);
-        }
-        vm.stopPrank();
+        deal(address(usdc), address(wallet), spendValue * 3);
+        deal(address(mockToken), address(wallet), spendValue * 3);
+
         // Setup minter as USDC minter
         address masterMinterAddr = usdc.masterMinter();
         if (masterMinterAddr.code.length > 0) {

@@ -161,10 +161,13 @@ library BurnLib {
         bytes memory spendAuthorization
     ) external {
         (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value);
+
         if (fromSpendable + fromWithdrawing != value) {
             revert InsufficientBalanceForSameChainSpend();
         }
+
         IERC20(token).safeTransfer(recipient, value);
+
         emit TransferredSpent(
             token,
             depositor,
@@ -289,11 +292,11 @@ library BurnLib {
 
         // Reduce the balances of the depositor by amount being burned + the fee, returning the overall amounts that were drawn from each balance type
         (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value + fee);
-        if (fromSpendable + fromWithdrawing < value + fee) {
-            emit InsufficientBalanceForBurning(token, depositor, value + fee, fromSpendable, fromWithdrawing);
-        }
 
         deductedAmount = fromSpendable + fromWithdrawing;
+        if (fromSpendable + fromWithdrawing < value + fee) {
+            emit InsufficientBalance(token, depositor, value + fee, fromSpendable, fromWithdrawing);
+        }
 
         // If the full amount could not be deducted, we want to prioritize burning over taking the fee
         if (deductedAmount <= value) {
@@ -438,7 +441,7 @@ library BurnLib {
     /// @param value                The amount that needed to be burned
     /// @param spendableBalance     The amount that was present in the spendable balance
     /// @param withdrawingBalance   The amount that was present in the withdrawing balance
-    event InsufficientBalanceForBurning(
+    event InsufficientBalance(
         address indexed token,
         address indexed depositor,
         uint256 value,
