@@ -33,7 +33,6 @@ import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
-import {Burns} from "src/lib/wallet/Burns.sol";
 
 // solhint-disable max-states-count
 contract TestBurns is SignatureTestUtils, DeployUtils {

@@ -43,13 +43,6 @@ contract Domain is Initializable {
     function _isCurrentDomain(uint32 _domain) internal view returns (bool) {
         return DomainStorage._isCurrentDomain(_domain);
     }
-
-    /// Reverts if the given domain does not match the current domain
-    ///
-    /// @param _domain   The domain identifier to check
-    function _ensureCorrectDomain(uint32 _domain) internal view {
-        return DomainStorage._ensureCorrectDomain(_domain);
-    }
 }
 
 /// Implements the EIP-7201 storage pattern for the Domain module
@@ -63,12 +56,6 @@ library DomainStorage {
     /// keccak256(abi.encode(uint256(keccak256("circle.spend.Domain")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant SLOT = 0xb1f04e58cb6888af5b416b98ad47dac7866530383251193b3bfd00214c32ec00;
 
-    /// Thrown if an operation is targeted at the wrong domain
-    ///
-    /// @param incorrect   The domain that the call passed in
-    /// @param correct     The domain in this contract's storage
-    error WrongDomain(uint32 incorrect, uint32 correct);
-
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {
         assembly {
@@ -81,16 +68,5 @@ library DomainStorage {
     /// @param _domain   The domain identifier to check
     function _isCurrentDomain(uint32 _domain) internal view returns (bool) {
         return get().domain == _domain;
-    }
-
-    /// Reverts if the given domain does not match the current domain
-    ///
-    /// @param _domain   The domain identifier to check
-    function _ensureCorrectDomain(uint32 _domain) internal view {
-        uint32 correctDomain = get().domain;
-
-        if (_domain != correctDomain) {
-            revert WrongDomain(_domain, correctDomain);
-        }
     }
 }

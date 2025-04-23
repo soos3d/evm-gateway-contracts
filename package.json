@@ -9,7 +9,8 @@
     "lint": "solhint --disc -c .solhint-src.json './src/**/*.sol' && solhint --disc -c .solhint-test.json './test/**/*.sol'",
     "lint:fix": "solhint --disc --fix -c .solhint-src.json './src/**/*.sol' && solhint --disc --fix -c .solhint-test.json './test/**/*.sol'",
     "sizes": "forge build --sizes; ./scripts/contract_sizes.sh",
-    "ci": "yarn format && yarn lint && yarn test:all"
+    "ci": "yarn format && yarn lint && yarn test:all",
+    "coverage": "./scripts/coverage.sh"
   },
   "license": "Apache-2.0",
   "type": "module",
