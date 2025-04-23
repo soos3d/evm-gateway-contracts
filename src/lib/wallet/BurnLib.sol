@@ -294,7 +294,7 @@ library BurnLib {
         (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value + fee);
 
         deductedAmount = fromSpendable + fromWithdrawing;
-        if (fromSpendable + fromWithdrawing < value + fee) {
+        if (deductedAmount < value + fee) {
             emit InsufficientBalance(token, depositor, value + fee, fromSpendable, fromWithdrawing);
         }
 
