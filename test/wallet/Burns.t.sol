@@ -2096,6 +2096,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         );
     }
 
+    // ===== Burn Authorization Encoding Tests =====
+
     function test_encodeBurnAuthorization(BurnAuthorization memory auth) public view {
         bytes memory walletEncoded = wallet.encodeBurnAuthorization(auth);
         bytes memory libEncoded = BurnAuthorizationLib.encodeBurnAuthorization(auth);
