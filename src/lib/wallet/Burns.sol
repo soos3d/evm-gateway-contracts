@@ -73,6 +73,8 @@ contract Burns is SpendCommon, Delegation {
 
         uint32 index = 0;
         while (!cursor.done) {
+            index = cursor.index;
+
             bytes29 auth = cursor.next();
             bytes29 spec = auth.getTransferSpec();
 
@@ -91,8 +93,6 @@ contract Burns is SpendCommon, Delegation {
             } else {
                 token = _token;
             }
-
-            index++;
         }
 
         return true;

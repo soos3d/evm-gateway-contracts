@@ -2110,9 +2110,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         BurnAuthorization memory auth1 = baseAuth;
         BurnAuthorization memory auth2 = baseAuth;
 
-        // Make them slightly different to avoid potential issues with duplicate nonces
-        auth2.spec.nonce = keccak256("nonce2");
-
         BurnAuthorization[] memory authArray = new BurnAuthorization[](2);
         authArray[0] = auth1;
         authArray[1] = auth2;
@@ -2141,9 +2138,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         BurnAuthorization memory auth2 = baseAuth;
         auth1.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
         auth2.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
-
-        // Make them slightly different to avoid potential issues with duplicate nonces
-        auth2.spec.nonce = keccak256("nonce2");
 
         BurnAuthorization[] memory authArray = new BurnAuthorization[](2);
         authArray[0] = auth1;
@@ -2180,9 +2174,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         BurnAuthorization memory auth1 = baseAuth;
         BurnAuthorization memory auth2 = baseAuth;
-
-        // Make them slightly different to avoid potential issues with duplicate nonces
-        auth2.spec.nonce = keccak256("nonce2");
 
         // Set one auth with the depositor, one with a different signer
         auth1.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
@@ -2223,7 +2214,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         BurnAuthorization memory relevantAuth = baseAuth;
         BurnAuthorization memory irrelevantAuth = baseAuth;
         irrelevantAuth.spec.sourceDomain = domain + 1; // Irrelevant domain
-        irrelevantAuth.spec.nonce = keccak256("nonce_irrelevant"); // Different nonce
 
         BurnAuthorization[] memory authArray = new BurnAuthorization[](2);
         authArray[0] = relevantAuth;
@@ -2243,7 +2233,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         BurnAuthorization memory usdcAuth = baseAuth; // Auth for USDC
         BurnAuthorization memory otherTokenAuth = baseAuth;
         otherTokenAuth.spec.sourceToken = _addressToBytes32(otherToken); // Auth for the other token
-        otherTokenAuth.spec.nonce = keccak256("nonce_other_token"); // Different nonce
 
         BurnAuthorization[] memory authArray = new BurnAuthorization[](2);
         authArray[0] = usdcAuth;
