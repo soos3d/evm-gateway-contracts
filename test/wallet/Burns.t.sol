@@ -51,6 +51,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     uint256 private delegateKey;
     address private delegate;
     address private recipient = makeAddr("recipient");
+    address private otherToken = makeAddr("otherToken");
     address private destinationContract = makeAddr("destinationContract");
     address private destinationToken = makeAddr("destinationToken");
     address private burnSigner;
@@ -103,6 +104,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.startPrank(owner);
         {
             wallet.addSupportedToken(address(usdc));
+            wallet.addSupportedToken(otherToken); 
             wallet.updateDenylister(owner);
             wallet.updateBurnSigner(burnSigner);
             wallet.updateFeeRecipient(feeRecipient);
@@ -2198,6 +2200,58 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Expect revert because the recovered signer (depositor) won't match auth2's sourceSigner (otherSignerAddr)
         // TODO: Actually check for revert. This will happen in _validateBurnAuthorization in a future PR.
         // vm.expectRevert(...);
+        wallet.validateBurnAuthorizations(encodedAuthSet, signature);
+    }
+
+    function test_validateBurnAuthorizations_failure_irrelevantDomain_singleAuth() public {
+        BurnAuthorization memory auth = baseAuth;
+        auth.spec.sourceDomain = domain + 1; // Irrelevant domain
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, depositorKey);
+
+        // Validation should fail because the domain is not the current one
+        assertFalse(wallet.validateBurnAuthorizations(encodedAuth, signature));
+    }
+
+    function test_validateBurnAuthorizations_failure_irrelevantDomain_setOfAuths() public {
+        BurnAuthorization memory relevantAuth = baseAuth;
+        BurnAuthorization memory irrelevantAuth = baseAuth;
+        irrelevantAuth.spec.sourceDomain = domain + 1; // Irrelevant domain
+        irrelevantAuth.spec.nonce = keccak256("nonce_irrelevant"); // Different nonce
+
+        BurnAuthorization[] memory authArray = new BurnAuthorization[](2);
+        authArray[0] = relevantAuth;
+        authArray[1] = irrelevantAuth;
+
+        BurnAuthorizationSet memory authSet;
+        authSet.authorizations = authArray;
+
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+
+        // Validation should fail because one of the auths has an irrelevant domain
+        assertFalse(wallet.validateBurnAuthorizations(encodedAuthSet, signature));
+    }
+
+    function test_validateBurnAuthorizations_revert_notAllSameToken_setOfAuths() public {
+        BurnAuthorization memory usdcAuth = baseAuth; // Auth for USDC
+        BurnAuthorization memory otherTokenAuth = baseAuth;
+        otherTokenAuth.spec.sourceToken = _addressToBytes32(otherToken); // Auth for the other token
+        otherTokenAuth.spec.nonce = keccak256("nonce_other_token"); // Different nonce
+
+        BurnAuthorization[] memory authArray = new BurnAuthorization[](2);
+        authArray[0] = usdcAuth;
+        authArray[1] = otherTokenAuth;
+
+        BurnAuthorizationSet memory authSet;
+        authSet.authorizations = authArray;
+
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+
+        // Should revert because the relevant auths are for different tokens
+        vm.expectRevert(BurnLib.NotAllSameToken.selector);
         wallet.validateBurnAuthorizations(encodedAuthSet, signature);
     }
 }
