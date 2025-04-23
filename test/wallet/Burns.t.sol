@@ -33,6 +33,7 @@ import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
+import {Burns} from "src/lib/wallet/Burns.sol";
 
 // solhint-disable max-states-count
 contract TestBurns is SignatureTestUtils, DeployUtils {
@@ -50,6 +51,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     uint256 private delegateKey;
     address private delegate;
     address private recipient = makeAddr("recipient");
+    address private otherToken = makeAddr("otherToken");
     address private destinationContract = makeAddr("destinationContract");
     address private destinationToken = makeAddr("destinationToken");
     address private burnSigner;
@@ -102,6 +104,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.startPrank(owner);
         {
             wallet.addSupportedToken(address(usdc));
+            wallet.addSupportedToken(otherToken);
             wallet.updateDenylister(owner);
             wallet.updateBurnSigner(burnSigner);
             wallet.updateFeeRecipient(feeRecipient);
@@ -2135,5 +2138,156 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         assertEq(
             usdc.totalSupply(), testData.initialTotalSupply - testData.expectedTotalValueBurned, "Final Total Supply"
         );
+    }
+
+    // ===== Burn Authorization Encoding Tests =====
+
+    function test_encodeBurnAuthorization() public view {
+        bytes memory walletEncoded = wallet.encodeBurnAuthorization(baseAuth);
+        bytes memory libEncoded = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
+        assertEq(walletEncoded, libEncoded);
+    }
+
+    function test_encodeBurnAuthorizations() public view {
+        BurnAuthorization memory auth1 = baseAuth;
+        BurnAuthorization memory auth2 = baseAuth;
+
+        BurnAuthorization[] memory authArray = new BurnAuthorization[](2);
+        authArray[0] = auth1;
+        authArray[1] = auth2;
+
+        bytes memory walletEncoded = wallet.encodeBurnAuthorizations(authArray);
+
+        BurnAuthorizationSet memory authSet;
+        authSet.authorizations = authArray;
+        bytes memory libEncoded = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+
+        assertEq(walletEncoded, libEncoded);
+    }
+
+    function test_validateBurnAuthorizations_success_singleAuth() public {
+        BurnAuthorization memory auth = baseAuth;
+        auth.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, depositorKey);
+
+        assertTrue(wallet.validateBurnAuthorizations(encodedAuth, signature));
+    }
+
+    function test_validateBurnAuthorizations_success_setOfAuths() public {
+        BurnAuthorization memory auth1 = baseAuth;
+        BurnAuthorization memory auth2 = baseAuth;
+        auth1.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
+        auth2.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
+
+        BurnAuthorization[] memory authArray = new BurnAuthorization[](2);
+        authArray[0] = auth1;
+        authArray[1] = auth2;
+
+        BurnAuthorizationSet memory authSet;
+        authSet.authorizations = authArray;
+
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+
+        assertTrue(wallet.validateBurnAuthorizations(encodedAuthSet, signature));
+    }
+
+    function test_validateBurnAuthorizations_failure_mismatchedSigner_singleAuth() public {
+        BurnAuthorization memory auth = baseAuth;
+        auth.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+
+        // Sign with a different key (attacker)
+        (address attacker, uint256 attackerKey) = makeAddrAndKey("attacker");
+        bytes memory invalidSignature = _signAuthOrAuthSet(encodedAuth, attackerKey);
+
+        // Expect revert because the recovered signer (attacker) is not authorized for the depositor's balance
+        vm.expectRevert(
+            abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceSigner.selector, uint32(0), depositor, attacker)
+        );
+        wallet.validateBurnAuthorizations(encodedAuth, invalidSignature);
+    }
+
+    function test_validateBurnAuthorizations_failure_mismatchedSigner_SetOfAuths() public {
+        address otherSignerAddr = makeAddr("otherSigner");
+
+        BurnAuthorization memory auth1 = baseAuth;
+        BurnAuthorization memory auth2 = baseAuth;
+
+        // Set one auth with the depositor, one with a different signer
+        auth1.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
+        auth2.spec.sourceSigner = bytes32(uint256(uint160(otherSignerAddr)));
+
+        BurnAuthorization[] memory authArray = new BurnAuthorization[](2);
+        authArray[0] = auth1;
+        authArray[1] = auth2;
+
+        BurnAuthorizationSet memory authSet;
+        authSet.authorizations = authArray;
+
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+        // Sign with the depositor key
+        bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+
+        // Expect revert because the recovered signer (depositor) won't match auth2's sourceSigner (otherSignerAddr)
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BurnLib.InvalidAuthorizationSourceSigner.selector, uint32(1), otherSignerAddr, depositor
+            )
+        );
+        wallet.validateBurnAuthorizations(encodedAuthSet, signature);
+    }
+
+    function test_validateBurnAuthorizations_success_irrelevantDomain_singleAuth() public {
+        BurnAuthorization memory auth = baseAuth;
+        auth.spec.sourceDomain = domain + 1; // Irrelevant domain
+
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuth, depositorKey);
+
+        // Validation should succeed even if the data isn't relevant to the current domain
+        assertTrue(wallet.validateBurnAuthorizations(encodedAuth, signature));
+    }
+
+    function test_validateBurnAuthorizations_success_irrelevantDomain_setOfAuths() public {
+        BurnAuthorization memory relevantAuth = baseAuth;
+        BurnAuthorization memory irrelevantAuth = baseAuth;
+        irrelevantAuth.spec.sourceDomain = domain + 1; // Irrelevant domain
+
+        BurnAuthorization[] memory authArray = new BurnAuthorization[](2);
+        authArray[0] = relevantAuth;
+        authArray[1] = irrelevantAuth;
+
+        BurnAuthorizationSet memory authSet;
+        authSet.authorizations = authArray;
+
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+
+        // Validation should succeed even if there are irrelevant domains
+        assertTrue(wallet.validateBurnAuthorizations(encodedAuthSet, signature));
+    }
+
+    function test_validateBurnAuthorizations_revert_notAllSameToken_setOfAuths() public {
+        BurnAuthorization memory usdcAuth = baseAuth; // Auth for USDC
+        BurnAuthorization memory otherTokenAuth = baseAuth;
+        otherTokenAuth.spec.sourceToken = _addressToBytes32(otherToken); // Auth for the other token
+
+        BurnAuthorization[] memory authArray = new BurnAuthorization[](2);
+        authArray[0] = usdcAuth;
+        authArray[1] = otherTokenAuth;
+
+        BurnAuthorizationSet memory authSet;
+        authSet.authorizations = authArray;
+
+        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+        bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
+
+        // Should revert because the relevant auths are for different tokens
+        vm.expectRevert(BurnLib.NotAllSameToken.selector);
+        wallet.validateBurnAuthorizations(encodedAuthSet, signature);
     }
 }
