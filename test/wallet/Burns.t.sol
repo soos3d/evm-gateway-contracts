@@ -35,7 +35,6 @@ import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 import {Burns} from "src/lib/wallet/Burns.sol";
 
-
 // solhint-disable max-states-count
 contract TestBurns is SignatureTestUtils, DeployUtils {
     using MessageHashUtils for bytes32;
@@ -214,7 +213,11 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         signature = abi.encodePacked(r, s, v);
     }
 
-    function _signAuthOrAuthSetWithDefaultKey(bytes memory authOrAuthSet) internal view returns (bytes memory signature) {
+    function _signAuthOrAuthSetWithDefaultKey(bytes memory authOrAuthSet)
+        internal
+        view
+        returns (bytes memory signature)
+    {
         return _signAuthOrAuthSet(authOrAuthSet, signerKey);
     }
 
@@ -2163,7 +2166,9 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         assertTrue(wallet.validateBurnAuthorizations(encodedAuthSet, signature));
     }
 
-    function test_validateBurnAuthorizations_failure_mismatchedSigner_singleAuth(BurnAuthorization memory auth) public {
+    function test_validateBurnAuthorizations_failure_mismatchedSigner_singleAuth(BurnAuthorization memory auth)
+        public
+    {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.sourceSigner = bytes32(uint256(uint160(signerAddr)));
 
