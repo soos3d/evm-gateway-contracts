@@ -24,13 +24,29 @@ import {SpendWallet} from "src/SpendWallet.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
+import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
+import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {SignatureTestUtils} from "./SignatureTestUtils.sol";
+import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 
 contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
     using MessageHashUtils for bytes32;
 
     // Based on Ethereum, assuming 12 seconds per block, 21,600 blocks in 3 days.
     uint256 public constant WITHDRAW_DELAY = (3 * 24 * 60 * 60) / 12;
+    uint256 public constant DEPOSIT_AMOUNT = 1000e6; // 1000 USDC
+    uint256 public constant SPEND_AMOUNT = 100e6; // 100 USDC
+    uint256 public constant FEE_AMOUNT = 10000; // 0.01 USDC
+    bytes public constant METADATA = "Test metadata";
+
+    uint256 public depositorPrivateKey = 0x123;
+    address public depositor = vm.addr(depositorPrivateKey);
+
+    uint256 public delegatePrivateKey = 0x234;
+    address public delegate = vm.addr(delegatePrivateKey);
+
+    address public recipient = address(0x345);
+    address public destinationCaller = address(0x456);
 
     struct ChainSetup {
         uint256 forkId;
@@ -105,5 +121,151 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
             minter: minter,
             usdc: usdc
         });
+    }
+
+    function _createFees(bytes[] memory encodedBurnAuths, uint256 feeAmount)
+        internal
+        pure
+        returns (uint256[][] memory fees)
+    {
+        uint256 n = encodedBurnAuths.length;
+
+        fees = new uint256[][](n);
+        for (uint256 i = 0; i < n; i++) {
+            uint256 m = BurnAuthorizationLib.cursor(encodedBurnAuths[i]).numAuths;
+            fees[i] = new uint256[](m);
+            for (uint256 j = 0; j < m; j++) {
+                fees[i][j] = feeAmount;
+            }
+        }
+    }
+
+    function _createTransferSpec(
+        ChainSetup memory sourceChain,
+        ChainSetup memory destChain,
+        uint256 amount,
+        address depositor_,
+        address recipient_,
+        address sourceSigner_,
+        address destinationCaller_
+    ) internal returns (TransferSpec memory) {
+        return TransferSpec({
+            version: 1,
+            sourceDomain: sourceChain.domain,
+            destinationDomain: destChain.domain,
+            sourceContract: _addressToBytes32(address(sourceChain.wallet)),
+            destinationContract: _addressToBytes32(address(destChain.minter)),
+            sourceToken: _addressToBytes32(address(sourceChain.usdc)),
+            destinationToken: _addressToBytes32(address(destChain.usdc)),
+            sourceDepositor: _addressToBytes32(depositor_),
+            destinationRecipient: _addressToBytes32(recipient_),
+            sourceSigner: _addressToBytes32(sourceSigner_),
+            destinationCaller: _addressToBytes32(destinationCaller_),
+            value: amount,
+            nonce: keccak256(abi.encode(vm.randomUint())),
+            metadata: METADATA
+        });
+    }
+
+    function _depositToChain(ChainSetup memory chain, address depositor_, uint256 amount_) internal {
+        vm.selectFork(chain.forkId);
+        vm.startPrank(depositor_);
+        {
+            deal(address(chain.usdc), depositor_, amount_);
+            chain.usdc.approve(address(chain.wallet), amount_);
+            chain.wallet.deposit(address(chain.usdc), amount_);
+        }
+        vm.stopPrank();
+        assertEq(chain.usdc.balanceOf(address(chain.wallet)), amount_);
+        assertEq(chain.wallet.spendableBalance(address(chain.usdc), depositor_), amount_);
+    }
+
+    function _burnFromChain(
+        ChainSetup memory chain,
+        bytes memory encodedBurnAuth,
+        bytes memory burnSignature,
+        uint256 expectedTotalSupplyDecrement,
+        uint256 expectedDepositorBalanceDecrement
+    ) internal {
+        bytes[] memory allBurnAuths = new bytes[](1);
+        allBurnAuths[0] = encodedBurnAuth;
+        bytes[] memory allSignatures = new bytes[](1);
+        allSignatures[0] = burnSignature;
+        _burnFromChainMulti(
+            chain, allBurnAuths, allSignatures, expectedTotalSupplyDecrement, expectedDepositorBalanceDecrement
+        );
+    }
+
+    function _burnFromChainMulti(
+        ChainSetup memory chain,
+        bytes[] memory encodedBurnAuths,
+        bytes[] memory burnSignatures,
+        uint256 expectedTotalSupplyDecrement,
+        uint256 expectedDepositorBalanceDecrement
+    ) internal {
+        vm.selectFork(chain.forkId);
+
+        // Record state before burn
+        uint256 totalSupplyBefore = chain.usdc.totalSupply();
+        uint256 depositorTotalBalanceBefore = chain.wallet.totalBalance(address(chain.usdc), depositor);
+        uint256 feeRecipientBalanceBefore = chain.usdc.balanceOf(chain.wallet.feeRecipient());
+
+        // Prepare burn authorization parameters
+        uint256[][] memory fees = _createFees(encodedBurnAuths, FEE_AMOUNT);
+
+        // Get burn signer signature and execute burn
+        bytes memory burnSignerSignature =
+            _signBurnAuthorizations(encodedBurnAuths, burnSignatures, fees, chain.walletBurnSignerKey);
+        chain.wallet.burnSpent(encodedBurnAuths, burnSignatures, fees, burnSignerSignature);
+
+        // Verify state after burn
+        assertEq(
+            chain.usdc.totalSupply(),
+            totalSupplyBefore - expectedTotalSupplyDecrement,
+            "Total supply should decrease by expected amount"
+        );
+        assertEq(
+            chain.wallet.totalBalance(address(chain.usdc), depositor),
+            depositorTotalBalanceBefore - expectedDepositorBalanceDecrement,
+            "User balance should decrease by expected burnt amount plus fees"
+        );
+        assertEq(
+            chain.usdc.balanceOf(chain.wallet.feeRecipient()),
+            feeRecipientBalanceBefore + (expectedDepositorBalanceDecrement - expectedTotalSupplyDecrement),
+            "Fee recipient should receive expected fee amount"
+        );
+    }
+
+    function _mintFromChain(
+        ChainSetup memory chain,
+        bytes memory encodedMintAuth,
+        bytes memory mintSignature,
+        uint256 expectedTotalSupplyIncrement,
+        uint256 expectedRecipientBalanceIncrement
+    ) internal {
+        vm.selectFork(chain.forkId);
+
+        // Record state before mint
+        uint256 totalSupplyBefore = chain.usdc.totalSupply();
+        uint256 recipientBalanceBefore = chain.usdc.balanceOf(recipient);
+
+        // Execute mint operation
+        vm.startPrank(destinationCaller);
+        {
+            chain.minter.spend(encodedMintAuth, mintSignature);
+        }
+        vm.stopPrank();
+
+        // Verify state after mint
+        assertEq(
+            chain.usdc.totalSupply(),
+            totalSupplyBefore + expectedTotalSupplyIncrement,
+            "Total supply should increase by expected amount"
+        );
+        assertEq(
+            chain.usdc.balanceOf(recipient),
+            recipientBalanceBefore + expectedRecipientBalanceIncrement,
+            "Recipient balance should increase by total minted amount"
+        );
     }
 }

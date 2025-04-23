@@ -21,10 +21,10 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {Test} from "forge-std/Test.sol";
 import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
-import {MintAuthorization} from "src/lib/authorizations/MintAuthorizations.sol";
+import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/MintAuthorizations.sol";
+import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
-import {SpendMinter} from "src/SpendMinter.sol";
 
 contract SignatureTestUtils is Test {
     using MessageHashUtils for bytes32;
@@ -111,26 +111,26 @@ contract SignatureTestUtils is Test {
         return _signBurnAuths(auths, wallet, signerKey);
     }
 
-    function _signMintAuthWithTransferSpec(TransferSpec memory transferSpec, SpendMinter minter, uint256 signerKey)
+    function _signMintAuthWithTransferSpec(TransferSpec memory transferSpec, uint256 signerKey)
         internal
         view
         returns (bytes memory encodedAuth, bytes memory signature)
     {
         MintAuthorization[] memory auths = new MintAuthorization[](1);
         auths[0] = _createMintAuth(transferSpec);
-        return _signMintAuths(auths, minter, signerKey);
+        return _signMintAuths(auths, signerKey);
     }
 
-    function _signMintAuthSetWithTransferSpec(
-        TransferSpec[] memory transferSpecs,
-        SpendMinter minter,
-        uint256 signerKey
-    ) internal view returns (bytes memory encodedAuth, bytes memory signature) {
+    function _signMintAuthSetWithTransferSpec(TransferSpec[] memory transferSpecs, uint256 signerKey)
+        internal
+        view
+        returns (bytes memory encodedAuth, bytes memory signature)
+    {
         MintAuthorization[] memory auths = new MintAuthorization[](transferSpecs.length);
         for (uint256 i = 0; i < transferSpecs.length; i++) {
             auths[i] = _createMintAuth(transferSpecs[i]);
         }
-        return _signMintAuths(auths, minter, signerKey);
+        return _signMintAuths(auths, signerKey);
     }
 
     function _signBurnAuthorizations(
@@ -153,7 +153,7 @@ contract SignatureTestUtils is Test {
         burnerSignature = abi.encodePacked(r, s, v);
     }
 
-    function _createBurnAuth(TransferSpec memory spec) private view returns (BurnAuthorization memory) {
+    function _createBurnAuth(TransferSpec memory spec) internal view returns (BurnAuthorization memory) {
         return BurnAuthorization({
             maxBlockHeight: block.number + 5, // ~1 minute expiry
             maxFee: 1e6, // 1 USDC max fee
@@ -169,7 +169,7 @@ contract SignatureTestUtils is Test {
     }
 
     function _signBurnAuths(BurnAuthorization[] memory auths, SpendWallet wallet, uint256 signerKey)
-        private
+        internal
         pure
         returns (bytes memory encodedAuth, bytes memory signature)
     {
@@ -178,13 +178,17 @@ contract SignatureTestUtils is Test {
         signature = _sign(signerKey, encodedAuth);
     }
 
-    function _signMintAuths(MintAuthorization[] memory auths, SpendMinter minter, uint256 signerKey)
+    function _signMintAuths(MintAuthorization[] memory auths, uint256 signerKey)
         private
         pure
         returns (bytes memory encodedAuth, bytes memory signature)
     {
-        encodedAuth =
-            auths.length == 1 ? minter.encodeMintAuthorization(auths[0]) : minter.encodeMintAuthorizations(auths);
+        if (auths.length == 1) {
+            encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auths[0]);
+        } else {
+            MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: auths});
+            encodedAuth = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+        }
         signature = _sign(signerKey, encodedAuth);
     }
 

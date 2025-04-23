@@ -17,7 +17,8 @@
  */
 pragma solidity ^0.8.28;
 
-import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
+import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
+import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 import {BurnLib} from "src/lib/wallet/BurnLib.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
@@ -30,14 +31,19 @@ contract Burns is SpendCommon, Delegation {
     /// Returns the byte encoding of a single burn authorization
     ///
     /// @param authorization   The burn authorization to encode
-    function encodeBurnAuthorization(BurnAuthorization memory authorization) external pure returns (bytes memory) {}
+    function encodeBurnAuthorization(BurnAuthorization memory authorization) external pure returns (bytes memory) {
+        return BurnAuthorizationLib.encodeBurnAuthorization(authorization);
+    }
 
     /// Returns the byte encoding of a set of burn authorizations
     ///
     /// @dev The burn authorizations must be sorted by domain
     ///
     /// @param authorizations   The burn authorizations to encode
-    function encodeBurnAuthorizations(BurnAuthorization[] memory authorizations) external pure returns (bytes memory) {}
+    function encodeBurnAuthorizations(BurnAuthorization[] memory authorizations) external pure returns (bytes memory) {
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: authorizations});
+        return BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+    }
 
     /// Allows anyone to validate whether a set of burn authorizations is valid along with a signature from the
     /// depositor or an authorized delegate
@@ -51,7 +57,10 @@ contract Burns is SpendCommon, Delegation {
         external
         pure
         returns (bool)
-    {}
+    {
+        // TODO: add actual validation logic
+        return true;
+    }
 
     /// Debit the depositor's balance and burn the tokens after a spend was authorized
     ///
