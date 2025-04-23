@@ -645,10 +645,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     }
 
     function test_burnSpent_singleAuth_revertIfSameDestinationDomain() public {
-        BurnAuthorization memory otherDomainAuth = baseAuth;
-        otherDomainAuth.spec.destinationDomain = domain; // A different domain
+        BurnAuthorization memory sameDestDomainAuth = baseAuth;
+        sameDestDomainAuth.spec.destinationDomain = domain; // The same domain as source
 
-        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(otherDomainAuth);
+        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(sameDestDomainAuth);
         bytes memory signature = _signAuthOrAuthSet(encodedAuth, depositorKey);
 
         bytes[] memory authorizations = new bytes[](1);
@@ -664,12 +664,12 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     }
 
     function test_burnSpent_singleAuthSet_revertIfSameDestinationDomain() public {
-        BurnAuthorization memory otherDomainAuth = baseAuth;
-        otherDomainAuth.spec.destinationDomain = domain; // A different domain
+        BurnAuthorization memory sameDestDomainAuth = baseAuth;
+        sameDestDomainAuth.spec.destinationDomain = domain; // The same domain as source
 
         BurnAuthorization[] memory auths = new BurnAuthorization[](2);
-        auths[0] = otherDomainAuth;
-        auths[1] = otherDomainAuth;
+        auths[0] = sameDestDomainAuth;
+        auths[1] = sameDestDomainAuth;
         BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
 
