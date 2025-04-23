@@ -110,8 +110,8 @@ contract Withdrawals is Pausing, TokenSupport, Delegation {
         external
         whenNotPaused
         tokenSupported(token)
+        authorizedForBalance(token, depositor, msg.sender)
     {
-        _ensureAuthorizedForBalance(token, depositor, msg.sender);
         _initiateWithdrawal(token, depositor, msg.sender, value);
     }
 
@@ -174,8 +174,8 @@ contract Withdrawals is Pausing, TokenSupport, Delegation {
         external
         whenNotPaused
         tokenSupported(token)
+        authorizedForBalance(token, depositor, msg.sender)
     {
-        _ensureAuthorizedForBalance(token, depositor, msg.sender);
         _withdraw(token, depositor, recipient);
     }
 }

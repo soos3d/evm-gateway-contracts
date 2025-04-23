@@ -17,16 +17,16 @@
  */
 pragma solidity ^0.8.28;
 
-import {Pausing} from "src/lib/common/Pausing.sol";
 import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 import {BurnLib} from "src/lib/wallet/BurnLib.sol";
-import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {SpendCommon} from "src/SpendCommon.sol";
+import {Delegation} from "src/lib/wallet/Delegation.sol";
 
 /// @title Burns
 ///
 /// Manages burns for the SpendWallet contract
-contract Burns is Ownable2StepUpgradeable, Pausing {
+contract Burns is SpendCommon, Delegation {
     /// Returns the byte encoding of a single burn authorization
     ///
     /// @param authorization   The burn authorization to encode
@@ -98,7 +98,17 @@ contract Burns is Ownable2StepUpgradeable, Pausing {
         uint256 value,
         bytes32 spendHash,
         bytes memory spendAuthorization
-    ) external whenNotPaused {}
+    )
+        external
+        whenNotPaused
+        onlyCounterpart
+        tokenSupported(token)
+        notDenylisted(depositor)
+        notDenylisted(authorizer)
+        authorizedForBalance(token, depositor, authorizer)
+    {
+        BurnLib.sameChainSpend(token, depositor, recipient, authorizer, value, spendHash, spendAuthorization);
+    }
 
     /// The address that may sign the calldata for burning tokens that have been spent
     function burnSigner() public view returns (address) {
