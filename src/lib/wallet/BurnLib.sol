@@ -47,6 +47,7 @@ library BurnLib {
     error AuthorizationValueMustBePositive(uint32 index);
     error AuthorizationExpired(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
     error InsufficientBalanceForSameChainSpend();
+    error InvalidAuthorizationSourceSigner(uint32 index, address expectedSigner, address actualSigner);
     error InvalidAuthorizationSourceContract(uint32 index, address expectedSourceContract);
     error UnsupportedToken(uint32 index, address sourceToken);
     error BurnFeeTooHigh(uint32 index, uint256 maxFee, uint256 actualFee);
@@ -427,6 +428,12 @@ library BurnLib {
         address sourceToken = _bytes32ToAddress(spec.getSourceToken());
         if (!TokenSupportStorage._isTokenSupported(sourceToken)) {
             revert UnsupportedToken(index, sourceToken);
+        }
+
+        // Ensure that the signer of the burn authorization matches what was provided in the TransferSpec
+        address sourceSigner = _bytes32ToAddress(spec.getSourceSigner());
+        if (sourceSigner != authorizationSigner) {
+            revert InvalidAuthorizationSourceSigner(index, sourceSigner, authorizationSigner);
         }
 
         // Ensure that the signer of the burn authorization is authorized for the balance being burned
