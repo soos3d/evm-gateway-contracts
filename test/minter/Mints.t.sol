@@ -29,6 +29,7 @@ import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/Transf
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
 import {Denylistable} from "src/lib/common/Denylistable.sol";
 import {SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
+import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
@@ -411,6 +412,32 @@ contract TestMints is Test, DeployUtils {
                 SpendMinter.InvalidAuthorizationDestinationContract.selector, 1, invalidDestinationContract
             )
         );
+        _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+    }
+
+    function test_spend_revertIfUnsupportedDestinationToken() public {
+        MintAuthorization memory unsupportedDestinationTokenAuth = crossChainBaseAuth;
+        address unsupportedToken = makeAddr("unsupportedToken");
+        unsupportedDestinationTokenAuth.spec.destinationToken = _addressToBytes32(unsupportedToken);
+        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(unsupportedDestinationTokenAuth);
+
+        vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
+        _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
+    }
+
+    function test_spend_revertIfUnsupportedDestinationTokenAuthSet() public {
+        MintAuthorization memory unsupportedDestinationTokenAuth = crossChainBaseAuth;
+        address unsupportedToken = makeAddr("unsupportedToken");
+        unsupportedDestinationTokenAuth.spec.destinationToken = _addressToBytes32(unsupportedToken);
+
+        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        authorizations[0] = crossChainBaseAuth;
+        authorizations[1] = unsupportedDestinationTokenAuth;
+
+        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+
+        vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
     }
 
