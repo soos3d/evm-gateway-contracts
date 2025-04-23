@@ -2196,7 +2196,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
 
         // Expect revert because the recovered signer (depositor) won't match auth2's sourceSigner (otherSignerAddr)
-        // vm.expectRevert(DelegationStorage.NotAuthorized.selector);
+        // TODO: Actually check for revert. This will happen in _validateBurnAuthorization in a future PR.
+        // vm.expectRevert(...);
         wallet.validateBurnAuthorizations(encodedAuthSet, signature);
     }
 }
