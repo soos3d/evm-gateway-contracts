@@ -764,7 +764,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Initial State", underFundedDepositor, feeRecipient, initialExpectedBalances);
 
         vm.expectEmit(true, true, true, true);
-        emit BurnLib.InsufficientBalanceForBurning(
+        emit BurnLib.InsufficientBalance(
             address(usdc),
             underFundedDepositor,
             auth.spec.value + fee, // Total needed: $2500 + $0.50 = $2500.50
@@ -801,7 +801,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     /// Tests burnSpent with an authorization set containing two auths for the same depositor.
     /// The first auth succeeds, but depletes the balance such that the second auth
-    /// triggers the InsufficientBalanceForBurning event and results in a partial burn value and zero fee.
+    /// triggers the InsufficientBalance event and results in a partial burn value and zero fee.
     function test_burnSpent_singleAuthSet_secondAuthHasInsufficientBalanceForBurnValue() public {
         AuthSetInsufficientBalanceTestData memory testData;
 
@@ -924,7 +924,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         _expectBurnEvent(testData.eventParams1); // Event for successful auth1
         vm.expectEmit(true, true, true, true);
-        emit BurnLib.InsufficientBalanceForBurning(
+        emit BurnLib.InsufficientBalance(
             address(usdc),
             testData.depositorAddr,
             testData.insufficientEventValueNeeded,
@@ -979,7 +979,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Initial State", underFundedDepositor, feeRecipient, initialExpectedBalances);
 
         vm.expectEmit(true, true, true, true);
-        emit BurnLib.InsufficientBalanceForBurning(
+        emit BurnLib.InsufficientBalance(
             address(usdc),
             underFundedDepositor,
             auth.spec.value + fee, // Total needed: $1250 + $0.50 = $1250.50
@@ -1141,7 +1141,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         _expectBurnEvent(testData.eventParams1); // Event for successful auth1
         vm.expectEmit(true, true, true, true);
-        emit BurnLib.InsufficientBalanceForBurning(
+        emit BurnLib.InsufficientBalance(
             address(usdc),
             testData.depositorAddr,
             testData.insufficientEventValueNeeded,

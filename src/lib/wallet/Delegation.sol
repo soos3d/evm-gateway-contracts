@@ -119,8 +119,14 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
         return DelegationStorage._isAuthorizedForBalance(token, depositor, addr);
     }
 
-    function _ensureAuthorizedForBalance(address token, address depositor, address addr) internal view {
+    /// Modifier that reverts if an address is not authorized to withdraw and transfer tokens on behalf of the depositor
+    ///
+    /// @param token       The token to check
+    /// @param depositor   The depositor to check
+    /// @param addr        The address to check
+    modifier authorizedForBalance(address token, address depositor, address addr) {
         DelegationStorage._ensureAuthorizedForBalance(token, depositor, addr);
+        _;
     }
 }
 

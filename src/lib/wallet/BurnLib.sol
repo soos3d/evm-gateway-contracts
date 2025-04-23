@@ -46,6 +46,7 @@ library BurnLib {
     error MustHaveAtLeastOneBurnAuthorization();
     error AuthorizationValueMustBePositive(uint32 index);
     error AuthorizationExpired(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
+    error InsufficientBalanceForSameChainSpend();
     error InvalidAuthorizationSourceSigner(uint32 index, address expectedSigner, address actualSigner);
     error InvalidAuthorizationSourceContract(uint32 index, address expectedSourceContract);
     error UnsupportedToken(uint32 index, address sourceToken);
@@ -96,7 +97,7 @@ library BurnLib {
         address indexed token,
         address indexed depositor,
         bytes32 indexed spendHash,
-        bytes32 recipient,
+        address recipient,
         address authorizer,
         uint256 value,
         uint256 fromSpendable,
@@ -137,6 +138,48 @@ library BurnLib {
         for (uint256 i = 0; i < authorizations.length; i++) {
             _validateAndProcessAuthorizationPayload(authorizations[i], signatures[i], fees[i]);
         }
+    }
+
+    /// @notice Transfers funds between accounts on the same chain after a spend authorization
+    /// @dev The caller must be the `minterContract`
+    /// @dev Source and destination domains must match this contract's domain (enforced by `minterContract`)
+    /// @dev No fee is charged for same-chain transfers
+    /// @dev See {SpendAuthorization} for authorization encoding details
+    /// @param token The token being transferred
+    /// @param depositor The owner of the funds in the wallet
+    /// @param spendHash The keccak256 hash of the SpendSpec
+    /// @param recipient The recipient of the transfer
+    /// @param authorizer The address that authorized the spend
+    /// @param value The transfer amount
+    /// @param spendAuthorization The encoded SpendAuthorization or SpendAuthorizationSet
+    function sameChainSpend(
+        address token,
+        address depositor,
+        address recipient,
+        address authorizer,
+        uint256 value,
+        bytes32 spendHash,
+        bytes memory spendAuthorization
+    ) external {
+        (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value);
+
+        if (fromSpendable + fromWithdrawing != value) {
+            revert InsufficientBalanceForSameChainSpend();
+        }
+
+        IERC20(token).safeTransfer(recipient, value);
+
+        emit TransferredSpent(
+            token,
+            depositor,
+            spendHash,
+            recipient,
+            authorizer,
+            value,
+            fromSpendable,
+            fromWithdrawing,
+            spendAuthorization
+        );
     }
 
     /**
@@ -250,7 +293,11 @@ library BurnLib {
 
         // Reduce the balances of the depositor by amount being burned + the fee, returning the overall amounts that were drawn from each balance type
         (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value + fee);
+
         deductedAmount = fromSpendable + fromWithdrawing;
+        if (deductedAmount < value + fee) {
+            emit InsufficientBalance(token, depositor, value + fee, fromSpendable, fromWithdrawing);
+        }
 
         // If the full amount could not be deducted, we want to prioritize burning over taking the fee
         if (deductedAmount <= value) {
@@ -401,7 +448,7 @@ library BurnLib {
     /// @param value                The amount that needed to be burned
     /// @param spendableBalance     The amount that was present in the spendable balance
     /// @param withdrawingBalance   The amount that was present in the withdrawing balance
-    event InsufficientBalanceForBurning(
+    event InsufficientBalance(
         address indexed token,
         address indexed depositor,
         uint256 value,
@@ -446,9 +493,6 @@ library BurnLib {
 
         // Otherwise, take it all
         balances$.withdrawingBalances[token][depositor] = 0;
-
-        // Emit an event to alert that something has gone wrong
-        emit InsufficientBalanceForBurning(token, depositor, value, spendable, withdrawing);
 
         return (spendable, withdrawing);
     }
