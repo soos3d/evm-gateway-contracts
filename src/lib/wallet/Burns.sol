@@ -28,7 +28,6 @@ import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.
 import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
 import {_bytes32ToAddress} from "src/lib/util/addresses.sol";
 
-
 /// @title Burns
 ///
 /// Manages burns for the SpendWallet contract

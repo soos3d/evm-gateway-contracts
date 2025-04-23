@@ -104,7 +104,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.startPrank(owner);
         {
             wallet.addSupportedToken(address(usdc));
-            wallet.addSupportedToken(otherToken); 
+            wallet.addSupportedToken(otherToken);
             wallet.updateDenylister(owner);
             wallet.updateBurnSigner(burnSigner);
             wallet.updateFeeRecipient(feeRecipient);
@@ -2169,12 +2169,9 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         bytes memory invalidSignature = _signAuthOrAuthSet(encodedAuth, attackerKey);
 
         // Expect revert because the recovered signer (attacker) is not authorized for the depositor's balance
-        vm.expectRevert(abi.encodeWithSelector(
-            BurnLib.InvalidAuthorizationSourceSigner.selector,
-            uint32(0),
-            depositor,
-            attacker
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceSigner.selector, uint32(0), depositor, attacker)
+        );
         wallet.validateBurnAuthorizations(encodedAuth, invalidSignature);
     }
 
@@ -2203,12 +2200,11 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
 
         // Expect revert because the recovered signer (depositor) won't match auth2's sourceSigner (otherSignerAddr)
-        vm.expectRevert(abi.encodeWithSelector(
-            BurnLib.InvalidAuthorizationSourceSigner.selector,
-            uint32(1),
-            otherSignerAddr,
-            depositor
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BurnLib.InvalidAuthorizationSourceSigner.selector, uint32(1), otherSignerAddr, depositor
+            )
+        );
         wallet.validateBurnAuthorizations(encodedAuthSet, signature);
     }
 
