@@ -400,6 +400,11 @@ library BurnLib {
             return false;
         }
 
+        // If the burn authorization is created for a same chain spend, the burn should not be processed
+        if (domain == spec.getDestinationDomain()) {
+            return false;
+        }
+
         // Ensure the burn authorization is not expired
         uint256 maxBlockHeight = auth.getMaxBlockHeight();
         if (maxBlockHeight < block.number) {
