@@ -2199,18 +2199,18 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         wallet.validateBurnAuthorizations(encodedAuthSet, signature);
     }
 
-    function test_validateBurnAuthorizations_failure_irrelevantDomain_singleAuth() public {
+    function test_validateBurnAuthorizations_success_irrelevantDomain_singleAuth() public {
         BurnAuthorization memory auth = baseAuth;
         auth.spec.sourceDomain = domain + 1; // Irrelevant domain
 
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
         bytes memory signature = _signAuthOrAuthSet(encodedAuth, depositorKey);
 
-        // Validation should fail because the domain is not the current one
-        assertFalse(wallet.validateBurnAuthorizations(encodedAuth, signature));
+        // Validation should succeed even if the data isn't relevant to the current domain
+        assertTrue(wallet.validateBurnAuthorizations(encodedAuth, signature));
     }
 
-    function test_validateBurnAuthorizations_failure_irrelevantDomain_setOfAuths() public {
+    function test_validateBurnAuthorizations_success_irrelevantDomain_setOfAuths() public {
         BurnAuthorization memory relevantAuth = baseAuth;
         BurnAuthorization memory irrelevantAuth = baseAuth;
         irrelevantAuth.spec.sourceDomain = domain + 1; // Irrelevant domain
@@ -2225,8 +2225,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
         bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
 
-        // Validation should fail because one of the auths has an irrelevant domain
-        assertFalse(wallet.validateBurnAuthorizations(encodedAuthSet, signature));
+        // Validation should succeed even if there are irrelevant domains
+        assertTrue(wallet.validateBurnAuthorizations(encodedAuthSet, signature));
     }
 
     function test_validateBurnAuthorizations_revert_notAllSameToken_setOfAuths() public {

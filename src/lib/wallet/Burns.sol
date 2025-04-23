@@ -81,7 +81,7 @@ contract Burns is SpendCommon, Delegation {
             // Validate that everything about the burn authorization is as expected, and skip if it's not for this domain
             bool relevant = BurnLib._validateBurnAuthorization(auth, recoveredSigner, 0, index);
             if (!relevant) {
-                return false;
+                continue;
             }
 
             // Ensure that each one we've seen so far is for the same token
