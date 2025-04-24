@@ -52,6 +52,15 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
     function withdrawalBlock(address token, address depositor) public view returns (uint256) {
         return WithdrawalDelayStorage.get().withdrawableAtBlocks[token][depositor];
     }
+
+    /// Sets the block height at which an in-progress withdrawal will be withdrawable
+    ///
+    /// @param token         The token that will be withdrawn
+    /// @param depositor     The depositor of the funds being withdrawn
+    /// @param blockNumber   The block number at which the withdrawal will be withdrawable
+    function _setWithdrawalBlock(address token, address depositor, uint256 blockNumber) internal {
+        WithdrawalDelayStorage.get().withdrawableAtBlocks[token][depositor] = blockNumber;
+    }
 }
 
 /// Implements the EIP-7201 storage pattern for the WithdrawalDelay module

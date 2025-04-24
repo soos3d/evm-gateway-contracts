@@ -19,7 +19,7 @@ pragma solidity ^0.8.28;
 
 import {Pausing} from "src/lib/common/Pausing.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
-import {WithdrawalDelayStorage} from "src/lib/wallet/WithdrawalDelay.sol";
+import {WithdrawalDelay, WithdrawalDelayStorage} from "src/lib/wallet/WithdrawalDelay.sol";
 import {Balances} from "src/lib/wallet/Balances.sol";
 import {Delegation} from "src/lib/wallet/Delegation.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -28,7 +28,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 /// @title Withdrawals
 ///
 /// Manages withdrawals for the SpendWallet contract
-contract Withdrawals is Pausing, TokenSupport, Balances, Delegation {
+contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delegation {
     using SafeERC20 for IERC20;
 
     error WithdrawalValueMustBePositive();
@@ -42,8 +42,7 @@ contract Withdrawals is Pausing, TokenSupport, Balances, Delegation {
     /// @param authorizer         The address that initiated the withdrawal
     /// @param value              The value that is newly being withdrawn
     /// @param totalWithdrawing   The total value that is now being withdrawn
-    /// @param withdrawableAt     The block number at which the withdrawal can
-    ///                           be completed
+    /// @param withdrawalBlock    The block number at which the withdrawal can be completed
     event WithdrawalInitiated(
         address indexed token,
         address indexed depositor,
@@ -51,7 +50,7 @@ contract Withdrawals is Pausing, TokenSupport, Balances, Delegation {
         uint256 value,
         uint256 remainingSpendable,
         uint256 totalWithdrawing,
-        uint256 withdrawableAt
+        uint256 withdrawalBlock
     );
 
     /// Internal helper function to initiate a withdrawal
@@ -71,17 +70,11 @@ contract Withdrawals is Pausing, TokenSupport, Balances, Delegation {
 
         (uint256 remainingSpendable, uint256 totalWithdrawing) = _moveBalanceToWithdrawing(token, depositor, value);
 
-        WithdrawalDelayStorage.Data storage withdrawalDelay$ = WithdrawalDelayStorage.get();
-        withdrawalDelay$.withdrawableAtBlocks[token][depositor] = block.number + withdrawalDelay$.withdrawalDelay;
+        uint256 withdrawalBlock = block.number + withdrawalDelay();
+        _setWithdrawalBlock(token, depositor, withdrawalBlock);
 
         emit WithdrawalInitiated(
-            token,
-            depositor,
-            authorizer,
-            value,
-            remainingSpendable,
-            totalWithdrawing,
-            withdrawalDelay$.withdrawableAtBlocks[token][depositor]
+            token, depositor, authorizer, value, remainingSpendable, totalWithdrawing, withdrawalBlock
         );
     }
 
