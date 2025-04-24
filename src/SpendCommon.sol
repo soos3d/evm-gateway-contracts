@@ -60,7 +60,7 @@ contract SpendCommon is
     ///
     /// @param counterpart   The address of the counterpart contract (either `SpendWallet` or `SpendMinter`)
     /// @param domain   The operator-issued identifier for this chain
-    function __SpendCommon_init(address counterpart, uint32 domain) public onlyInitializing {
+    function __SpendCommon_init(address counterpart, uint32 domain) internal onlyInitializing {
         __Pausing_init(owner());
         __Counterpart_init(counterpart);
         __Domain_init(domain);

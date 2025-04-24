@@ -102,12 +102,16 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
             revert InvalidBalanceType(balanceType);
         }
 
-        if (BalanceType(balanceType) == BalanceType.Total) return totalBalance(token, depositor);
-        if (BalanceType(balanceType) == BalanceType.Spendable) return spendableBalance(token, depositor);
-        if (BalanceType(balanceType) == BalanceType.Withdrawing) return withdrawingBalance(token, depositor);
-        if (BalanceType(balanceType) == BalanceType.Withdrawable) return withdrawableBalance(token, depositor);
-
-        return 0;
+        if (BalanceType(balanceType) == BalanceType.Total) {
+            return totalBalance(token, depositor);
+        } else if (BalanceType(balanceType) == BalanceType.Spendable) {
+            return spendableBalance(token, depositor);
+        } else if (BalanceType(balanceType) == BalanceType.Withdrawing) {
+            return withdrawingBalance(token, depositor);
+        } else {
+            // if(BalanceType(balanceType) == BalanceType.Withdrawable) {
+            return withdrawableBalance(token, depositor);
+        }
     }
 
     /// Emitted when the ERC-1155 `balanceOfBatch` function is called with arrays of different lengths

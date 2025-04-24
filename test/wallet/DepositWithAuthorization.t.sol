@@ -154,6 +154,16 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         );
     }
 
+    function test_depositWithAuthorization_with3009Interface_revertWhenValueIsZero() public {
+        (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(0);
+        skip(activeTimeOffset);
+
+        vm.expectRevert(Deposits.DepositValueMustBePositive.selector);
+        wallet.depositWithAuthorization(
+            usdc, depositor, 0, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
+        );
+    }
+
     function test_depositWithAuthorization_with3009Interface_revertIfSignatureInvalid() public {
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
         skip(activeTimeOffset);
@@ -303,6 +313,16 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
+        );
+    }
+
+    function test_depositWithAuthorization_with7598Interface_revertWhenValueIsZero() public {
+        bytes memory signature = _create7598AuthorizationSignatureBytes(0);
+        skip(activeTimeOffset);
+
+        vm.expectRevert(Deposits.DepositValueMustBePositive.selector);
+        wallet.depositWithAuthorization(
+            usdc, depositor, 0, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );
     }
 

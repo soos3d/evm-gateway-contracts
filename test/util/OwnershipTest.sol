@@ -20,6 +20,7 @@ pragma solidity ^0.8.28;
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Test} from "forge-std/Test.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 abstract contract OwnershipTest is Test {
     address internal owner = makeAddr("owner");
@@ -30,6 +31,10 @@ abstract contract OwnershipTest is Test {
     /// Returns the subject as an Ownable2StepUpgradeable
     function _ownableSubject() private returns (Ownable2StepUpgradeable) {
         return Ownable2StepUpgradeable(_subject());
+    }
+
+    function _upgradableSubject() private returns (UUPSUpgradeable) {
+        return UUPSUpgradeable(_subject());
     }
 
     function test_owner() public {
@@ -60,6 +65,16 @@ abstract contract OwnershipTest is Test {
         vm.startPrank(random);
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, random));
         _ownableSubject().transferOwnership(random);
+        vm.stopPrank();
+    }
+
+    function test_upgradeToAndCall_revertIfNotOwner() public {
+        address random = makeAddr("random");
+        address mockImplementation = makeAddr("mockImplementation");
+
+        vm.startPrank(random);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, random));
+        _upgradableSubject().upgradeToAndCall(address(mockImplementation), new bytes(0));
         vm.stopPrank();
     }
 }
