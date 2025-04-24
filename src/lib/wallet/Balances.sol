@@ -154,6 +154,26 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     }
 
     /**
+     * @notice Moves a specified value from a depositor's spendable balance to their withdrawing balance
+     * @param token The address of the token whose balance is being moved.
+     * @param depositor The address of the account whose balance is being moved.
+     * @param value The amount to be moved.
+     * @return remainingSpendable The remaining spendable balance after the move.
+     * @return totalWithdrawing The total withdrawing balance after the move.
+     */
+    function _moveBalanceToWithdrawing(address token, address depositor, uint256 value)
+        internal
+        returns (uint256 remainingSpendable, uint256 totalWithdrawing)
+    {
+        BalancesStorage.Data storage $ = BalancesStorage.get();
+
+        $.spendableBalances[token][depositor] -= value;
+        $.withdrawingBalances[token][depositor] += value;
+
+        return ($.spendableBalances[token][depositor], $.withdrawingBalances[token][depositor]);
+    }
+
+    /**
      * @notice Reduces a depositor's balances by a specified value, prioritizing the spendable balance.
      * @param token The address of the token whose balance is being reduced.
      * @param depositor The address of the account whose balance is being reduced.

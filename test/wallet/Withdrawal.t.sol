@@ -103,7 +103,13 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         vm.startPrank(actor);
         vm.expectEmit(true, true, false, true);
         emit Withdrawals.WithdrawalInitiated(
-            usdc, depositorAddress, actor, withdrawalAmount, expectedWithdrawingBalance, expectedWithdrawalBlock
+            usdc,
+            depositorAddress,
+            actor,
+            withdrawalAmount,
+            expectedSpendableBalance,
+            expectedWithdrawingBalance,
+            expectedWithdrawalBlock
         );
 
         if (withdrawalType_ == WithdrawalType.Direct) {
