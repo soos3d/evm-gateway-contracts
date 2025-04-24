@@ -18,7 +18,6 @@
 pragma solidity ^0.8.28;
 
 import {BalancesStorage} from "src/lib/wallet/Balances.sol";
-import {TokenSupportStorage} from "src/lib/common/TokenSupport.sol";
 import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
@@ -557,7 +556,7 @@ contract Burns is SpendCommon, Delegation {
 
         // Ensure that the source token is supported
         address sourceToken = _bytes32ToAddress(spec.getSourceToken());
-        if (!TokenSupportStorage._isTokenSupported(sourceToken)) {
+        if (!isTokenSupported(sourceToken)) {
             revert UnsupportedTokenAtIndex(index, sourceToken);
         }
 
