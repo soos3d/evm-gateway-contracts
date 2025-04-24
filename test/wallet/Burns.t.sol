@@ -25,7 +25,7 @@ import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/Bu
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {BurnLib} from "src/lib/wallet/BurnLib.sol";
+import {Burns} from "src/lib/wallet/Burns.sol";
 import {SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
@@ -213,7 +213,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     function _expectBurnEvent(ExpectedBurnEventParams memory params) internal {
         vm.expectEmit(true, true, true, true);
-        emit BurnLib.BurnedSpent(
+        emit Burns.BurnedSpent(
             params.token,
             params.depositor,
             params.spendHash,
@@ -244,13 +244,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     function test_burnSpent_randomArgs_wrongSigner() public {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
         (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
-        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
+        vm.expectRevert(Burns.InvalidBurnSigner.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, wrongSignerKey);
     }
 
     function test_burnSpent_randomArgs_wrongSignatureLength() public {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
-        vm.expectRevert(BurnLib.InvalidBurnSigner.selector);
+        vm.expectRevert(Burns.InvalidBurnSigner.selector);
         wallet.burnSpent(authorizations, signatures, fees, bytes(hex"aaaa"));
     }
 
@@ -258,7 +258,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     function test_burnSpent_revertIfNoAuthorizations() public {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
-        vm.expectRevert(BurnLib.MustHaveAtLeastOneBurnAuthorization.selector);
+        vm.expectRevert(Burns.MustHaveAtLeastOneBurnAuthorization.selector);
         wallet.burnSpent(authorizations, signatures, fees, new bytes(0));
     }
 
@@ -272,7 +272,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         signatures[0] = new bytes(0);
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](0);
-        vm.expectRevert(BurnLib.MustHaveAtLeastOneBurnAuthorization.selector);
+        vm.expectRevert(Burns.MustHaveAtLeastOneBurnAuthorization.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -288,12 +288,12 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         signatures[0] = new bytes(0);
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](0); // empty, but should have length 1 to match authorizations and signatures
-        vm.expectRevert(BurnLib.MismatchedBurn.selector);
+        vm.expectRevert(Burns.MismatchedBurn.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
     function test_burnSpent_revertIfInputLengthsMismatched() public {
-        vm.expectRevert(BurnLib.MismatchedBurn.selector);
+        vm.expectRevert(Burns.MismatchedBurn.selector);
         wallet.burnSpent(new bytes[](2), new bytes[](1), new uint256[][](2), new bytes(0));
     }
 
@@ -310,7 +310,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](1);
 
-        vm.expectRevert(abi.encodeWithSelector(BurnLib.AuthorizationValueMustBePositive.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(Burns.AuthorizationValueMustBePositiveAtIndex.selector, 0));
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -334,7 +334,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](2);
 
-        vm.expectRevert(abi.encodeWithSelector(BurnLib.AuthorizationValueMustBePositive.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(Burns.AuthorizationValueMustBePositiveAtIndex.selector, 1));
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -353,7 +353,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](1);
 
         vm.expectRevert(
-            abi.encodeWithSelector(BurnLib.AuthorizationExpired.selector, 0, baseAuth.maxBlockHeight, block.number)
+            abi.encodeWithSelector(Burns.AuthorizationExpiredAtIndex.selector, 0, baseAuth.maxBlockHeight, block.number)
         );
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
@@ -378,7 +378,9 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](2);
 
         vm.expectRevert(
-            abi.encodeWithSelector(BurnLib.AuthorizationExpired.selector, 1, expiredAuth.maxBlockHeight, block.number)
+            abi.encodeWithSelector(
+                Burns.AuthorizationExpiredAtIndex.selector, 1, expiredAuth.maxBlockHeight, block.number
+            )
         );
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
@@ -397,7 +399,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 highFee = baseAuth.maxFee + 1;
         fees[0][0] = highFee;
 
-        vm.expectRevert(abi.encodeWithSelector(BurnLib.BurnFeeTooHigh.selector, 0, baseAuth.maxFee, highFee));
+        vm.expectRevert(abi.encodeWithSelector(Burns.BurnFeeTooHighAtIndex.selector, 0, baseAuth.maxFee, highFee));
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -422,7 +424,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 highFee = highFeeAuth.maxFee + 1;
         fees[0][1] = highFee;
 
-        vm.expectRevert(abi.encodeWithSelector(BurnLib.BurnFeeTooHigh.selector, 1, highFeeAuth.maxFee, highFee));
+        vm.expectRevert(abi.encodeWithSelector(Burns.BurnFeeTooHighAtIndex.selector, 1, highFeeAuth.maxFee, highFee));
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -442,7 +444,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](1);
 
         vm.expectRevert(
-            abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceContract.selector, 0, invalidSourceContract)
+            abi.encodeWithSelector(Burns.InvalidAuthorizationSourceContractAtIndex.selector, 0, invalidSourceContract)
         );
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
@@ -468,7 +470,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](2);
 
         vm.expectRevert(
-            abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceContract.selector, 1, invalidSourceContract)
+            abi.encodeWithSelector(Burns.InvalidAuthorizationSourceContractAtIndex.selector, 1, invalidSourceContract)
         );
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
@@ -487,7 +489,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](1);
 
-        vm.expectRevert(abi.encodeWithSelector(BurnLib.UnsupportedToken.selector, 0, unsupportedToken));
+        vm.expectRevert(abi.encodeWithSelector(Burns.UnsupportedTokenAtIndex.selector, 0, unsupportedToken));
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -511,7 +513,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](2);
 
-        vm.expectRevert(abi.encodeWithSelector(BurnLib.UnsupportedToken.selector, 1, unsupportedToken));
+        vm.expectRevert(abi.encodeWithSelector(Burns.UnsupportedTokenAtIndex.selector, 1, unsupportedToken));
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -573,7 +575,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](1);
 
         vm.expectRevert(
-            abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceSigner.selector, 0, anotherAddress, depositor)
+            abi.encodeWithSelector(Burns.InvalidAuthorizationSourceSignerAtIndex.selector, 0, anotherAddress, depositor)
         );
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
@@ -600,7 +602,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](2);
 
         vm.expectRevert(
-            abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceSigner.selector, 1, anotherAddress, depositor)
+            abi.encodeWithSelector(Burns.InvalidAuthorizationSourceSignerAtIndex.selector, 1, anotherAddress, depositor)
         );
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
@@ -651,7 +653,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](2);
 
-        vm.expectRevert(BurnLib.NotAllSameToken.selector);
+        vm.expectRevert(Burns.NotAllSameToken.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -670,7 +672,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](1);
         fees[0][0] = baseAuth.maxFee;
 
-        vm.expectRevert(BurnLib.NoRelevantBurnAuthorizations.selector);
+        vm.expectRevert(Burns.NoRelevantBurnAuthorizations.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -693,7 +695,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0][0] = baseAuth.maxFee;
         fees[0][1] = baseAuth.maxFee;
 
-        vm.expectRevert(BurnLib.NoRelevantBurnAuthorizations.selector);
+        vm.expectRevert(Burns.NoRelevantBurnAuthorizations.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -712,7 +714,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](1);
         fees[0][0] = baseAuth.maxFee;
 
-        vm.expectRevert(BurnLib.NoRelevantBurnAuthorizations.selector);
+        vm.expectRevert(Burns.NoRelevantBurnAuthorizations.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -735,7 +737,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0][0] = baseAuth.maxFee;
         fees[0][1] = baseAuth.maxFee;
 
-        vm.expectRevert(BurnLib.NoRelevantBurnAuthorizations.selector);
+        vm.expectRevert(Burns.NoRelevantBurnAuthorizations.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -808,7 +810,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Initial State", underFundedDepositor, feeRecipient, initialExpectedBalances);
 
         vm.expectEmit(true, true, true, true);
-        emit BurnLib.InsufficientBalance(
+        emit Burns.InsufficientBalance(
             address(usdc),
             underFundedDepositor,
             auth.spec.value + fee, // Total needed: $2500 + $0.50 = $2500.50
@@ -968,7 +970,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         _expectBurnEvent(testData.eventParams1); // Event for successful auth1
         vm.expectEmit(true, true, true, true);
-        emit BurnLib.InsufficientBalance(
+        emit Burns.InsufficientBalance(
             address(usdc),
             testData.depositorAddr,
             testData.insufficientEventValueNeeded,
@@ -1023,7 +1025,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Initial State", underFundedDepositor, feeRecipient, initialExpectedBalances);
 
         vm.expectEmit(true, true, true, true);
-        emit BurnLib.InsufficientBalance(
+        emit Burns.InsufficientBalance(
             address(usdc),
             underFundedDepositor,
             auth.spec.value + fee, // Total needed: $1250 + $0.50 = $1250.50
@@ -1185,7 +1187,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         _expectBurnEvent(testData.eventParams1); // Event for successful auth1
         vm.expectEmit(true, true, true, true);
-        emit BurnLib.InsufficientBalance(
+        emit Burns.InsufficientBalance(
             address(usdc),
             testData.depositorAddr,
             testData.insufficientEventValueNeeded,
@@ -2164,7 +2166,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         assertEq(walletEncoded, libEncoded);
     }
 
-    function test_validateBurnAuthorizations_success_singleAuth() public {
+    function test_validateBurnAuthorizations_success_singleAuth() public view {
         BurnAuthorization memory auth = baseAuth;
         auth.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
 
@@ -2174,7 +2176,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         assertTrue(wallet.validateBurnAuthorizations(encodedAuth, signature));
     }
 
-    function test_validateBurnAuthorizations_success_setOfAuths() public {
+    function test_validateBurnAuthorizations_success_setOfAuths() public view {
         BurnAuthorization memory auth1 = baseAuth;
         BurnAuthorization memory auth2 = baseAuth;
         auth1.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
@@ -2205,7 +2207,9 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         // Expect revert because the recovered signer (attacker) is not authorized for the depositor's balance
         vm.expectRevert(
-            abi.encodeWithSelector(BurnLib.InvalidAuthorizationSourceSigner.selector, uint32(0), depositor, attacker)
+            abi.encodeWithSelector(
+                Burns.InvalidAuthorizationSourceSignerAtIndex.selector, uint32(0), depositor, attacker
+            )
         );
         wallet.validateBurnAuthorizations(encodedAuth, invalidSignature);
     }
@@ -2234,13 +2238,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Expect revert because the recovered signer (depositor) won't match auth2's sourceSigner (otherSignerAddr)
         vm.expectRevert(
             abi.encodeWithSelector(
-                BurnLib.InvalidAuthorizationSourceSigner.selector, uint32(1), otherSignerAddr, depositor
+                Burns.InvalidAuthorizationSourceSignerAtIndex.selector, uint32(1), otherSignerAddr, depositor
             )
         );
         wallet.validateBurnAuthorizations(encodedAuthSet, signature);
     }
 
-    function test_validateBurnAuthorizations_success_irrelevantDomain_singleAuth() public {
+    function test_validateBurnAuthorizations_success_irrelevantDomain_singleAuth() public view {
         BurnAuthorization memory auth = baseAuth;
         auth.spec.sourceDomain = domain + 1; // Irrelevant domain
 
@@ -2251,7 +2255,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         assertTrue(wallet.validateBurnAuthorizations(encodedAuth, signature));
     }
 
-    function test_validateBurnAuthorizations_success_irrelevantDomain_setOfAuths() public {
+    function test_validateBurnAuthorizations_success_irrelevantDomain_setOfAuths() public view {
         BurnAuthorization memory relevantAuth = baseAuth;
         BurnAuthorization memory irrelevantAuth = baseAuth;
         irrelevantAuth.spec.sourceDomain = domain + 1; // Irrelevant domain
@@ -2286,7 +2290,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
 
         // Should revert because the relevant auths are for different tokens
-        vm.expectRevert(BurnLib.NotAllSameToken.selector);
+        vm.expectRevert(Burns.NotAllSameToken.selector);
         wallet.validateBurnAuthorizations(encodedAuthSet, signature);
     }
 }

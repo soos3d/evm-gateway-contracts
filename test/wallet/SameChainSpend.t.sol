@@ -24,7 +24,7 @@ import {DelegationStorage} from "src/lib/wallet/Delegation.sol";
 import {Denylistable} from "src/lib/common/Denylistable.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
-import {BurnLib} from "src/lib/wallet/BurnLib.sol";
+import {Burns} from "src/lib/wallet/Burns.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
@@ -140,7 +140,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         bytes32 spendHash = keccak256(emptyAuthorization);
         vm.prank(depositor);
         wallet.deposit(usdc, spendValue - 1); // Deposit less than spend amount
-        vm.expectRevert(BurnLib.InsufficientBalanceForSameChainSpend.selector);
+        vm.expectRevert(Burns.InsufficientBalanceForSameChainSpend.selector);
 
         vm.prank(minterContract);
         wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, spendHash, emptyAuthorization);
@@ -151,7 +151,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         vm.prank(depositor);
         wallet.deposit(usdc, spendValue);
         vm.expectEmit(true, true, true, true);
-        emit BurnLib.TransferredSpent(
+        emit Burns.TransferredSpent(
             usdc, depositor, spendHash, recipient, authorizer, spendValue, spendValue, 0, emptyAuthorization
         );
 
@@ -172,7 +172,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         }
         vm.stopPrank();
         vm.expectEmit(true, true, true, true);
-        emit BurnLib.TransferredSpent(
+        emit Burns.TransferredSpent(
             usdc, depositor, spendHash, recipient, authorizer, spendValue, 0, spendValue, emptyAuthorization
         );
 
@@ -197,7 +197,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         vm.stopPrank();
 
         vm.expectEmit(true, true, true, true);
-        emit BurnLib.TransferredSpent(
+        emit Burns.TransferredSpent(
             usdc,
             depositor,
             spendHash,
