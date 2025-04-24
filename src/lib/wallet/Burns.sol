@@ -18,7 +18,6 @@
 pragma solidity ^0.8.28;
 
 import {BalancesStorage} from "src/lib/wallet/Balances.sol";
-import {DomainStorage} from "src/lib/common/Domain.sol";
 import {TokenSupportStorage} from "src/lib/common/TokenSupport.sol";
 import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
@@ -529,7 +528,7 @@ contract Burns is SpendCommon, Delegation {
         // If the burn authorization is for a different domain, ignore futher checks and indicate that to the caller
         // so it can be skipped
         uint32 domain = spec.getSourceDomain();
-        if (!DomainStorage._isCurrentDomain(domain)) {
+        if (!_isCurrentDomain(domain)) {
             return false;
         }
 

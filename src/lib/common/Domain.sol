@@ -41,7 +41,7 @@ contract Domain is Initializable {
     ///
     /// @param _domain   The domain identifier to check
     function _isCurrentDomain(uint32 _domain) internal view returns (bool) {
-        return DomainStorage._isCurrentDomain(_domain);
+        return DomainStorage.get().domain == _domain;
     }
 }
 
@@ -61,12 +61,5 @@ library DomainStorage {
         assembly {
             $.slot := SLOT
         }
-    }
-
-    /// Returns whether the given domain matches the current domain
-    ///
-    /// @param _domain   The domain identifier to check
-    function _isCurrentDomain(uint32 _domain) internal view returns (bool) {
-        return get().domain == _domain;
     }
 }
