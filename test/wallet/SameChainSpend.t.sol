@@ -20,7 +20,7 @@ pragma solidity ^0.8.28;
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {Counterpart} from "src/lib/common/Counterpart.sol";
-import {DelegationStorage} from "src/lib/wallet/Delegation.sol";
+import {Delegation} from "src/lib/wallet/Delegation.sol";
 import {Denylistable} from "src/lib/common/Denylistable.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
@@ -128,7 +128,7 @@ contract TestSameChainSpend is Test, DeployUtils {
 
     function test_sameChainSpend_revertsWhenAuthorizerIsNotDelegate() public {
         address notDelegate = makeAddr("notDelegate");
-        vm.expectRevert(DelegationStorage.NotAuthorized.selector);
+        vm.expectRevert(Delegation.NotAuthorized.selector);
 
         vm.prank(minterContract);
         wallet.sameChainSpend(

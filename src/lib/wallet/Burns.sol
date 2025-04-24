@@ -17,11 +17,7 @@
  */
 pragma solidity ^0.8.28;
 
-import {DelegationStorage} from "src/lib/wallet/Delegation.sol";
 import {BalancesStorage} from "src/lib/wallet/Balances.sol";
-import {SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
-import {DomainStorage} from "src/lib/common/Domain.sol";
-import {TokenSupportStorage} from "src/lib/common/TokenSupport.sol";
 import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
@@ -418,7 +414,7 @@ contract Burns is SpendCommon, Delegation {
         returns (uint256 deductedAmount, uint256 actualFeeCharged)
     {
         // Mark the spend hash as used
-        SpendHashesStorage._checkAndMark(spec.getHash());
+        _checkAndMarkSpendHash(spec.getHash());
 
         // Extract the relevant parameters from the TransferSpec
         address token = _bytes32ToAddress(spec.getSourceToken());
@@ -531,7 +527,7 @@ contract Burns is SpendCommon, Delegation {
         // If the burn authorization is for a different domain, ignore futher checks and indicate that to the caller
         // so it can be skipped
         uint32 domain = spec.getSourceDomain();
-        if (!DomainStorage._isCurrentDomain(domain)) {
+        if (!_isCurrentDomain(domain)) {
             return false;
         }
 
@@ -560,7 +556,7 @@ contract Burns is SpendCommon, Delegation {
 
         // Ensure that the source token is supported
         address sourceToken = _bytes32ToAddress(spec.getSourceToken());
-        if (!TokenSupportStorage._isTokenSupported(sourceToken)) {
+        if (!isTokenSupported(sourceToken)) {
             revert UnsupportedTokenAtIndex(index, sourceToken);
         }
 
@@ -572,8 +568,8 @@ contract Burns is SpendCommon, Delegation {
 
         // Ensure that the signer of the burn authorization is authorized for the balance being burned
         address sourceDepositor = _bytes32ToAddress(spec.getSourceDepositor());
-        if (!DelegationStorage._wasEverAuthorizedForBalance(sourceToken, sourceDepositor, authorizationSigner)) {
-            revert DelegationStorage.NotAuthorized();
+        if (!_wasEverAuthorizedForBalance(sourceToken, sourceDepositor, authorizationSigner)) {
+            revert Delegation.NotAuthorized();
         }
 
         return true;
