@@ -284,9 +284,9 @@ contract Burns is SpendCommon, Balances, Delegation {
     function updateBurnSigner(address newBurnSigner) external onlyOwner {
         _checkNotZeroAddress(newBurnSigner);
 
-        BurnsStorage.Data storage burns$ = BurnsStorage.get();
-        address oldBurnSigner = burns$.burnSigner;
-        burns$.burnSigner = newBurnSigner;
+        BurnsStorage.Data storage $ = BurnsStorage.get();
+        address oldBurnSigner = $.burnSigner;
+        $.burnSigner = newBurnSigner;
         emit BurnSignerUpdated(oldBurnSigner, newBurnSigner);
     }
 
@@ -309,9 +309,9 @@ contract Burns is SpendCommon, Balances, Delegation {
     function updateFeeRecipient(address newFeeRecipient) external onlyOwner {
         _checkNotZeroAddress(newFeeRecipient);
 
-        BurnsStorage.Data storage burns$ = BurnsStorage.get();
-        address oldFeeRecipient = burns$.feeRecipient;
-        burns$.feeRecipient = newFeeRecipient;
+        BurnsStorage.Data storage $ = BurnsStorage.get();
+        address oldFeeRecipient = $.feeRecipient;
+        $.feeRecipient = newFeeRecipient;
         emit FeeRecipientUpdated(oldFeeRecipient, newFeeRecipient);
     }
 

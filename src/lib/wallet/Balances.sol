@@ -41,8 +41,8 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
     function totalBalance(address token, address depositor) public view returns (uint256) {
-        BalancesStorage.Data storage balances$ = BalancesStorage.get();
-        return balances$.spendableBalances[token][depositor] + balances$.withdrawingBalances[token][depositor];
+        BalancesStorage.Data storage $ = BalancesStorage.get();
+        return $.spendableBalances[token][depositor] + $.withdrawingBalances[token][depositor];
     }
 
     /// The balance that is spendable by the depositor, subject to deposits having been observed by the API in a
