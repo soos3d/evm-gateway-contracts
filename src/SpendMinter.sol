@@ -83,21 +83,21 @@ contract SpendMinter is SpendCommon {
 
     /// Emitted when the a spend authorization is used
     ///
-    /// @param token                The token that was spent
-    /// @param recipient            The recipient of the funds
-    /// @param spendHash            The keccak256 hash of the `SpendSpec`
-    /// @param sourceDomain         The domain the funds came from
-    /// @param depositor            The depositor on the source domain
-    /// @param value                The amount that was minted/transferred
-    /// @param spendAuthorization   The entire spend authorization that was used
+    /// @param token             The token that was spent
+    /// @param recipient         The recipient of the funds
+    /// @param spendHash         The keccak256 hash of the `TransferSpec`
+    /// @param sourceDomain      The domain the funds came from
+    /// @param sourceDepositor   The depositor on the source domain
+    /// @param sourceSigner      The signer that authorized the transfer
+    /// @param value             The amount that was minted/transferred
     event Spent(
         address indexed token,
         address indexed recipient,
         bytes32 indexed spendHash,
         uint32 sourceDomain,
-        bytes32 depositor,
-        uint256 value,
-        bytes spendAuthorization
+        bytes32 sourceDepositor,
+        bytes32 sourceSigner,
+        uint256 value
     );
 
     /// Spend funds via a signed spend authorization from the operator. Accepts either a single encoded
@@ -122,7 +122,7 @@ contract SpendMinter is SpendCommon {
         while (!cursor.done) {
             auth = cursor.next();
             _validateMintAuthorization(auth, cursor.index - 1);
-            _spend(auth.getTransferSpec(), authorizations);
+            _spend(auth.getTransferSpec());
         }
     }
 
@@ -195,26 +195,26 @@ contract SpendMinter is SpendCommon {
     /// @dev Marks the spend hash as used. For same-chain spends, calls `sameChainSpend` on the wallet counterpart contract.
     /// For cross-chain spends, mints tokens using the appropriate mint authority. Emits a `Spent` event.
     /// @param spec A reference to the `TransferSpec` defining the spend details.
-    /// @param authorizations The full byte-encoded authorization(s) used.
-    function _spend(bytes29 spec, bytes memory authorizations) internal {
+    function _spend(bytes29 spec) internal {
         bytes32 specHash = spec.getHash();
         _checkAndMarkSpendHash(specHash);
         address recipient = _bytes32ToAddress(spec.getDestinationRecipient());
         uint256 value = spec.getValue();
         address token = _bytes32ToAddress(spec.getDestinationToken());
-        bytes32 depositorBytes = spec.getSourceDepositor();
         uint32 sourceDomain = spec.getSourceDomain();
+        bytes32 depositorBytes = spec.getSourceDepositor();
+        bytes32 signerBytes = spec.getSourceSigner();
         if (sourceDomain == domain()) {
-            address sourceSigner = _bytes32ToAddress(spec.getSourceSigner());
+            address sourceSigner = _bytes32ToAddress(signerBytes);
             SpendWallet(_counterpart()).sameChainSpend(
-                token, _bytes32ToAddress(depositorBytes), recipient, sourceSigner, value, specHash, authorizations
+                token, _bytes32ToAddress(depositorBytes), recipient, sourceSigner, value, specHash
             );
         } else {
             address mintAuthority = tokenMintAuthorities[token];
             address minter = (mintAuthority == address(0)) ? token : mintAuthority;
             IMintToken(minter).mint(recipient, value);
         }
-        emit Spent(token, recipient, specHash, sourceDomain, depositorBytes, value, authorizations);
+        emit Spent(token, recipient, specHash, sourceDomain, depositorBytes, signerBytes, value);
     }
 
     /// Emitted when the mint authority is updated for a token
