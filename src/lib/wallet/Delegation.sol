@@ -39,6 +39,7 @@ enum AuthorizationStatus {
 ///
 /// Manages delegation for the SpendWallet contract
 contract Delegation is Pausing, Denylistable, TokenSupport {
+    error NotAuthorized();
     error CannotDelegateToSelf();
 
     /// Emitted when a delegate is authorized for a depositor's balance
@@ -116,7 +117,9 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
     /// @param depositor   The depositor to check
     /// @param addr        The address to check
     function isAuthorizedForBalance(address token, address depositor, address addr) public view returns (bool) {
-        return DelegationStorage._isAuthorizedForBalance(token, depositor, addr);
+        if (addr == depositor) return true;
+
+        return DelegationStorage.get().authorizedDelegates[token][depositor][addr] == AuthorizationStatus.Authorized;
     }
 
     /// Modifier that reverts if an address is not authorized to withdraw and transfer tokens on behalf of the depositor
@@ -125,15 +128,30 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
     /// @param depositor   The depositor to check
     /// @param addr        The address to check
     modifier authorizedForBalance(address token, address depositor, address addr) {
-        DelegationStorage._ensureAuthorizedForBalance(token, depositor, addr);
+        if (!isAuthorizedForBalance(token, depositor, addr)) {
+            revert NotAuthorized();
+        }
         _;
+    }
+
+    /// Check if an address has ever been authorized to withdraw and transfer tokens on behalf of a depositor
+    ///
+    /// @param token       The token to check
+    /// @param depositor   The depositor to check
+    /// @param addr        The address to check
+    function _wasEverAuthorizedForBalance(address token, address depositor, address addr)
+        internal
+        view
+        returns (bool)
+    {
+        if (addr == depositor) return true;
+
+        return DelegationStorage.get().authorizedDelegates[token][depositor][addr] != AuthorizationStatus.Unauthorized;
     }
 }
 
 /// Implements the EIP-7201 storage pattern for the Delegation module
 library DelegationStorage {
-    error NotAuthorized();
-
     /// @custom:storage-location 7201:circle.gateway.Delegation
     struct Data {
         /// The addresses that are authorized to withdraw and transfer the balances of other depositors for a given token
@@ -149,42 +167,5 @@ library DelegationStorage {
         assembly {
             $.slot := SLOT
         }
-    }
-
-    /// Check if an address is authorized to withdraw and transfer tokens on behalf of a depositor
-    ///
-    /// @param token       The token to check
-    /// @param depositor   The depositor to check
-    /// @param addr        The address to check
-    function _isAuthorizedForBalance(address token, address depositor, address addr) internal view returns (bool) {
-        if (addr == depositor) return true;
-
-        return get().authorizedDelegates[token][depositor][addr] == AuthorizationStatus.Authorized;
-    }
-
-    /// Revert if an address is not authorized to withdraw and transfer tokens on behalf of a depositor
-    ///
-    /// @param token       The token to check
-    /// @param depositor   The depositor to check
-    /// @param addr        The address to check
-    function _ensureAuthorizedForBalance(address token, address depositor, address addr) internal view {
-        if (!_isAuthorizedForBalance(token, depositor, addr)) {
-            revert NotAuthorized();
-        }
-    }
-
-    /// Check if an address has ever been authorized to withdraw and transfer tokens on behalf of a depositor
-    ///
-    /// @param token       The token to check
-    /// @param depositor   The depositor to check
-    /// @param addr        The address to check
-    function _wasEverAuthorizedForBalance(address token, address depositor, address addr)
-        internal
-        view
-        returns (bool)
-    {
-        if (addr == depositor) return true;
-
-        return get().authorizedDelegates[token][depositor][addr] != AuthorizationStatus.Unauthorized;
     }
 }

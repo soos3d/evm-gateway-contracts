@@ -20,7 +20,7 @@ pragma solidity ^0.8.28;
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
-import {DelegationStorage} from "src/lib/wallet/Delegation.sol";
+import {Delegation} from "src/lib/wallet/Delegation.sol";
 import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
@@ -532,7 +532,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](1);
 
-        vm.expectRevert(DelegationStorage.NotAuthorized.selector);
+        vm.expectRevert(Delegation.NotAuthorized.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -555,7 +555,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](2);
 
-        vm.expectRevert(DelegationStorage.NotAuthorized.selector);
+        vm.expectRevert(Delegation.NotAuthorized.selector);
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 

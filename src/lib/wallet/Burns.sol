@@ -17,7 +17,6 @@
  */
 pragma solidity ^0.8.28;
 
-import {DelegationStorage} from "src/lib/wallet/Delegation.sol";
 import {BalancesStorage} from "src/lib/wallet/Balances.sol";
 import {SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
 import {DomainStorage} from "src/lib/common/Domain.sol";
@@ -572,8 +571,8 @@ contract Burns is SpendCommon, Delegation {
 
         // Ensure that the signer of the burn authorization is authorized for the balance being burned
         address sourceDepositor = _bytes32ToAddress(spec.getSourceDepositor());
-        if (!DelegationStorage._wasEverAuthorizedForBalance(sourceToken, sourceDepositor, authorizationSigner)) {
-            revert DelegationStorage.NotAuthorized();
+        if (!_wasEverAuthorizedForBalance(sourceToken, sourceDepositor, authorizationSigner)) {
+            revert Delegation.NotAuthorized();
         }
 
         return true;

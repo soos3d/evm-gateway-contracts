@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {SpendWallet} from "src/SpendWallet.sol";
-import {DelegationStorage} from "src/lib/wallet/Delegation.sol";
+import {Delegation} from "src/lib/wallet/Delegation.sol";
 import {Withdrawals} from "src/lib/wallet/Withdrawals.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
@@ -187,7 +187,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     function test_initiateWithdrawal_revertIfNotAuthorized() public {
         address unauthorized = makeAddr("unauthorized");
         vm.startPrank(unauthorized);
-        vm.expectRevert(DelegationStorage.NotAuthorized.selector);
+        vm.expectRevert(Delegation.NotAuthorized.selector);
         wallet.initiateWithdrawal(usdc, depositor, initialUsdcBalance / 4);
         vm.stopPrank();
     }
@@ -204,7 +204,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         // Try to complete withdrawal as unauthorized delegate
         address unauthorized = makeAddr("unauthorized");
         vm.startPrank(unauthorized);
-        vm.expectRevert(DelegationStorage.NotAuthorized.selector);
+        vm.expectRevert(Delegation.NotAuthorized.selector);
         wallet.withdraw(usdc, depositor, unauthorized);
         vm.stopPrank();
     }
@@ -764,7 +764,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Delegate tries to complete the withdrawal but should fail
         vm.startPrank(delegate);
-        vm.expectRevert(DelegationStorage.NotAuthorized.selector);
+        vm.expectRevert(Delegation.NotAuthorized.selector);
         wallet.withdraw(usdc, depositor, delegate);
         vm.stopPrank();
 
