@@ -17,10 +17,10 @@
  */
 pragma solidity ^0.8.28;
 
-import {BalancesStorage} from "src/lib/wallet/Balances.sol";
 import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
+import {Balances} from "src/lib/wallet/Balances.sol";
 import {Delegation} from "src/lib/wallet/Delegation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
@@ -36,7 +36,7 @@ import {IBurnToken} from "src/interfaces/IBurnToken.sol";
 /// @title Burns
 ///
 /// Manages burns for the SpendWallet contract
-contract Burns is SpendCommon, Delegation {
+contract Burns is SpendCommon, Balances, Delegation {
     using MessageHashUtils for bytes32;
     using TransferSpecLib for bytes29;
     using BurnAuthorizationLib for bytes29;
@@ -590,47 +590,6 @@ contract Burns is SpendCommon, Delegation {
         uint256 spendableBalance,
         uint256 withdrawingBalance
     );
-
-    /**
-     * @notice Reduces a depositor's balances by a specified value, prioritizing the spendable balance.
-     * @param token The address of the token whose balance is being reduced.
-     * @param depositor The address of the account whose balance is being reduced.
-     * @param value The total amount to be deducted.
-     * @return fromSpendable The amount deducted from the `spendable` balance.
-     * @return fromWithdrawing The amount deducted from the `withdrawing` balance.
-     */
-    function _reduceBalance(address token, address depositor, uint256 value)
-        internal
-        returns (uint256 fromSpendable, uint256 fromWithdrawing)
-    {
-        BalancesStorage.Data storage balances$ = BalancesStorage.get();
-
-        uint256 needed = value;
-        uint256 spendable = balances$.spendableBalances[token][depositor];
-
-        if (spendable >= needed) {
-            // If there is enough in the spendable balance, deduct from it and return
-            balances$.spendableBalances[token][depositor] -= needed;
-            return (needed, 0);
-        }
-
-        // Otherwise, take it all and continue for the rest
-        balances$.spendableBalances[token][depositor] = 0;
-        needed -= spendable;
-
-        uint256 withdrawing = balances$.withdrawingBalances[token][depositor];
-
-        if (withdrawing >= needed) {
-            // If there is enough in the withdrawing balance, deduct from it and return
-            balances$.withdrawingBalances[token][depositor] -= needed;
-            return (spendable, needed);
-        }
-
-        // Otherwise, take it all
-        balances$.withdrawingBalances[token][depositor] = 0;
-
-        return (spendable, withdrawing);
-    }
 }
 
 /// Implements the EIP-7201 storage pattern for the Burns module

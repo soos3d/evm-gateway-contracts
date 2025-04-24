@@ -142,6 +142,47 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
 
         return batchBalances;
     }
+
+    /**
+     * @notice Reduces a depositor's balances by a specified value, prioritizing the spendable balance.
+     * @param token The address of the token whose balance is being reduced.
+     * @param depositor The address of the account whose balance is being reduced.
+     * @param value The total amount to be deducted.
+     * @return fromSpendable The amount deducted from the `spendable` balance.
+     * @return fromWithdrawing The amount deducted from the `withdrawing` balance.
+     */
+    function _reduceBalance(address token, address depositor, uint256 value)
+        internal
+        returns (uint256 fromSpendable, uint256 fromWithdrawing)
+    {
+        BalancesStorage.Data storage $ = BalancesStorage.get();
+
+        uint256 spendable = $.spendableBalances[token][depositor];
+        uint256 needed = value;
+
+        // If there is enough in the spendable balance, deduct from it and return
+        if (spendable >= needed) {
+            $.spendableBalances[token][depositor] -= needed;
+            return (needed, 0);
+        }
+
+        // Otherwise, take it all and continue for the rest
+        $.spendableBalances[token][depositor] = 0;
+        needed -= spendable;
+
+        uint256 withdrawing = $.withdrawingBalances[token][depositor];
+
+        // If there is enough in the withdrawing balance, deduct from it and return
+        if (withdrawing >= needed) {
+            $.withdrawingBalances[token][depositor] -= needed;
+            return (spendable, needed);
+        }
+
+        // Otherwise, take it all
+        $.withdrawingBalances[token][depositor] = 0;
+
+        return (spendable, withdrawing);
+    }
 }
 
 /// Implements the EIP-7201 storage pattern for the Balances module
