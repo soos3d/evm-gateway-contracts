@@ -40,13 +40,19 @@ contract SpendMinter is SpendCommon {
 
     error InvalidMintAuthorizationSigner();
     error MustHaveAtLeastOneMintAuthorization();
-    error AuthorizationValueMustBePositive(uint32 index);
-    error AuthorizationExpired(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
-    error InvalidAuthorizationDestinationDomain(uint32 index, uint32 expectedDestinationDomain, uint32 actualDomain);
-    error InvalidAuthorizationDestinationContract(uint32 index, address expectedDestinationContract);
-    error InvalidAuthorizationSourceContract(uint32 index, address sourceContract, address expectedSourceContract);
-    error InvalidAuthorizationToken(uint32 index, address sourceToken, address destinationToken);
-    error InvalidAuthorizationDestinationCaller(uint32 index, address expectedDestinationCaller, address actualCaller);
+    error AuthorizationValueMustBePositiveAtIndex(uint32 index);
+    error AuthorizationExpiredAtIndex(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
+    error InvalidAuthorizationDestinationDomainAtIndex(
+        uint32 index, uint32 expectedDestinationDomain, uint32 actualDomain
+    );
+    error InvalidAuthorizationDestinationContractAtIndex(uint32 index, address expectedDestinationContract);
+    error InvalidAuthorizationSourceContractAtIndex(
+        uint32 index, address sourceContract, address expectedSourceContract
+    );
+    error InvalidAuthorizationTokenAtIndex(uint32 index, address sourceToken, address destinationToken);
+    error InvalidAuthorizationDestinationCallerAtIndex(
+        uint32 index, address expectedDestinationCaller, address actualCaller
+    );
 
     /// Maps token addresses to their corresponding minter contract addresses.
     /// The token minter contracts must have permission to mint the associated token.
@@ -140,31 +146,31 @@ contract SpendMinter is SpendCommon {
     function _validateMintAuthorization(bytes29 auth, uint32 index) internal view {
         uint256 maxBlockHeight = auth.getMaxBlockHeight();
         if (maxBlockHeight < block.number) {
-            revert AuthorizationExpired(index, maxBlockHeight, block.number);
+            revert AuthorizationExpiredAtIndex(index, maxBlockHeight, block.number);
         }
 
         bytes29 spec = auth.getTransferSpec();
 
         uint256 value = spec.getValue();
         if (value == 0) {
-            revert AuthorizationValueMustBePositive(index);
+            revert AuthorizationValueMustBePositiveAtIndex(index);
         }
 
         _ensureNotDenylisted(_bytes32ToAddress(spec.getDestinationRecipient()));
 
         address destinationCaller = _bytes32ToAddress(spec.getDestinationCaller());
         if (destinationCaller != address(0) && destinationCaller != msg.sender) {
-            revert InvalidAuthorizationDestinationCaller(index, destinationCaller, msg.sender);
+            revert InvalidAuthorizationDestinationCallerAtIndex(index, destinationCaller, msg.sender);
         }
 
         uint32 destinationDomain = spec.getDestinationDomain();
         if (!_isCurrentDomain(destinationDomain)) {
-            revert InvalidAuthorizationDestinationDomain(index, destinationDomain, domain());
+            revert InvalidAuthorizationDestinationDomainAtIndex(index, destinationDomain, domain());
         }
 
         address destinationContract = _bytes32ToAddress(spec.getDestinationContract());
         if (destinationContract != address(this)) {
-            revert InvalidAuthorizationDestinationContract(index, destinationContract);
+            revert InvalidAuthorizationDestinationContractAtIndex(index, destinationContract);
         }
 
         address destinationToken = _bytes32ToAddress(spec.getDestinationToken());
@@ -176,11 +182,11 @@ contract SpendMinter is SpendCommon {
             address sourceContract = _bytes32ToAddress(spec.getSourceContract());
             address walletAddr = _counterpart();
             if (sourceContract != walletAddr) {
-                revert InvalidAuthorizationSourceContract(index, sourceContract, walletAddr);
+                revert InvalidAuthorizationSourceContractAtIndex(index, sourceContract, walletAddr);
             }
             address sourceToken = _bytes32ToAddress(spec.getSourceToken());
             if (sourceToken != destinationToken) {
-                revert InvalidAuthorizationToken(index, sourceToken, destinationToken);
+                revert InvalidAuthorizationTokenAtIndex(index, sourceToken, destinationToken);
             }
         }
     }

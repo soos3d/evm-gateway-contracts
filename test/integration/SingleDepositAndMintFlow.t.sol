@@ -19,7 +19,7 @@ pragma solidity ^0.8.28;
 
 import {MultichainTestUtils} from "../util/MultichainTestUtils.sol";
 import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
-import {BurnLib} from "src/lib/wallet/BurnLib.sol";
+import {Burns} from "src/lib/wallet/Burns.sol";
 
 contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
     ChainSetup private ethereum;
@@ -185,7 +185,7 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
         allSignatures[0] = burnSignature;
         uint256[][] memory fees = _createFees(allBurnAuths, FEE_AMOUNT);
 
-        vm.expectRevert(BurnLib.NoRelevantBurnAuthorizations.selector);
+        vm.expectRevert(Burns.NoRelevantBurnAuthorizations.selector);
         bytes memory burnSignerSignature =
             _signBurnAuthorizations(allBurnAuths, allSignatures, fees, ethereum.walletBurnSignerKey);
         ethereum.wallet.burnSpent(allBurnAuths, allSignatures, fees, burnSignerSignature);

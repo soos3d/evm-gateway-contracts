@@ -35,7 +35,7 @@ import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol
 import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
-import {BurnLib} from "src/lib/wallet/BurnLib.sol";
+import {Burns} from "src/lib/wallet/Burns.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract MockMintableToken is ERC20 {
@@ -60,7 +60,7 @@ contract MockSpendWallet {
         bytes memory spendAuthorization
     ) external {
         ERC20(token).transfer(recipient, value);
-        emit BurnLib.TransferredSpent(
+        emit Burns.TransferredSpent(
             token, depositor, spendHash, recipient, authorizer, value, value, 0, spendAuthorization
         );
     }
@@ -259,7 +259,7 @@ contract TestMints is Test, DeployUtils {
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.AuthorizationExpired.selector, 0, crossChainBaseAuth.maxBlockHeight, block.number
+                SpendMinter.AuthorizationExpiredAtIndex.selector, 0, crossChainBaseAuth.maxBlockHeight, block.number
             )
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -278,7 +278,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.AuthorizationExpired.selector, 1, expiredAuth.maxBlockHeight, block.number
+                SpendMinter.AuthorizationExpiredAtIndex.selector, 1, expiredAuth.maxBlockHeight, block.number
             )
         );
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
@@ -287,7 +287,7 @@ contract TestMints is Test, DeployUtils {
     function test_spend_revertIfZeroValue() public {
         crossChainBaseAuth.spec.value = 0;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
-        vm.expectRevert(abi.encodeWithSelector(SpendMinter.AuthorizationValueMustBePositive.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(SpendMinter.AuthorizationValueMustBePositiveAtIndex.selector, 0));
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
@@ -302,7 +302,7 @@ contract TestMints is Test, DeployUtils {
         MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendMinter.AuthorizationValueMustBePositive.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(SpendMinter.AuthorizationValueMustBePositiveAtIndex.selector, 1));
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
     }
 
@@ -343,7 +343,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationCaller.selector, 0, destinationCaller, address(this)
+                SpendMinter.InvalidAuthorizationDestinationCallerAtIndex.selector, 0, destinationCaller, address(this)
             )
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -363,7 +363,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationCaller.selector, 1, destinationCaller, address(this)
+                SpendMinter.InvalidAuthorizationDestinationCallerAtIndex.selector, 1, destinationCaller, address(this)
             )
         );
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
@@ -374,7 +374,7 @@ contract TestMints is Test, DeployUtils {
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationDomain.selector,
+                SpendMinter.InvalidAuthorizationDestinationDomainAtIndex.selector,
                 0,
                 crossChainBaseAuth.spec.destinationDomain,
                 domain
@@ -396,7 +396,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationDomain.selector,
+                SpendMinter.InvalidAuthorizationDestinationDomainAtIndex.selector,
                 1,
                 invalidDomainAuth.spec.destinationDomain,
                 domain
@@ -412,7 +412,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationContract.selector, 0, invalidDestinationContract
+                SpendMinter.InvalidAuthorizationDestinationContractAtIndex.selector, 0, invalidDestinationContract
             )
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -432,7 +432,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationContract.selector, 1, invalidDestinationContract
+                SpendMinter.InvalidAuthorizationDestinationContractAtIndex.selector, 1, invalidDestinationContract
             )
         );
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
@@ -472,7 +472,10 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationSourceContract.selector, 0, invalidSourceContract, address(wallet)
+                SpendMinter.InvalidAuthorizationSourceContractAtIndex.selector,
+                0,
+                invalidSourceContract,
+                address(wallet)
             )
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -492,7 +495,10 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationSourceContract.selector, 1, invalidSourceContract, address(wallet)
+                SpendMinter.InvalidAuthorizationSourceContractAtIndex.selector,
+                1,
+                invalidSourceContract,
+                address(wallet)
             )
         );
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
@@ -506,7 +512,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationToken.selector, 0, differentSourceToken, address(usdc)
+                SpendMinter.InvalidAuthorizationTokenAtIndex.selector, 0, differentSourceToken, address(usdc)
             )
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -526,7 +532,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationToken.selector, 1, differentSourceToken, address(usdc)
+                SpendMinter.InvalidAuthorizationTokenAtIndex.selector, 1, differentSourceToken, address(usdc)
             )
         );
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
