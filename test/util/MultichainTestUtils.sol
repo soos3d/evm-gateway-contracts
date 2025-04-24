@@ -269,7 +269,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         assertEq(
             chain.wallet.totalBalance(address(chain.usdc), depositor),
             depositorTotalBalanceBefore - expectedDepositorBalanceDecrement,
-            "Depositor balance should decrease by expected burnt amount plus fees"
+            "Depositor balance should decrease by amount used in same chain spend"
         );
     }
 }
