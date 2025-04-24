@@ -19,7 +19,7 @@ pragma solidity ^0.8.28;
 
 import {Pausing} from "src/lib/common/Pausing.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
-import {WithdrawalDelay, WithdrawalDelayStorage} from "src/lib/wallet/WithdrawalDelay.sol";
+import {WithdrawalDelay} from "src/lib/wallet/WithdrawalDelay.sol";
 import {Balances} from "src/lib/wallet/Balances.sol";
 import {Delegation} from "src/lib/wallet/Delegation.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -33,7 +33,6 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
 
     error WithdrawalValueMustBePositive();
     error WithdrawalValueExceedsSpendableBalance();
-    error WithdrawalNotYetAvailable();
 
     /// Emitted when a withdrawal is initiated
     ///
@@ -123,15 +122,10 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
     /// @param depositor   The owner of the balance from which the withdrawal should come
     /// @param recipient   The recipient of the funds
     function _withdraw(address token, address depositor, address recipient) internal {
-        WithdrawalDelayStorage.Data storage withdrawalDelay$ = WithdrawalDelayStorage.get();
-
-        if (withdrawalDelay$.withdrawableAtBlocks[token][depositor] > block.number) {
-            revert WithdrawalNotYetAvailable();
-        }
+        _ensureWithdrawable(token, depositor);
 
         uint256 balanceToWithdraw = _emptyWithdrawingBalance(token, depositor);
-
-        withdrawalDelay$.withdrawableAtBlocks[token][depositor] = 0;
+        _setWithdrawalBlock(token, depositor, 0);
 
         IERC20(token).safeTransfer(recipient, balanceToWithdraw);
 

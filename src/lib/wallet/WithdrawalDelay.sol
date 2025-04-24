@@ -23,6 +23,8 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 ///
 /// Manages the delay between initiating and completing withdrawals for the SpendWallet contract.
 contract WithdrawalDelay is Ownable2StepUpgradeable {
+    error WithdrawalNotYetAvailable();
+
     /// The number of blocks that must pass after calling `initiateWithdrawal` before a withdrawal can be completed
     function withdrawalDelay() public view returns (uint256) {
         return WithdrawalDelayStorage.get().withdrawalDelay;
@@ -60,6 +62,16 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
     /// @param blockNumber   The block number at which the withdrawal will be withdrawable
     function _setWithdrawalBlock(address token, address depositor, uint256 blockNumber) internal {
         WithdrawalDelayStorage.get().withdrawableAtBlocks[token][depositor] = blockNumber;
+    }
+
+    /// Reverts if the given depositor may not yet withdraw the given token
+    ///
+    /// @param token       The token to check
+    /// @param depositor   The depositor to check
+    function _ensureWithdrawable(address token, address depositor) internal view {
+        if (WithdrawalDelayStorage.get().withdrawableAtBlocks[token][depositor] > block.number) {
+            revert WithdrawalNotYetAvailable();
+        }
     }
 }
 

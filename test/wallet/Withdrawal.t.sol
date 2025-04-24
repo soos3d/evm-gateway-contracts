@@ -20,6 +20,7 @@ pragma solidity ^0.8.28;
 import {SpendWallet} from "src/SpendWallet.sol";
 import {Balances} from "src/lib/wallet/Balances.sol";
 import {Delegation} from "src/lib/wallet/Delegation.sol";
+import {WithdrawalDelay} from "src/lib/wallet/WithdrawalDelay.sol";
 import {Withdrawals} from "src/lib/wallet/Withdrawals.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
@@ -267,7 +268,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         // Attempt to withdraw immediately
         address actor = withdrawalType == WithdrawalType.Direct ? depositor : delegate;
         vm.startPrank(actor);
-        vm.expectRevert(Withdrawals.WithdrawalNotYetAvailable.selector);
+        vm.expectRevert(WithdrawalDelay.WithdrawalNotYetAvailable.selector);
         if (withdrawalType == WithdrawalType.Direct) {
             wallet.withdraw(usdc);
         } else {
@@ -280,7 +281,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Attempt to withdraw again
         vm.startPrank(actor);
-        vm.expectRevert(Withdrawals.WithdrawalNotYetAvailable.selector);
+        vm.expectRevert(WithdrawalDelay.WithdrawalNotYetAvailable.selector);
         if (withdrawalType == WithdrawalType.Direct) {
             wallet.withdraw(usdc);
         } else {
