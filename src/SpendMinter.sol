@@ -22,7 +22,6 @@ import {SpendWallet} from "src/SpendWallet.sol";
 import {_checkNotZeroAddress, _bytes32ToAddress} from "src/lib/util/addresses.sol";
 import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {MintAuthorization} from "src/lib/authorizations/MintAuthorizations.sol";
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {IMintToken} from "src/interfaces/IMintToken.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -232,18 +231,6 @@ contract SpendMinter is SpendCommon {
         tokenMintAuthorities[token] = newMintAuthority;
         emit MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
     }
-
-    /// Returns the byte encoding of a single mint authorization
-    ///
-    /// @param authorization   The mint authorization to encode
-    function encodeMintAuthorization(MintAuthorization memory authorization) external pure returns (bytes memory) {}
-
-    /// Returns the byte encoding of a set of mint authorizations
-    ///
-    /// @dev The mint authorizations must be sorted by domain
-    ///
-    /// @param authorizations   The mint authorizations to encode
-    function encodeMintAuthorizations(MintAuthorization[] memory authorizations) external pure returns (bytes memory) {}
 
     /// Emitted when the mintAuthorizationSigner role is updated
     ///

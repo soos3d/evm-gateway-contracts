@@ -27,6 +27,9 @@ for chain in ${chains[@]}; do
       block=$(jq ".${chain}" block-numbers.json)
       forge_test_args+=(--fork-block-number ${block})
     fi
+
+    # Skip multi-chain integration tests if not running on local network
+    forge_test_args+=(--no-match-path="test/integration/*.t.sol")
   fi
 
   echo "=== Running tests on chain: ${chain} ==="
