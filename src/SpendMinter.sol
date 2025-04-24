@@ -198,7 +198,7 @@ contract SpendMinter is SpendCommon {
     /// @param authorizations The full byte-encoded authorization(s) used.
     function _spend(bytes29 spec, bytes memory authorizations) internal {
         bytes32 specHash = spec.getHash();
-        _checkAndMark(specHash);
+        _checkAndMarkSpendHash(specHash);
         address recipient = _bytes32ToAddress(spec.getDestinationRecipient());
         uint256 value = spec.getValue();
         address token = _bytes32ToAddress(spec.getDestinationToken());

@@ -26,7 +26,7 @@ import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {Burns} from "src/lib/wallet/Burns.sol";
-import {SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
+import {SpendHashes} from "src/lib/common/SpendHashes.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
 import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
@@ -627,7 +627,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         // Replay the same authorization
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
-        vm.expectRevert(abi.encodeWithSelector(SpendHashesStorage.SpendHashUsed.selector, specHash));
+        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, specHash));
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 

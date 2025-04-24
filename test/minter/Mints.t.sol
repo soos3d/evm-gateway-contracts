@@ -27,7 +27,7 @@ import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
 import {Denylistable} from "src/lib/common/Denylistable.sol";
-import {SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
+import {SpendHashes} from "src/lib/common/SpendHashes.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
@@ -544,7 +544,7 @@ contract TestMints is Test, DeployUtils {
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(crossChainBaseAuth.spec));
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
-        vm.expectRevert(abi.encodeWithSelector(SpendHashesStorage.SpendHashUsed.selector, specHash));
+        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, specHash));
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 

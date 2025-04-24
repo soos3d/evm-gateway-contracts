@@ -18,7 +18,6 @@
 pragma solidity ^0.8.28;
 
 import {BalancesStorage} from "src/lib/wallet/Balances.sol";
-import {SpendHashesStorage} from "src/lib/common/SpendHashes.sol";
 import {DomainStorage} from "src/lib/common/Domain.sol";
 import {TokenSupportStorage} from "src/lib/common/TokenSupport.sol";
 import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
@@ -417,7 +416,7 @@ contract Burns is SpendCommon, Delegation {
         returns (uint256 deductedAmount, uint256 actualFeeCharged)
     {
         // Mark the spend hash as used
-        SpendHashesStorage._checkAndMark(spec.getHash());
+        _checkAndMarkSpendHash(spec.getHash());
 
         // Extract the relevant parameters from the TransferSpec
         address token = _bytes32ToAddress(spec.getSourceToken());
