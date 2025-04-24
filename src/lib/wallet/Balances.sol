@@ -33,6 +33,8 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
         Withdrawable
     }
 
+    error NoWithdrawingBalance();
+
     /// The total balance of a depositor for a token. This will always be equal to the sum of `spendableBalance` and
     /// `withdrawingBalance`.
     ///
@@ -171,6 +173,26 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
         $.withdrawingBalances[token][depositor] += value;
 
         return ($.spendableBalances[token][depositor], $.withdrawingBalances[token][depositor]);
+    }
+
+    /**
+     * @notice Decreases a depositor's withdrawing balance to zero, returning what it was beforehand.
+     * @dev Reverts if the withdrawing balance is already zero.
+     * @param token The address of the token whose balance is being withdrawn.
+     * @param depositor The address of the account whose balance is being withdrawn.
+     * @return withdrawn The amount that was withdrawn.
+     */
+    function _emptyWithdrawingBalance(address token, address depositor) internal returns (uint256 withdrawn) {
+        BalancesStorage.Data storage $ = BalancesStorage.get();
+
+        uint256 balanceToWithdraw = $.withdrawingBalances[token][depositor];
+        if (balanceToWithdraw == 0) {
+            revert NoWithdrawingBalance();
+        }
+
+        $.withdrawingBalances[token][depositor] = 0;
+
+        return balanceToWithdraw;
     }
 
     /**
