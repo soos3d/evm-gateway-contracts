@@ -64,7 +64,8 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
             encodedMintAuth,
             mintSignature,
             SPEND_AMOUNT, /* expected total supply increment */
-            SPEND_AMOUNT /* expected recipient balance increment */
+            SPEND_AMOUNT, /* expected recipient balance increment */
+            0 /* expected depositor balance decrement */
         );
 
         // On Ethereum: Burn spent amount

@@ -60,7 +60,8 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
             encodedMintAuth,
             mintSignature,
             SPEND_AMOUNT, /* expected supply increment */
-            SPEND_AMOUNT /* expected recipient balance increment */
+            SPEND_AMOUNT, /* expected recipient balance increment */
+            0 /* expected depositor balance decrement */
         );
 
         // On Ethereum: Burn spent amount
@@ -73,7 +74,7 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
         );
     }
 
-    function test_despositAndSpendByDelegate() public {
+    function test_depositAndSpendByDelegate() public {
         // On Ethereum:
         vm.selectFork(ethereum.forkId);
 
@@ -113,7 +114,8 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
             encodedMintAuth,
             mintSignature,
             SPEND_AMOUNT, /* expected supply increment */
-            SPEND_AMOUNT /* expected recipient balance increment */
+            SPEND_AMOUNT, /* expected recipient balance increment */
+            0 /* expected depositor balance decrement */
         );
 
         // On Ethereum: Burn spent amount
@@ -166,12 +168,13 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
             _signMintAuthWithTransferSpec(transferSpec, ethereum.minterMintSignerKey);
 
         // On Ethereum: mint on the same chain using mint authorization
-        _mintFromChain(
+        _mintFromChain( // same chain spend
             ethereum,
             encodedMintAuth,
             mintSignature,
             0, /* no supply increment for same chain spend */
-            SPEND_AMOUNT /* expected recipient balance increment */
+            SPEND_AMOUNT, /* expected recipient balance increment */
+            SPEND_AMOUNT /* expected depositor balance decrement */
         );
 
         // On Ethereum: Burn spent amount

@@ -227,7 +227,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         assertEq(
             chain.wallet.totalBalance(address(chain.usdc), depositor),
             depositorTotalBalanceBefore - expectedDepositorBalanceDecrement,
-            "User balance should decrease by expected burnt amount plus fees"
+            "Depositor balance should decrease by expected burnt amount plus fees"
         );
         assertEq(
             chain.usdc.balanceOf(chain.wallet.feeRecipient()),
@@ -241,20 +241,19 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         bytes memory encodedMintAuth,
         bytes memory mintSignature,
         uint256 expectedTotalSupplyIncrement,
-        uint256 expectedRecipientBalanceIncrement
+        uint256 expectedRecipientBalanceIncrement,
+        uint256 expectedDepositorBalanceDecrement
     ) internal {
         vm.selectFork(chain.forkId);
 
         // Record state before mint
         uint256 totalSupplyBefore = chain.usdc.totalSupply();
         uint256 recipientBalanceBefore = chain.usdc.balanceOf(recipient);
+        uint256 depositorTotalBalanceBefore = chain.wallet.totalBalance(address(chain.usdc), depositor);
 
         // Execute mint operation
-        vm.startPrank(destinationCaller);
-        {
-            chain.minter.spend(encodedMintAuth, mintSignature);
-        }
-        vm.stopPrank();
+        vm.prank(destinationCaller);
+        chain.minter.spend(encodedMintAuth, mintSignature);
 
         // Verify state after mint
         assertEq(
@@ -266,6 +265,11 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
             chain.usdc.balanceOf(recipient),
             recipientBalanceBefore + expectedRecipientBalanceIncrement,
             "Recipient balance should increase by total minted amount"
+        );
+        assertEq(
+            chain.wallet.totalBalance(address(chain.usdc), depositor),
+            depositorTotalBalanceBefore - expectedDepositorBalanceDecrement,
+            "Depositor balance should decrease by expected burnt amount plus fees"
         );
     }
 }

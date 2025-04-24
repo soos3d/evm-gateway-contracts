@@ -62,8 +62,15 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
 
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
             _signBurnAuths(burnAuths, ethereum.wallet, depositorPrivateKey);
-        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
-        assertTrue(isValidBurnAuth);
+
+        // On each fork, validate burn authorization
+        vm.selectFork(ethereum.forkId);
+        bool isValidBurnAuthEthereum = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        vm.selectFork(arbitrum.forkId);
+        bool isValidBurnAuthArbitrum = arbitrum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        vm.selectFork(base.forkId);
+        bool isValidBurnAuthBase = base.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        assertTrue(isValidBurnAuthEthereum && isValidBurnAuthArbitrum && isValidBurnAuthBase);
 
         // Offchain: Generate mint authorization given valid burn authorization
         (bytes memory encodedMintAuth, bytes memory mintSignature) =
@@ -72,8 +79,14 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
         // On Ethereum: Mint using mint authorization
         uint256 expectedTotalSupplyIncrement = SPEND_AMOUNT * 2; // 2 cross chain spends
         uint256 expectedRecipientBalanceIncrement = SPEND_AMOUNT * 3; // 3 spends total
+        uint256 expectedDepositorBalanceDecrement = SPEND_AMOUNT; // depositor balance reduces due to same chain spend
         _mintFromChain(
-            ethereum, encodedMintAuth, mintSignature, expectedTotalSupplyIncrement, expectedRecipientBalanceIncrement
+            ethereum,
+            encodedMintAuth,
+            mintSignature,
+            expectedTotalSupplyIncrement,
+            expectedRecipientBalanceIncrement,
+            expectedDepositorBalanceDecrement
         );
 
         // On each fork: Burn spent amount
@@ -109,8 +122,15 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
             _createTransferSpec(ethereum, ethereum, SPEND_AMOUNT, depositor, recipient, depositor, address(0));
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
             _signBurnAuthSetWithTransferSpec(transferSpecs, ethereum.wallet, depositorPrivateKey);
-        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
-        assertTrue(isValidBurnAuth);
+
+        // On each fork, validate burn authorization
+        vm.selectFork(arbitrum.forkId);
+        bool isValidBurnAuthArbitrum = arbitrum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        vm.selectFork(base.forkId);
+        bool isValidBurnAuthBase = base.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        vm.selectFork(ethereum.forkId);
+        bool isValidBurnAuthEthereum = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        assertTrue(isValidBurnAuthEthereum && isValidBurnAuthArbitrum && isValidBurnAuthBase);
 
         // Offchain: Generate mint authorization given valid burn authorization
         vm.selectFork(arbitrum.forkId);
@@ -129,21 +149,24 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
             encodedMintAuth0,
             mintSignature0,
             SPEND_AMOUNT, /* expected supply increment */
-            SPEND_AMOUNT /* expected recipient balance increment */
+            SPEND_AMOUNT, /* expected recipient balance increment */
+            0 /* expected depositor balance decrement */
         );
         _mintFromChain(
             base,
             encodedMintAuth1,
             mintSignature1,
             SPEND_AMOUNT, /* expected supply increment */
-            SPEND_AMOUNT /* expected recipient balance increment */
+            SPEND_AMOUNT, /* expected recipient balance increment */
+            0 /* expected depositor balance decrement */
         );
-        _mintFromChain(
+        _mintFromChain( // same chain spend
             ethereum,
             encodedMintAuth2,
             mintSignature2,
             0, /* expected supply increment */
-            SPEND_AMOUNT /* expected recipient balance increment */
+            SPEND_AMOUNT, /* expected recipient balance increment */
+            SPEND_AMOUNT /* expected depositor balance decrement */
         );
 
         // On Ethereum: Burn spent amount
