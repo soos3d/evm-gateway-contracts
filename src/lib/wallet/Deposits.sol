@@ -32,15 +32,15 @@ import {IERC7598} from "src/interfaces/IERC7598.sol";
 contract Deposits is Pausing, Denylistable, TokenSupport, Balances {
     using SafeERC20 for IERC20;
 
-    /// Thrown for deposits with a value of 0
-    error DepositValueMustBePositive();
-
     /// Emitted when a deposit is made
     ///
     /// @param token       The token that was deposited
     /// @param depositor   The address that deposited the funds
     /// @param value       The amount that was deposited
     event Deposited(address indexed token, address indexed depositor, uint256 value);
+
+    /// Thrown for deposits with a value of 0
+    error DepositValueMustBePositive();
 
     /// Deposit tokens after approving this contract for the token
     ///
@@ -112,28 +112,6 @@ contract Deposits is Pausing, Denylistable, TokenSupport, Balances {
         _depositWithPermit(token, owner, value, deadline, signature);
     }
 
-    /// @dev Internal implementation for depositing tokens using an EIP-2612 permit
-    ///
-    /// @param token      The ERC20 token contract address that supports EIP-2612 permits
-    /// @param owner      The address that owns the tokens and signed the permit
-    /// @param value      The amount of tokens to deposit
-    /// @param deadline   The unix timestamp after which the permit signature expires
-    /// @param signature  The signature bytes containing v, r, s components
-    function _depositWithPermit(address token, address owner, uint256 value, uint256 deadline, bytes memory signature)
-        internal
-    {
-        if (value == 0) {
-            revert DepositValueMustBePositive();
-        }
-
-        _increaseSpendableBalance(token, owner, value);
-
-        IERC7597(token).permit(owner, address(this), value, deadline, signature);
-        IERC20(token).safeTransferFrom(owner, address(this), value);
-
-        emit Deposited(token, owner, value);
-    }
-
     /// Deposit tokens with an ERC-3009 authorization
     ///
     /// @dev The resulting balance in this contract belongs to `from`
@@ -187,6 +165,28 @@ contract Deposits is Pausing, Denylistable, TokenSupport, Balances {
         bytes calldata signature
     ) external whenNotPaused notDenylisted(msg.sender) notDenylisted(from) tokenSupported(token) {
         _depositWithAuthorization(token, from, value, validAfter, validBefore, nonce, signature);
+    }
+
+    /// @dev Internal implementation for depositing tokens using an EIP-2612 permit
+    ///
+    /// @param token      The ERC20 token contract address that supports EIP-2612 permits
+    /// @param owner      The address that owns the tokens and signed the permit
+    /// @param value      The amount of tokens to deposit
+    /// @param deadline   The unix timestamp after which the permit signature expires
+    /// @param signature  The signature bytes containing v, r, s components
+    function _depositWithPermit(address token, address owner, uint256 value, uint256 deadline, bytes memory signature)
+        internal
+    {
+        if (value == 0) {
+            revert DepositValueMustBePositive();
+        }
+
+        _increaseSpendableBalance(token, owner, value);
+
+        IERC7597(token).permit(owner, address(this), value, deadline, signature);
+        IERC20(token).safeTransferFrom(owner, address(this), value);
+
+        emit Deposited(token, owner, value);
     }
 
     /// @dev Internal implementation for depositing tokens using an ERC-7598 authorization

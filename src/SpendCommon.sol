@@ -41,7 +41,7 @@ contract SpendCommon is
     SpendHashes,
     Domain
 {
-    /// Thrown when an address is the zero address
+    /// Thrown when an address is the zero address (duplicated here from `addresses.sol` so it gets included in the ABI)
     error InvalidAddress();
 
     /// Implements the UUPS upgrade pattern by restricting upgrades to the owner

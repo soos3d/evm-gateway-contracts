@@ -33,13 +33,6 @@ contract TokenSupport is Ownable2StepUpgradeable {
     /// @param token   The unsupported token
     error UnsupportedToken(address token);
 
-    /// Whether or not a token is supported
-    ///
-    /// @param token   The token to check
-    function isTokenSupported(address token) public view returns (bool) {
-        return TokenSupportStorage.get().supportedTokens[token];
-    }
-
     /// Ensures that the given token is supported
     ///
     /// @param token   The token to check
@@ -48,13 +41,11 @@ contract TokenSupport is Ownable2StepUpgradeable {
         _;
     }
 
-    /// Reverts if the given token is not supported
+    /// Whether or not a token is supported
     ///
     /// @param token   The token to check
-    function _ensureTokenSupported(address token) internal view {
-        if (!isTokenSupported(token)) {
-            revert UnsupportedToken(token);
-        }
+    function isTokenSupported(address token) public view returns (bool) {
+        return TokenSupportStorage.get().supportedTokens[token];
     }
 
     /// Marks a token as supported. Once supported, tokens can not be un-supported.
@@ -65,6 +56,15 @@ contract TokenSupport is Ownable2StepUpgradeable {
     function addSupportedToken(address token) external onlyOwner {
         TokenSupportStorage.get().supportedTokens[token] = true;
         emit TokenSupported(token);
+    }
+
+    /// Reverts if the given token is not supported
+    ///
+    /// @param token   The token to check
+    function _ensureTokenSupported(address token) internal view {
+        if (!isTokenSupported(token)) {
+            revert UnsupportedToken(token);
+        }
     }
 }
 

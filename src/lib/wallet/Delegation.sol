@@ -39,15 +39,34 @@ enum AuthorizationStatus {
 ///
 /// Manages delegation for the SpendWallet contract
 contract Delegation is Pausing, Denylistable, TokenSupport {
-    error NotAuthorized();
-    error CannotDelegateToSelf();
-
     /// Emitted when a delegate is authorized for a depositor's balance
     ///
     /// @param token       The token that the delegate is now authorized for
     /// @param depositor   The depositor who added the delegate
     /// @param delegate    The delegate that was added
     event DelegateAdded(address indexed token, address indexed depositor, address delegate);
+
+    /// Emitted when a delegate's authorization is revoked
+    ///
+    /// @param token       The token the delegate is no longer authorized for
+    /// @param depositor   The depositor who removed the delegate
+    /// @param delegate    The delegate that was removed
+    event DelegateRemoved(address indexed token, address indexed depositor, address delegate);
+
+    error NotAuthorized();
+    error CannotDelegateToSelf();
+
+    /// Modifier that reverts if an address is not authorized to withdraw and transfer tokens on behalf of the depositor
+    ///
+    /// @param token       The token to check
+    /// @param depositor   The depositor to check
+    /// @param addr        The address to check
+    modifier authorizedForBalance(address token, address depositor, address addr) {
+        if (!isAuthorizedForBalance(token, depositor, addr)) {
+            revert NotAuthorized();
+        }
+        _;
+    }
 
     /// Allow `delegate` to withdraw and transfer the caller's `token` balance
     ///
@@ -72,16 +91,9 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
         emit DelegateAdded(token, msg.sender, delegate);
     }
 
-    /// Emitted when a delegate's authorization is revoked
-    ///
-    /// @param token       The token the delegate is no longer authorized for
-    /// @param depositor   The depositor who removed the delegate
-    /// @param delegate    The delegate that was removed
-    event DelegateRemoved(address indexed token, address indexed depositor, address delegate);
-
     /// Stop allowing `delegate` to withdraw or transfer the caller's `token` balance. This revokation is not respected
     /// for burn authorizations that have been signed, so that burns cannot be prevented by removing the delegate
-    ///
+    //
     /// @dev This revokes the allowance granted by `addDelegate`
     ///
     /// @param token      The token the delegate should no longer be authorized for
@@ -120,18 +132,6 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
         if (addr == depositor) return true;
 
         return DelegationStorage.get().authorizedDelegates[token][depositor][addr] == AuthorizationStatus.Authorized;
-    }
-
-    /// Modifier that reverts if an address is not authorized to withdraw and transfer tokens on behalf of the depositor
-    ///
-    /// @param token       The token to check
-    /// @param depositor   The depositor to check
-    /// @param addr        The address to check
-    modifier authorizedForBalance(address token, address depositor, address addr) {
-        if (!isAuthorizedForBalance(token, depositor, addr)) {
-            revert NotAuthorized();
-        }
-        _;
     }
 
     /// Check if an address has ever been authorized to withdraw and transfer tokens on behalf of a depositor

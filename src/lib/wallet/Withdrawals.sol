@@ -31,9 +31,6 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delegation {
     using SafeERC20 for IERC20;
 
-    error WithdrawalValueMustBePositive();
-    error WithdrawalValueExceedsSpendableBalance();
-
     /// Emitted when a withdrawal is initiated
     ///
     /// @param token              The token that is being withdrawn
@@ -52,30 +49,19 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
         uint256 withdrawalBlock
     );
 
-    /// Internal helper function to initiate a withdrawal
+    /// Emitted when a withdrawal is completed and funds have been transferred to the recipient
     ///
-    /// @param token       The token to initiate a withdrawal for
-    /// @param depositor   The owner of the balance from which the withdrawal should come
-    /// @param authorizer  The address initiating the withdrawal
-    /// @param value       The amount to be withdrawn
-    function _initiateWithdrawal(address token, address depositor, address authorizer, uint256 value) internal {
-        if (value == 0) {
-            revert WithdrawalValueMustBePositive();
-        }
+    /// @param token        The token that was withdrawn
+    /// @param depositor    The owner of the withdrawn funds
+    /// @param recipient    The recipient of the funds
+    /// @param authorizer   The address that authorized the withdrawal completion
+    /// @param value        The value that was withdrawn
+    event WithdrawalCompleted(
+        address indexed token, address indexed depositor, address indexed recipient, address authorizer, uint256 value
+    );
 
-        if (value > spendableBalance(token, depositor)) {
-            revert WithdrawalValueExceedsSpendableBalance();
-        }
-
-        (uint256 remainingSpendable, uint256 totalWithdrawing) = _moveBalanceToWithdrawing(token, depositor, value);
-
-        uint256 withdrawalBlock = block.number + withdrawalDelay();
-        _setWithdrawalBlock(token, depositor, withdrawalBlock);
-
-        emit WithdrawalInitiated(
-            token, depositor, authorizer, value, remainingSpendable, totalWithdrawing, withdrawalBlock
-        );
-    }
+    error WithdrawalValueMustBePositive();
+    error WithdrawalValueExceedsSpendableBalance();
 
     /// Starts the withdrawal process. After `withdrawalDelay`, `withdraw` may be called to complete the withdrawal.
     /// Once a withdrawal has been initiated, that amount can no longer be spent. Repeated calls will add to the amount
@@ -105,33 +91,6 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
         _initiateWithdrawal(token, depositor, msg.sender, value);
     }
 
-    /// Emitted when a withdrawal is completed and funds have been transferred to the recipient
-    ///
-    /// @param token        The token that was withdrawn
-    /// @param depositor    The owner of the withdrawn funds
-    /// @param recipient    The recipient of the funds
-    /// @param authorizer   The address that authorized the withdrawal completion
-    /// @param value        The value that was withdrawn
-    event WithdrawalCompleted(
-        address indexed token, address indexed depositor, address indexed recipient, address authorizer, uint256 value
-    );
-
-    /// Internal helper function to complete a withdrawal
-    ///
-    /// @param token       The token to withdraw
-    /// @param depositor   The owner of the balance from which the withdrawal should come
-    /// @param recipient   The recipient of the funds
-    function _withdraw(address token, address depositor, address recipient) internal {
-        _ensureWithdrawable(token, depositor);
-
-        uint256 balanceToWithdraw = _emptyWithdrawingBalance(token, depositor);
-        _setWithdrawalBlock(token, depositor, 0);
-
-        IERC20(token).safeTransfer(recipient, balanceToWithdraw);
-
-        emit WithdrawalCompleted(token, depositor, recipient, msg.sender, balanceToWithdraw);
-    }
-
     /// Completes a withdrawal that was initiated at least `withdrawalDelay` blocks ago.
     ///
     /// @dev The full amount that was initiated is always withdrawn
@@ -156,5 +115,46 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
         authorizedForBalance(token, depositor, msg.sender)
     {
         _withdraw(token, depositor, recipient);
+    }
+
+    /// Internal helper function to initiate a withdrawal
+    ///
+    /// @param token       The token to initiate a withdrawal for
+    /// @param depositor   The owner of the balance from which the withdrawal should come
+    /// @param authorizer  The address initiating the withdrawal
+    /// @param value       The amount to be withdrawn
+    function _initiateWithdrawal(address token, address depositor, address authorizer, uint256 value) internal {
+        if (value == 0) {
+            revert WithdrawalValueMustBePositive();
+        }
+
+        if (value > spendableBalance(token, depositor)) {
+            revert WithdrawalValueExceedsSpendableBalance();
+        }
+
+        (uint256 remainingSpendable, uint256 totalWithdrawing) = _moveBalanceToWithdrawing(token, depositor, value);
+
+        uint256 withdrawalBlock = block.number + withdrawalDelay();
+        _setWithdrawalBlock(token, depositor, withdrawalBlock);
+
+        emit WithdrawalInitiated(
+            token, depositor, authorizer, value, remainingSpendable, totalWithdrawing, withdrawalBlock
+        );
+    }
+
+    /// Internal helper function to complete a withdrawal
+    ///
+    /// @param token       The token to withdraw
+    /// @param depositor   The owner of the balance from which the withdrawal should come
+    /// @param recipient   The recipient of the funds
+    function _withdraw(address token, address depositor, address recipient) internal {
+        _ensureWithdrawable(token, depositor);
+
+        uint256 balanceToWithdraw = _emptyWithdrawingBalance(token, depositor);
+        _setWithdrawalBlock(token, depositor, 0);
+
+        IERC20(token).safeTransfer(recipient, balanceToWithdraw);
+
+        emit WithdrawalCompleted(token, depositor, recipient, msg.sender, balanceToWithdraw);
     }
 }

@@ -61,7 +61,7 @@ contract SpendWallet is SpendCommon, Deposits, Withdrawals, Burns {
     ///
     /// @param minter   The address of the minter contract on the same chain
     /// @param domain   The operator-issued identifier for this chain
-    function initialize(address minter, uint32 domain) public reinitializer(2) {
+    function initialize(address minter, uint32 domain) external reinitializer(2) {
         __SpendCommon_init(minter, domain);
     }
 

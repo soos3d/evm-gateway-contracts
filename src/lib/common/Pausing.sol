@@ -43,14 +43,6 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
         _setPauser(newPauser);
     }
 
-    /// Sets the pauser in storage and emits an event
-    ///
-    /// @param newPauser   The new pauser address
-    function _setPauser(address newPauser) private {
-        PausingStorage.get().pauser = newPauser;
-        emit PauserUpdated(newPauser);
-    }
-
     /// Restricts the caller to the `pauser` role, reverting with an error for other callers
     modifier onlyPauser() {
         if (PausingStorage.get().pauser != msg.sender) {
@@ -80,6 +72,14 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
     /// @param newPauser   The new pauser address
     function updatePauser(address newPauser) external onlyOwner {
         _setPauser(newPauser);
+    }
+
+    /// Sets the pauser in storage and emits an event
+    ///
+    /// @param newPauser   The new pauser address
+    function _setPauser(address newPauser) private {
+        PausingStorage.get().pauser = newPauser;
+        emit PauserUpdated(newPauser);
     }
 }
 

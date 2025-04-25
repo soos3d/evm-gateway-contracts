@@ -23,26 +23,17 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 ///
 /// Manages the delay between initiating and completing withdrawals for the SpendWallet contract.
 contract WithdrawalDelay is Ownable2StepUpgradeable {
-    error WithdrawalNotYetAvailable();
-
-    /// The number of blocks that must pass after calling `initiateWithdrawal` before a withdrawal can be completed
-    function withdrawalDelay() public view returns (uint256) {
-        return WithdrawalDelayStorage.get().withdrawalDelay;
-    }
-
     /// Emitted when the withdrawal delay is updated
     ///
     /// @param newDelay   The new value of the delay, in blocks
     event WithdrawalDelayUpdated(uint256 newDelay);
 
-    /// Sets the number of blocks that must pass before a withdrawal can be completed
-    ///
-    /// @dev May only be called by the `owner` role
-    ///
-    /// @param newDelay   The new value of the delay, in blocks
-    function updateWithdrawalDelay(uint256 newDelay) external onlyOwner {
-        WithdrawalDelayStorage.get().withdrawalDelay = newDelay;
-        emit WithdrawalDelayUpdated(newDelay);
+    /// Thrown when a withdrawal has not waited long enough since initialization
+    error WithdrawalNotYetAvailable();
+
+    /// The number of blocks that must pass after calling `initiateWithdrawal` before a withdrawal can be completed
+    function withdrawalDelay() public view returns (uint256) {
+        return WithdrawalDelayStorage.get().withdrawalDelay;
     }
 
     /// The block height at which an in-progress withdrawal is withdrawable
@@ -55,13 +46,14 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
         return WithdrawalDelayStorage.get().withdrawableAtBlocks[token][depositor];
     }
 
-    /// Sets the block height at which an in-progress withdrawal will be withdrawable
+    /// Sets the number of blocks that must pass before a withdrawal can be completed
     ///
-    /// @param token         The token that will be withdrawn
-    /// @param depositor     The depositor of the funds being withdrawn
-    /// @param blockNumber   The block number at which the withdrawal will be withdrawable
-    function _setWithdrawalBlock(address token, address depositor, uint256 blockNumber) internal {
-        WithdrawalDelayStorage.get().withdrawableAtBlocks[token][depositor] = blockNumber;
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param newDelay   The new value of the delay, in blocks
+    function updateWithdrawalDelay(uint256 newDelay) external onlyOwner {
+        WithdrawalDelayStorage.get().withdrawalDelay = newDelay;
+        emit WithdrawalDelayUpdated(newDelay);
     }
 
     /// Reverts if the given depositor may not yet withdraw the given token
@@ -72,6 +64,15 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
         if (WithdrawalDelayStorage.get().withdrawableAtBlocks[token][depositor] > block.number) {
             revert WithdrawalNotYetAvailable();
         }
+    }
+
+    /// Sets the block height at which an in-progress withdrawal will be withdrawable
+    ///
+    /// @param token         The token that will be withdrawn
+    /// @param depositor     The depositor of the funds being withdrawn
+    /// @param blockNumber   The block number at which the withdrawal will be withdrawable
+    function _setWithdrawalBlock(address token, address depositor, uint256 blockNumber) internal {
+        WithdrawalDelayStorage.get().withdrawableAtBlocks[token][depositor] = blockNumber;
     }
 }
 
