@@ -104,15 +104,15 @@ contract SpendMinter is SpendCommon {
     /// `SpendAuthorization` or an encoded set of them. Emits an event containing the keccak256 hash of the encoded
     /// `SpendSpec` (which is the same for the burn), to be used as a cross-chain identifier.
     ///
-    /// @param authorizations   The byte-encoded spend authorization(s)
-    /// @param signature        The signature from the operator
-    function spend(bytes memory authorizations, bytes memory signature)
+    /// @param authorization   The byte-encoded spend authorization(s)
+    /// @param signature       The signature from the operator
+    function spend(bytes memory authorization, bytes memory signature)
         external
         whenNotPaused
         notDenylisted(msg.sender)
     {
-        _validateMintAuthorizationSignature(authorizations, signature);
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(authorizations);
+        _validateMintAuthorizationSignature(authorization, signature);
+        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(authorization);
 
         if (cursor.numAuths == 0) {
             revert MustHaveAtLeastOneMintAuthorization();
@@ -126,12 +126,12 @@ contract SpendMinter is SpendCommon {
         }
     }
 
-    /// @notice Validates the signature for a set of mint authorizations.
+    /// @notice Validates the signature for a (set of) mint authorization(s).
     /// @dev Recovers the signer from the signature and compares it to the `mintAuthorizationSigner`.
-    /// @param authorizations The byte-encoded mint authorization(s).
-    /// @param signature The signature from the operator over the `authorizations` hash.
-    function _validateMintAuthorizationSignature(bytes memory authorizations, bytes memory signature) internal view {
-        bytes32 authorizationsHash = keccak256(authorizations);
+    /// @param authorization The byte-encoded mint authorization(s).
+    /// @param signature The signature from the operator on the `authorization`.
+    function _validateMintAuthorizationSignature(bytes memory authorization, bytes memory signature) internal view {
+        bytes32 authorizationsHash = keccak256(authorization);
         address recoveredSigner = ECDSA.recover(authorizationsHash.toEthSignedMessageHash(), signature);
         if (recoveredSigner != mintAuthorizationSigner) {
             revert InvalidMintAuthorizationSigner();
