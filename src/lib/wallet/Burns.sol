@@ -58,23 +58,23 @@ contract Burns is SpendCommon, Balances, Delegation {
 
     /// Emitted when the operator burns tokens that have been spent on another domain
     ///
-    /// @param token               The token that was spent
-    /// @param depositor           The depositor who owned the spent balance
-    /// @param spendHash           The keccak256 hash of the `SpendSpec`
-    /// @param destinationDomain   The domain the spend was used on
-    /// @param recipient           The recipient of the funds at the destination
-    /// @param authorizer          The address that authorized the transfer
-    /// @param value               The value that was spent
-    /// @param fee                 The fee charged for the burn
-    /// @param fromSpendable       The value burnt from the `spendable` balance
-    /// @param fromWithdrawing     The value burnt from the `withdrawing` balance
+    /// @param token                  The token that was spent
+    /// @param depositor              The depositor who owned the spent balance
+    /// @param spendHash              The keccak256 hash of the `TransferSpec`
+    /// @param destinationDomain      The domain the spend was used on
+    /// @param destinationRecipient   The recipient of the funds at the destination
+    /// @param signer                 The address that authorized the transfer
+    /// @param value                  The value that was spent
+    /// @param fee                    The fee charged for the burn
+    /// @param fromSpendable          The value burnt from the `spendable` balance
+    /// @param fromWithdrawing        The value burnt from the `withdrawing` balance
     event BurnedSpent(
         address indexed token,
         address indexed depositor,
         bytes32 indexed spendHash,
         uint32 destinationDomain,
-        bytes32 recipient,
-        address authorizer,
+        bytes32 destinationRecipient,
+        address signer,
         uint256 value,
         uint256 fee,
         uint256 fromSpendable,
@@ -90,7 +90,7 @@ contract Burns is SpendCommon, Balances, Delegation {
     /// @dev See `lib/authorizations/BurnAuthorizations.sol` for encoding details
     ///
     /// @param authorizations    An array of byte-encoded burn authorizations
-    /// @param signatures        One signature from the authorizer of each burn authorization (set)
+    /// @param signatures        One signature for each burn authorization (set)
     /// @param fees              The fees to be collected for each burn. Fees for burns on other domains are ignored and
     ///                          may be passed as zero. Each fee must be no more than `maxFee` of the corresponding burn
     ///                          authorization.
@@ -119,27 +119,23 @@ contract Burns is SpendCommon, Balances, Delegation {
     /// Emitted when a spend authorization is used on the same chain as its source, resulting in a same-chain spend that
     /// transfers funds to the recipient instead of minting and burning them
     ///
-    /// @param token                The token that was spent
-    /// @param depositor            The depositor who owned the spent balance
-    /// @param spendHash            The keccak256 hash of the SpendSpec
-    /// @param recipient            The recipient of the funds
-    /// @param authorizer           The address that authorized the transfer
-    /// @param value                The value transferred to the recipient
-    /// @param fromSpendable        The value transferred from the `spendable`
-    ///                             balance
-    /// @param fromWithdrawing      The value transferred from the `withdrawing`
-    ///                             balance
-    /// @param spendAuthorization   The entire spend authorization that was used
+    /// @param token             The token that was spent
+    /// @param depositor         The depositor who owned the spent balance
+    /// @param spendHash         The keccak256 hash of the `TransferSpec`
+    /// @param recipient         The recipient of the funds
+    /// @param signer            The address that authorized the transfer
+    /// @param value             The value transferred to the recipient
+    /// @param fromSpendable     The value transferred from the `spendable` balance
+    /// @param fromWithdrawing   The value transferred from the `withdrawing` balance
     event TransferredSpent(
         address indexed token,
         address indexed depositor,
         bytes32 indexed spendHash,
         address recipient,
-        address authorizer,
+        address signer,
         uint256 value,
         uint256 fromSpendable,
-        uint256 fromWithdrawing,
-        bytes spendAuthorization
+        uint256 fromWithdrawing
     );
 
     /// @notice Transfers funds between accounts on the same chain after a spend authorization
@@ -151,37 +147,35 @@ contract Burns is SpendCommon, Balances, Delegation {
     /// @param depositor The owner of the funds in the wallet
     /// @param spendHash The keccak256 hash of the SpendSpec
     /// @param recipient The recipient of the transfer
-    /// @param authorizer The address that authorized the spend
+    /// @param signer The address that authorized the spend
     /// @param value The transfer amount
-    /// @param spendAuthorization The encoded SpendAuthorization or SpendAuthorizationSet
     function sameChainSpend(
         address token,
         address depositor,
         address recipient,
-        address authorizer,
+        address signer,
         uint256 value,
-        bytes32 spendHash,
-        bytes memory spendAuthorization
+        bytes32 spendHash
     )
         external
         whenNotPaused
         onlyCounterpart
         tokenSupported(token)
         notDenylisted(depositor)
-        notDenylisted(authorizer)
-        authorizedForBalance(token, depositor, authorizer)
+        notDenylisted(signer)
+        authorizedForBalance(token, depositor, signer)
     {
-        _sameChainSpend(token, depositor, recipient, authorizer, value, spendHash, spendAuthorization);
+        _sameChainSpend(token, depositor, recipient, signer, value, spendHash);
     }
 
+    /// Internal implementation of `sameChainSpend`
     function _sameChainSpend(
         address token,
         address depositor,
         address recipient,
-        address authorizer,
+        address signer,
         uint256 value,
-        bytes32 spendHash,
-        bytes memory spendAuthorization
+        bytes32 spendHash
     ) internal {
         (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value);
 
@@ -191,17 +185,7 @@ contract Burns is SpendCommon, Balances, Delegation {
 
         IERC20(token).safeTransfer(recipient, value);
 
-        emit TransferredSpent(
-            token,
-            depositor,
-            spendHash,
-            recipient,
-            authorizer,
-            value,
-            fromSpendable,
-            fromWithdrawing,
-            spendAuthorization
-        );
+        emit TransferredSpent(token, depositor, spendHash, recipient, signer, value, fromSpendable, fromWithdrawing);
     }
 
     /// Returns the byte encoding of a single burn authorization
@@ -336,17 +320,17 @@ contract Burns is SpendCommon, Balances, Delegation {
             revert MismatchedBurn();
         }
 
-        address authorizer = _recoverAuthorizationSigner(authorization, signature);
-        _processAuthorizationsAndBurn(cursor, authorizer, fees);
+        address signer = _recoverAuthorizationSigner(authorization, signature);
+        _processAuthorizationsAndBurn(cursor, signer, fees);
     }
 
     /**
      * @notice Iterates through a set of burn authorizations, validates and processes relevant ones.
      * @param cursor An initialized `AuthorizationCursor` pointing to the start of the authorization set.
-     * @param authorizer The address recovered from the signature covering the entire authorization set.
+     * @param signer The address recovered from the signature covering the entire authorization set.
      * @param fees An array containing the fee proposed for each individual authorization.
      */
-    function _processAuthorizationsAndBurn(AuthorizationCursor memory cursor, address authorizer, uint256[] memory fees)
+    function _processAuthorizationsAndBurn(AuthorizationCursor memory cursor, address signer, uint256[] memory fees)
         internal
     {
         address token;
@@ -363,7 +347,7 @@ contract Burns is SpendCommon, Balances, Delegation {
             bytes29 spec = auth.getTransferSpec();
 
             // Validate that everything about the burn authorization is as expected, and skip if it's not for this domain
-            bool relevant = _validateBurnAuthorization(auth, authorizer, fees[index], index);
+            bool relevant = _validateBurnAuthorization(auth, signer, fees[index], index);
             if (!relevant) {
                 continue;
             }
@@ -380,7 +364,7 @@ contract Burns is SpendCommon, Balances, Delegation {
 
             // Reduce the balance of the depositor(s) and add to the total fee and burn amount
             (uint256 deductedAmount, uint256 actualFeeCharged) =
-                _applySingleBurnAuthorization(spec, authorizer, fees[index]);
+                _applySingleBurnAuthorization(spec, signer, fees[index]);
             totalDeductedAmount += deductedAmount;
             totalFee += actualFeeCharged;
         }
@@ -402,14 +386,14 @@ contract Burns is SpendCommon, Balances, Delegation {
      *      domain and basic validity checks (e.g., non-zero value, expiry). It calculates the actual fee charged based
      *      on available balance after deducting the value.
      * @param spec The `TransferSpec` (`bytes29`) derived from the validated burn authorization.
-     * @param authorizer The address that signed the authorization set containing this spec.
+     * @param signer The address that signed the authorization set containing this spec.
      * @param fee The fee requested for this specific burn operation.
      * @return deductedAmount The total amount actually deducted from the depositor's balances (value + actualFeeCharged).
      *                        May be less than `value + fee` if the depositor had insufficient balance.
      * @return actualFeeCharged The fee amount actually charged and collected. May be less than `fee` if the depositor
      *                          had insufficient balance to cover the full value and fee.
      */
-    function _applySingleBurnAuthorization(bytes29 spec, address authorizer, uint256 fee)
+    function _applySingleBurnAuthorization(bytes29 spec, address signer, uint256 fee)
         internal
         returns (uint256 deductedAmount, uint256 actualFeeCharged)
     {
@@ -443,8 +427,8 @@ contract Burns is SpendCommon, Balances, Delegation {
             spec.getHash(),
             spec.getDestinationDomain(),
             spec.getDestinationRecipient(),
-            authorizer,
-            value,
+            signer,
+            deductedAmount - actualFeeCharged,
             actualFeeCharged,
             fromSpendable,
             fromWithdrawing
@@ -502,7 +486,7 @@ contract Burns is SpendCommon, Balances, Delegation {
      * @dev Checks include: non-zero value, source domain match, expiry block, fee limit, source contract address,
      *      token support, and signer delegation.
      * @param auth The `bytes29` encoded burn authorization to validate.
-     * @param authorizationSigner The address recovered from the signature covering the entire authorization set.
+     * @param signer The address recovered from the signature covering the entire authorization set.
      *                            This address must have been delegated authority for the specified balance.
      * @param fee The fee proposed for this specific burn authorization.
      * @param index The index of this authorization within the original array (used for detailed error messages).
@@ -510,7 +494,7 @@ contract Burns is SpendCommon, Balances, Delegation {
      *                  domain (`false`). If `false`, the authorization should be skipped for processing on this chain.
      *                  Further validation checks are skipped if the domain doesn't match.
      */
-    function _validateBurnAuthorization(bytes29 auth, address authorizationSigner, uint256 fee, uint32 index)
+    function _validateBurnAuthorization(bytes29 auth, address signer, uint256 fee, uint32 index)
         internal
         view
         returns (bool relevant)
@@ -562,13 +546,13 @@ contract Burns is SpendCommon, Balances, Delegation {
 
         // Ensure that the signer of the burn authorization matches what was provided in the TransferSpec
         address sourceSigner = _bytes32ToAddress(spec.getSourceSigner());
-        if (sourceSigner != authorizationSigner) {
-            revert InvalidAuthorizationSourceSignerAtIndex(index, sourceSigner, authorizationSigner);
+        if (sourceSigner != signer) {
+            revert InvalidAuthorizationSourceSignerAtIndex(index, sourceSigner, signer);
         }
 
         // Ensure that the signer of the burn authorization is authorized for the balance being burned
         address sourceDepositor = _bytes32ToAddress(spec.getSourceDepositor());
-        if (!_wasEverAuthorizedForBalance(sourceToken, sourceDepositor, authorizationSigner)) {
+        if (!_wasEverAuthorizedForBalance(sourceToken, sourceDepositor, signer)) {
             revert Delegation.NotAuthorized();
         }
 

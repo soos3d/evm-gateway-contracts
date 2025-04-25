@@ -825,7 +825,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         expectedParams.destinationDomain = auth.spec.destinationDomain;
         expectedParams.recipient = auth.spec.destinationRecipient;
         expectedParams.authorizer = underFundedDepositor;
-        expectedParams.value = auth.spec.value; // Requested value: $2500
+        expectedParams.value = depositorInitialBalance / 4; // fromSpendable - fee
         expectedParams.fee = 0; // Actual fee charged: $0 (waived)
         expectedParams.fromSpendable = depositorInitialBalance / 4; // Actual amount deducted from spendable: $1250
         expectedParams.fromWithdrawing = 0;
@@ -938,7 +938,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             destinationDomain: testData.auth1.spec.destinationDomain,
             recipient: testData.auth1.spec.destinationRecipient,
             authorizer: testData.depositorAddr,
-            value: testData.value1,
+            value: testData.value1, // fromSpendable - fee
             fee: testData.fee1,
             fromSpendable: testData.value1 + testData.fee1,
             fromWithdrawing: 0
@@ -957,7 +957,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             destinationDomain: testData.auth2.spec.destinationDomain,
             recipient: testData.auth2.spec.destinationRecipient,
             authorizer: testData.depositorAddr,
-            value: testData.value2, // Requested value $500
+            value: deductedForAuth2 - actualFeeAuth2, // fromSpendable - fee
             fee: actualFeeAuth2, // Actual fee $0
             fromSpendable: deductedForAuth2, // Amount actually deducted $399.80
             fromWithdrawing: 0
@@ -1040,9 +1040,9 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         expectedParams.destinationDomain = auth.spec.destinationDomain;
         expectedParams.recipient = auth.spec.destinationRecipient;
         expectedParams.authorizer = underFundedDepositor;
-        expectedParams.value = auth.spec.value; // Requested value: $1250
         expectedParams.fee = fee / 2; // Actual fee charged: $0.25 (half of fee)
         expectedParams.fromSpendable = depositorInitialBalance / 4 + fee / 2; // Actual amount deducted from spendable: $1250.25
+        expectedParams.value = expectedParams.fromSpendable - expectedParams.fee;
         expectedParams.fromWithdrawing = 0;
         _expectBurnEvent(expectedParams);
 
@@ -1174,7 +1174,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             destinationDomain: testData.auth2.spec.destinationDomain,
             recipient: testData.auth2.spec.destinationRecipient,
             authorizer: testData.depositorAddr,
-            value: testData.value2, // Requested value $199.50
+            value: deductedForAuth2 - actualFeeAuth2, // Requested value $199.50
             fee: actualFeeAuth2, // Actual fee $0.40
             fromSpendable: deductedForAuth2, // Amount actually deducted $199.90
             fromWithdrawing: 0
