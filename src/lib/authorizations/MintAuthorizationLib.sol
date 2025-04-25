@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
+import {AuthorizationCursor} from "./AuthorizationCursor.sol";
 import {
     MintAuthorization,
     MintAuthorizationSet,
@@ -31,8 +31,8 @@ import {
     MINT_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET,
     MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET
 } from "./MintAuthorizations.sol";
+import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
-import {AuthorizationCursor} from "./AuthorizationCursor.sol";
 
 /// @title MintAuthorizationLib
 /// @notice Library for encoding, validating, and iterating over MintAuthorization and MintAuthorizationSet structures.

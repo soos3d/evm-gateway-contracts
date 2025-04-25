@@ -17,11 +17,11 @@
  */
 pragma solidity ^0.8.28;
 
-import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
-import {SpendMinter} from "src/SpendMinter.sol";
-import {DeployUtils} from "test/util/DeployUtils.sol";
 import {Test} from "forge-std/Test.sol";
+import {SpendMinter} from "src/SpendMinter.sol";
+import {SpendWallet} from "src/SpendWallet.sol";
+import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
+import {DeployUtils} from "test/util/DeployUtils.sol";
 
 contract TestDeployUtils is Test, DeployUtils {
     address private owner = makeAddr("owner");

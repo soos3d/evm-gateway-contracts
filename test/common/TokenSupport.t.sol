@@ -17,9 +17,9 @@
  */
 pragma solidity ^0.8.28;
 
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Test} from "forge-std/Test.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract TokenSupportHarness is TokenSupport {
     function initialize(address owner) public initializer {

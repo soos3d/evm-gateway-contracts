@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
+import {AuthorizationCursor} from "./AuthorizationCursor.sol";
 import {
     BurnAuthorization,
     BurnAuthorizationSet,
@@ -32,8 +32,8 @@ import {
     BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET,
     BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET
 } from "./BurnAuthorizations.sol";
+import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
-import {AuthorizationCursor} from "./AuthorizationCursor.sol";
 
 /// @title BurnAuthorizationLib
 /// @notice Library for encoding, validating, and iterating over BurnAuthorization and BurnAuthorizationSet structures.

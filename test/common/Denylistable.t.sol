@@ -17,9 +17,9 @@
  */
 pragma solidity ^0.8.28;
 
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Test} from "forge-std/Test.sol";
 import {Denylistable} from "src/modules/common/Denylistable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract DenylistableHarness is Denylistable {
     function initialize(address owner) public initializer {

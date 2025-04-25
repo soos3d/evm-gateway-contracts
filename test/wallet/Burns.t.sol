@@ -17,22 +17,22 @@
  */
 pragma solidity ^0.8.28;
 
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
-import {Delegation} from "src/modules/wallet/Delegation.sol";
-import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
+import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {Burns} from "src/modules/wallet/Burns.sol";
-import {SpendHashes} from "src/modules/common/SpendHashes.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
-import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
-import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
+import {SpendHashes} from "src/modules/common/SpendHashes.sol";
+import {Burns} from "src/modules/wallet/Burns.sol";
+import {Delegation} from "src/modules/wallet/Delegation.sol";
+import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
+import {MasterMinter} from "./../mock_fiattoken/contracts/minting/MasterMinter.sol";
+import {FiatTokenV2_2} from "./../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 
 // solhint-disable max-states-count
 contract TestBurns is SignatureTestUtils, DeployUtils {

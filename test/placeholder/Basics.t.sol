@@ -19,8 +19,8 @@ pragma solidity ^0.8.28;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
-import {OwnershipTest} from "test/util/OwnershipTest.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
+import {OwnershipTest} from "test/util/OwnershipTest.sol";
 
 contract UpgradeablePlaceholderBasicsTest is OwnershipTest, DeployUtils {
     UpgradeablePlaceholder private placeholder;

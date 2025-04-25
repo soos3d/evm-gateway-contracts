@@ -17,18 +17,18 @@
  */
 pragma solidity ^0.8.28;
 
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {Test} from "forge-std/Test.sol";
 import {Counterpart} from "src/modules/common/Counterpart.sol";
-import {Delegation} from "src/modules/wallet/Delegation.sol";
 import {Denylistable} from "src/modules/common/Denylistable.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
+import {Delegation} from "src/modules/wallet/Delegation.sol";
+import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
-import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
-import {Test} from "forge-std/Test.sol";
+import {FiatTokenV2_2} from "./../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 
 contract TestSameChainSpend is Test, DeployUtils {
     using MessageHashUtils for bytes32;

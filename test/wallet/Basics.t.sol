@@ -17,14 +17,14 @@
  */
 pragma solidity ^0.8.28;
 
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {Burns} from "src/modules/wallet/Burns.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
-import {Burns} from "src/modules/wallet/Burns.sol";
-import {OwnershipTest} from "test/util/OwnershipTest.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
+import {OwnershipTest} from "test/util/OwnershipTest.sol";
 
 /// Tests ownership and initialization functionality of SpendMinter
 contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {

@@ -17,10 +17,10 @@
  */
 pragma solidity ^0.8.28;
 
-import {SpendCommon} from "src/SpendCommon.sol";
+import {Burns} from "src/modules/wallet/Burns.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
 import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
-import {Burns} from "src/modules/wallet/Burns.sol";
+import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 
 /// @title Spend Wallet
