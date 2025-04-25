@@ -17,6 +17,7 @@
     "no-empty-blocks": "off",
     "no-inline-assembly": "off",
     "one-contract-per-file": "off",
-    "func-name-mixedcase": "off"
+    "func-name-mixedcase": "off",
+    "duplicated-imports": "error"
   }
 }

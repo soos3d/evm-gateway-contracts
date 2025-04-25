@@ -22,7 +22,6 @@ import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
 import {Balances} from "src/modules/wallet/Balances.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
@@ -37,10 +36,10 @@ import {IBurnToken} from "src/interfaces/IBurnToken.sol";
 ///
 /// Manages burns for the SpendWallet contract
 contract Burns is SpendCommon, Balances, Delegation {
-    using MessageHashUtils for bytes32;
     using TransferSpecLib for bytes29;
     using BurnAuthorizationLib for bytes29;
     using BurnAuthorizationLib for AuthorizationCursor;
+    using MessageHashUtils for bytes32;
     using SafeERC20 for IERC20;
 
     /// Emitted when the operator burns tokens that have been spent on another domain
