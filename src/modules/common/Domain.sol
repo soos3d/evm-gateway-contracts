@@ -32,7 +32,7 @@ contract Domain is Initializable {
 
     /// Returns the current domain
     ///
-    /// @return The operator-issued identifier for the current chain
+    /// @return   The operator-issued identifier for the current chain
     function domain() public view returns (uint32) {
         return DomainStorage.get().domain;
     }
@@ -40,6 +40,7 @@ contract Domain is Initializable {
     /// Returns whether the given domain matches the current domain
     ///
     /// @param _domain   The domain identifier to check
+    /// @return          `true` if the given domain matches the current domain, `false` otherwise
     function _isCurrentDomain(uint32 _domain) internal view returns (bool) {
         return DomainStorage.get().domain == _domain;
     }
@@ -47,14 +48,14 @@ contract Domain is Initializable {
 
 /// Implements the EIP-7201 storage pattern for the Domain module
 library DomainStorage {
-    /// @custom:storage-location 7201:circle.spend.Domain
+    /// @custom:storage-location 7201:circle.gateway.Domain
     struct Data {
         /// An operator-issued identifier for the current chain (does not match the chainId)
         uint32 domain;
     }
 
-    /// keccak256(abi.encode(uint256(keccak256("circle.spend.Domain")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant SLOT = 0xb1f04e58cb6888af5b416b98ad47dac7866530383251193b3bfd00214c32ec00;
+    /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Domain"))) - 1)) & ~bytes32(uint256(0xff))`
+    bytes32 private constant SLOT = 0xfe4c86d7e89d95779292c8077b542f271e850fa895928d0b7b19a0ae50865c00;
 
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {

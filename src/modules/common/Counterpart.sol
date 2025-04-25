@@ -35,9 +35,9 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
 
     /// Sets the counterpart during initialization
     ///
-    /// @param counterpart   The counterpart address
-    function __Counterpart_init(address counterpart) internal onlyInitializing {
-        _setCounterpart(counterpart);
+    /// @param _counterpart   The counterpart address
+    function __Counterpart_init(address _counterpart) internal onlyInitializing {
+        _setCounterpart(_counterpart);
     }
 
     /// Restricts the caller to the `counterpart` role, reverting with an error for other callers
