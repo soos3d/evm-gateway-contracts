@@ -428,7 +428,7 @@ contract Burns is SpendCommon, Balances, Delegation {
             spec.getDestinationDomain(),
             spec.getDestinationRecipient(),
             signer,
-            value,
+            deductedAmount - actualFeeCharged,
             actualFeeCharged,
             fromSpendable,
             fromWithdrawing
