@@ -27,11 +27,12 @@ contract SpendHashes {
     /// @param spendHash   The spend hash that was used
     error SpendHashUsed(bytes32 spendHash);
 
-    /// Marks the given spend hash as used
+    /// Asserts that the given spend hash has not been used, reverting if it has, and marks it as used
     ///
-    /// @param spendHash   The spend hash to mark as used
-    function _markSpendHashAsUsed(bytes32 spendHash) internal {
-        SpendHashesStorage.get().usedSpendHashes[spendHash] = true;
+    /// @param spendHash    The spend hash to check and mark
+    function _checkAndMarkSpendHash(bytes32 spendHash) internal {
+        _ensureSpendHashNotUsed(spendHash);
+        _markSpendHashAsUsed(spendHash);
     }
 
     /// Reverts if the given spend hash has already been used
@@ -43,12 +44,11 @@ contract SpendHashes {
         }
     }
 
-    /// Asserts that the given spend hash has not been used, reverting if it has, and marks it as used
+    /// Marks the given spend hash as used
     ///
-    /// @param spendHash    The spend hash to check and mark
-    function _checkAndMarkSpendHash(bytes32 spendHash) internal {
-        _ensureSpendHashNotUsed(spendHash);
-        _markSpendHashAsUsed(spendHash);
+    /// @param spendHash   The spend hash to mark as used
+    function _markSpendHashAsUsed(bytes32 spendHash) internal {
+        SpendHashesStorage.get().usedSpendHashes[spendHash] = true;
     }
 }
 

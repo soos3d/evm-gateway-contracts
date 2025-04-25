@@ -21,19 +21,26 @@ import {TokenSupport} from "src/lib/common/TokenSupport.sol";
 import {WithdrawalDelay} from "src/lib/wallet/WithdrawalDelay.sol";
 import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
 
+/// The various balances that are tracked, used for the ERC-1155 balance functions
+enum BalanceType {
+    Total,
+    Spendable,
+    Withdrawing,
+    Withdrawable
+}
+
 /// @title Balances
 ///
 /// Manages balances for the SpendWallet contract
 contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
-    /// The various balances that are tracked, used for the ERC-1155 balance functions
-    enum BalanceType {
-        Total,
-        Spendable,
-        Withdrawing,
-        Withdrawable
-    }
-
+    /// Thrown during attempted withdrawals when there is no withdrawing balance to withdraw
     error NoWithdrawingBalance();
+
+    /// Thrown when the ERC-1155 `balanceOf` function is called with an invalid `BalanceType`
+    error InvalidBalanceType(uint96 balanceType);
+
+    /// Thrown when the ERC-1155 `balanceOfBatch` function is called with arrays of different lengths
+    error InputArrayLengthMismatch();
 
     /// The total balance of a depositor for a token. This will always be equal to the sum of `spendableBalance` and
     /// `withdrawingBalance`.
@@ -81,9 +88,6 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
         return balanceToWithdraw;
     }
 
-    /// Emitted when the ERC-1155 `balanceOf` function is called with an invalid `BalanceType`
-    error InvalidBalanceType(uint96 balanceType);
-
     /// The balance of a depositor for a particular balance specifier, compatible with ERC-1155
     ///
     /// @dev The token `id` should be encoded as `uint256(abi.encodePacked(uint12(BALANCE_TYPE), address(token)))`,
@@ -115,9 +119,6 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
             return withdrawableBalance(token, depositor);
         }
     }
-
-    /// Emitted when the ERC-1155 `balanceOfBatch` function is called with arrays of different lengths
-    error InputArrayLengthMismatch();
 
     /// The batch version of `balanceOf`, compatible with ERC-1155
     ///

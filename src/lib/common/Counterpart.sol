@@ -40,23 +40,17 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
         _setCounterpart(counterpart);
     }
 
-    /// Returns the counterpart address
-    function _counterpart() internal view returns (address) {
-        return CounterpartStorage.get().counterpart;
-    }
-
-    /// Sets the counterpart in storage and emits an event
-    ///
-    /// @param newCounterpart   The new counterpart contract address
-    function _setCounterpart(address newCounterpart) private {
-        CounterpartStorage.get().counterpart = newCounterpart;
-        emit CounterpartUpdated(newCounterpart);
-    }
-
     /// Restricts the caller to the `counterpart` role, reverting with an error for other callers
     modifier onlyCounterpart() {
         _ensureIsCounterpart(msg.sender);
         _;
+    }
+
+    /// Updates the counterpart (only callable by the owner)
+    ///
+    /// @param newCounterpart   The new counterpart contract address
+    function updateCounterpart(address newCounterpart) external onlyOwner {
+        _setCounterpart(newCounterpart);
     }
 
     /// Ensures that the given address is the counterpart contract
@@ -68,11 +62,17 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
         }
     }
 
-    /// Updates the counterpart (only callable by the owner)
+    /// Returns the counterpart address
+    function _counterpart() internal view returns (address) {
+        return CounterpartStorage.get().counterpart;
+    }
+
+    /// Sets the counterpart in storage and emits an event
     ///
     /// @param newCounterpart   The new counterpart contract address
-    function updateCounterpart(address newCounterpart) external onlyOwner {
-        _setCounterpart(newCounterpart);
+    function _setCounterpart(address newCounterpart) private {
+        CounterpartStorage.get().counterpart = newCounterpart;
+        emit CounterpartUpdated(newCounterpart);
     }
 }
 

@@ -49,33 +49,6 @@ contract Denylistable is Ownable2StepUpgradeable {
     /// @param addr   The unauthorized address
     error UnauthorizedDenylister(address addr);
 
-    /// Returns the address that has the denylister role, which can deny and un-deny addresses
-    function denylister() public view returns (address) {
-        return DenylistableStorage.get().denylister;
-    }
-
-    /// Whether or not a given address is denied from interacting with the contract
-    ///
-    /// @param addr   The address to check
-    function isDenylisted(address addr) public view returns (bool) {
-        return DenylistableStorage.get().denylistMapping[addr];
-    }
-
-    /// Sets the denylist status of an address
-    ///
-    /// @param addr       The address to set the denylist status for
-    /// @param denied   Whether or not the address should be denied
-    function _denylist(address addr, bool denied) internal {
-        DenylistableStorage.get().denylistMapping[addr] = denied;
-    }
-
-    /// Sets the address that is allowed to denylist and un-denylist addresses
-    ///
-    /// @param newDenylister   The new denylister address
-    function _setDenylister(address newDenylister) internal {
-        DenylistableStorage.get().denylister = newDenylister;
-    }
-
     /// Restricts access to a function to addresses that are not denylisted
     ///
     /// @param addr   The address to check
@@ -92,13 +65,16 @@ contract Denylistable is Ownable2StepUpgradeable {
         _;
     }
 
-    /// Reverts if the given address is denylisted
+    /// Whether or not a given address is denied from interacting with the contract
     ///
     /// @param addr   The address to check
-    function _ensureNotDenylisted(address addr) internal view {
-        if (isDenylisted(addr)) {
-            revert AccountDenylisted(addr);
-        }
+    function isDenylisted(address addr) public view returns (bool) {
+        return DenylistableStorage.get().denylistMapping[addr];
+    }
+
+    /// Returns the address that has the denylister role, which can deny and un-deny addresses
+    function denylister() public view returns (address) {
+        return DenylistableStorage.get().denylister;
     }
 
     /// Denylists an address from interacting with the contract
@@ -130,6 +106,30 @@ contract Denylistable is Ownable2StepUpgradeable {
         address oldDenylister = DenylistableStorage.get().denylister;
         _setDenylister(newDenylister);
         emit DenylisterChanged(oldDenylister, newDenylister);
+    }
+
+    /// Reverts if the given address is denylisted
+    ///
+    /// @param addr   The address to check
+    function _ensureNotDenylisted(address addr) internal view {
+        if (isDenylisted(addr)) {
+            revert AccountDenylisted(addr);
+        }
+    }
+
+    /// Sets the denylist status of an address
+    ///
+    /// @param addr       The address to set the denylist status for
+    /// @param denied   Whether or not the address should be denied
+    function _denylist(address addr, bool denied) internal {
+        DenylistableStorage.get().denylistMapping[addr] = denied;
+    }
+
+    /// Sets the address that is allowed to denylist and un-denylist addresses
+    ///
+    /// @param newDenylister   The new denylister address
+    function _setDenylister(address newDenylister) internal {
+        DenylistableStorage.get().denylister = newDenylister;
     }
 }
 

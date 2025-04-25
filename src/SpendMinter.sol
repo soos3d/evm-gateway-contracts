@@ -33,26 +33,10 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 /// chain. Spending requires a signed authorization from the operator. See the documentation for the SpendWallet
 /// contract for more details.
 contract SpendMinter is SpendCommon {
-    using MessageHashUtils for bytes32;
     using TransferSpecLib for bytes29;
     using MintAuthorizationLib for bytes29;
     using MintAuthorizationLib for AuthorizationCursor;
-
-    error InvalidMintAuthorizationSigner();
-    error MustHaveAtLeastOneMintAuthorization();
-    error AuthorizationValueMustBePositiveAtIndex(uint32 index);
-    error AuthorizationExpiredAtIndex(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
-    error InvalidAuthorizationDestinationDomainAtIndex(
-        uint32 index, uint32 expectedDestinationDomain, uint32 actualDomain
-    );
-    error InvalidAuthorizationDestinationContractAtIndex(uint32 index, address expectedDestinationContract);
-    error InvalidAuthorizationSourceContractAtIndex(
-        uint32 index, address sourceContract, address expectedSourceContract
-    );
-    error InvalidAuthorizationTokenAtIndex(uint32 index, address sourceToken, address destinationToken);
-    error InvalidAuthorizationDestinationCallerAtIndex(
-        uint32 index, address expectedDestinationCaller, address actualCaller
-    );
+    using MessageHashUtils for bytes32;
 
     /// Maps token addresses to their corresponding minter contract addresses.
     /// The token minter contracts must have permission to mint the associated token.
@@ -60,26 +44,6 @@ contract SpendMinter is SpendCommon {
 
     /// The address of the operator that can sign mint authorizations
     address public mintAuthorizationSigner;
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Initialization
-
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        // Ensure that the implementation contract cannot be initialized, only the proxy
-        _disableInitializers();
-    }
-
-    /// Initializes the contract with the counterpart wallet address
-    ///
-    /// @param wallet   The address of the wallet contract on the same chain
-    /// @param domain   The operator-issued identifier for this chain
-    function initialize(address wallet, uint32 domain) public reinitializer(2) {
-        __SpendCommon_init(wallet, domain);
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Spending
 
     /// Emitted when the a spend authorization is used
     ///
@@ -99,6 +63,54 @@ contract SpendMinter is SpendCommon {
         bytes32 sourceSigner,
         uint256 value
     );
+
+    /// Emitted when the mint authority is updated for a token
+    ///
+    /// @param token              The token whose mint authority was updated
+    /// @param oldMintAuthority   The previous mint authority address
+    /// @param newMintAuthority   The new mint authority address
+    event MintAuthorityUpdated(address token, address oldMintAuthority, address newMintAuthority);
+
+    /// Emitted when the mintAuthorizationSigner role is updated
+    ///
+    /// @param oldMintAuthorizationSigner   The previous mint authorization signer address
+    /// @param newMintAuthorizationSigner   The new mint authorization signer address
+    event MintAuthorizationSignerUpdated(address oldMintAuthorizationSigner, address newMintAuthorizationSigner);
+
+    error InvalidMintAuthorizationSigner();
+    error MustHaveAtLeastOneMintAuthorization();
+    error AuthorizationValueMustBePositiveAtIndex(uint32 index);
+    error AuthorizationExpiredAtIndex(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
+    error InvalidAuthorizationDestinationDomainAtIndex(
+        uint32 index, uint32 expectedDestinationDomain, uint32 actualDomain
+    );
+    error InvalidAuthorizationDestinationContractAtIndex(uint32 index, address expectedDestinationContract);
+    error InvalidAuthorizationSourceContractAtIndex(
+        uint32 index, address sourceContract, address expectedSourceContract
+    );
+    error InvalidAuthorizationTokenAtIndex(uint32 index, address sourceToken, address destinationToken);
+    error InvalidAuthorizationDestinationCallerAtIndex(
+        uint32 index, address expectedDestinationCaller, address actualCaller
+    );
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        // Ensure that the implementation contract cannot be initialized, only the proxy
+        _disableInitializers();
+    }
+
+    /// Initializes the contract with the counterpart wallet address
+    ///
+    /// @param wallet   The address of the wallet contract on the same chain
+    /// @param domain   The operator-issued identifier for this chain
+    function initialize(address wallet, uint32 domain) external reinitializer(2) {
+        __SpendCommon_init(wallet, domain);
+    }
+
+    /// The address of the corresponding wallet contract on the same domain
+    function walletContract() external view returns (SpendWallet) {
+        return SpendWallet(_counterpart());
+    }
 
     /// Spend funds via a signed spend authorization from the operator. Accepts either a single encoded
     /// `SpendAuthorization` or an encoded set of them. Emits an event containing the keccak256 hash of the encoded
@@ -198,12 +210,14 @@ contract SpendMinter is SpendCommon {
     function _spend(bytes29 spec) internal {
         bytes32 specHash = spec.getHash();
         _checkAndMarkSpendHash(specHash);
+
         address recipient = _bytes32ToAddress(spec.getDestinationRecipient());
         uint256 value = spec.getValue();
         address token = _bytes32ToAddress(spec.getDestinationToken());
         uint32 sourceDomain = spec.getSourceDomain();
         bytes32 depositorBytes = spec.getSourceDepositor();
         bytes32 signerBytes = spec.getSourceSigner();
+
         if (sourceDomain == domain()) {
             address sourceSigner = _bytes32ToAddress(signerBytes);
             SpendWallet(_counterpart()).sameChainSpend(
@@ -214,15 +228,9 @@ contract SpendMinter is SpendCommon {
             address minter = (mintAuthority == address(0)) ? token : mintAuthority;
             IMintToken(minter).mint(recipient, value);
         }
+
         emit Spent(token, recipient, specHash, sourceDomain, depositorBytes, signerBytes, value);
     }
-
-    /// Emitted when the mint authority is updated for a token
-    ///
-    /// @param token              The token whose mint authority was updated
-    /// @param oldMintAuthority   The previous mint authority address
-    /// @param newMintAuthority   The new mint authority address
-    event MintAuthorityUpdated(address token, address oldMintAuthority, address newMintAuthority);
 
     /// Updates the mint authority for a token.
     ///
@@ -238,12 +246,6 @@ contract SpendMinter is SpendCommon {
         emit MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
     }
 
-    /// Emitted when the mintAuthorizationSigner role is updated
-    ///
-    /// @param oldMintAuthorizationSigner   The previous mint authorization signer address
-    /// @param newMintAuthorizationSigner   The new mint authorization signer address
-    event MintAuthorizationSignerUpdated(address oldMintAuthorizationSigner, address newMintAuthorizationSigner);
-
     /// Sets the operator address that may sign mint authorizations
     ///
     /// @dev May only be called by the `owner` role
@@ -255,12 +257,5 @@ contract SpendMinter is SpendCommon {
         address oldMintAuthorizationSigner = mintAuthorizationSigner;
         mintAuthorizationSigner = newMintAuthorizationSigner;
         emit MintAuthorizationSignerUpdated(oldMintAuthorizationSigner, newMintAuthorizationSigner);
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Informational
-
-    function walletContract() external view returns (SpendWallet) {
-        return SpendWallet(_counterpart());
     }
 }

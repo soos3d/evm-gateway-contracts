@@ -31,11 +31,6 @@ contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepU
     /// @param owner   The address of the owner
     error ContractOwnerNotAllowed(address owner);
 
-    /// Implements the UUPS upgrade pattern by restricting upgrades to the owner
-    ///
-    /// @param newImplementation   The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -44,7 +39,7 @@ contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepU
     /// Initializes the contract with the given owner address
     ///
     /// @param newOwner   The address of the new owner
-    function initialize(address newOwner) public initializer {
+    function initialize(address newOwner) external initializer {
         if (newOwner == address(0)) {
             revert NullOwnerNotAllowed();
         }
@@ -57,4 +52,9 @@ contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepU
         __Ownable_init(newOwner);
         __Ownable2Step_init();
     }
+
+    /// Implements the UUPS upgrade pattern by restricting upgrades to the owner
+    ///
+    /// @param newImplementation   The address of the new implementation
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
