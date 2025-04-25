@@ -23,12 +23,12 @@ import {Balances} from "src/modules/wallet/Balances.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
 import {WithdrawalDelay} from "src/modules/wallet/WithdrawalDelay.sol";
 import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-/// Tests withdrawal functionality of SpendWallet
-contract SpendWalletWithdrawalTest is Test, DeployUtils {
+/// Tests withdrawal functionality of GatewayWallet
+contract GatewayWalletWithdrawalTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private depositor = makeAddr("depositor");
     address private delegate = makeAddr("delegate");
@@ -36,7 +36,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     uint256 private initialUsdcBalance = 1000 * 10 ** 6;
     uint256 private initialWithdrawalDelay = 100;
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
 
     enum WithdrawalType {
         Direct,

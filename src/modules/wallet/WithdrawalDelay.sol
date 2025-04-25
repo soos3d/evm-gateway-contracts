@@ -21,7 +21,7 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 
 /// @title WithdrawalDelay
 ///
-/// Manages the delay between initiating and completing withdrawals for the SpendWallet contract.
+/// Manages the delay between initiating and completing withdrawals for the GatewayWallet contract.
 contract WithdrawalDelay is Ownable2StepUpgradeable {
     /// Emitted when the withdrawal delay is updated
     ///

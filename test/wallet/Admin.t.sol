@@ -20,15 +20,15 @@ pragma solidity ^0.8.29;
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Test} from "forge-std/Test.sol";
 import {WithdrawalDelay} from "src/modules/wallet/WithdrawalDelay.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-/// Tests admin functionality of SpendWallet
-contract SpendWalletAdminTest is Test, DeployUtils {
+/// Tests admin functionality of GatewayWallet
+contract GatewayWalletAdminTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private nonOwner = makeAddr("nonOwner");
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
 
     function setUp() public {
         wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);

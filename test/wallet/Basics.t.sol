@@ -21,16 +21,16 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {OwnershipTest} from "test/util/OwnershipTest.sol";
 
 /// Tests ownership and initialization functionality of SpendMinter
-contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
+contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
     uint32 private domain = 99;
 
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
 
     /// Used by OwnershipTest
     function _subject() internal view override returns (address) {

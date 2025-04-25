@@ -25,7 +25,7 @@ import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {_checkNotZeroAddress, _bytes32ToAddress} from "src/lib/util/addresses.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 
 /// @title Mints
 ///
@@ -233,7 +233,7 @@ contract Mints is SpendCommon {
 
         if (sourceDomain == domain()) {
             address sourceSigner = _bytes32ToAddress(signerBytes);
-            SpendWallet(_counterpart()).sameChainSpend(
+            GatewayWallet(_counterpart()).sameChainSpend(
                 token, _bytes32ToAddress(depositorBytes), recipient, sourceSigner, value, specHash
             );
         } else {

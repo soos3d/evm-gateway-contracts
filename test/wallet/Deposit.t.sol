@@ -20,12 +20,12 @@ pragma solidity ^0.8.29;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-/// Tests basic deposit functionality of SpendWallet
-contract SpendWalletDepositTest is Test, DeployUtils {
+/// Tests basic deposit functionality of GatewayWallet
+contract GatewayWalletDepositTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     uint256 private depositorPrivateKey;
     address private depositor;
@@ -36,7 +36,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
     // Revert error strings
     string private constant ERC20_TRANSFER_AMOUNT_EXCEEDS_ALLOWANCE = "ERC20: transfer amount exceeds allowance";
 
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
 
     function setUp() public {
         (depositor, depositorPrivateKey) = makeAddrAndKey("spendWalletDepositor");

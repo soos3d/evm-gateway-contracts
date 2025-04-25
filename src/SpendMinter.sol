@@ -19,12 +19,12 @@ pragma solidity ^0.8.29;
 
 import {Mints} from "src/modules/minter/Mints.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 
 /// @title Spend Minter
 ///
-/// This contract allows the spending of funds from the SpendWallet contract, either on the same chain or on a different
-/// chain. Spending requires a signed authorization from the operator. See the documentation for the SpendWallet
+/// This contract allows the spending of funds from the GatewayWallet contract, either on the same chain or on a different
+/// chain. Spending requires a signed authorization from the operator. See the documentation for the GatewayWallet
 /// contract for more details.
 contract SpendMinter is SpendCommon, Mints {
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -42,7 +42,7 @@ contract SpendMinter is SpendCommon, Mints {
     }
 
     /// The address of the corresponding wallet contract on the same domain
-    function walletContract() external view returns (SpendWallet) {
-        return SpendWallet(_counterpart());
+    function walletContract() external view returns (GatewayWallet) {
+        return GatewayWallet(_counterpart());
     }
 }

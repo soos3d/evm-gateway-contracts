@@ -21,18 +21,18 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Balances, BalanceType} from "src/modules/wallet/Balances.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-contract SpendWalletBalanceTest is Test, DeployUtils {
+contract GatewayWalletBalanceTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private depositor = makeAddr("depositor");
     address private usdc;
 
     uint256 private initialUsdcBalance = 1000 * 10 ** 6;
     uint256 private initialWithdrawalDelay = 100;
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
 
     function setUp() public {
         wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);

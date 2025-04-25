@@ -27,7 +27,7 @@ import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {SpendHashes} from "src/modules/common/SpendHashes.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
@@ -87,7 +87,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     BurnAuthorization private baseAuth;
 
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
 
     function setUp() public {
         domain = ForkTestUtils.forkVars().domain;

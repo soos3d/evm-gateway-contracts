@@ -37,7 +37,7 @@ enum AuthorizationStatus {
 
 /// @title Delegation
 ///
-/// Manages delegation for the SpendWallet contract
+/// Manages delegation for the GatewayWallet contract
 contract Delegation is Pausing, Denylistable, TokenSupport {
     /// Emitted when a delegate is authorized for a depositor's balance
     ///

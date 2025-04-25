@@ -25,7 +25,7 @@ import {Denylistable} from "src/modules/common/Denylistable.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {FiatTokenV2_2} from "./../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
@@ -33,7 +33,7 @@ import {FiatTokenV2_2} from "./../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol"
 contract TestSameChainSpend is Test, DeployUtils {
     using MessageHashUtils for bytes32;
 
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
     address private owner = makeAddr("owner");
     address private denylister = makeAddr("denylister");
     address private pauser = makeAddr("pauser");

@@ -23,16 +23,16 @@ import {Denylistable} from "src/modules/common/Denylistable.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-/// Tests Spend Authorization functionality of SpendWallet
+/// Tests Spend Authorization functionality of GatewayWallet
 contract SpendAuthorizationTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private usdc = makeAddr("usdc");
 
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
 
     function setUp() public {
         wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);

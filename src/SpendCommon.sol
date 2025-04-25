@@ -29,7 +29,7 @@ import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 
 /// @title SpendCommon
 ///
-/// This contract contains functionality that is common between `SpendWallet` and `SpendMinter`.
+/// This contract contains functionality that is common between `GatewayWallet` and `SpendMinter`.
 contract SpendCommon is
     Initializable,
     UUPSUpgradeable,
@@ -58,7 +58,7 @@ contract SpendCommon is
     /// Initializes the contract, setting the counterpart to the given address, the pauser to the owner initially,
     /// and the domain to the given domain
     ///
-    /// @param counterpart   The address of the counterpart contract (either `SpendWallet` or `SpendMinter`)
+    /// @param counterpart   The address of the counterpart contract (either `GatewayWallet` or `SpendMinter`)
     /// @param domain   The operator-issued identifier for this chain
     function __SpendCommon_init(address counterpart, uint32 domain) internal onlyInitializing {
         __Pausing_init(owner());

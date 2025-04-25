@@ -20,24 +20,24 @@ pragma solidity ^0.8.29;
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CommonBase} from "forge-std/Base.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
 
 /// Helpers for deploying the contracts during tests
 abstract contract DeployUtils is CommonBase {
-    function deploy(address owner, uint32 domain) public returns (SpendWallet, SpendMinter) {
+    function deploy(address owner, uint32 domain) public returns (GatewayWallet, SpendMinter) {
         // Deploy both placeholders
         UpgradeablePlaceholder walletProxy = deployPlaceholder(owner);
         UpgradeablePlaceholder minterProxy = deployPlaceholder(owner);
 
         // Deploy both implementation contracts
-        SpendWallet walletImpl = new SpendWallet();
+        GatewayWallet walletImpl = new GatewayWallet();
         SpendMinter minterImpl = new SpendMinter();
 
         // Upgrade both placeholders and tell them about each other
         vm.prank(owner);
         walletProxy.upgradeToAndCall(
-            address(walletImpl), abi.encodeCall(SpendWallet.initialize, (address(minterProxy), domain))
+            address(walletImpl), abi.encodeCall(GatewayWallet.initialize, (address(minterProxy), domain))
         );
         vm.prank(owner);
         minterProxy.upgradeToAndCall(
@@ -46,17 +46,17 @@ abstract contract DeployUtils is CommonBase {
         vm.stopPrank();
 
         // Return the upgraded proxies
-        SpendWallet wallet = SpendWallet(address(walletProxy));
+        GatewayWallet wallet = GatewayWallet(address(walletProxy));
         SpendMinter minter = SpendMinter(address(minterProxy));
         return (wallet, minter);
     }
 
-    function deployWalletOnly(address owner, uint32 domain) public returns (SpendWallet) {
+    function deployWalletOnly(address owner, uint32 domain) public returns (GatewayWallet) {
         UpgradeablePlaceholder walletProxy = deployPlaceholder(owner);
-        SpendWallet walletImpl = new SpendWallet();
+        GatewayWallet walletImpl = new GatewayWallet();
         vm.prank(owner);
-        walletProxy.upgradeToAndCall(address(walletImpl), abi.encodeCall(SpendWallet.initialize, (address(0), domain)));
-        return SpendWallet(address(walletProxy));
+        walletProxy.upgradeToAndCall(address(walletImpl), abi.encodeCall(GatewayWallet.initialize, (address(0), domain)));
+        return GatewayWallet(address(walletProxy));
     }
 
     function deployMinterOnly(address owner, uint32 domain) public returns (SpendMinter) {

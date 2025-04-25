@@ -47,9 +47,9 @@ contract MockMintableToken is ERC20 {
     }
 }
 
-/// @notice Mock implementation of SpendWallet for testing mints
+/// @notice Mock implementation of GatewayWallet for testing mints
 /// @dev Implements minimal sameChainSpend functionality needed for tests
-contract MockSpendWallet {
+contract MockGatewayWallet {
     function sameChainSpend(
         address token,
         address depositor,
@@ -89,13 +89,13 @@ contract TestMints is Test, DeployUtils {
     MintAuthorization private sameChainBaseAuth;
 
     SpendMinter private minter;
-    MockSpendWallet private wallet;
+    MockGatewayWallet private wallet;
 
     function setUp() public {
         domain = ForkTestUtils.forkVars().domain;
         usdc = FiatTokenV2_2(ForkTestUtils.forkVars().usdc);
         minter = deployMinterOnly(owner, domain);
-        wallet = new MockSpendWallet();
+        wallet = new MockGatewayWallet();
         mockToken = new MockMintableToken();
 
         (mintAuthorizationSigner, mintAuthorizationSignerKey) = makeAddrAndKey("mintAuthorizationSigner");

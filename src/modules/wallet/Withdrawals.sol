@@ -27,7 +27,7 @@ import {WithdrawalDelay} from "src/modules/wallet/WithdrawalDelay.sol";
 
 /// @title Withdrawals
 ///
-/// Manages withdrawals for the SpendWallet contract
+/// Manages withdrawals for the GatewayWallet contract
 contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delegation {
     using SafeERC20 for IERC20;
 

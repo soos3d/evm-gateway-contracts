@@ -21,14 +21,14 @@ import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Pau
 import {Denylistable} from "src/modules/common/Denylistable.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {MockERC1271Wallet} from "test/mock_fiattoken/contracts/test/MockERC1271Wallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 
-/// Tests EIP-2612 permit deposit functionality of SpendWallet
-contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
+/// Tests EIP-2612 permit deposit functionality of GatewayWallet
+contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
     address private owner = makeAddr("owner");
     uint256 private depositorPrivateKey;
     address private depositor;
@@ -49,7 +49,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
     string private constant ECRECOVER_INVALID_SIGNATURE = "ECRecover: invalid signature";
     string private constant FIATTOKENV2_PERMIT_EXPIRED = "FiatTokenV2: permit is expired";
 
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
     MockERC1271Wallet private depositorWallet;
 
     function setUp() public {

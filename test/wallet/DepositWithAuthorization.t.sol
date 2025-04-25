@@ -22,14 +22,14 @@ import {IERC3009} from "src/interfaces/IERC3009.sol";
 import {Denylistable} from "src/modules/common/Denylistable.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {MockERC1271Wallet} from "test/mock_fiattoken/contracts/test/MockERC1271Wallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 
-/// Tests ERC-3009 authorization deposit functionality of SpendWallet
-contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
+/// Tests ERC-3009 authorization deposit functionality of GatewayWallet
+contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
     address private owner = makeAddr("owner");
     uint256 private depositorPrivateKey;
     address private depositor;
@@ -58,7 +58,7 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
     string private constant FIATTOKENV2_AUTHORIZATION_IS_EXPIRED = "FiatTokenV2: authorization is expired";
     string private constant FIATTOKENV2_AUTHORIZATION_IS_NOT_YET_VALID = "FiatTokenV2: authorization is not yet valid";
 
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
     MockERC1271Wallet private depositorWallet;
 
     function setUp() public {

@@ -22,7 +22,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 
 /// @title Counterpart
 ///
-/// Manages pairs of contracts that each need to know the address of the other, namely the `SpendWallet` and
+/// Manages pairs of contracts that each need to know the address of the other, namely the `GatewayWallet` and
 /// `SpendMinter` contracts.
 contract Counterpart is Initializable, Ownable2StepUpgradeable {
     /// Emitted when the counterpart is updated

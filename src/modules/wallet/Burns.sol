@@ -34,7 +34,7 @@ import {SpendCommon} from "src/SpendCommon.sol";
 
 /// @title Burns
 ///
-/// Manages burns for the SpendWallet contract
+/// Manages burns for the GatewayWallet contract
 contract Burns is SpendCommon, Balances, Delegation {
     using TransferSpecLib for bytes29;
     using BurnAuthorizationLib for bytes29;

@@ -23,7 +23,7 @@ import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 
-/// @title Spend Wallet
+/// @title Gateway Wallet
 ///
 /// This contract allows users to deposit supported tokens. Once deposits are observed in a finalized block by the API,
 /// the user may request an authorization to instantly spend those funds on another chain. Spent funds are then burnt on
@@ -50,7 +50,7 @@ import {SpendMinter} from "src/SpendMinter.sol";
 /// the process of being withdrawn will no longer be spendable as soon as the withdrawal initiation is observed by the
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
 /// `spendable` and `withdrawing` balances.
-contract SpendWallet is SpendCommon, Deposits, Withdrawals, Burns {
+contract GatewayWallet is SpendCommon, Deposits, Withdrawals, Burns {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         // Ensure that the implementation contract cannot be initialized, only the proxy
