@@ -469,16 +469,16 @@ contract Burns is SpendCommon, Balances, Delegation {
 
     /**
      * @notice Recovers the signer address from an ECDSA signature over the EIP-712 hash of authorization bytes.
-     * @param authorizations The byte array representing the set of authorizations that were signed.
+     * @param authorization The bytes representing the authorization (set) that was signed.
      * @param signature The 65-byte ECDSA signature (r, s, v).
      * @return address The address recovered from the signature. Returns address(0) if the signature is invalid.
      */
-    function _recoverAuthorizationSigner(bytes memory authorizations, bytes memory signature)
+    function _recoverAuthorizationSigner(bytes memory authorization, bytes memory signature)
         internal
         pure
         returns (address)
     {
-        return ECDSA.recover(keccak256(authorizations).toEthSignedMessageHash(), signature);
+        return ECDSA.recover(keccak256(authorization).toEthSignedMessageHash(), signature);
     }
 
     /**

@@ -170,11 +170,11 @@ contract TestMints is Test, DeployUtils {
         });
     }
 
-    function _callSpendSignedBy(bytes memory authorizations, uint256 signerKey) internal {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, keccak256(authorizations).toEthSignedMessageHash());
+    function _callSpendSignedBy(bytes memory authorization, uint256 signerKey) internal {
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, keccak256(authorization).toEthSignedMessageHash());
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        minter.spend(authorizations, signature);
+        minter.spend(authorization, signature);
     }
 
     // ===== Entry Checks / Modifier Tests =====
