@@ -4,6 +4,7 @@
   "scripts": {
     "test": "forge test",
     "test:all": "./scripts/test_all_forks.sh",
+    "test:gas": "FORGE_GAS_REPORT=true forge test",
     "format": "forge fmt --check",
     "format:fix": "forge fmt",
     "lint": "solhint --disc -c .solhint-src.json './src/**/*.sol' && solhint --disc -c .solhint-test.json './test/**/*.sol'",

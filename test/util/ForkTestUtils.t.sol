@@ -31,7 +31,14 @@ contract TestForkTestUtils is Test {
         vm.skip(block.chainid != ForkTestUtils.LOCAL_CHAIN_ID);
         vm.chainId(ForkTestUtils.LOCAL_CHAIN_ID);
         ForkTestUtils.ForkVars memory vars = ForkTestUtils.forkVars();
-        assertEq(vars.usdc, 0x63f58053c9499E1104a6f6c6d2581d6D83067EEB);
+
+        // Gas reports affect the deployment address of FiatTokenV2_2 for some reason, so detect this and assert the
+        // correct address. Must use this environment variable to run gas reports, not --gas-report (`yarn test:gas`)
+        if (vm.envOr("FORGE_GAS_REPORT", false)) {
+            assertEq(vars.usdc, 0xB9816fC57977D5A786E654c7CF76767be63b966e);
+        } else {
+            assertEq(vars.usdc, 0x63f58053c9499E1104a6f6c6d2581d6D83067EEB);
+        }
     }
 
     function test_forkVars_unknown() external {
