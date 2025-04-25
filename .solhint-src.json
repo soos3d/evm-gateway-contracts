@@ -18,6 +18,7 @@
     "no-inline-assembly": "off",
     "one-contract-per-file": "off",
     "func-name-mixedcase": "off",
-    "duplicated-imports": "error"
+    "duplicated-imports": "error",
+    "private-vars-leading-underscore": "error"
   }
 }
