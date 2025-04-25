@@ -17,22 +17,24 @@
  */
 pragma solidity ^0.8.29;
 
+/// @title ERC-3009: Transfer With Authorization
+///
+/// A partial interface from ERC-3009 used by `GatewayWallet` and its tests
 interface IERC3009 {
-    /**
-     * @notice Receive a transfer with a signed authorization from the payer
-     * @dev This has an additional check to ensure that the payee's address matches
-     * the caller of this function to prevent front-running attacks. (See security
-     * considerations)
-     * @param from          Payer's address (Authorizer)
-     * @param to            Payee's address
-     * @param value         Amount to be transferred
-     * @param validAfter    The time after which this is valid (unix time)
-     * @param validBefore   The time before which this is valid (unix time)
-     * @param nonce         Unique nonce
-     * @param v             v of the signature
-     * @param r             r of the signature
-     * @param s             s of the signature
-     */
+    /// Receive a transfer with a signed authorization from the payer
+    ///
+    /// @dev This has an additional check to ensure that the payee's address matches the caller of this function to
+    ///      prevent front-running attacks. (See security considerations)
+    ///
+    /// @param from          Payer's address (Authorizer)
+    /// @param to            Payee's address
+    /// @param value         Amount to be transferred
+    /// @param validAfter    The time after which this is valid (unix time)
+    /// @param validBefore   The time before which this is valid (unix time)
+    /// @param nonce         Unique nonce
+    /// @param v             v of the signature
+    /// @param r             r of the signature
+    /// @param s             s of the signature
     function receiveWithAuthorization(
         address from,
         address to,
@@ -45,13 +47,12 @@ interface IERC3009 {
         bytes32 s
     ) external;
 
-    /**
-     * @notice Attempt to cancel an authorization
-     * @param authorizer    Authorizer's address
-     * @param nonce         Nonce of the authorization
-     * @param v             v of the signature
-     * @param r             r of the signature
-     * @param s             s of the signature
-     */
+    /// Attempt to cancel an authorization
+    ///
+    /// @param authorizer   Authorizer's address
+    /// @param nonce        Nonce of the authorization
+    /// @param v            v of the signature
+    /// @param r            r of the signature
+    /// @param s            s of the signature
     function cancelAuthorization(address authorizer, bytes32 nonce, uint8 v, bytes32 r, bytes32 s) external;
 }

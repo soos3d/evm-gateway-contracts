@@ -17,7 +17,18 @@
  */
 pragma solidity ^0.8.29;
 
-/// @title ERC-7597 Permit Extension for Smart Contract Accounts
+/// @title ERC-7597: Permit Extension for Smart Contract Accounts
+///
+/// Extends EIP-2612 to support contract wallets by using `bytes` rather than `v`, `r`, and `s` for the signature
 interface IERC7597 {
+    /// Verify a signed approval permit and execute if valid
+    ///
+    /// @dev EOA wallet signatures should be packed in the order of r, s, v.
+    ///
+    /// @param owner       Token owner's address (Authorizer)
+    /// @param spender     Spender's address
+    /// @param value       Amount of allowance
+    /// @param deadline    The time at which the signature expires (unix time), or max uint256 value to signal no expiration
+    /// @param signature   Signature byte array signed by an EOA wallet or a contract wallet
     function permit(address owner, address spender, uint256 value, uint256 deadline, bytes memory signature) external;
 }

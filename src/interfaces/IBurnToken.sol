@@ -17,7 +17,15 @@
  */
 pragma solidity ^0.8.29;
 
-/// Used to interact with a token that allows burning
+/// @title IBurnToken
+///
+/// Used interact with a token that supports burning
 interface IBurnToken {
-    function burn(uint256 amount) external;
+    /// Allows a minter to burn some of its own tokens
+    ///
+    /// @dev The caller must be a minter, must not be blacklisted, and the amount to burn should be less than or equal
+    ///      to the account's balance.
+    ///
+    /// @param _amount   The amount of tokens to be burned
+    function burn(uint256 _amount) external;
 }
