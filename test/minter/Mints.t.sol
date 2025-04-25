@@ -72,6 +72,7 @@ contract TestMints is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private mintAuthorizationSigner;
     uint256 private mintAuthorizationSignerKey;
+    address private sourceSigner = makeAddr("sourceSigner");
     address private sourceContract = makeAddr("sourceContract");
     address private sourceToken = makeAddr("sourceToken");
     address private destinationToken = makeAddr("destinationToken");
@@ -140,7 +141,7 @@ contract TestMints is Test, DeployUtils {
                 destinationToken: _addressToBytes32(address(usdc)),
                 sourceDepositor: _addressToBytes32(depositor),
                 destinationRecipient: _addressToBytes32(recipient),
-                sourceSigner: _addressToBytes32(mintAuthorizationSigner),
+                sourceSigner: _addressToBytes32(sourceSigner),
                 destinationCaller: bytes32(0),
                 value: spendValue,
                 nonce: keccak256("nonceCrossChain"),
@@ -160,7 +161,7 @@ contract TestMints is Test, DeployUtils {
                 destinationToken: _addressToBytes32(address(usdc)),
                 sourceDepositor: _addressToBytes32(depositor),
                 destinationRecipient: _addressToBytes32(recipient),
-                sourceSigner: _addressToBytes32(mintAuthorizationSigner),
+                sourceSigner: _addressToBytes32(sourceSigner),
                 destinationCaller: bytes32(0),
                 value: spendValue,
                 nonce: keccak256("nonceSameChain"),
@@ -563,7 +564,7 @@ contract TestMints is Test, DeployUtils {
             specHash,
             authorization.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             spendValue
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -589,7 +590,7 @@ contract TestMints is Test, DeployUtils {
             specHash,
             auth.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             spendValue
         );
 
@@ -617,7 +618,7 @@ contract TestMints is Test, DeployUtils {
             specHash,
             auth.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             spendValue
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -648,7 +649,7 @@ contract TestMints is Test, DeployUtils {
             specHash1,
             auth1.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth1.spec.value
         );
         vm.expectEmit(true, true, true, true);
@@ -658,7 +659,7 @@ contract TestMints is Test, DeployUtils {
             specHash2,
             auth2.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth2.spec.value
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -695,7 +696,7 @@ contract TestMints is Test, DeployUtils {
             specHash1,
             auth1.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth1.spec.value
         );
 
@@ -706,7 +707,7 @@ contract TestMints is Test, DeployUtils {
             specHash2,
             auth2.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth2.spec.value
         );
 
@@ -744,7 +745,7 @@ contract TestMints is Test, DeployUtils {
             specHash1,
             auth1.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth1.spec.value
         );
         vm.expectEmit(true, true, true, true);
@@ -754,7 +755,7 @@ contract TestMints is Test, DeployUtils {
             specHash2,
             auth2.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth2.spec.value
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -793,7 +794,7 @@ contract TestMints is Test, DeployUtils {
             specHash1,
             auth1.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth1.spec.value
         );
 
@@ -804,7 +805,7 @@ contract TestMints is Test, DeployUtils {
             specHash2,
             auth2.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth2.spec.value
         );
 
@@ -867,7 +868,7 @@ contract TestMints is Test, DeployUtils {
             specHash,
             auth.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth.spec.value
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -898,7 +899,7 @@ contract TestMints is Test, DeployUtils {
             specHash1,
             auth1.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth1.spec.value
         );
         vm.expectEmit(true, true, true, true);
@@ -908,7 +909,7 @@ contract TestMints is Test, DeployUtils {
             specHash2,
             auth2.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth2.spec.value
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -944,7 +945,7 @@ contract TestMints is Test, DeployUtils {
             specHash1,
             auth1.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth1.spec.value
         );
 
@@ -955,7 +956,7 @@ contract TestMints is Test, DeployUtils {
             specHash2,
             auth2.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth2.spec.value
         );
 
@@ -994,7 +995,7 @@ contract TestMints is Test, DeployUtils {
             specHash1,
             auth1.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth1.spec.value
         );
         vm.expectEmit(true, true, true, true);
@@ -1004,7 +1005,7 @@ contract TestMints is Test, DeployUtils {
             specHash2,
             auth2.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth2.spec.value
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -1044,7 +1045,7 @@ contract TestMints is Test, DeployUtils {
             specHash1,
             auth1.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth1.spec.value
         );
 
@@ -1055,7 +1056,7 @@ contract TestMints is Test, DeployUtils {
             specHash2,
             auth2.spec.sourceDomain,
             _addressToBytes32(depositor),
-            _addressToBytes32(mintAuthorizationSigner),
+            _addressToBytes32(sourceSigner),
             auth2.spec.value
         );
 
