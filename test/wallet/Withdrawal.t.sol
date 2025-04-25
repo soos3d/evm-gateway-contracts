@@ -18,10 +18,10 @@
 pragma solidity ^0.8.28;
 
 import {SpendWallet} from "src/SpendWallet.sol";
-import {Balances} from "src/lib/wallet/Balances.sol";
-import {Delegation} from "src/lib/wallet/Delegation.sol";
-import {WithdrawalDelay} from "src/lib/wallet/WithdrawalDelay.sol";
-import {Withdrawals} from "src/lib/wallet/Withdrawals.sol";
+import {Balances} from "src/modules/wallet/Balances.sol";
+import {Delegation} from "src/modules/wallet/Delegation.sol";
+import {WithdrawalDelay} from "src/modules/wallet/WithdrawalDelay.sol";
+import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";

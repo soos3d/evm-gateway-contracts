@@ -18,11 +18,11 @@
 pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {Pausing} from "src/lib/common/Pausing.sol";
+import {Pausing} from "src/modules/common/Pausing.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {PausingStorage} from "src/lib/common/Pausing.sol";
+import {PausingStorage} from "src/modules/common/Pausing.sol";
 
 contract PausingHarness is Pausing {
     function initialize(address owner, address pauser) public initializer {

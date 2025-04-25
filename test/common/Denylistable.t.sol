@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {Denylistable} from "src/lib/common/Denylistable.sol";
+import {Denylistable} from "src/modules/common/Denylistable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract DenylistableHarness is Denylistable {

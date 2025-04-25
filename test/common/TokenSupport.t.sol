@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {TokenSupport} from "src/lib/common/TokenSupport.sol";
+import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract TokenSupportHarness is TokenSupport {

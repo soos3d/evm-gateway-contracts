@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {SpendWallet} from "src/SpendWallet.sol";
-import {WithdrawalDelay} from "src/lib/wallet/WithdrawalDelay.sol";
+import {WithdrawalDelay} from "src/modules/wallet/WithdrawalDelay.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";

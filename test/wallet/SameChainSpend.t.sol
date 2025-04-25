@@ -19,12 +19,12 @@ pragma solidity ^0.8.28;
 
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {Counterpart} from "src/lib/common/Counterpart.sol";
-import {Delegation} from "src/lib/wallet/Delegation.sol";
-import {Denylistable} from "src/lib/common/Denylistable.sol";
-import {TokenSupport} from "src/lib/common/TokenSupport.sol";
+import {Counterpart} from "src/modules/common/Counterpart.sol";
+import {Delegation} from "src/modules/wallet/Delegation.sol";
+import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
-import {Burns} from "src/lib/wallet/Burns.sol";
+import {Burns} from "src/modules/wallet/Burns.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
