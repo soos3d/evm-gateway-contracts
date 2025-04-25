@@ -63,6 +63,8 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
     }
 
     /// Returns the counterpart address
+    ///
+    /// @return   The counterpart address
     function _counterpart() internal view returns (address) {
         return CounterpartStorage.get().counterpart;
     }
@@ -78,14 +80,14 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
 
 /// Implements the EIP-7201 storage pattern for the Counterpart module
 library CounterpartStorage {
-    /// @custom:storage-location 7201:circle.spend.Counterpart
+    /// @custom:storage-location 7201:circle.gateway.Counterpart
     struct Data {
         /// The address of the counterpart contract on the same chain
         address counterpart;
     }
 
-    /// keccak256(abi.encode(uint256(keccak256("circle.spend.Counterpart")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant SLOT = 0x70565df7873d79606231fdb63c2348309f93e2c30a5f9f935737851220372500;
+    /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Counterpart"))) - 1)) & ~bytes32(uint256(0xff))`
+    bytes32 private constant SLOT = 0x93e77e25ef9d7551b01674a3ef68f44dcb2b33c68692c96a16f33bfe6d355b00;
 
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {
