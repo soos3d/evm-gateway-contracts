@@ -19,9 +19,9 @@ pragma solidity ^0.8.29;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Test} from "forge-std/Test.sol";
-import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {Denylist} from "src/modules/common/Denylist.sol";
 
-contract DenylistableHarness is Denylistable {
+contract DenylistHarness is Denylist {
     function initialize(address owner) public initializer {
         __Ownable_init(owner);
         __Ownable2Step_init();
@@ -34,21 +34,21 @@ contract DenylistableHarness is Denylistable {
     function checkOnlyDenylisterModifier() public onlyDenylister {}
 }
 
-contract DenylistableTest is Test {
+contract DenylistTest is Test {
     address private owner = makeAddr("owner");
     address private denylister = makeAddr("denylister");
     address private user = makeAddr("user");
 
-    DenylistableHarness private denylistable;
+    DenylistHarness private denylistable;
 
     function setUp() public {
-        denylistable = new DenylistableHarness();
+        denylistable = new DenylistHarness();
         denylistable.initialize(owner);
     }
 
     function test_initialState() public {
         // Verify no denylister is set initially
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.UnauthorizedDenylister.selector, denylister));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.UnauthorizedDenylister.selector, denylister));
         vm.prank(denylister);
         denylistable.checkOnlyDenylisterModifier();
 
@@ -61,7 +61,7 @@ contract DenylistableTest is Test {
 
     function test_updateDenylister_basicSuccess() public {
         vm.expectEmit(true, true, false, true);
-        emit Denylistable.DenylisterChanged(address(0), denylister);
+        emit Denylist.DenylisterChanged(address(0), denylister);
 
         vm.prank(owner);
         denylistable.updateDenylister(denylister);
@@ -80,7 +80,7 @@ contract DenylistableTest is Test {
 
         address newDenylister = makeAddr("newDenylister");
         vm.expectEmit(true, true, false, true);
-        emit Denylistable.DenylisterChanged(denylister, newDenylister);
+        emit Denylist.DenylisterChanged(denylister, newDenylister);
 
         // Update to new denylister
         vm.prank(owner);
@@ -93,7 +93,7 @@ contract DenylistableTest is Test {
         assertTrue(denylistable.isDenylisted(user), "User should be denylisted by new denylister");
 
         // Verify old denylister cannot denylist addresses
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.UnauthorizedDenylister.selector, denylister));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.UnauthorizedDenylister.selector, denylister));
         vm.prank(denylister);
         denylistable.denylist(user);
     }
@@ -101,14 +101,14 @@ contract DenylistableTest is Test {
     function test_updateDenylister_isIdempotent() public {
         // Set initial denylister
         vm.expectEmit(true, true, false, true);
-        emit Denylistable.DenylisterChanged(address(0), denylister);
+        emit Denylist.DenylisterChanged(address(0), denylister);
 
         vm.prank(owner);
         denylistable.updateDenylister(denylister);
 
         // Set same denylister again
         vm.expectEmit(true, true, false, true);
-        emit Denylistable.DenylisterChanged(denylister, denylister);
+        emit Denylist.DenylisterChanged(denylister, denylister);
 
         vm.prank(owner);
         denylistable.updateDenylister(denylister);
@@ -142,7 +142,7 @@ contract DenylistableTest is Test {
         denylistable.updateDenylister(denylister);
 
         address random = makeAddr("random");
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.UnauthorizedDenylister.selector, random));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.UnauthorizedDenylister.selector, random));
 
         vm.prank(random);
         denylistable.checkOnlyDenylisterModifier();
@@ -165,7 +165,7 @@ contract DenylistableTest is Test {
         denylistable.updateDenylister(denylister);
 
         vm.expectEmit(true, true, false, true);
-        emit Denylistable.Denylisted(user);
+        emit Denylist.Denylisted(user);
 
         vm.prank(denylister);
         denylistable.denylist(user);
@@ -178,7 +178,7 @@ contract DenylistableTest is Test {
         denylistable.updateDenylister(denylister);
 
         address random = makeAddr("random");
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.UnauthorizedDenylister.selector, random));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.UnauthorizedDenylister.selector, random));
 
         vm.prank(random);
         denylistable.denylist(user);
@@ -189,7 +189,7 @@ contract DenylistableTest is Test {
         denylistable.updateDenylister(denylister);
 
         vm.expectEmit(true, true, false, true);
-        emit Denylistable.Denylisted(user);
+        emit Denylist.Denylisted(user);
 
         vm.prank(denylister);
         denylistable.denylist(user);
@@ -197,7 +197,7 @@ contract DenylistableTest is Test {
         assertTrue(denylistable.isDenylisted(user), "User should be denylisted");
 
         vm.expectEmit(true, true, false, true);
-        emit Denylistable.Denylisted(user);
+        emit Denylist.Denylisted(user);
 
         // Denylist the same address again
         vm.prank(denylister);
@@ -211,13 +211,13 @@ contract DenylistableTest is Test {
         denylistable.updateDenylister(denylister);
 
         vm.expectEmit(true, true, false, true);
-        emit Denylistable.Denylisted(user);
+        emit Denylist.Denylisted(user);
 
         vm.startPrank(denylister);
         denylistable.denylist(user);
         assertTrue(denylistable.isDenylisted(user), "User should be denylisted");
         vm.expectEmit(true, true, false, true);
-        emit Denylistable.UnDenylisted(user);
+        emit Denylist.UnDenylisted(user);
         denylistable.unDenylist(user);
         vm.stopPrank();
 
@@ -229,7 +229,7 @@ contract DenylistableTest is Test {
         denylistable.updateDenylister(denylister);
 
         vm.expectEmit(true, true, false, true);
-        emit Denylistable.UnDenylisted(user);
+        emit Denylist.UnDenylisted(user);
 
         vm.prank(denylister);
         denylistable.unDenylist(user);
@@ -242,13 +242,13 @@ contract DenylistableTest is Test {
         denylistable.updateDenylister(denylister);
 
         vm.expectEmit(true, true, false, true);
-        emit Denylistable.UnDenylisted(user);
+        emit Denylist.UnDenylisted(user);
 
         vm.startPrank(denylister);
         denylistable.unDenylist(user);
         assertFalse(denylistable.isDenylisted(user), "User should not be denylisted after first allow");
         vm.expectEmit(true, true, false, true);
-        emit Denylistable.UnDenylisted(user);
+        emit Denylist.UnDenylisted(user);
         denylistable.unDenylist(user);
         vm.stopPrank();
 
@@ -260,7 +260,7 @@ contract DenylistableTest is Test {
         denylistable.updateDenylister(denylister);
 
         address random = makeAddr("random");
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.UnauthorizedDenylister.selector, random));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.UnauthorizedDenylister.selector, random));
 
         vm.prank(random);
         denylistable.unDenylist(user);
@@ -280,7 +280,7 @@ contract DenylistableTest is Test {
         vm.prank(denylister);
         denylistable.denylist(user);
 
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, user));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, user));
         denylistable.checkNotDenylistedModifier(user);
     }
 }

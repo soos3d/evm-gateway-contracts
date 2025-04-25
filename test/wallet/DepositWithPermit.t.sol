@@ -18,7 +18,7 @@
 pragma solidity ^0.8.29;
 
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {Denylist} from "src/modules/common/Denylist.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
@@ -107,7 +107,7 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         wallet.denylist(denylistedSender);
 
         vm.prank(denylistedSender);
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedSender));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
     }
 
@@ -117,7 +117,7 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         vm.prank(denylister);
         wallet.denylist(depositor);
 
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, depositor));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
     }
 
@@ -199,7 +199,7 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         wallet.denylist(denylistedSender);
 
         vm.prank(denylistedSender);
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedSender));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
@@ -209,7 +209,7 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         vm.prank(denylister);
         wallet.denylist(depositor);
 
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, depositor));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 

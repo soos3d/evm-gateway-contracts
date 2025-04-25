@@ -19,7 +19,7 @@ pragma solidity ^0.8.29;
 
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {IERC3009} from "src/interfaces/IERC3009.sol";
-import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {Denylist} from "src/modules/common/Denylist.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
@@ -136,7 +136,7 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         wallet.denylist(denylistedSender);
 
         vm.prank(denylistedSender);
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedSender));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
@@ -148,7 +148,7 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         vm.prank(denylister);
         wallet.denylist(depositor);
 
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, depositor));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
@@ -298,7 +298,7 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         wallet.denylist(denylistedSender);
 
         vm.prank(denylistedSender);
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedSender));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );
@@ -310,7 +310,7 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         vm.prank(denylister);
         wallet.denylist(depositor);
 
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, depositor));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );

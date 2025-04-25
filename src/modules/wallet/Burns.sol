@@ -444,7 +444,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
             revert AuthorizationValueMustBePositiveAtIndex(index);
         }
 
-        // If the burn authorization is for a different domain, ignore futher checks and indicate that to the caller
+        // If the burn authorization is for a different domain, ignore further checks and indicate that to the caller
         // so it can be skipped
         uint32 domain = spec.getSourceDomain();
         if (!_isCurrentDomain(domain)) {

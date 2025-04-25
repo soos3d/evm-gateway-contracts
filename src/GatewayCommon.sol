@@ -21,7 +21,7 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Counterpart} from "src/modules/common/Counterpart.sol";
-import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {Denylist} from "src/modules/common/Denylist.sol";
 import {Domain} from "src/modules/common/Domain.sol";
 import {Pausing} from "src/modules/common/Pausing.sol";
 import {SpendHashes} from "src/modules/common/SpendHashes.sol";
@@ -35,7 +35,7 @@ contract GatewayCommon is
     UUPSUpgradeable,
     Ownable2StepUpgradeable,
     Pausing,
-    Denylistable,
+    Denylist,
     Counterpart,
     TokenSupport,
     SpendHashes,

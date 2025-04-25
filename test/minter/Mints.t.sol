@@ -27,7 +27,7 @@ import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/Mi
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
 import {AddressLib} from "src/lib/util/AddressLib.sol";
-import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {Denylist} from "src/modules/common/Denylist.sol";
 import {SpendHashes} from "src/modules/common/SpendHashes.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Mints} from "src/modules/minter/Mints.sol";
@@ -195,7 +195,7 @@ contract TestMints is Test, DeployUtils {
         vm.stopPrank();
 
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, address(this)));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, address(this)));
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
@@ -310,7 +310,7 @@ contract TestMints is Test, DeployUtils {
         vm.stopPrank();
 
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, recipient));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, recipient));
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
@@ -330,7 +330,7 @@ contract TestMints is Test, DeployUtils {
         MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
 
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedRecipient));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedRecipient));
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
     }
 

@@ -48,7 +48,7 @@ library BurnAuthorizationLib {
     /// Checks whether the provided `bytes29` reference is a `BurnAuthorizationSet`
     ///
     /// @param ref   The `TypedMemView` reference to the encoded `BurnAuthorization` or `BurnAuthorizationSet`
-    /// @return      True if the provided `bytes29` reference is a `BurnAuthorizationSet`
+    /// @return      `true` if the provided `bytes29` reference is a `BurnAuthorizationSet`, `false` otherwise
     function _isSet(bytes29 ref) private pure returns (bool) {
         return ref.index(0, BYTES4_BYTES) == BURN_AUTHORIZATION_SET_MAGIC;
     }

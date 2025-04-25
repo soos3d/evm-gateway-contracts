@@ -18,7 +18,7 @@
 pragma solidity ^0.8.29;
 
 import {AddressLib} from "src/lib/util/AddressLib.sol";
-import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {Denylist} from "src/modules/common/Denylist.sol";
 import {Pausing} from "src/modules/common/Pausing.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 
@@ -38,7 +38,7 @@ enum AuthorizationStatus {
 /// @title Delegation
 ///
 /// Manages delegation for the GatewayWallet contract
-contract Delegation is Pausing, Denylistable, TokenSupport {
+contract Delegation is Pausing, Denylist, TokenSupport {
     /// Emitted when a delegate is authorized for a depositor's balance
     ///
     /// @param token       The token that the delegate is now authorized for

@@ -47,7 +47,7 @@ library MintAuthorizationLib {
     /// Checks whether the provided `bytes29` reference is a `MintAuthorizationSet`
     ///
     /// @param ref   The `TypedMemView` reference to the encoded `MintAuthorization` or `MintAuthorizationSet`
-    /// @return      True if the provided `bytes29` reference is a `MintAuthorizationSet`
+    /// @return      `true` if the provided `bytes29` reference is a `MintAuthorizationSet`, `false` otherwise
     function _isSet(bytes29 ref) private pure returns (bool) {
         return ref.index(0, BYTES4_BYTES) == MINT_AUTHORIZATION_SET_MAGIC;
     }

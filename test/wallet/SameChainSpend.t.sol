@@ -21,7 +21,7 @@ import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Pau
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Test} from "forge-std/Test.sol";
 import {Counterpart} from "src/modules/common/Counterpart.sol";
-import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {Denylist} from "src/modules/common/Denylist.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
@@ -97,7 +97,7 @@ contract TestSameChainSpend is Test, DeployUtils {
     function test_sameChainSpend_revertsWhenDepositorIsDenylisted() public {
         vm.prank(denylister);
         wallet.denylist(depositor);
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, depositor));
 
         vm.prank(minterContract);
         wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, keccak256(emptyAuthorization));
@@ -106,7 +106,7 @@ contract TestSameChainSpend is Test, DeployUtils {
     function test_sameChainSpend_revertsWhenAuthorizerIsDenylisted() public {
         vm.prank(denylister);
         wallet.denylist(authorizer);
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, authorizer));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, authorizer));
 
         vm.prank(minterContract);
         wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, keccak256(emptyAuthorization));
