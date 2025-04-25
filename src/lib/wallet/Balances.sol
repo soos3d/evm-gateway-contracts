@@ -151,7 +151,7 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
      * @param depositor The address of the account whose balance is being increased.
      * @param value The amount to be added.
      */
-    function _increaseBalance(address token, address depositor, uint256 value) internal {
+    function _increaseSpendableBalance(address token, address depositor, uint256 value) internal {
         BalancesStorage.get().spendableBalances[token][depositor] += value;
     }
 

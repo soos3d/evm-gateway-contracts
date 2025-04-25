@@ -58,7 +58,7 @@ contract Deposits is Pausing, Denylistable, TokenSupport, Balances {
             revert DepositValueMustBePositive();
         }
 
-        _increaseBalance(token, msg.sender, value);
+        _increaseSpendableBalance(token, msg.sender, value);
 
         IERC20(token).safeTransferFrom(msg.sender, address(this), value);
 
@@ -126,7 +126,7 @@ contract Deposits is Pausing, Denylistable, TokenSupport, Balances {
             revert DepositValueMustBePositive();
         }
 
-        _increaseBalance(token, owner, value);
+        _increaseSpendableBalance(token, owner, value);
 
         IERC7597(token).permit(owner, address(this), value, deadline, signature);
         IERC20(token).safeTransferFrom(owner, address(this), value);
@@ -211,7 +211,7 @@ contract Deposits is Pausing, Denylistable, TokenSupport, Balances {
             revert DepositValueMustBePositive();
         }
 
-        _increaseBalance(token, from, value);
+        _increaseSpendableBalance(token, from, value);
 
         IERC7598(token).receiveWithAuthorization(from, address(this), value, validAfter, validBefore, nonce, signature);
 

@@ -97,7 +97,7 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
         DelegationStorage.Data storage $ = DelegationStorage.get();
         AuthorizationStatus existingStatus = $.authorizedDelegates[token][msg.sender][delegate];
 
-        // If the address has never been authorized, take no action
+        // If the address has never been authorized or is already revoked, take no action
         if (existingStatus == AuthorizationStatus.Unauthorized || existingStatus == AuthorizationStatus.Revoked) {
             return;
         }
