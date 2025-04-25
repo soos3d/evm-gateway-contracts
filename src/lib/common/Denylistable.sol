@@ -86,8 +86,8 @@ contract Denylistable is Ownable2StepUpgradeable {
 
     /// Restricts the caller to the `denylister` role, reverting with an error for other callers
     modifier onlyDenylister() {
-        if (_msgSender() != DenylistableStorage.get().denylister) {
-            revert UnauthorizedDenylister(_msgSender());
+        if (msg.sender != DenylistableStorage.get().denylister) {
+            revert UnauthorizedDenylister(msg.sender);
         }
         _;
     }

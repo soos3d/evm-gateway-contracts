@@ -55,7 +55,7 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
 
     /// Restricts the caller to the `counterpart` role, reverting with an error for other callers
     modifier onlyCounterpart() {
-        _ensureIsCounterpart(_msgSender());
+        _ensureIsCounterpart(msg.sender);
         _;
     }
 

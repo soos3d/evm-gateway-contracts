@@ -53,8 +53,8 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
 
     /// Restricts the caller to the `pauser` role, reverting with an error for other callers
     modifier onlyPauser() {
-        if (PausingStorage.get().pauser != _msgSender()) {
-            revert UnauthorizedPauser(_msgSender());
+        if (PausingStorage.get().pauser != msg.sender) {
+            revert UnauthorizedPauser(msg.sender);
         }
         _;
     }
