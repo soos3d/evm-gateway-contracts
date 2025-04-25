@@ -24,7 +24,7 @@ import {Counterpart} from "src/modules/common/Counterpart.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {Domain} from "src/modules/common/Domain.sol";
 import {Pausing} from "src/modules/common/Pausing.sol";
-import {SpendHashes} from "src/modules/common/SpendHashes.sol";
+import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 
 /// @title Gateway Common
@@ -38,7 +38,7 @@ contract GatewayCommon is
     Denylist,
     Counterpart,
     TokenSupport,
-    SpendHashes,
+    TransferSpecHashes,
     Domain
 {
     /// Thrown when an address is the zero address (duplicated here from `addresses.sol` so it gets included in the ABI)

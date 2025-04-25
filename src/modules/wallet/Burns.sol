@@ -45,7 +45,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     ///
     /// @param token                  The token that was spent
     /// @param depositor              The depositor who owned the spent balance
-    /// @param spendHash              The keccak256 hash of the `TransferSpec`
+    /// @param transferSpecHash       The keccak256 hash of the `TransferSpec`
     /// @param destinationDomain      The domain the spend was used on
     /// @param destinationRecipient   The recipient of the funds at the destination
     /// @param signer                 The address that authorized the transfer
@@ -56,7 +56,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     event BurnedSpent(
         address indexed token,
         address indexed depositor,
-        bytes32 indexed spendHash,
+        bytes32 indexed transferSpecHash,
         uint32 destinationDomain,
         bytes32 destinationRecipient,
         address signer,
@@ -71,7 +71,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     ///
     /// @param token             The token that was spent
     /// @param depositor         The depositor who owned the spent balance
-    /// @param spendHash         The keccak256 hash of the `TransferSpec`
+    /// @param transferSpecHash         The keccak256 hash of the `TransferSpec`
     /// @param recipient         The recipient of the funds
     /// @param signer            The address that authorized the transfer
     /// @param value             The value transferred to the recipient
@@ -80,7 +80,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     event TransferredSpent(
         address indexed token,
         address indexed depositor,
-        bytes32 indexed spendHash,
+        bytes32 indexed transferSpecHash,
         address recipient,
         address signer,
         uint256 value,
@@ -171,7 +171,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @dev See {SpendAuthorization} for authorization encoding details
     /// @param token The token being transferred
     /// @param depositor The owner of the funds in the wallet
-    /// @param spendHash The keccak256 hash of the SpendSpec
+    /// @param transferSpecHash The keccak256 hash of the SpendSpec
     /// @param recipient The recipient of the transfer
     /// @param signer The address that authorized the spend
     /// @param value The transfer amount
@@ -181,7 +181,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
         address recipient,
         address signer,
         uint256 value,
-        bytes32 spendHash
+        bytes32 transferSpecHash
     )
         external
         whenNotPaused
@@ -191,7 +191,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
         notDenylisted(signer)
         authorizedForBalance(token, depositor, signer)
     {
-        _sameChainSpend(token, depositor, recipient, signer, value, spendHash);
+        _sameChainSpend(token, depositor, recipient, signer, value, transferSpecHash);
     }
 
     /// Returns the byte encoding of a single burn authorization
@@ -496,7 +496,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     }
 
     /**
-     * @notice Processes a single valid burn authorization: marks the spend hash, reduces balance, and emits event.
+     * @notice Processes a single valid burn authorization: marks the transfer spec hash, reduces balance, and emits event.
      * @dev Assumes the associated `TransferSpec` (`spec`) has already been validated for relevance to the current
      *      domain and basic validity checks (e.g., non-zero value, expiry). It calculates the actual fee charged based
      *      on available balance after deducting the value.
@@ -512,8 +512,8 @@ contract Burns is GatewayCommon, Balances, Delegation {
         internal
         returns (uint256 deductedAmount, uint256 actualFeeCharged)
     {
-        // Mark the spend hash as used
-        _checkAndMarkSpendHash(spec.getHash());
+        // Mark the transfer spec hash as used
+        _checkAndMarkTransferSpecHash(spec.getHash());
 
         // Extract the relevant parameters from the TransferSpec
         address token = AddressLib._bytes32ToAddress(spec.getSourceToken());
@@ -560,7 +560,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
         address recipient,
         address signer,
         uint256 value,
-        bytes32 spendHash
+        bytes32 transferSpecHash
     ) internal {
         (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value);
 
@@ -570,7 +570,9 @@ contract Burns is GatewayCommon, Balances, Delegation {
 
         IERC20(token).safeTransfer(recipient, value);
 
-        emit TransferredSpent(token, depositor, spendHash, recipient, signer, value, fromSpendable, fromWithdrawing);
+        emit TransferredSpent(
+            token, depositor, transferSpecHash, recipient, signer, value, fromSpendable, fromWithdrawing
+        );
     }
 }
 

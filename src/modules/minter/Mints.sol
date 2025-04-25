@@ -38,17 +38,17 @@ contract Mints is GatewayCommon {
 
     /// Emitted when the a spend authorization is used
     ///
-    /// @param token             The token that was spent
-    /// @param recipient         The recipient of the funds
-    /// @param spendHash         The keccak256 hash of the `TransferSpec`
-    /// @param sourceDomain      The domain the funds came from
-    /// @param sourceDepositor   The depositor on the source domain
-    /// @param sourceSigner      The signer that authorized the transfer
-    /// @param value             The amount that was minted/transferred
+    /// @param token              The token that was spent
+    /// @param recipient          The recipient of the funds
+    /// @param transferSpecHash   The keccak256 hash of the `TransferSpec`
+    /// @param sourceDomain       The domain the funds came from
+    /// @param sourceDepositor    The depositor on the source domain
+    /// @param sourceSigner       The signer that authorized the transfer
+    /// @param value              The amount that was minted/transferred
     event Spent(
         address indexed token,
         address indexed recipient,
-        bytes32 indexed spendHash,
+        bytes32 indexed transferSpecHash,
         uint32 sourceDomain,
         bytes32 sourceDepositor,
         bytes32 sourceSigner,
@@ -217,12 +217,12 @@ contract Mints is GatewayCommon {
     }
 
     /// @notice Executes a single spend based on the provided transfer specification.
-    /// @dev Marks the spend hash as used. For same-chain spends, calls `sameChainSpend` on the wallet counterpart contract.
+    /// @dev Marks the transfer spec hash as used. For same-chain spends, calls `sameChainSpend` on the wallet counterpart contract.
     /// For cross-chain spends, mints tokens using the appropriate mint authority. Emits a `Spent` event.
     /// @param spec A reference to the `TransferSpec` defining the spend details.
     function _spend(bytes29 spec) internal {
         bytes32 specHash = spec.getHash();
-        _checkAndMarkSpendHash(specHash);
+        _checkAndMarkTransferSpecHash(specHash);
 
         address recipient = AddressLib._bytes32ToAddress(spec.getDestinationRecipient());
         uint256 value = spec.getValue();

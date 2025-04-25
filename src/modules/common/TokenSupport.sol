@@ -44,11 +44,12 @@ contract TokenSupport is Ownable2StepUpgradeable {
     /// Whether or not a token is supported
     ///
     /// @param token   The token to check
+    /// @return        `true` if the token is supported, `false` otherwise
     function isTokenSupported(address token) public view returns (bool) {
         return TokenSupportStorage.get().supportedTokens[token];
     }
 
-    /// Marks a token as supported. Once supported, tokens can not be un-supported.
+    /// Marks a token as supported. Once supported, tokens cannot be un-supported.
     ///
     /// @dev May only be called by the `owner` role
     ///
@@ -70,14 +71,14 @@ contract TokenSupport is Ownable2StepUpgradeable {
 
 /// Implements the EIP-7201 storage pattern for the TokenSupport module
 library TokenSupportStorage {
-    /// @custom:storage-location 7201:circle.spend.TokenSupport
+    /// @custom:storage-location 7201:circle.gateway.TokenSupport
     struct Data {
         /// Whether or not a token is supported
         mapping(address token => bool supported) supportedTokens;
     }
 
-    /// keccak256(abi.encode(uint256(keccak256("circle.spend.TokenSupport")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant SLOT = 0x9504c81a957a40d134f71d3a6c01e888064674c3f380b2ffd4aefef7040d4300;
+    /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.TokenSupport"))) - 1)) & ~bytes32(uint256(0xff))`
+    bytes32 private constant SLOT = 0x3ba16516a08fb9c5c48fb6662657ad4ffe1c779829969b4c7abdb9287bbf8500;
 
     function get() internal pure returns (Data storage $) {
         assembly {

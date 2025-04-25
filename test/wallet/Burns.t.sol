@@ -24,7 +24,7 @@ import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/Bu
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {AddressLib} from "src/lib/util/AddressLib.sol";
-import {SpendHashes} from "src/modules/common/SpendHashes.sol";
+import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
@@ -64,7 +64,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     struct ExpectedBurnEventParams {
         address token;
         address depositor;
-        bytes32 spendHash;
+        bytes32 transferSpecHash;
         uint32 destinationDomain;
         bytes32 recipient;
         address authorizer;
@@ -216,7 +216,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         emit Burns.BurnedSpent(
             params.token,
             params.depositor,
-            params.spendHash,
+            params.transferSpecHash,
             params.destinationDomain,
             params.recipient,
             params.authorizer,
@@ -627,7 +627,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         // Replay the same authorization
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, specHash));
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecHashes.TransferSpecHashUsed.selector, specHash));
         _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
@@ -821,7 +821,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         ExpectedBurnEventParams memory expectedParams;
         expectedParams.token = address(usdc);
         expectedParams.depositor = underFundedDepositor;
-        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
         expectedParams.destinationDomain = auth.spec.destinationDomain;
         expectedParams.recipient = auth.spec.destinationRecipient;
         expectedParams.authorizer = underFundedDepositor;
@@ -934,7 +934,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.eventParams1 = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: testData.depositorAddr,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec)),
             destinationDomain: testData.auth1.spec.destinationDomain,
             recipient: testData.auth1.spec.destinationRecipient,
             authorizer: testData.depositorAddr,
@@ -953,7 +953,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.eventParams2 = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: testData.depositorAddr,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec)),
             destinationDomain: testData.auth2.spec.destinationDomain,
             recipient: testData.auth2.spec.destinationRecipient,
             authorizer: testData.depositorAddr,
@@ -1036,7 +1036,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         ExpectedBurnEventParams memory expectedParams;
         expectedParams.token = address(usdc);
         expectedParams.depositor = underFundedDepositor;
-        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
         expectedParams.destinationDomain = auth.spec.destinationDomain;
         expectedParams.recipient = auth.spec.destinationRecipient;
         expectedParams.authorizer = underFundedDepositor;
@@ -1151,7 +1151,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.eventParams1 = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: testData.depositorAddr,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec)),
             destinationDomain: testData.auth1.spec.destinationDomain,
             recipient: testData.auth1.spec.destinationRecipient,
             authorizer: testData.depositorAddr,
@@ -1170,7 +1170,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.eventParams2 = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: testData.depositorAddr,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec)),
             destinationDomain: testData.auth2.spec.destinationDomain,
             recipient: testData.auth2.spec.destinationRecipient,
             authorizer: testData.depositorAddr,
@@ -1337,7 +1337,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
@@ -1394,7 +1394,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
@@ -1452,7 +1452,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
@@ -1506,7 +1506,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
@@ -1566,7 +1566,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
@@ -1624,7 +1624,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
@@ -1682,7 +1682,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
@@ -1744,7 +1744,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
@@ -1807,7 +1807,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
@@ -1941,7 +1941,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Event for auth1
         testData.eventParams1.token = address(usdc);
         testData.eventParams1.depositor = depositor;
-        testData.eventParams1.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec));
+        testData.eventParams1.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec));
         testData.eventParams1.destinationDomain = testData.auth1.spec.destinationDomain;
         testData.eventParams1.recipient = testData.auth1.spec.destinationRecipient;
         testData.eventParams1.authorizer = depositor;
@@ -1954,7 +1954,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Event for auth2
         testData.eventParams2.token = address(usdc);
         testData.eventParams2.depositor = depositor;
-        testData.eventParams2.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec));
+        testData.eventParams2.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec));
         testData.eventParams2.destinationDomain = testData.auth2.spec.destinationDomain;
         testData.eventParams2.recipient = testData.auth2.spec.destinationRecipient;
         testData.eventParams2.authorizer = depositor;
@@ -1967,7 +1967,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Event for auth4 (auth3 is skipped)
         testData.eventParams4.token = address(usdc);
         testData.eventParams4.depositor = depositor;
-        testData.eventParams4.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth4.spec));
+        testData.eventParams4.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth4.spec));
         testData.eventParams4.destinationDomain = testData.auth4.spec.destinationDomain;
         testData.eventParams4.recipient = testData.auth4.spec.destinationRecipient;
         testData.eventParams4.authorizer = depositor;
@@ -2079,7 +2079,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Event for Depositor 1's burn
         testData.eventParams1.token = address(usdc);
         testData.eventParams1.depositor = depositor;
-        testData.eventParams1.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec));
+        testData.eventParams1.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec));
         testData.eventParams1.destinationDomain = testData.auth1.spec.destinationDomain;
         testData.eventParams1.recipient = testData.auth1.spec.destinationRecipient;
         testData.eventParams1.authorizer = depositor;
@@ -2092,7 +2092,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Event for Depositor 2's burn
         testData.eventParams2.token = address(usdc);
         testData.eventParams2.depositor = depositor2;
-        testData.eventParams2.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec));
+        testData.eventParams2.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec));
         testData.eventParams2.destinationDomain = testData.auth2.spec.destinationDomain;
         testData.eventParams2.recipient = testData.auth2.spec.destinationRecipient;
         testData.eventParams2.authorizer = depositor2;

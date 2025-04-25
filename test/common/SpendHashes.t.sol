@@ -21,28 +21,28 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Test} from "forge-std/Test.sol";
 import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
-import {SpendHashes} from "src/modules/common/SpendHashes.sol";
+import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 
-contract SpendHashesHarness is SpendHashes {
-    function markSpendHashAsUsed(bytes32 spendHash) external {
-        _markSpendHashAsUsed(spendHash);
+contract TransferSpecHashesHarness is TransferSpecHashes {
+    function markTransferSpecHashAsUsed(bytes32 transferSpecHash) external {
+        _markTransferSpecHashAsUsed(transferSpecHash);
     }
 
-    function ensureSpendHashNotUsed(bytes32 spendHash) external view {
-        _ensureSpendHashNotUsed(spendHash);
+    function ensureTransferSpecHashNotUsed(bytes32 transferSpecHash) external view {
+        _ensureTransferSpecHashNotUsed(transferSpecHash);
     }
 }
 
-contract UpgradeableSpendHashesHarness is SpendHashesHarness, UUPSUpgradeable {
+contract UpgradeableTransferSpecHashesHarness is TransferSpecHashesHarness, UUPSUpgradeable {
     function _authorizeUpgrade(address) internal override {}
 }
 
-/// Tests the SpendHashes contract
-contract SpendHashesTest is Test {
-    SpendHashesHarness private spendHashes;
+/// Tests the TransferSpecHashes contract
+contract TransferSpecHashesTest is Test {
+    TransferSpecHashesHarness private transferSpecHashes;
 
     function setUp() public {
-        spendHashes = new SpendHashesHarness();
+        transferSpecHashes = new TransferSpecHashesHarness();
     }
 
     function _createFakeTransferSpec(uint256 seed) internal pure returns (TransferSpec memory) {
@@ -68,80 +68,83 @@ contract SpendHashesTest is Test {
         return keccak256(abi.encode(spec));
     }
 
-    function _deploySpendHashesProxy(address impl) internal returns (address) {
+    function _deployTransferSpecHashesProxy(address impl) internal returns (address) {
         ERC1967Proxy proxy = new ERC1967Proxy(impl, new bytes(0));
         return address(proxy);
     }
 
-    function test_spendHashes_ensureSpendHashNotUsedSucceedsIfNewSpendHashFuzz(uint256 seed) public view {
+    function test_transferSpecHashes_ensureTransferSpecHashNotUsedSucceedsIfNewTransferSpecHashFuzz(uint256 seed)
+        public
+        view
+    {
         TransferSpec memory spec = _createFakeTransferSpec(seed);
-        bytes32 spendHash = _hashTransferSpec(spec);
-        spendHashes.ensureSpendHashNotUsed(spendHash);
+        bytes32 transferSpecHash = _hashTransferSpec(spec);
+        transferSpecHashes.ensureTransferSpecHashNotUsed(transferSpecHash);
     }
 
-    function test_spendHashes_revertsIfSpendHashAlreadyUsedFuzz(uint256 seed) public {
+    function test_transferSpecHashes_revertsIfTransferSpecHashAlreadyUsedFuzz(uint256 seed) public {
         TransferSpec memory spec = _createFakeTransferSpec(seed);
-        bytes32 spendHash = _hashTransferSpec(spec);
+        bytes32 transferSpecHash = _hashTransferSpec(spec);
 
-        spendHashes.markSpendHashAsUsed(spendHash);
+        transferSpecHashes.markTransferSpecHashAsUsed(transferSpecHash);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, spendHash));
-        spendHashes.ensureSpendHashNotUsed(spendHash);
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecHashes.TransferSpecHashUsed.selector, transferSpecHash));
+        transferSpecHashes.ensureTransferSpecHashNotUsed(transferSpecHash);
     }
 
-    function test_spendHashes_markSpendHashAsUsedIsIdempotentFuzz(uint256 seed) public {
+    function test_transferSpecHashes_markTransferSpecHashAsUsedIsIdempotentFuzz(uint256 seed) public {
         TransferSpec memory spec = _createFakeTransferSpec(seed);
-        bytes32 spendHash = _hashTransferSpec(spec);
+        bytes32 transferSpecHash = _hashTransferSpec(spec);
 
-        spendHashes.markSpendHashAsUsed(spendHash);
-        spendHashes.markSpendHashAsUsed(spendHash);
+        transferSpecHashes.markTransferSpecHashAsUsed(transferSpecHash);
+        transferSpecHashes.markTransferSpecHashAsUsed(transferSpecHash);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, spendHash));
-        spendHashes.ensureSpendHashNotUsed(spendHash);
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecHashes.TransferSpecHashUsed.selector, transferSpecHash));
+        transferSpecHashes.ensureTransferSpecHashNotUsed(transferSpecHash);
     }
 
-    function test_spendHashes_markMultipleSpendHashesAsUsedFuzz(uint256 seed1, uint256 seed2) public {
+    function test_transferSpecHashes_markMultipleTransferSpecHashesAsUsedFuzz(uint256 seed1, uint256 seed2) public {
         vm.assume(seed1 != seed2);
         TransferSpec memory spec1 = _createFakeTransferSpec(seed1);
         TransferSpec memory spec2 = _createFakeTransferSpec(seed2);
-        bytes32 spendHash1 = _hashTransferSpec(spec1);
-        bytes32 spendHash2 = _hashTransferSpec(spec2);
+        bytes32 transferSpecHash1 = _hashTransferSpec(spec1);
+        bytes32 transferSpecHash2 = _hashTransferSpec(spec2);
 
-        spendHashes.markSpendHashAsUsed(spendHash1);
-        spendHashes.markSpendHashAsUsed(spendHash2);
+        transferSpecHashes.markTransferSpecHashAsUsed(transferSpecHash1);
+        transferSpecHashes.markTransferSpecHashAsUsed(transferSpecHash2);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, spendHash1));
-        spendHashes.ensureSpendHashNotUsed(spendHash1);
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecHashes.TransferSpecHashUsed.selector, transferSpecHash1));
+        transferSpecHashes.ensureTransferSpecHashNotUsed(transferSpecHash1);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, spendHash2));
-        spendHashes.ensureSpendHashNotUsed(spendHash2);
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecHashes.TransferSpecHashUsed.selector, transferSpecHash2));
+        transferSpecHashes.ensureTransferSpecHashNotUsed(transferSpecHash2);
     }
 
-    function test_spendHashes_persistsStorageAcrossUpgradesFuzz(uint256 seed) public {
+    function test_transferSpecHashes_persistsStorageAcrossUpgradesFuzz(uint256 seed) public {
         // Deploy implementation contracts
-        UpgradeableSpendHashesHarness impl1 = new UpgradeableSpendHashesHarness();
-        UpgradeableSpendHashesHarness impl2 = new UpgradeableSpendHashesHarness();
+        UpgradeableTransferSpecHashesHarness impl1 = new UpgradeableTransferSpecHashesHarness();
+        UpgradeableTransferSpecHashesHarness impl2 = new UpgradeableTransferSpecHashesHarness();
 
         // Deploy proxy directly with impl1 and initialize it
-        address proxyAddr = _deploySpendHashesProxy(address(impl1));
-        UpgradeableSpendHashesHarness proxyAsImpl = UpgradeableSpendHashesHarness(proxyAddr);
+        address proxyAddr = _deployTransferSpecHashesProxy(address(impl1));
+        UpgradeableTransferSpecHashesHarness proxyAsImpl = UpgradeableTransferSpecHashesHarness(proxyAddr);
 
         TransferSpec memory spec = _createFakeTransferSpec(seed);
-        bytes32 spendHash = _hashTransferSpec(spec);
-        proxyAsImpl.markSpendHashAsUsed(spendHash);
+        bytes32 transferSpecHash = _hashTransferSpec(spec);
+        proxyAsImpl.markTransferSpecHashAsUsed(transferSpecHash);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, spendHash));
-        proxyAsImpl.ensureSpendHashNotUsed(spendHash);
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecHashes.TransferSpecHashUsed.selector, transferSpecHash));
+        proxyAsImpl.ensureTransferSpecHashNotUsed(transferSpecHash);
 
         // Upgrade to the second implementation
         proxyAsImpl.upgradeToAndCall(address(impl2), new bytes(0));
 
-        // Check that the spend hash is still marked as used despite the upgrade
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, spendHash));
-        proxyAsImpl.ensureSpendHashNotUsed(spendHash);
+        // Check that the transfer spec hash is still marked as used despite the upgrade
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecHashes.TransferSpecHashUsed.selector, transferSpecHash));
+        proxyAsImpl.ensureTransferSpecHashNotUsed(transferSpecHash);
 
         // Verify that implementation storage is not affected by the upgrade
-        impl1.ensureSpendHashNotUsed(spendHash);
-        impl2.ensureSpendHashNotUsed(spendHash);
+        impl1.ensureTransferSpecHashNotUsed(transferSpecHash);
+        impl2.ensureTransferSpecHashNotUsed(transferSpecHash);
     }
 }

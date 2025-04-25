@@ -28,7 +28,7 @@ import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/Transf
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
 import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
-import {SpendHashes} from "src/modules/common/SpendHashes.sol";
+import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Mints} from "src/modules/minter/Mints.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
@@ -56,10 +56,10 @@ contract MockGatewayWallet {
         address recipient,
         address authorizer,
         uint256 value,
-        bytes32 spendHash
+        bytes32 transferSpecHash
     ) external {
         ERC20(token).transfer(recipient, value);
-        emit Burns.TransferredSpent(token, depositor, spendHash, recipient, authorizer, value, value, 0);
+        emit Burns.TransferredSpent(token, depositor, transferSpecHash, recipient, authorizer, value, value, 0);
     }
 }
 
@@ -536,7 +536,7 @@ contract TestMints is Test, DeployUtils {
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(crossChainBaseAuth.spec));
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, specHash));
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecHashes.TransferSpecHashUsed.selector, specHash));
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 

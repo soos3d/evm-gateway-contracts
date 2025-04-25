@@ -121,24 +121,24 @@ contract TestSameChainSpend is Test, DeployUtils {
     }
 
     function test_sameChainSpend_revertsIfBalanceInsufficient() public {
-        bytes32 spendHash = keccak256(emptyAuthorization);
+        bytes32 transferSpecHash = keccak256(emptyAuthorization);
         vm.prank(depositor);
         wallet.deposit(usdc, spendValue - 1); // Deposit less than spend amount
         vm.expectRevert(Burns.InsufficientBalanceForSameChainSpend.selector);
 
         vm.prank(minterContract);
-        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, spendHash);
+        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
     }
 
     function test_sameChainSpend_succeedsWithSpendableBalanceOnly() public {
-        bytes32 spendHash = keccak256(emptyAuthorization);
+        bytes32 transferSpecHash = keccak256(emptyAuthorization);
         vm.prank(depositor);
         wallet.deposit(usdc, spendValue);
         vm.expectEmit(true, true, true, true);
-        emit Burns.TransferredSpent(usdc, depositor, spendHash, recipient, authorizer, spendValue, spendValue, 0);
+        emit Burns.TransferredSpent(usdc, depositor, transferSpecHash, recipient, authorizer, spendValue, spendValue, 0);
 
         vm.prank(minterContract);
-        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, spendHash);
+        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
         assertEq(FiatTokenV2_2(usdc).balanceOf(recipient), spendValue);
         assertEq(wallet.spendableBalance(usdc, depositor), 0);
         assertEq(wallet.withdrawingBalance(usdc, depositor), 0);
@@ -146,7 +146,7 @@ contract TestSameChainSpend is Test, DeployUtils {
     }
 
     function test_sameChainSpend_succeedsWithWithdrawingBalanceOnly() public {
-        bytes32 spendHash = keccak256(emptyAuthorization);
+        bytes32 transferSpecHash = keccak256(emptyAuthorization);
         vm.startPrank(depositor);
         {
             wallet.deposit(usdc, spendValue);
@@ -154,10 +154,10 @@ contract TestSameChainSpend is Test, DeployUtils {
         }
         vm.stopPrank();
         vm.expectEmit(true, true, true, true);
-        emit Burns.TransferredSpent(usdc, depositor, spendHash, recipient, authorizer, spendValue, 0, spendValue);
+        emit Burns.TransferredSpent(usdc, depositor, transferSpecHash, recipient, authorizer, spendValue, 0, spendValue);
 
         vm.prank(minterContract);
-        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, spendHash);
+        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
         assertEq(FiatTokenV2_2(usdc).balanceOf(recipient), spendValue);
         assertEq(wallet.spendableBalance(usdc, depositor), 0);
         assertEq(wallet.withdrawingBalance(usdc, depositor), 0);
@@ -165,7 +165,7 @@ contract TestSameChainSpend is Test, DeployUtils {
     }
 
     function test_sameChainSpend_succeedsWithBothBalances() public {
-        bytes32 spendHash = keccak256(emptyAuthorization);
+        bytes32 transferSpecHash = keccak256(emptyAuthorization);
         uint256 withdrawingAmount = 10;
         uint256 spendableAmount = spendValue - withdrawingAmount;
 
@@ -178,11 +178,11 @@ contract TestSameChainSpend is Test, DeployUtils {
 
         vm.expectEmit(true, true, true, true);
         emit Burns.TransferredSpent(
-            usdc, depositor, spendHash, recipient, authorizer, spendValue, spendableAmount, withdrawingAmount
+            usdc, depositor, transferSpecHash, recipient, authorizer, spendValue, spendableAmount, withdrawingAmount
         );
 
         vm.prank(minterContract);
-        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, spendHash);
+        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
 
         assertEq(FiatTokenV2_2(usdc).balanceOf(recipient), spendValue);
         assertEq(wallet.spendableBalance(usdc, depositor), 0);

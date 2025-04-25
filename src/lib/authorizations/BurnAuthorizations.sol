@@ -39,7 +39,7 @@ uint16 constant BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
 ///
 /// @dev Magic: `bytes4(keccak256("circle.gateway.BurnAuthorization"))`
 /// @dev The `keccak256` hash of the encoded `TransferSpec` is used as a cross-chain identifier, for both linkability
-///      and replay protection.
+///      and replay protection. See `TransferSpecHashes.sol` for more details.
 ///
 /// @dev Byte encoding (big-endian):
 ///     FIELD                      OFFSET   BYTES   NOTES
