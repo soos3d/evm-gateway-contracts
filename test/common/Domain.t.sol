@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
-import {Domain} from "src/lib/common/Domain.sol";
+import {Domain} from "src/modules/common/Domain.sol";
 
 contract DomainHarness is Domain {
     function initialize(uint32 domain) public initializer {

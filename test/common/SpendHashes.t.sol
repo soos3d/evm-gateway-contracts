@@ -20,7 +20,7 @@ pragma solidity ^0.8.28;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {SpendHashes} from "src/lib/common/SpendHashes.sol";
+import {SpendHashes} from "src/modules/common/SpendHashes.sol";
 import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
 
 contract SpendHashesHarness is SpendHashes {

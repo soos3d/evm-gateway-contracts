@@ -17,10 +17,10 @@
  */
 pragma solidity ^0.8.28;
 
-import {Pausing} from "src/lib/common/Pausing.sol";
-import {Denylistable} from "src/lib/common/Denylistable.sol";
-import {TokenSupport} from "src/lib/common/TokenSupport.sol";
-import {Balances} from "src/lib/wallet/Balances.sol";
+import {Pausing} from "src/modules/common/Pausing.sol";
+import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {TokenSupport} from "src/modules/common/TokenSupport.sol";
+import {Balances} from "src/modules/wallet/Balances.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC7597} from "src/interfaces/IERC7597.sol";

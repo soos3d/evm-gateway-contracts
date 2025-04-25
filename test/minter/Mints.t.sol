@@ -26,16 +26,16 @@ import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/Mi
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
-import {Denylistable} from "src/lib/common/Denylistable.sol";
-import {SpendHashes} from "src/lib/common/SpendHashes.sol";
-import {TokenSupport} from "src/lib/common/TokenSupport.sol";
+import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {SpendHashes} from "src/modules/common/SpendHashes.sol";
+import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
 import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
 import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
-import {Burns} from "src/lib/wallet/Burns.sol";
+import {Burns} from "src/modules/wallet/Burns.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract MockMintableToken is ERC20 {
