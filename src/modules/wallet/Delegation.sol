@@ -17,7 +17,7 @@
  */
 pragma solidity ^0.8.29;
 
-import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
+import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {Denylistable} from "src/modules/common/Denylistable.sol";
 import {Pausing} from "src/modules/common/Pausing.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
@@ -81,7 +81,7 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
         notDenylisted(delegate)
         tokenSupported(token)
     {
-        _checkNotZeroAddress(delegate);
+        AddressLib._checkNotZeroAddress(delegate);
 
         if (delegate == msg.sender) {
             revert CannotDelegateToSelf();
@@ -104,7 +104,7 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
         notDenylisted(msg.sender)
         tokenSupported(token)
     {
-        _checkNotZeroAddress(delegate);
+        AddressLib._checkNotZeroAddress(delegate);
 
         DelegationStorage.Data storage $ = DelegationStorage.get();
         AuthorizationStatus existingStatus = $.authorizedDelegates[token][msg.sender][delegate];

@@ -23,7 +23,7 @@ import {IMintToken} from "src/interfaces/IMintToken.sol";
 import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {_checkNotZeroAddress, _bytes32ToAddress} from "src/lib/util/addresses.sol";
+import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {GatewayCommon} from "src/GatewayCommon.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 
@@ -129,7 +129,7 @@ contract Mints is GatewayCommon {
     /// @param token              The token address to update the mint authority for
     /// @param newMintAuthority   The address to set as the new mint authority
     function updateMintAuthority(address token, address newMintAuthority) external onlyOwner tokenSupported(token) {
-        _checkNotZeroAddress(newMintAuthority);
+        AddressLib._checkNotZeroAddress(newMintAuthority);
 
         MintsStorage.Data storage $ = MintsStorage.get();
         address oldMintAuthority = $.tokenMintAuthorities[token];
@@ -143,7 +143,7 @@ contract Mints is GatewayCommon {
     ///
     /// @param newMintAuthorizationSigner   The new mint authorization signer address
     function updateMintAuthorizationSigner(address newMintAuthorizationSigner) external onlyOwner {
-        _checkNotZeroAddress(newMintAuthorizationSigner);
+        AddressLib._checkNotZeroAddress(newMintAuthorizationSigner);
 
         MintsStorage.Data storage $ = MintsStorage.get();
         address oldMintAuthorizationSigner = $.mintAuthorizationSigner;
@@ -181,9 +181,9 @@ contract Mints is GatewayCommon {
             revert AuthorizationValueMustBePositiveAtIndex(index);
         }
 
-        _ensureNotDenylisted(_bytes32ToAddress(spec.getDestinationRecipient()));
+        _ensureNotDenylisted(AddressLib._bytes32ToAddress(spec.getDestinationRecipient()));
 
-        address destinationCaller = _bytes32ToAddress(spec.getDestinationCaller());
+        address destinationCaller = AddressLib._bytes32ToAddress(spec.getDestinationCaller());
         if (destinationCaller != address(0) && destinationCaller != msg.sender) {
             revert InvalidAuthorizationDestinationCallerAtIndex(index, destinationCaller, msg.sender);
         }
@@ -193,23 +193,23 @@ contract Mints is GatewayCommon {
             revert InvalidAuthorizationDestinationDomainAtIndex(index, destinationDomain, domain());
         }
 
-        address destinationContract = _bytes32ToAddress(spec.getDestinationContract());
+        address destinationContract = AddressLib._bytes32ToAddress(spec.getDestinationContract());
         if (destinationContract != address(this)) {
             revert InvalidAuthorizationDestinationContractAtIndex(index, destinationContract);
         }
 
-        address destinationToken = _bytes32ToAddress(spec.getDestinationToken());
+        address destinationToken = AddressLib._bytes32ToAddress(spec.getDestinationToken());
         _ensureTokenSupported(destinationToken);
 
         uint32 sourceDomain = spec.getSourceDomain();
         if (sourceDomain == destinationDomain) {
             // Same chain spend
-            address sourceContract = _bytes32ToAddress(spec.getSourceContract());
+            address sourceContract = AddressLib._bytes32ToAddress(spec.getSourceContract());
             address walletAddr = _counterpart();
             if (sourceContract != walletAddr) {
                 revert InvalidAuthorizationSourceContractAtIndex(index, sourceContract, walletAddr);
             }
-            address sourceToken = _bytes32ToAddress(spec.getSourceToken());
+            address sourceToken = AddressLib._bytes32ToAddress(spec.getSourceToken());
             if (sourceToken != destinationToken) {
                 revert InvalidAuthorizationTokenAtIndex(index, sourceToken, destinationToken);
             }
@@ -224,17 +224,17 @@ contract Mints is GatewayCommon {
         bytes32 specHash = spec.getHash();
         _checkAndMarkSpendHash(specHash);
 
-        address recipient = _bytes32ToAddress(spec.getDestinationRecipient());
+        address recipient = AddressLib._bytes32ToAddress(spec.getDestinationRecipient());
         uint256 value = spec.getValue();
-        address token = _bytes32ToAddress(spec.getDestinationToken());
+        address token = AddressLib._bytes32ToAddress(spec.getDestinationToken());
         uint32 sourceDomain = spec.getSourceDomain();
         bytes32 depositorBytes = spec.getSourceDepositor();
         bytes32 signerBytes = spec.getSourceSigner();
 
         if (sourceDomain == domain()) {
-            address sourceSigner = _bytes32ToAddress(signerBytes);
+            address sourceSigner = AddressLib._bytes32ToAddress(signerBytes);
             GatewayWallet(_counterpart()).sameChainSpend(
-                token, _bytes32ToAddress(depositorBytes), recipient, sourceSigner, value, specHash
+                token, AddressLib._bytes32ToAddress(depositorBytes), recipient, sourceSigner, value, specHash
             );
         } else {
             address mintAuthority = MintsStorage.get().tokenMintAuthorities[token];

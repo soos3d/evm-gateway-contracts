@@ -20,7 +20,7 @@ pragma solidity ^0.8.29;
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
-import {_addressToBytes32} from "src/lib/util/addresses.sol";
+import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {GatewayMinter} from "src/GatewayMinter.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 import {MasterMinter} from "./../mock_fiattoken/contracts/minting/MasterMinter.sol";
@@ -153,14 +153,14 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
             version: 1,
             sourceDomain: sourceChain.domain,
             destinationDomain: destChain.domain,
-            sourceContract: _addressToBytes32(address(sourceChain.wallet)),
-            destinationContract: _addressToBytes32(address(destChain.minter)),
-            sourceToken: _addressToBytes32(address(sourceChain.usdc)),
-            destinationToken: _addressToBytes32(address(destChain.usdc)),
-            sourceDepositor: _addressToBytes32(depositor_),
-            destinationRecipient: _addressToBytes32(recipient_),
-            sourceSigner: _addressToBytes32(sourceSigner_),
-            destinationCaller: _addressToBytes32(destinationCaller_),
+            sourceContract: AddressLib._addressToBytes32(address(sourceChain.wallet)),
+            destinationContract: AddressLib._addressToBytes32(address(destChain.minter)),
+            sourceToken: AddressLib._addressToBytes32(address(sourceChain.usdc)),
+            destinationToken: AddressLib._addressToBytes32(address(destChain.usdc)),
+            sourceDepositor: AddressLib._addressToBytes32(depositor_),
+            destinationRecipient: AddressLib._addressToBytes32(recipient_),
+            sourceSigner: AddressLib._addressToBytes32(sourceSigner_),
+            destinationCaller: AddressLib._addressToBytes32(destinationCaller_),
             value: amount,
             nonce: keccak256(abi.encode(vm.randomUint())),
             metadata: METADATA

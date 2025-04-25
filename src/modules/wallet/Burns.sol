@@ -26,8 +26,7 @@ import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.so
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
-import {_bytes32ToAddress} from "src/lib/util/addresses.sol";
+import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {Balances} from "src/modules/wallet/Balances.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
 import {GatewayCommon} from "src/GatewayCommon.sol";
@@ -243,7 +242,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
             }
 
             // Ensure that each one we've seen so far is for the same token
-            address _token = _bytes32ToAddress(spec.getSourceToken());
+            address _token = AddressLib._bytes32ToAddress(spec.getSourceToken());
             if (token != address(0)) {
                 if (_token != token) {
                     revert NotAllSameToken();
@@ -272,7 +271,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     ///
     /// @param newBurnSigner   The new burn caller address
     function updateBurnSigner(address newBurnSigner) external onlyOwner {
-        _checkNotZeroAddress(newBurnSigner);
+        AddressLib._checkNotZeroAddress(newBurnSigner);
 
         BurnsStorage.Data storage $ = BurnsStorage.get();
         address oldBurnSigner = $.burnSigner;
@@ -286,7 +285,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     ///
     /// @param newFeeRecipient   The new fee recipient address
     function updateFeeRecipient(address newFeeRecipient) external onlyOwner {
-        _checkNotZeroAddress(newFeeRecipient);
+        AddressLib._checkNotZeroAddress(newFeeRecipient);
 
         BurnsStorage.Data storage $ = BurnsStorage.get();
         address oldFeeRecipient = $.feeRecipient;
@@ -391,7 +390,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
             }
 
             // Ensure that each one we've seen so far is for the same token
-            address _token = _bytes32ToAddress(spec.getSourceToken());
+            address _token = AddressLib._bytes32ToAddress(spec.getSourceToken());
             if (token != address(0)) {
                 if (_token != token) {
                     revert NotAllSameToken();
@@ -470,25 +469,25 @@ contract Burns is GatewayCommon, Balances, Delegation {
         }
 
         // Ensure this is the correct source contract
-        address sourceContract = _bytes32ToAddress(spec.getSourceContract());
+        address sourceContract = AddressLib._bytes32ToAddress(spec.getSourceContract());
         if (sourceContract != address(this)) {
             revert InvalidAuthorizationSourceContractAtIndex(index, sourceContract);
         }
 
         // Ensure that the source token is supported
-        address sourceToken = _bytes32ToAddress(spec.getSourceToken());
+        address sourceToken = AddressLib._bytes32ToAddress(spec.getSourceToken());
         if (!isTokenSupported(sourceToken)) {
             revert UnsupportedTokenAtIndex(index, sourceToken);
         }
 
         // Ensure that the signer of the burn authorization matches what was provided in the TransferSpec
-        address sourceSigner = _bytes32ToAddress(spec.getSourceSigner());
+        address sourceSigner = AddressLib._bytes32ToAddress(spec.getSourceSigner());
         if (sourceSigner != signer) {
             revert InvalidAuthorizationSourceSignerAtIndex(index, sourceSigner, signer);
         }
 
         // Ensure that the signer of the burn authorization is authorized for the balance being burned
-        address sourceDepositor = _bytes32ToAddress(spec.getSourceDepositor());
+        address sourceDepositor = AddressLib._bytes32ToAddress(spec.getSourceDepositor());
         if (!_wasEverAuthorizedForBalance(sourceToken, sourceDepositor, signer)) {
             revert Delegation.NotAuthorized();
         }
@@ -517,8 +516,8 @@ contract Burns is GatewayCommon, Balances, Delegation {
         _checkAndMarkSpendHash(spec.getHash());
 
         // Extract the relevant parameters from the TransferSpec
-        address token = _bytes32ToAddress(spec.getSourceToken());
-        address depositor = _bytes32ToAddress(spec.getSourceDepositor());
+        address token = AddressLib._bytes32ToAddress(spec.getSourceToken());
+        address depositor = AddressLib._bytes32ToAddress(spec.getSourceDepositor());
         uint256 value = spec.getValue();
 
         // Reduce the balances of the depositor by amount being burned + the fee, returning the overall amounts that were drawn from each balance type
