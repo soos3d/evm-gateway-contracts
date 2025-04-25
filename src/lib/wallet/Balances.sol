@@ -33,14 +33,16 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
         Withdrawable
     }
 
+    error NoWithdrawingBalance();
+
     /// The total balance of a depositor for a token. This will always be equal to the sum of `spendableBalance` and
     /// `withdrawingBalance`.
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
     function totalBalance(address token, address depositor) public view returns (uint256) {
-        BalancesStorage.Data storage balances$ = BalancesStorage.get();
-        return balances$.spendableBalances[token][depositor] + balances$.withdrawingBalances[token][depositor];
+        BalancesStorage.Data storage $ = BalancesStorage.get();
+        return $.spendableBalances[token][depositor] + $.withdrawingBalances[token][depositor];
     }
 
     /// The balance that is spendable by the depositor, subject to deposits having been observed by the API in a
@@ -141,6 +143,97 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
         }
 
         return batchBalances;
+    }
+
+    /**
+     * @notice Increases a depositor's spendable balance by a specified value
+     * @param token The address of the token whose balance is being increased.
+     * @param depositor The address of the account whose balance is being increased.
+     * @param value The amount to be added.
+     */
+    function _increaseSpendableBalance(address token, address depositor, uint256 value) internal {
+        BalancesStorage.get().spendableBalances[token][depositor] += value;
+    }
+
+    /**
+     * @notice Moves a specified value from a depositor's spendable balance to their withdrawing balance
+     * @param token The address of the token whose balance is being moved.
+     * @param depositor The address of the account whose balance is being moved.
+     * @param value The amount to be moved.
+     * @return remainingSpendable The remaining spendable balance after the move.
+     * @return totalWithdrawing The total withdrawing balance after the move.
+     */
+    function _moveBalanceToWithdrawing(address token, address depositor, uint256 value)
+        internal
+        returns (uint256 remainingSpendable, uint256 totalWithdrawing)
+    {
+        BalancesStorage.Data storage $ = BalancesStorage.get();
+
+        $.spendableBalances[token][depositor] -= value;
+        $.withdrawingBalances[token][depositor] += value;
+
+        return ($.spendableBalances[token][depositor], $.withdrawingBalances[token][depositor]);
+    }
+
+    /**
+     * @notice Decreases a depositor's withdrawing balance to zero, returning what it was beforehand.
+     * @dev Reverts if the withdrawing balance is already zero.
+     * @param token The address of the token whose balance is being withdrawn.
+     * @param depositor The address of the account whose balance is being withdrawn.
+     * @return withdrawn The amount that was withdrawn.
+     */
+    function _emptyWithdrawingBalance(address token, address depositor) internal returns (uint256 withdrawn) {
+        BalancesStorage.Data storage $ = BalancesStorage.get();
+
+        uint256 balanceToWithdraw = $.withdrawingBalances[token][depositor];
+        if (balanceToWithdraw == 0) {
+            revert NoWithdrawingBalance();
+        }
+
+        $.withdrawingBalances[token][depositor] = 0;
+
+        return balanceToWithdraw;
+    }
+
+    /**
+     * @notice Reduces a depositor's balances by a specified value, prioritizing the spendable balance.
+     * @param token The address of the token whose balance is being reduced.
+     * @param depositor The address of the account whose balance is being reduced.
+     * @param value The total amount to be deducted.
+     * @return fromSpendable The amount deducted from the `spendable` balance.
+     * @return fromWithdrawing The amount deducted from the `withdrawing` balance.
+     */
+    function _reduceBalance(address token, address depositor, uint256 value)
+        internal
+        returns (uint256 fromSpendable, uint256 fromWithdrawing)
+    {
+        BalancesStorage.Data storage $ = BalancesStorage.get();
+
+        uint256 spendable = $.spendableBalances[token][depositor];
+        uint256 needed = value;
+
+        // If there is enough in the spendable balance, deduct from it and return
+        if (spendable >= needed) {
+            $.spendableBalances[token][depositor] -= needed;
+            return (needed, 0);
+        }
+
+        // Otherwise, take it all and continue for the rest
+        $.spendableBalances[token][depositor] = 0;
+        needed -= spendable;
+
+        uint256 withdrawing = $.withdrawingBalances[token][depositor];
+
+        // If there is enough in the withdrawing balance, deduct from it and return
+        if (withdrawing >= needed) {
+            $.withdrawingBalances[token][depositor] -= needed;
+            return (spendable, needed);
+        }
+
+        // Otherwise, take it all
+        $.withdrawingBalances[token][depositor] = 0;
+
+        return (spendable, withdrawing);
     }
 }
 

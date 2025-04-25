@@ -94,10 +94,10 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
     {
         _checkNotZeroAddress(delegate);
 
-        DelegationStorage.Data storage delegation$ = DelegationStorage.get();
-        AuthorizationStatus existingStatus = delegation$.authorizedDelegates[token][msg.sender][delegate];
+        DelegationStorage.Data storage $ = DelegationStorage.get();
+        AuthorizationStatus existingStatus = $.authorizedDelegates[token][msg.sender][delegate];
 
-        // If the address has never been authorized, take no action
+        // If the address has never been authorized or is already revoked, take no action
         if (existingStatus == AuthorizationStatus.Unauthorized || existingStatus == AuthorizationStatus.Revoked) {
             return;
         }
@@ -106,7 +106,7 @@ contract Delegation is Pausing, Denylistable, TokenSupport {
         // purpose of issuing mint authorizations, but the wallet contract will allow burn authorizations signed by
         // revoked delegates in order to prevent a front-running attack where an authorization is revoked before the
         // burn has a chance to happen.
-        delegation$.authorizedDelegates[token][msg.sender][delegate] = AuthorizationStatus.Revoked;
+        $.authorizedDelegates[token][msg.sender][delegate] = AuthorizationStatus.Revoked;
 
         emit DelegateRemoved(token, msg.sender, delegate);
     }

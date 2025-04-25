@@ -20,7 +20,7 @@ pragma solidity ^0.8.28;
 import {Pausing} from "src/lib/common/Pausing.sol";
 import {Denylistable} from "src/lib/common/Denylistable.sol";
 import {TokenSupport} from "src/lib/common/TokenSupport.sol";
-import {Balances, BalancesStorage} from "src/lib/wallet/Balances.sol";
+import {Balances} from "src/lib/wallet/Balances.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC7597} from "src/interfaces/IERC7597.sol";
@@ -58,7 +58,7 @@ contract Deposits is Pausing, Denylistable, TokenSupport, Balances {
             revert DepositValueMustBePositive();
         }
 
-        BalancesStorage.get().spendableBalances[token][msg.sender] += value;
+        _increaseSpendableBalance(token, msg.sender, value);
 
         IERC20(token).safeTransferFrom(msg.sender, address(this), value);
 
@@ -126,7 +126,7 @@ contract Deposits is Pausing, Denylistable, TokenSupport, Balances {
             revert DepositValueMustBePositive();
         }
 
-        BalancesStorage.get().spendableBalances[token][owner] += value;
+        _increaseSpendableBalance(token, owner, value);
 
         IERC7597(token).permit(owner, address(this), value, deadline, signature);
         IERC20(token).safeTransferFrom(owner, address(this), value);
@@ -211,7 +211,7 @@ contract Deposits is Pausing, Denylistable, TokenSupport, Balances {
             revert DepositValueMustBePositive();
         }
 
-        BalancesStorage.get().spendableBalances[token][from] += value;
+        _increaseSpendableBalance(token, from, value);
 
         IERC7598(token).receiveWithAuthorization(from, address(this), value, validAfter, validBefore, nonce, signature);
 
