@@ -66,8 +66,8 @@ contract Burns is GatewayCommon, Balances, Delegation {
         uint256 fromWithdrawing
     );
 
-    /// Emitted when a spend authorization is used on the same chain as its source, resulting in a same-chain spend that
-    /// transfers funds to the recipient instead of minting and burning them
+    /// Emitted when a mint authorization is used on the same chain as its source, resulting in a transfer of the funds
+    /// to the recipient instead of a mint
     ///
     /// @param token             The token that was spent
     /// @param depositor         The depositor who owned the spent balance
@@ -164,18 +164,18 @@ contract Burns is GatewayCommon, Balances, Delegation {
         }
     }
 
-    /// @notice Transfers funds between accounts on the same chain after a spend authorization
+    /// @notice Transfers funds between accounts on the same chain after a mint authorization
     /// @dev The caller must be the `minterContract`
     /// @dev Source and destination domains must match this contract's domain (enforced by `minterContract`)
     /// @dev No fee is charged for same-chain transfers
-    /// @dev See {SpendAuthorization} for authorization encoding details
+    /// @dev See `MintAuthorizations.sol` for authorization encoding details
     /// @param token The token being transferred
     /// @param depositor The owner of the funds in the wallet
-    /// @param transferSpecHash The keccak256 hash of the SpendSpec
+    /// @param transferSpecHash The keccak256 hash of the TransferSpec
     /// @param recipient The recipient of the transfer
-    /// @param signer The address that authorized the spend
+    /// @param signer The address that authorized the transfer
     /// @param value The transfer amount
-    function sameChainSpend(
+    function gatewayTransfer(
         address token,
         address depositor,
         address recipient,
@@ -191,7 +191,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
         notDenylisted(signer)
         authorizedForBalance(token, depositor, signer)
     {
-        _sameChainSpend(token, depositor, recipient, signer, value, transferSpecHash);
+        _gatewayTransfer(token, depositor, recipient, signer, value, transferSpecHash);
     }
 
     /// Returns the byte encoding of a single burn authorization
@@ -553,8 +553,8 @@ contract Burns is GatewayCommon, Balances, Delegation {
         return (deductedAmount, actualFeeCharged);
     }
 
-    /// Internal implementation of `sameChainSpend`
-    function _sameChainSpend(
+    /// Internal implementation of `gatewayTransfer`
+    function _gatewayTransfer(
         address token,
         address depositor,
         address recipient,

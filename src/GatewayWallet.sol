@@ -40,7 +40,7 @@ import {GatewayMinter} from "src/GatewayMinter.sol";
 ///
 /// @notice To withdraw funds on the same chain, the user may request an authorization from the API just like any other
 /// mint authorization. If the source and destination domains of the mint authorization are the same, the minter
-/// contract will call `sameChainSpend` on this contract to transfer the funds to the recipient instead of minting. No
+/// contract will call `gatewayTransfer` on this contract to transfer the funds to the recipient instead of minting. No
 /// fee is charged for these transfers.
 ///
 /// @notice To ensure funds are withdrawable even if the API is unavailable, users may withdraw permissionlessly using a

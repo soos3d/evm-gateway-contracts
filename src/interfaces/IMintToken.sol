@@ -19,7 +19,7 @@ pragma solidity ^0.8.29;
 
 /// @title IMintToken
 ///
-/// Used interact with a token that supports minting
+/// Used interact with a token that supports minting or a mint authority with the same interface
 interface IMintToken {
     /// Mints fiat tokens to an address
     ///

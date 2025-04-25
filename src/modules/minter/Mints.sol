@@ -29,23 +29,23 @@ import {GatewayWallet} from "src/GatewayWallet.sol";
 
 /// @title Mints
 ///
-/// Manages mints for the GatewayMinter module
+/// Manages mints for the GatewayMinter contract
 contract Mints is GatewayCommon {
     using TransferSpecLib for bytes29;
     using MintAuthorizationLib for bytes29;
     using MintAuthorizationLib for AuthorizationCursor;
     using MessageHashUtils for bytes32;
 
-    /// Emitted when the a spend authorization is used
+    /// Emitted when a mint authorization is used
     ///
     /// @param token              The token that was spent
     /// @param recipient          The recipient of the funds
-    /// @param transferSpecHash   The keccak256 hash of the `TransferSpec`
+    /// @param transferSpecHash   The `keccak256` hash of the `TransferSpec`, shared with the burn authorization
     /// @param sourceDomain       The domain the funds came from
     /// @param sourceDepositor    The depositor on the source domain
     /// @param sourceSigner       The signer that authorized the transfer
-    /// @param value              The amount that was minted/transferred
-    event Spent(
+    /// @param value              The amount that was minted or transferred
+    event MintAuthorizationUsed(
         address indexed token,
         address indexed recipient,
         bytes32 indexed transferSpecHash,
@@ -62,67 +62,115 @@ contract Mints is GatewayCommon {
     /// @param newMintAuthority   The new mint authority address
     event MintAuthorityUpdated(address token, address oldMintAuthority, address newMintAuthority);
 
-    /// Emitted when the mintAuthorizationSigner role is updated
+    /// Emitted when the `mintAuthorizationSigner` role is updated
     ///
     /// @param oldMintAuthorizationSigner   The previous mint authorization signer address
     /// @param newMintAuthorizationSigner   The new mint authorization signer address
     event MintAuthorizationSignerUpdated(address oldMintAuthorizationSigner, address newMintAuthorizationSigner);
 
+    /// Thrown when a mint authorization was not signed by the right address
     error InvalidMintAuthorizationSigner();
-    error MustHaveAtLeastOneMintAuthorization();
-    error AuthorizationValueMustBePositiveAtIndex(uint32 index);
-    error AuthorizationExpiredAtIndex(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
-    error InvalidAuthorizationDestinationDomainAtIndex(
-        uint32 index, uint32 expectedDestinationDomain, uint32 actualDomain
-    );
-    error InvalidAuthorizationDestinationContractAtIndex(uint32 index, address expectedDestinationContract);
-    error InvalidAuthorizationSourceContractAtIndex(
-        uint32 index, address sourceContract, address expectedSourceContract
-    );
-    error InvalidAuthorizationTokenAtIndex(uint32 index, address sourceToken, address destinationToken);
-    error InvalidAuthorizationDestinationCallerAtIndex(
-        uint32 index, address expectedDestinationCaller, address actualCaller
-    );
 
-    /// Spend funds via a signed spend authorization from the operator. Accepts either a single encoded
-    /// `SpendAuthorization` or an encoded set of them. Emits an event containing the keccak256 hash of the encoded
-    /// `SpendSpec` (which is the same for the burn), to be used as a cross-chain identifier.
+    /// Thrown when a mint authorization set is empty
+    error MustHaveAtLeastOneMintAuthorization();
+
+    /// Thrown when a mint authorization's value is zero
     ///
-    /// @param authorization   The byte-encoded spend authorization(s)
-    /// @param signature       The signature from the operator
-    function spend(bytes memory authorization, bytes memory signature)
+    /// @param index   The index of the mint authorization with the issue
+    error AuthorizationValueMustBePositiveAtIndex(uint32 index);
+
+    /// Thrown when a mint authorization is expired
+    ///
+    /// @param index            The index of the mint authorization with the issue
+    /// @param maxBlockHeight   The mint authorization's expiration block height
+    /// @param currentBlock     The current block height
+    error AuthorizationExpiredAtIndex(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
+
+    /// Thrown when a mint authorization has a destination domain that does not match the one for this contract
+    ///
+    /// @param index          The index of the mint authorization with the issue
+    /// @param authDomain     The destination domain from the mint authorization
+    /// @param expectedDomain   The domain of this contract
+    error InvalidAuthorizationDestinationDomainAtIndex(uint32 index, uint32 authDomain, uint32 expectedDomain);
+
+    /// Thrown when a mint authorization has the wrong destination contract
+    ///
+    /// @param index              The index of the mint authorization with the issue
+    /// @param authContract       The destination contract from the mint authorization
+    /// @param expectedContract   The address of this contract
+    error InvalidAuthorizationDestinationContractAtIndex(uint32 index, address authContract, address expectedContract);
+
+    /// Thrown when a mint authorization is for the same domain as the source but has a source contract that does not
+    /// match the address of the wallet contract on the same domain
+    ///
+    /// @param index              The index of the mint authorization with the issue
+    /// @param authContract       The source contract from the mint authorization
+    /// @param expectedContract   The address of the wallet contract on the same domain
+    error InvalidAuthorizationSourceContractAtIndex(uint32 index, address authContract, address expectedContract);
+
+    /// Thrown when a mint authorization is for the same domain as the source but has a source token that does not
+    /// match the destination token
+    ///
+    /// @param index              The index of the mint authorization with the issue
+    /// @param sourceToken        The source token
+    /// @param destinationToken   The destination token
+    error InvalidAuthorizationTokenAtIndex(uint32 index, address sourceToken, address destinationToken);
+
+    /// Thrown when a mint authorization has a non-zero destination caller but was used by a different caller
+    ///
+    /// @param index          The index of the mint authorization with the issue
+    /// @param authCaller     The destination caller from the mint authorization
+    /// @param actualCaller   The caller that used the mint authorization
+    error InvalidAuthorizationDestinationCallerAtIndex(uint32 index, address authCaller, address actualCaller);
+
+    /// Mint funds (or transfer them from the wallet contract if on the same domain) via a signed mint authorization.
+    /// Accepts either a single encoded `MintAuthorization` or several in an encoded `MintAuthorizationSet`. Emits an
+    /// event containing the `keccak256` hash of the encoded `TransferSpec` (which is the same for the corresponding
+    /// burn that will happen on the source domain), to be used as a cross-chain identifier and for replay protection.
+    ///
+    /// @param authorization   The byte-encoded mint authorization(s)
+    /// @param signature       The signature of the `mintAuthorizationSigner` on the `authorization`
+    function gatewayMint(bytes memory authorization, bytes memory signature)
         external
         whenNotPaused
         notDenylisted(msg.sender)
     {
-        _validateMintAuthorizationSignature(authorization, signature);
+        // Verify that the payload was signed by the expected signer
+        _verifyMintAuthorizationSignature(authorization, signature);
+
+        // Validate the mint authorization(s) and get an iteration cursor
         AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(authorization);
 
+        // Ensure there is at least one mint authorization
         if (cursor.numAuths == 0) {
             revert MustHaveAtLeastOneMintAuthorization();
         }
 
+        // Iterate over the mint authorizations, validating and processing each one
         bytes29 auth;
         while (!cursor.done) {
             auth = cursor.next();
             _validateMintAuthorization(auth, cursor.index - 1);
-            _spend(auth.getTransferSpec());
+            _mintOrTransfer(auth.getTransferSpec());
         }
     }
 
-    /// Returns the mint authorization signer that is recognized by the contract
+    /// The mint authorization signer that is recognized by the contract
+    ///
+    /// @return   The mint authorization signer address
     function mintAuthorizationSigner() public view returns (address) {
         return MintsStorage.get().mintAuthorizationSigner;
     }
 
-    /// Returns the mint authority for a token
+    /// The mint authority for a token
     ///
     /// @param token   The token to check
+    /// @return        The token's mint authority
     function tokenMintAuthority(address token) public view returns (address) {
         return MintsStorage.get().tokenMintAuthorities[token];
     }
 
-    /// Updates the mint authority for a token.
+    /// Updates the mint authority for a token
     ///
     /// @dev May only be called by the `owner` role
     ///
@@ -137,7 +185,7 @@ contract Mints is GatewayCommon {
         emit MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
     }
 
-    /// Sets the operator address that may sign mint authorizations
+    /// Sets the address that may sign mint authorizations
     ///
     /// @dev May only be called by the `owner` role
     ///
@@ -151,64 +199,78 @@ contract Mints is GatewayCommon {
         emit MintAuthorizationSignerUpdated(oldMintAuthorizationSigner, newMintAuthorizationSigner);
     }
 
-    /// @notice Validates the signature for a (set of) mint authorization(s).
-    /// @dev Recovers the signer from the signature and compares it to the `mintAuthorizationSigner`.
-    /// @param authorization The byte-encoded mint authorization(s).
-    /// @param signature The signature from the operator on the `authorization`.
-    function _validateMintAuthorizationSignature(bytes memory authorization, bytes memory signature) internal view {
-        bytes32 authorizationsHash = keccak256(authorization);
-        address recoveredSigner = ECDSA.recover(authorizationsHash.toEthSignedMessageHash(), signature);
+    /// Verifies the signature for a (set of) mint authorization(s)
+    ///
+    /// @dev Recovers the signer from the signature and compares it to the `mintAuthorizationSigner`
+    ///
+    /// @param authorization   The byte-encoded mint authorization(s)
+    /// @param signature       The signature on the `authorization` to verify
+    function _verifyMintAuthorizationSignature(bytes memory authorization, bytes memory signature) internal view {
+        address recoveredSigner = ECDSA.recover(keccak256(authorization).toEthSignedMessageHash(), signature);
         if (recoveredSigner != MintsStorage.get().mintAuthorizationSigner) {
             revert InvalidMintAuthorizationSigner();
         }
     }
 
-    /// @notice Validates a single mint authorization.
+    /// Validates a single mint authorization
+    ///
     /// @dev Checks expiration, value, recipient denylist status, destination caller, destination domain, destination
-    /// contract, and (for same-chain spends) source contract and token consistency.
-    /// @param auth A reference to the byte-encoded mint authorization.
-    /// @param index The index of the authorization within the batch (used for error reporting).
+    ///      contract, and (when the domains match) source contract and token consistency
+    ///
+    /// @param auth    A `TypedMemView` reference to the byte-encoded mint authorization
+    /// @param index   The index of the mint authorization within the batch (used for error reporting)
     function _validateMintAuthorization(bytes29 auth, uint32 index) internal view {
+        // Ensure the mint authorization is not expired
         uint256 maxBlockHeight = auth.getMaxBlockHeight();
         if (maxBlockHeight < block.number) {
             revert AuthorizationExpiredAtIndex(index, maxBlockHeight, block.number);
         }
 
+        // Extract the `TransferSpec`
         bytes29 spec = auth.getTransferSpec();
 
+        // Ensure the value is nonzero
         uint256 value = spec.getValue();
         if (value == 0) {
             revert AuthorizationValueMustBePositiveAtIndex(index);
         }
 
+        // Ensure the intended recipient is not denylisted
         _ensureNotDenylisted(AddressLib._bytes32ToAddress(spec.getDestinationRecipient()));
 
+        // Ensure the caller is the specified destination caller (if any)
         address destinationCaller = AddressLib._bytes32ToAddress(spec.getDestinationCaller());
         if (destinationCaller != address(0) && destinationCaller != msg.sender) {
             revert InvalidAuthorizationDestinationCallerAtIndex(index, destinationCaller, msg.sender);
         }
 
+        // Ensure the mint authorization is for the current domain
         uint32 destinationDomain = spec.getDestinationDomain();
         if (!_isCurrentDomain(destinationDomain)) {
             revert InvalidAuthorizationDestinationDomainAtIndex(index, destinationDomain, domain());
         }
 
+        // Ensure the mint authorization is for this minter contract
         address destinationContract = AddressLib._bytes32ToAddress(spec.getDestinationContract());
         if (destinationContract != address(this)) {
-            revert InvalidAuthorizationDestinationContractAtIndex(index, destinationContract);
+            revert InvalidAuthorizationDestinationContractAtIndex(index, destinationContract, address(this));
         }
 
+        // Ensure the destination token is supported
         address destinationToken = AddressLib._bytes32ToAddress(spec.getDestinationToken());
         _ensureTokenSupported(destinationToken);
 
+        // If the source and destinations match, perform additional validations
         uint32 sourceDomain = spec.getSourceDomain();
         if (sourceDomain == destinationDomain) {
-            // Same chain spend
+            // Ensure the source contract is the wallet contract on the same domain
             address sourceContract = AddressLib._bytes32ToAddress(spec.getSourceContract());
             address walletAddr = _counterpart();
             if (sourceContract != walletAddr) {
                 revert InvalidAuthorizationSourceContractAtIndex(index, sourceContract, walletAddr);
             }
+
+            // Ensure the source and destination tokens are the same
             address sourceToken = AddressLib._bytes32ToAddress(spec.getSourceToken());
             if (sourceToken != destinationToken) {
                 revert InvalidAuthorizationTokenAtIndex(index, sourceToken, destinationToken);
@@ -216,14 +278,17 @@ contract Mints is GatewayCommon {
         }
     }
 
-    /// @notice Executes a single spend based on the provided transfer specification.
-    /// @dev Marks the transfer spec hash as used. For same-chain spends, calls `sameChainSpend` on the wallet counterpart contract.
-    /// For cross-chain spends, mints tokens using the appropriate mint authority. Emits a `Spent` event.
-    /// @param spec A reference to the `TransferSpec` defining the spend details.
-    function _spend(bytes29 spec) internal {
+    /// Processes a single mint authorization according to its `TransferSpec`. If the source and destination domains
+    /// match, calls `gatewayTransfer` on the wallet contract to transfer the funds directly to the recipient. Otherwise,
+    /// mints tokens using the appropriate mint authority. Marks the transfer spec hash as used for replay protection
+    ///
+    /// @param spec   A `TypedMemView` reference to the `TransferSpec` from the mint authorization
+    function _mintOrTransfer(bytes29 spec) internal {
+        // Check for replay and mark this transfer spec hash as used
         bytes32 specHash = spec.getHash();
         _checkAndMarkTransferSpecHash(specHash);
 
+        // Extract the relevant fields from the `TransferSpec`
         address recipient = AddressLib._bytes32ToAddress(spec.getDestinationRecipient());
         uint256 value = spec.getValue();
         address token = AddressLib._bytes32ToAddress(spec.getDestinationToken());
@@ -231,10 +296,16 @@ contract Mints is GatewayCommon {
         bytes32 depositorBytes = spec.getSourceDepositor();
         bytes32 signerBytes = spec.getSourceSigner();
 
+        // If the source and destination domains match, call `gatewayTransfer` on the wallet contract. Otherwise, mint
+        // to the recipient using the appropriate mint authority
         if (sourceDomain == domain()) {
-            address sourceSigner = AddressLib._bytes32ToAddress(signerBytes);
-            GatewayWallet(_counterpart()).sameChainSpend(
-                token, AddressLib._bytes32ToAddress(depositorBytes), recipient, sourceSigner, value, specHash
+            GatewayWallet(_counterpart()).gatewayTransfer(
+                token,
+                AddressLib._bytes32ToAddress(depositorBytes),
+                recipient,
+                AddressLib._bytes32ToAddress(signerBytes),
+                value,
+                specHash
             );
         } else {
             address mintAuthority = MintsStorage.get().tokenMintAuthorities[token];
@@ -242,7 +313,8 @@ contract Mints is GatewayCommon {
             IMintToken(minter).mint(recipient, value);
         }
 
-        emit Spent(token, recipient, specHash, sourceDomain, depositorBytes, signerBytes, value);
+        // Emit an event with the mint authorization details
+        emit MintAuthorizationUsed(token, recipient, specHash, sourceDomain, depositorBytes, signerBytes, value);
     }
 }
 

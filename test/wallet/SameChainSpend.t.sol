@@ -67,70 +67,70 @@ contract TestSameChainSpend is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    function test_sameChainSpend_revertsWhenPaused() public {
+    function test_gatewayTransfer_revertsWhenPaused() public {
         vm.prank(pauser);
         wallet.pause();
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
 
         vm.prank(minterContract);
-        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, keccak256(emptyAuthorization));
+        wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, keccak256(emptyAuthorization));
     }
 
-    function test_sameChainSpend_revertsWhenCallerIsNotCounterpart() public {
+    function test_gatewayTransfer_revertsWhenCallerIsNotCounterpart() public {
         address randomCaller = makeAddr("randomCaller");
         vm.expectRevert(abi.encodeWithSelector(Counterpart.UnauthorizedCounterpart.selector, address(randomCaller)));
 
         vm.prank(randomCaller);
-        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, keccak256(emptyAuthorization));
+        wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, keccak256(emptyAuthorization));
     }
 
-    function test_sameChainSpend_revertsWhenTokenNotSupported() public {
+    function test_gatewayTransfer_revertsWhenTokenNotSupported() public {
         address unsupportedToken = makeAddr("unsupportedToken");
         vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
 
         vm.prank(minterContract);
-        wallet.sameChainSpend(
+        wallet.gatewayTransfer(
             unsupportedToken, depositor, recipient, authorizer, spendValue, keccak256(emptyAuthorization)
         );
     }
 
-    function test_sameChainSpend_revertsWhenDepositorIsDenylisted() public {
+    function test_gatewayTransfer_revertsWhenDepositorIsDenylisted() public {
         vm.prank(denylister);
         wallet.denylist(depositor);
         vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, depositor));
 
         vm.prank(minterContract);
-        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, keccak256(emptyAuthorization));
+        wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, keccak256(emptyAuthorization));
     }
 
-    function test_sameChainSpend_revertsWhenAuthorizerIsDenylisted() public {
+    function test_gatewayTransfer_revertsWhenAuthorizerIsDenylisted() public {
         vm.prank(denylister);
         wallet.denylist(authorizer);
         vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, authorizer));
 
         vm.prank(minterContract);
-        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, keccak256(emptyAuthorization));
+        wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, keccak256(emptyAuthorization));
     }
 
-    function test_sameChainSpend_revertsWhenAuthorizerIsNotDelegate() public {
+    function test_gatewayTransfer_revertsWhenAuthorizerIsNotDelegate() public {
         address notDelegate = makeAddr("notDelegate");
         vm.expectRevert(Delegation.NotAuthorized.selector);
 
         vm.prank(minterContract);
-        wallet.sameChainSpend(usdc, depositor, recipient, notDelegate, spendValue, keccak256(emptyAuthorization));
+        wallet.gatewayTransfer(usdc, depositor, recipient, notDelegate, spendValue, keccak256(emptyAuthorization));
     }
 
-    function test_sameChainSpend_revertsIfBalanceInsufficient() public {
+    function test_gatewayTransfer_revertsIfBalanceInsufficient() public {
         bytes32 transferSpecHash = keccak256(emptyAuthorization);
         vm.prank(depositor);
         wallet.deposit(usdc, spendValue - 1); // Deposit less than spend amount
         vm.expectRevert(Burns.InsufficientBalanceForSameChainSpend.selector);
 
         vm.prank(minterContract);
-        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
+        wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
     }
 
-    function test_sameChainSpend_succeedsWithSpendableBalanceOnly() public {
+    function test_gatewayTransfer_succeedsWithSpendableBalanceOnly() public {
         bytes32 transferSpecHash = keccak256(emptyAuthorization);
         vm.prank(depositor);
         wallet.deposit(usdc, spendValue);
@@ -138,14 +138,14 @@ contract TestSameChainSpend is Test, DeployUtils {
         emit Burns.TransferredSpent(usdc, depositor, transferSpecHash, recipient, authorizer, spendValue, spendValue, 0);
 
         vm.prank(minterContract);
-        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
+        wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
         assertEq(FiatTokenV2_2(usdc).balanceOf(recipient), spendValue);
         assertEq(wallet.spendableBalance(usdc, depositor), 0);
         assertEq(wallet.withdrawingBalance(usdc, depositor), 0);
         assertEq(wallet.totalBalance(usdc, depositor), 0);
     }
 
-    function test_sameChainSpend_succeedsWithWithdrawingBalanceOnly() public {
+    function test_gatewayTransfer_succeedsWithWithdrawingBalanceOnly() public {
         bytes32 transferSpecHash = keccak256(emptyAuthorization);
         vm.startPrank(depositor);
         {
@@ -157,14 +157,14 @@ contract TestSameChainSpend is Test, DeployUtils {
         emit Burns.TransferredSpent(usdc, depositor, transferSpecHash, recipient, authorizer, spendValue, 0, spendValue);
 
         vm.prank(minterContract);
-        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
+        wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
         assertEq(FiatTokenV2_2(usdc).balanceOf(recipient), spendValue);
         assertEq(wallet.spendableBalance(usdc, depositor), 0);
         assertEq(wallet.withdrawingBalance(usdc, depositor), 0);
         assertEq(wallet.totalBalance(usdc, depositor), 0);
     }
 
-    function test_sameChainSpend_succeedsWithBothBalances() public {
+    function test_gatewayTransfer_succeedsWithBothBalances() public {
         bytes32 transferSpecHash = keccak256(emptyAuthorization);
         uint256 withdrawingAmount = 10;
         uint256 spendableAmount = spendValue - withdrawingAmount;
@@ -182,7 +182,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         );
 
         vm.prank(minterContract);
-        wallet.sameChainSpend(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
+        wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
 
         assertEq(FiatTokenV2_2(usdc).balanceOf(recipient), spendValue);
         assertEq(wallet.spendableBalance(usdc, depositor), 0);

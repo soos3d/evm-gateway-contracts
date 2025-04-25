@@ -253,7 +253,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
 
         // Execute mint operation
         vm.prank(destinationCaller);
-        chain.minter.spend(encodedMintAuth, mintSignature);
+        chain.minter.gatewayMint(encodedMintAuth, mintSignature);
 
         // Verify state after mint
         assertEq(
