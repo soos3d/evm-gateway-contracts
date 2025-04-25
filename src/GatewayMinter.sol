@@ -18,7 +18,7 @@
 pragma solidity ^0.8.29;
 
 import {Mints} from "src/modules/minter/Mints.sol";
-import {SpendCommon} from "src/SpendCommon.sol";
+import {GatewayCommon} from "src/GatewayCommon.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 
 /// @title Gateway Minter
@@ -26,7 +26,7 @@ import {GatewayWallet} from "src/GatewayWallet.sol";
 /// This contract allows the spending of funds from the GatewayWallet contract, either on the same chain or on a different
 /// chain. Spending requires a signed authorization from the operator. See the documentation for the GatewayWallet
 /// contract for more details.
-contract GatewayMinter is SpendCommon, Mints {
+contract GatewayMinter is GatewayCommon, Mints {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         // Ensure that the implementation contract cannot be initialized, only the proxy
@@ -38,7 +38,7 @@ contract GatewayMinter is SpendCommon, Mints {
     /// @param wallet   The address of the wallet contract on the same chain
     /// @param domain   The operator-issued identifier for this chain
     function initialize(address wallet, uint32 domain) external reinitializer(2) {
-        __SpendCommon_init(wallet, domain);
+        __GatewayCommon_init(wallet, domain);
     }
 
     /// The address of the corresponding wallet contract on the same domain

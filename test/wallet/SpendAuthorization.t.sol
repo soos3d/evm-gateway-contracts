@@ -22,7 +22,7 @@ import {Test} from "forge-std/Test.sol";
 import {Denylistable} from "src/modules/common/Denylistable.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
-import {SpendCommon} from "src/SpendCommon.sol";
+import {GatewayCommon} from "src/GatewayCommon.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
@@ -120,7 +120,7 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         address delegate = address(0);
 
         vm.startPrank(owner);
-        vm.expectRevert(abi.encodeWithSelector(SpendCommon.InvalidAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(GatewayCommon.InvalidAddress.selector));
         wallet.addDelegate(usdc, delegate);
         vm.stopPrank();
     }
@@ -209,7 +209,7 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         address delegate = address(0);
 
         vm.startPrank(owner);
-        vm.expectRevert(abi.encodeWithSelector(SpendCommon.InvalidAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(GatewayCommon.InvalidAddress.selector));
         wallet.removeDelegate(usdc, delegate);
         vm.stopPrank();
     }

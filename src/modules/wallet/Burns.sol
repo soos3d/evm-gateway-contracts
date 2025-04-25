@@ -30,12 +30,12 @@ import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
 import {_bytes32ToAddress} from "src/lib/util/addresses.sol";
 import {Balances} from "src/modules/wallet/Balances.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
-import {SpendCommon} from "src/SpendCommon.sol";
+import {GatewayCommon} from "src/GatewayCommon.sol";
 
 /// @title Burns
 ///
 /// Manages burns for the GatewayWallet contract
-contract Burns is SpendCommon, Balances, Delegation {
+contract Burns is GatewayCommon, Balances, Delegation {
     using TransferSpecLib for bytes29;
     using BurnAuthorizationLib for bytes29;
     using BurnAuthorizationLib for AuthorizationCursor;

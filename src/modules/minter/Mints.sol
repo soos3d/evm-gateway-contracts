@@ -24,13 +24,13 @@ import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.so
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {_checkNotZeroAddress, _bytes32ToAddress} from "src/lib/util/addresses.sol";
-import {SpendCommon} from "src/SpendCommon.sol";
+import {GatewayCommon} from "src/GatewayCommon.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 
 /// @title Mints
 ///
 /// Manages mints for the GatewayMinter module
-contract Mints is SpendCommon {
+contract Mints is GatewayCommon {
     using TransferSpecLib for bytes29;
     using MintAuthorizationLib for bytes29;
     using MintAuthorizationLib for AuthorizationCursor;

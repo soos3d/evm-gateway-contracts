@@ -18,9 +18,9 @@
 pragma solidity ^0.8.29;
 
 import {Test} from "forge-std/Test.sol";
-import {SpendCommon} from "src/SpendCommon.sol";
+import {GatewayCommon} from "src/GatewayCommon.sol";
 
-contract Sample is SpendCommon {
+contract Sample is GatewayCommon {
     /// The answer to life, the universe, and everything
     uint256 private answer = 42;
 
@@ -32,10 +32,10 @@ contract Sample is SpendCommon {
     }
 }
 
-contract SpendCommonStorageLayout is Test {
-    /// Ensures that `SpendCommon` uses up no sequential storage slots and uses EIP-7201 for all modules
+contract GatewayCommonStorageLayout is Test {
+    /// Ensures that `GatewayCommon` uses up no sequential storage slots and uses EIP-7201 for all modules
     function test_storage_conflicts() external {
         Sample sample = new Sample();
-        assertEq(sample.getSlotZero(), 42, "At least one module in SpendCommon has declared sequential storage slots");
+        assertEq(sample.getSlotZero(), 42, "At least one module in GatewayCommon has declared sequential storage slots");
     }
 }

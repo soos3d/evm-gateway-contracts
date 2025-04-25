@@ -27,10 +27,10 @@ import {Pausing} from "src/modules/common/Pausing.sol";
 import {SpendHashes} from "src/modules/common/SpendHashes.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 
-/// @title SpendCommon
+/// @title Gateway Common
 ///
 /// This contract contains functionality that is common between `GatewayWallet` and `GatewayMinter`.
-contract SpendCommon is
+contract GatewayCommon is
     Initializable,
     UUPSUpgradeable,
     Ownable2StepUpgradeable,
@@ -60,7 +60,7 @@ contract SpendCommon is
     ///
     /// @param counterpart   The address of the counterpart contract (either `GatewayWallet` or `GatewayMinter`)
     /// @param domain   The operator-issued identifier for this chain
-    function __SpendCommon_init(address counterpart, uint32 domain) internal onlyInitializing {
+    function __GatewayCommon_init(address counterpart, uint32 domain) internal onlyInitializing {
         __Pausing_init(owner());
         __Counterpart_init(counterpart);
         __Domain_init(domain);

@@ -20,7 +20,7 @@ pragma solidity ^0.8.29;
 import {Burns} from "src/modules/wallet/Burns.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
 import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
-import {SpendCommon} from "src/SpendCommon.sol";
+import {GatewayCommon} from "src/GatewayCommon.sol";
 import {GatewayMinter} from "src/GatewayMinter.sol";
 
 /// @title Gateway Wallet
@@ -50,7 +50,7 @@ import {GatewayMinter} from "src/GatewayMinter.sol";
 /// the process of being withdrawn will no longer be spendable as soon as the withdrawal initiation is observed by the
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
 /// `spendable` and `withdrawing` balances.
-contract GatewayWallet is SpendCommon, Deposits, Withdrawals, Burns {
+contract GatewayWallet is GatewayCommon, Deposits, Withdrawals, Burns {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         // Ensure that the implementation contract cannot be initialized, only the proxy
@@ -62,7 +62,7 @@ contract GatewayWallet is SpendCommon, Deposits, Withdrawals, Burns {
     /// @param minter   The address of the minter contract on the same chain
     /// @param domain   The operator-issued identifier for this chain
     function initialize(address minter, uint32 domain) external reinitializer(2) {
-        __SpendCommon_init(minter, domain);
+        __GatewayCommon_init(minter, domain);
     }
 
     /// The address of the corresponding minter contract on the same domain

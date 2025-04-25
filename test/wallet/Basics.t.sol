@@ -20,7 +20,7 @@ pragma solidity ^0.8.29;
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
-import {SpendCommon} from "src/SpendCommon.sol";
+import {GatewayCommon} from "src/GatewayCommon.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
@@ -58,7 +58,7 @@ contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
 
     function test_updateBurnSigner_revertWhenZeroAddress() public {
         vm.prank(owner);
-        vm.expectRevert(SpendCommon.InvalidAddress.selector);
+        vm.expectRevert(GatewayCommon.InvalidAddress.selector);
         wallet.updateBurnSigner(address(0));
     }
 
@@ -100,7 +100,7 @@ contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
 
     function test_updateFeeRecipient_revertWhenZeroAddress() public {
         vm.prank(owner);
-        vm.expectRevert(SpendCommon.InvalidAddress.selector);
+        vm.expectRevert(GatewayCommon.InvalidAddress.selector);
         wallet.updateFeeRecipient(address(0));
     }
 
