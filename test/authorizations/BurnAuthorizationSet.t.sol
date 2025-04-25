@@ -17,19 +17,19 @@
  */
 pragma solidity ^0.8.28;
 
-import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
-import {TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
-import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {BYTES4_BYTES, TRANSFER_SPEC_METADATA_OFFSET} from "src/lib/authorizations/TransferSpecLib.sol";
+import {TypedMemView} from "@memview-sol/TypedMemView.sol";
+import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
+import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {
     BurnAuthorization,
     BurnAuthorizationSet,
     BURN_AUTHORIZATION_SET_MAGIC,
     BURN_AUTHORIZATION_MAGIC_OFFSET
 } from "src/lib/authorizations/BurnAuthorizations.sol";
-import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
-import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
-import {TypedMemView} from "@memview-sol/TypedMemView.sol";
+import {TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
+import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
+import {BYTES4_BYTES, TRANSFER_SPEC_METADATA_OFFSET} from "src/lib/authorizations/TransferSpecLib.sol";
+import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
 
 contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     using BurnAuthorizationLib for bytes29;

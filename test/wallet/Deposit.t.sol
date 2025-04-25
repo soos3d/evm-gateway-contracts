@@ -17,12 +17,12 @@
  */
 pragma solidity ^0.8.28;
 
-import {SpendWallet} from "src/SpendWallet.sol";
-import {Deposits} from "src/modules/wallet/Deposits.sol";
-import {DeployUtils} from "test/util/DeployUtils.sol";
-import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
+import {Deposits} from "src/modules/wallet/Deposits.sol";
+import {SpendWallet} from "src/SpendWallet.sol";
+import {DeployUtils} from "test/util/DeployUtils.sol";
+import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
 /// Tests basic deposit functionality of SpendWallet
 contract SpendWalletDepositTest is Test, DeployUtils {

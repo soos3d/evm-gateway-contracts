@@ -17,8 +17,8 @@
  */
 pragma solidity ^0.8.28;
 
-import {SpendWallet} from "src/SpendWallet.sol";
 import {Test} from "forge-std/Test.sol";
+import {SpendWallet} from "src/SpendWallet.sol";
 
 contract Sample is SpendWallet {
     /// The answer to life, the universe, and everything

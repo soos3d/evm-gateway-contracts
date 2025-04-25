@@ -19,6 +19,7 @@
     "no-empty-blocks": "off",
     "one-contract-per-file": "off",
     "no-inline-assembly": "off",
-    "duplicated-imports": "error"
+    "duplicated-imports": "error",
+    "imports-order": "error"
   }
 }

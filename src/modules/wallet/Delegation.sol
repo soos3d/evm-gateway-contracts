@@ -17,10 +17,10 @@
  */
 pragma solidity ^0.8.28;
 
-import {Pausing} from "src/modules/common/Pausing.sol";
-import {Denylistable} from "src/modules/common/Denylistable.sol";
-import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {_checkNotZeroAddress} from "src/lib/util/addresses.sol";
+import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {Pausing} from "src/modules/common/Pausing.sol";
+import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 
 /// @title Authorization Status
 ///

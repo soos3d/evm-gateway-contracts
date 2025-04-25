@@ -17,14 +17,14 @@
  */
 pragma solidity ^0.8.28;
 
-import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
+import {TypedMemView} from "@memview-sol/TypedMemView.sol";
+import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
+import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
+import {BurnAuthorization, BURN_AUTHORIZATION_MAGIC} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {TRANSFER_SPEC_MAGIC, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
-import {BurnAuthorization, BURN_AUTHORIZATION_MAGIC} from "src/lib/authorizations/BurnAuthorizations.sol";
-import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
-import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
-import {TypedMemView} from "@memview-sol/TypedMemView.sol";
+import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
 
 contract BurnAuthorizationTest is AuthorizationTestUtils {
     using BurnAuthorizationLib for bytes29;

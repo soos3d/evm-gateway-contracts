@@ -17,13 +17,13 @@
  */
 pragma solidity ^0.8.28;
 
-import {SpendWallet} from "src/SpendWallet.sol";
-import {Balances, BalanceType} from "src/modules/wallet/Balances.sol";
-import {DeployUtils} from "test/util/DeployUtils.sol";
-import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
+import {Balances, BalanceType} from "src/modules/wallet/Balances.sol";
+import {SpendWallet} from "src/SpendWallet.sol";
+import {DeployUtils} from "test/util/DeployUtils.sol";
+import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
 contract SpendWalletBalanceTest is Test, DeployUtils {
     address private owner = makeAddr("owner");

@@ -18,16 +18,16 @@
 pragma solidity ^0.8.28;
 
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import {DeployUtils} from "./DeployUtils.sol";
-import {ForkTestUtils} from "./ForkTestUtils.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
-import {SpendMinter} from "src/SpendMinter.sol";
-import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
-import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
+import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
+import {SpendMinter} from "src/SpendMinter.sol";
+import {SpendWallet} from "src/SpendWallet.sol";
+import {MasterMinter} from "./../mock_fiattoken/contracts/minting/MasterMinter.sol";
+import {FiatTokenV2_2} from "./../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
+import {DeployUtils} from "./DeployUtils.sol";
+import {ForkTestUtils} from "./ForkTestUtils.sol";
 import {SignatureTestUtils} from "./SignatureTestUtils.sol";
-import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 
 contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
     using MessageHashUtils for bytes32;

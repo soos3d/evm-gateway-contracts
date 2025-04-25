@@ -17,15 +17,15 @@
  */
 pragma solidity ^0.8.28;
 
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {IERC3009} from "src/interfaces/IERC3009.sol";
 import {Denylistable} from "src/modules/common/Denylistable.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
+import {MockERC1271Wallet} from "test/mock_fiattoken/contracts/test/MockERC1271Wallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
-import {MockERC1271Wallet} from "test/mock_fiattoken/contracts/test/MockERC1271Wallet.sol";
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {IERC3009} from "src/interfaces/IERC3009.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 
 /// Tests ERC-3009 authorization deposit functionality of SpendWallet

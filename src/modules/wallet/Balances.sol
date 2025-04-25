@@ -17,9 +17,9 @@
  */
 pragma solidity ^0.8.28;
 
+import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {WithdrawalDelay} from "src/modules/wallet/WithdrawalDelay.sol";
-import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
 
 /// The various balances that are tracked, used for the ERC-1155 balance functions
 enum BalanceType {

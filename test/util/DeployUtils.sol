@@ -18,10 +18,10 @@
 pragma solidity ^0.8.28;
 
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
-import {SpendMinter} from "src/SpendMinter.sol";
 import {CommonBase} from "forge-std/Base.sol";
+import {SpendMinter} from "src/SpendMinter.sol";
+import {SpendWallet} from "src/SpendWallet.sol";
+import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
 
 /// Helpers for deploying the contracts during tests
 abstract contract DeployUtils is CommonBase {

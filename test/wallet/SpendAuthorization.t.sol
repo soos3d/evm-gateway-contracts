@@ -18,14 +18,14 @@
 pragma solidity ^0.8.28;
 
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {SpendCommon} from "src/SpendCommon.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
-import {Delegation} from "src/modules/wallet/Delegation.sol";
+import {Test} from "forge-std/Test.sol";
 import {Denylistable} from "src/modules/common/Denylistable.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
+import {Delegation} from "src/modules/wallet/Delegation.sol";
+import {SpendCommon} from "src/SpendCommon.sol";
+import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
-import {Test} from "forge-std/Test.sol";
 
 /// Tests Spend Authorization functionality of SpendWallet
 contract SpendAuthorizationTest is Test, DeployUtils {

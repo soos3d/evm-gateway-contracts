@@ -17,8 +17,8 @@
  */
 pragma solidity ^0.8.28;
 
-import {SpendCommon} from "src/SpendCommon.sol";
 import {Test} from "forge-std/Test.sol";
+import {SpendCommon} from "src/SpendCommon.sol";
 
 contract Sample is SpendCommon {
     /// The answer to life, the universe, and everything

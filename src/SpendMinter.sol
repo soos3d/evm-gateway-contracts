@@ -17,9 +17,9 @@
  */
 pragma solidity ^0.8.28;
 
+import {Mints} from "src/modules/minter/Mints.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendWallet} from "src/SpendWallet.sol";
-import {Mints} from "src/modules/minter/Mints.sol";
 
 /// @title Spend Minter
 ///
