@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.29;
 
 /// @dev Magic: bytes4(keccak256("circle.gateway.TransferSpec"))
 bytes4 constant TRANSFER_SPEC_MAGIC = 0xca85def7;

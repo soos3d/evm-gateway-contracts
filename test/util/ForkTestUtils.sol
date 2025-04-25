@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.29;
 
 import {FiatTokenProxy} from "./../mock_fiattoken/contracts/v1/FiatTokenProxy.sol";
 import {DeployMockFiatToken} from "./DeployMockFiatToken.sol";

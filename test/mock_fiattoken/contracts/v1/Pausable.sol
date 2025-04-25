@@ -22,7 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.29;
 
 import {Ownable} from "./Ownable.sol";
 

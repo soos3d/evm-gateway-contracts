@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.29;
 
 import {CommonBase} from "forge-std/Base.sol";
 import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
