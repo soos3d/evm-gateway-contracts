@@ -46,7 +46,7 @@ contract MultichainTestUtilsTest is MultichainTestUtils {
         assertEq(address(setup.minter.walletContract()), address(setup.wallet));
         assertTrue(setup.wallet.isTokenSupported(address(setup.usdc)));
         assertTrue(setup.minter.isTokenSupported(address(setup.usdc)));
-        assertEq(setup.minter.tokenMintAuthorities(address(setup.usdc)), address(setup.usdc));
+        assertEq(setup.minter.tokenMintAuthority(address(setup.usdc)), address(setup.usdc));
 
         // Verify both contracts are configured as USDC minters
         assertTrue(setup.usdc.isMinter(address(setup.wallet)));

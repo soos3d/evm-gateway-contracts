@@ -21,6 +21,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
+import {Mints} from "src/modules/minter/Mints.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {OwnershipTest} from "test/util/OwnershipTest.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
@@ -79,17 +80,17 @@ contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
 
     function test_updateMintAuthority_successFuzz(address token, address newMintAuthority) public {
         vm.assume(newMintAuthority != address(0));
-        address oldMintAuthority = minter.tokenMintAuthorities(token);
+        address oldMintAuthority = minter.tokenMintAuthority(token);
 
         // Add token support first
         vm.startPrank(owner);
         minter.addSupportedToken(token);
 
         vm.expectEmit(false, false, false, true);
-        emit SpendMinter.MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
+        emit Mints.MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
 
         minter.updateMintAuthority(token, newMintAuthority);
-        assertEq(minter.tokenMintAuthorities(token), newMintAuthority);
+        assertEq(minter.tokenMintAuthority(token), newMintAuthority);
     }
 
     function test_updateMintAuthority_idempotent() public {
@@ -103,10 +104,10 @@ contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
 
         // Update to same address again
         vm.expectEmit(false, false, false, true);
-        emit SpendMinter.MintAuthorityUpdated(token, mintAuthority, mintAuthority);
+        emit Mints.MintAuthorityUpdated(token, mintAuthority, mintAuthority);
         minter.updateMintAuthority(token, mintAuthority);
 
-        assertEq(minter.tokenMintAuthorities(token), mintAuthority);
+        assertEq(minter.tokenMintAuthority(token), mintAuthority);
     }
 
     function test_updateMintAuthorizationSigner_revertWhenNotOwner() public {
@@ -132,7 +133,7 @@ contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
         address oldMintAuthorizationSigner = minter.mintAuthorizationSigner();
 
         vm.expectEmit(false, false, false, true);
-        emit SpendMinter.MintAuthorizationSignerUpdated(oldMintAuthorizationSigner, newMintAuthorizationSigner);
+        emit Mints.MintAuthorizationSignerUpdated(oldMintAuthorizationSigner, newMintAuthorizationSigner);
 
         vm.startPrank(owner);
         minter.updateMintAuthorizationSigner(newMintAuthorizationSigner);
@@ -148,7 +149,7 @@ contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
         assertEq(minter.mintAuthorizationSigner(), newMintAuthorizationSigner);
 
         vm.expectEmit(false, false, false, true);
-        emit SpendMinter.MintAuthorizationSignerUpdated(newMintAuthorizationSigner, newMintAuthorizationSigner);
+        emit Mints.MintAuthorizationSignerUpdated(newMintAuthorizationSigner, newMintAuthorizationSigner);
         minter.updateMintAuthorizationSigner(newMintAuthorizationSigner); // second update
         vm.stopPrank();
 

@@ -21,7 +21,6 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {SpendMinter} from "src/SpendMinter.sol";
 import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/MintAuthorizations.sol";
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
@@ -31,6 +30,7 @@ import {SpendHashes} from "src/modules/common/SpendHashes.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
 import {SpendMinter} from "src/SpendMinter.sol";
+import {Mints} from "src/modules/minter/Mints.sol";
 import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
 import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
@@ -208,7 +208,7 @@ contract TestMints is Test, DeployUtils {
 
     function test_spend_emptyAuth_wrongSigner() public {
         (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
-        vm.expectRevert(SpendMinter.InvalidMintAuthorizationSigner.selector);
+        vm.expectRevert(Mints.InvalidMintAuthorizationSigner.selector);
         _callSpendSignedBy(new bytes(0), wrongSignerKey);
     }
 
@@ -216,7 +216,7 @@ contract TestMints is Test, DeployUtils {
         authorization.spec.metadata = METADATA;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(authorization);
         (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
-        vm.expectRevert(SpendMinter.InvalidMintAuthorizationSigner.selector);
+        vm.expectRevert(Mints.InvalidMintAuthorizationSigner.selector);
         _callSpendSignedBy(encodedAuth, wrongSignerKey);
     }
 
@@ -232,7 +232,7 @@ contract TestMints is Test, DeployUtils {
         MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
 
-        vm.expectRevert(SpendMinter.MustHaveAtLeastOneMintAuthorization.selector);
+        vm.expectRevert(Mints.MustHaveAtLeastOneMintAuthorization.selector);
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
     }
 
@@ -257,7 +257,7 @@ contract TestMints is Test, DeployUtils {
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.AuthorizationExpiredAtIndex.selector, 0, crossChainBaseAuth.maxBlockHeight, block.number
+                Mints.AuthorizationExpiredAtIndex.selector, 0, crossChainBaseAuth.maxBlockHeight, block.number
             )
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -276,7 +276,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.AuthorizationExpiredAtIndex.selector, 1, expiredAuth.maxBlockHeight, block.number
+                Mints.AuthorizationExpiredAtIndex.selector, 1, expiredAuth.maxBlockHeight, block.number
             )
         );
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
@@ -285,7 +285,7 @@ contract TestMints is Test, DeployUtils {
     function test_spend_revertIfZeroValue() public {
         crossChainBaseAuth.spec.value = 0;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
-        vm.expectRevert(abi.encodeWithSelector(SpendMinter.AuthorizationValueMustBePositiveAtIndex.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(Mints.AuthorizationValueMustBePositiveAtIndex.selector, 0));
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
@@ -300,7 +300,7 @@ contract TestMints is Test, DeployUtils {
         MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendMinter.AuthorizationValueMustBePositiveAtIndex.selector, 1));
+        vm.expectRevert(abi.encodeWithSelector(Mints.AuthorizationValueMustBePositiveAtIndex.selector, 1));
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
     }
 
@@ -341,7 +341,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationCallerAtIndex.selector, 0, destinationCaller, address(this)
+                Mints.InvalidAuthorizationDestinationCallerAtIndex.selector, 0, destinationCaller, address(this)
             )
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -361,7 +361,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationCallerAtIndex.selector, 1, destinationCaller, address(this)
+                Mints.InvalidAuthorizationDestinationCallerAtIndex.selector, 1, destinationCaller, address(this)
             )
         );
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
@@ -372,7 +372,7 @@ contract TestMints is Test, DeployUtils {
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationDomainAtIndex.selector,
+                Mints.InvalidAuthorizationDestinationDomainAtIndex.selector,
                 0,
                 crossChainBaseAuth.spec.destinationDomain,
                 domain
@@ -394,7 +394,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationDomainAtIndex.selector,
+                Mints.InvalidAuthorizationDestinationDomainAtIndex.selector,
                 1,
                 invalidDomainAuth.spec.destinationDomain,
                 domain
@@ -410,7 +410,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationContractAtIndex.selector, 0, invalidDestinationContract
+                Mints.InvalidAuthorizationDestinationContractAtIndex.selector, 0, invalidDestinationContract
             )
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -430,7 +430,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationDestinationContractAtIndex.selector, 1, invalidDestinationContract
+                Mints.InvalidAuthorizationDestinationContractAtIndex.selector, 1, invalidDestinationContract
             )
         );
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
@@ -470,10 +470,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationSourceContractAtIndex.selector,
-                0,
-                invalidSourceContract,
-                address(wallet)
+                Mints.InvalidAuthorizationSourceContractAtIndex.selector, 0, invalidSourceContract, address(wallet)
             )
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -493,10 +490,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationSourceContractAtIndex.selector,
-                1,
-                invalidSourceContract,
-                address(wallet)
+                Mints.InvalidAuthorizationSourceContractAtIndex.selector, 1, invalidSourceContract, address(wallet)
             )
         );
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
@@ -510,7 +504,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationTokenAtIndex.selector, 0, differentSourceToken, address(usdc)
+                Mints.InvalidAuthorizationTokenAtIndex.selector, 0, differentSourceToken, address(usdc)
             )
         );
         _callSpendSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -530,7 +524,7 @@ contract TestMints is Test, DeployUtils {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                SpendMinter.InvalidAuthorizationTokenAtIndex.selector, 1, differentSourceToken, address(usdc)
+                Mints.InvalidAuthorizationTokenAtIndex.selector, 1, differentSourceToken, address(usdc)
             )
         );
         _callSpendSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
@@ -558,7 +552,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(usdc.balanceOf(recipient), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient,
             specHash,
@@ -584,7 +578,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(usdc.balanceOf(recipient), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient,
             specHash,
@@ -612,7 +606,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(mockToken.balanceOf(recipient), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(mockToken),
             recipient,
             specHash,
@@ -643,7 +637,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(usdc.balanceOf(recipient), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient,
             specHash1,
@@ -653,7 +647,7 @@ contract TestMints is Test, DeployUtils {
             auth1.spec.value
         );
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient,
             specHash2,
@@ -690,7 +684,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(mockToken.balanceOf(recipient), 0, "Initial MockToken balance recipient");
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient,
             specHash1,
@@ -701,7 +695,7 @@ contract TestMints is Test, DeployUtils {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(mockToken),
             recipient,
             specHash2,
@@ -739,7 +733,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(usdc.balanceOf(recipient2), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient1,
             specHash1,
@@ -749,7 +743,7 @@ contract TestMints is Test, DeployUtils {
             auth1.spec.value
         );
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient2,
             specHash2,
@@ -788,7 +782,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(mockToken.balanceOf(recipient2), 0, "Initial MockToken balance recipient2");
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient1,
             specHash1,
@@ -799,7 +793,7 @@ contract TestMints is Test, DeployUtils {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(mockToken),
             recipient2,
             specHash2,
@@ -862,7 +856,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(usdc.balanceOf(recipient), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient,
             specHash,
@@ -893,7 +887,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(usdc.balanceOf(recipient), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient,
             specHash1,
@@ -903,7 +897,7 @@ contract TestMints is Test, DeployUtils {
             auth1.spec.value
         );
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient,
             specHash2,
@@ -939,7 +933,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(mockToken.balanceOf(recipient), 0, "Initial MockToken balance recipient");
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient,
             specHash1,
@@ -950,7 +944,7 @@ contract TestMints is Test, DeployUtils {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(mockToken),
             recipient,
             specHash2,
@@ -989,7 +983,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(usdc.balanceOf(recipient2), 0, "Initial USDC balance recipient2");
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient1,
             specHash1,
@@ -999,7 +993,7 @@ contract TestMints is Test, DeployUtils {
             auth1.spec.value
         );
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient2,
             specHash2,
@@ -1039,7 +1033,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(mockToken.balanceOf(recipient2), 0, "Initial MockToken balance recipient2");
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(usdc),
             recipient1,
             specHash1,
@@ -1050,7 +1044,7 @@ contract TestMints is Test, DeployUtils {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit SpendMinter.Spent(
+        emit Mints.Spent(
             address(mockToken),
             recipient2,
             specHash2,
