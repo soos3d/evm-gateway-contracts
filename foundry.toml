@@ -9,6 +9,7 @@ auto_detect_solc = false
 ignored_warnings_from = ["test/mock_fiattoken"]
 optimizer = true
 optimizer_runs = 200
+gas_reports = ["SpendWallet", "SpendMinter", "UpgradeablePlaceholder"]
 
 [rpc_endpoints]
 ethereum = "https://gateway.tenderly.co/public/mainnet"
