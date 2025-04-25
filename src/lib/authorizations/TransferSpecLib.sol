@@ -45,9 +45,11 @@ uint8 constant UINT256_BYTES = 32;
 uint8 constant BYTES32_BYTES = 32;
 
 /// @title TransferSpecLib
-/// @notice Library for encoding, validating, hashing, and providing field accessors for TransferSpec structures.
-/// @dev Provides low-level access and manipulation functions for byte-encoded TransferSpec data
-///      using TypedMemView for efficient memory operations.
+///
+/// @notice Library for encoding, validating, hashing, and providing field accessors for `TransferSpec` structs
+///
+/// @dev Provides low-level access and manipulation functions for byte-encoded `TransferSpec` data, using `TypedMemView`
+///      for efficient memory operations
 library TransferSpecLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
@@ -77,34 +79,49 @@ library TransferSpecLib {
     // Common iteration errors
     error CursorOutOfBounds();
 
+    /// Converts a magic value from the byte encodings to a `TypedMemView` type
+    ///
+    /// @param magic   The magic value to convert
+    /// @return        The `TypedMemView` type for the magic value
     function _toMemViewType(bytes4 magic) internal pure returns (uint40) {
         return uint40(uint32(magic));
     }
 
-    // --- Casting ---
+    // --- Casting -----------------------------------------------------------------------------------------------------
 
-    /// @notice Creates a typed memory view for a TransferSpec
-    /// @dev Creates a typed view with the proper type encoding and validates the magic number.
-    ///      Does not perform full structural validation (use `_validateTransferSpecStructure` for that).
-    /// @param data The raw bytes to create a view into
-    /// @return ref A typed memory view referencing the TransferSpec data
-    function asTransferSpec(bytes memory data) internal pure returns (bytes29 ref) {
+    /// Creates a typed memory view for a `TransferSpec`
+    ///
+    /// @dev Creates a typed view with the proper type encoding and validates the magic number. Does not perform full
+    ///      structural validation (use `_validateTransferSpecStructure` for that).
+    ///
+    /// @param data   The raw bytes to create a view into. Must contain at least 4 bytes.
+    /// @return ref   A `TypedMemView` reference to `data`, typed as a transfer spec
+    function _asTransferSpec(bytes memory data) internal pure returns (bytes29 ref) {
+        if (data.length < BYTES4_BYTES) {
+            revert AuthorizationDataTooShort(BYTES4_BYTES, data.length);
+        }
+
         ref = data.ref(_toMemViewType(TRANSFER_SPEC_MAGIC));
-        if (ref.index(0, BYTES4_BYTES) != TRANSFER_SPEC_MAGIC) {
+        bytes4 magic = bytes4(ref.index(0, BYTES4_BYTES));
+
+        if (magic != TRANSFER_SPEC_MAGIC) {
             revert InvalidTransferSpecMagic(bytes4(ref.index(0, BYTES4_BYTES)));
         }
     }
 
-    // --- Validation ---
+    // --- Validation --------------------------------------------------------------------------------------------------
 
-    /// @notice Validates the structural integrity of an encoded TransferSpec memory view.
-    /// @dev Performs structural validation on a TransferSpec view. Reverts on failure.
-    ///      Assumes outer magic number check has passed (via casting).
-    /// Validation steps:
-    /// 1. Minimum header length check.
-    /// 2. Version check.
-    /// 3. Total length consistency check (using declared TransferSpec length).
-    /// @param specView The TypedMemView reference to the encoded TransferSpec to validate.
+    /// Validates the structural integrity of an encoded `TransferSpec` memory view
+    ///
+    /// @notice Validation steps:
+    ///   1. Minimum header length check
+    ///   2. Version check
+    ///   3. Total length consistency check (using declared `TransferSpec` length)
+    ///
+    /// @dev Performs structural validation on a `TransferSpec` view. Reverts on failure. Assumes outer magic number
+    ///      check has passed (via casting).
+    ///
+    /// @param specView   The `TypedMemView` reference to the encoded `TransferSpec` to validate
     function _validateTransferSpecStructure(bytes29 specView) internal pure {
         // 1. Minimum header length check
         if (specView.len() < TRANSFER_SPEC_METADATA_OFFSET) {
@@ -118,7 +135,7 @@ library TransferSpecLib {
         }
 
         // 3. Total length consistency check
-        // (Reads declared metadata length from the view and checks against view's total length)
+        //    (Reads declared metadata length from the view and checks against view's total length)
         uint32 metadataLength = getMetadataLength(specView);
         uint256 expectedInternalSpecLength = TRANSFER_SPEC_METADATA_OFFSET + metadataLength;
         if (specView.len() != expectedInternalSpecLength) {
@@ -126,120 +143,160 @@ library TransferSpecLib {
         }
     }
 
-    // --- View field accessors ---
+    // --- Field accessors ---------------------------------------------------------------------------------------------
 
-    /// @notice Extract the version from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The version field
+    /// Extract the version from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `version` field
     function getVersion(bytes29 ref) internal pure returns (uint32) {
         return uint32(ref.indexUint(TRANSFER_SPEC_VERSION_OFFSET, UINT32_BYTES));
     }
 
-    /// @notice Extract the source domain from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The sourceDomain field
+    /// Extract the source domain from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `sourceDomain` field
     function getSourceDomain(bytes29 ref) internal pure returns (uint32) {
         return uint32(ref.indexUint(TRANSFER_SPEC_SOURCE_DOMAIN_OFFSET, UINT32_BYTES));
     }
 
-    /// @notice Extract the destination domain from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The destinationDomain field
+    /// Extract the destination domain from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `destinationDomain` field
     function getDestinationDomain(bytes29 ref) internal pure returns (uint32) {
         return uint32(ref.indexUint(TRANSFER_SPEC_DESTINATION_DOMAIN_OFFSET, UINT32_BYTES));
     }
 
-    /// @notice Extract the source contract from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The sourceContract field
+    /// Extract the source contract from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `sourceContract` field
     function getSourceContract(bytes29 ref) internal pure returns (bytes32) {
         return ref.index(TRANSFER_SPEC_SOURCE_CONTRACT_OFFSET, BYTES32_BYTES);
     }
 
-    /// @notice Extract the destination contract from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The destinationContract field
+    /// Extract the destination contract from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `destinationContract` field
     function getDestinationContract(bytes29 ref) internal pure returns (bytes32) {
         return ref.index(TRANSFER_SPEC_DESTINATION_CONTRACT_OFFSET, BYTES32_BYTES);
     }
 
-    /// @notice Extract the source token from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The sourceToken field
+    /// Extract the source token from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `sourceToken` field
     function getSourceToken(bytes29 ref) internal pure returns (bytes32) {
         return ref.index(TRANSFER_SPEC_SOURCE_TOKEN_OFFSET, BYTES32_BYTES);
     }
 
-    /// @notice Extract the destination token from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The destinationToken field
+    /// Extract the destination token from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `destinationToken` field
     function getDestinationToken(bytes29 ref) internal pure returns (bytes32) {
         return ref.index(TRANSFER_SPEC_DESTINATION_TOKEN_OFFSET, BYTES32_BYTES);
     }
 
-    /// @notice Extract the source depositor from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The sourceDepositor field
+    /// Extract the source depositor from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `sourceDepositor` field
     function getSourceDepositor(bytes29 ref) internal pure returns (bytes32) {
         return ref.index(TRANSFER_SPEC_SOURCE_DEPOSITOR_OFFSET, BYTES32_BYTES);
     }
 
-    /// @notice Extract the destination recipient from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The destinationRecipient field
+    /// Extract the destination recipient from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `destinationRecipient` field
     function getDestinationRecipient(bytes29 ref) internal pure returns (bytes32) {
         return ref.index(TRANSFER_SPEC_DESTINATION_RECIPIENT_OFFSET, BYTES32_BYTES);
     }
 
-    /// @notice Extract the source signer from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The sourceSigner field
+    /// Extract the source signer from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `sourceSigner` field
     function getSourceSigner(bytes29 ref) internal pure returns (bytes32) {
         return ref.index(TRANSFER_SPEC_SOURCE_SIGNER_OFFSET, BYTES32_BYTES);
     }
 
-    /// @notice Extract the destination caller from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The destinationCaller field
+    /// Extract the destination caller from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `destinationCaller` field
     function getDestinationCaller(bytes29 ref) internal pure returns (bytes32) {
         return ref.index(TRANSFER_SPEC_DESTINATION_CALLER_OFFSET, BYTES32_BYTES);
     }
 
-    /// @notice Extract the value from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The value field
+    /// Extract the value from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `value` field
     function getValue(bytes29 ref) internal pure returns (uint256) {
         return ref.indexUint(TRANSFER_SPEC_VALUE_OFFSET, UINT256_BYTES);
     }
 
-    /// @notice Extract the nonce from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The nonce field
+    /// Extract the nonce from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `nonce` field
     function getNonce(bytes29 ref) internal pure returns (bytes32) {
         return ref.index(TRANSFER_SPEC_NONCE_OFFSET, BYTES32_BYTES);
     }
 
-    /// @notice Extract the metadata length from an encoded TransferSpec
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The metadata length
+    /// Extract the metadata length from an encoded `TransferSpec`
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `metadata` length
     function getMetadataLength(bytes29 ref) internal pure returns (uint32) {
         return uint32(ref.indexUint(TRANSFER_SPEC_METADATA_LENGTH_OFFSET, UINT32_BYTES));
     }
 
-    /// @notice Extract the metadata from an encoded TransferSpec as bytes
-    /// @param ref The TypedMemView reference to the encoded TransferSpec
-    /// @return The metadata as bytes
+    /// Extract the metadata from an encoded `TransferSpec` as a memory view
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The metadata as a `TypedMemView` reference
     function getMetadata(bytes29 ref) internal pure returns (bytes29) {
         uint32 metadataLength = getMetadataLength(ref);
         if (metadataLength > 0) {
             return ref.slice(TRANSFER_SPEC_METADATA_OFFSET, metadataLength, 0);
         }
+
         // Return an empty slice
         return ref.slice(TRANSFER_SPEC_METADATA_OFFSET, 0, 0);
     }
 
-    // --- Encoding ---
+    // --- Encoding ----------------------------------------------------------------------------------------------------
 
+    /// Encode a TransferSpec struct into bytes
+    ///
+    /// @dev Encoding is split into two parts to avoid "stack too deep" errors
+    ///
+    /// @param spec   The `TransferSpec` to encode
+    /// @return       The encoded bytes
+    function encodeTransferSpec(TransferSpec memory spec) internal pure returns (bytes memory) {
+        bytes memory header = _encodeTransferSpecHeader(
+            spec.version,
+            spec.sourceDomain,
+            spec.destinationDomain,
+            spec.sourceContract,
+            spec.destinationContract,
+            spec.sourceToken,
+            spec.destinationToken,
+            spec.sourceDepositor
+        );
+        bytes memory footer = _encodeTransferSpecFooter(
+            spec.destinationRecipient, spec.sourceSigner, spec.destinationCaller, spec.value, spec.nonce, spec.metadata
+        );
+        return bytes.concat(header, footer);
+    }
+
+    /// Encode the first part of a `TransferSpec` struct into bytes
     function _encodeTransferSpecHeader(
         uint32 version,
         uint32 sourceDomain,
@@ -263,6 +320,7 @@ library TransferSpecLib {
         );
     }
 
+    /// Encode the last part of a `TransferSpec` struct into bytes
     function _encodeTransferSpecFooter(
         bytes32 destinationRecipient,
         bytes32 sourceSigner,
@@ -286,32 +344,12 @@ library TransferSpecLib {
         );
     }
 
-    /// @notice Encode a TransferSpec struct into bytes
-    /// @dev Encoding is split into two parts to avoid "stack too deep" errors
-    /// @param spec The TransferSpec to encode
-    /// @return The encoded bytes
-    function encodeTransferSpec(TransferSpec memory spec) internal pure returns (bytes memory) {
-        bytes memory header = _encodeTransferSpecHeader(
-            spec.version,
-            spec.sourceDomain,
-            spec.destinationDomain,
-            spec.sourceContract,
-            spec.destinationContract,
-            spec.sourceToken,
-            spec.destinationToken,
-            spec.sourceDepositor
-        );
-        bytes memory footer = _encodeTransferSpecFooter(
-            spec.destinationRecipient, spec.sourceSigner, spec.destinationCaller, spec.value, spec.nonce, spec.metadata
-        );
-        return bytes.concat(header, footer);
-    }
+    // --- Hashing -----------------------------------------------------------------------------------------------------
 
-    // --- Hashing ---
-
-    /// @notice Calculate the keccak256 hash of a TransferSpec view.
-    /// @param ref The TypedMemView reference to the encoded TransferSpec.
-    /// @return The keccak256 hash of the encoded TransferSpec bytes.
+    /// Calculate the `keccak256` hash of a `TransferSpec` view
+    ///
+    /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return      The `keccak256` hash of the encoded `TransferSpec` bytes
     function getHash(bytes29 ref) internal pure returns (bytes32) {
         return ref.keccak();
     }

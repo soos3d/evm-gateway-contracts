@@ -20,29 +20,33 @@ pragma solidity ^0.8.29;
 /// Thrown when an address is the zero address
 error InvalidAddress();
 
-/// Validates that an address is not the zero address
+/// Validates that an address is not the zero address, reverting if it is
 ///
-/// @param addr   The address being checked
+/// @param addr   The `address` being checked
 function _checkNotZeroAddress(address addr) pure {
     if (addr == address(0)) {
         revert InvalidAddress();
     }
 }
 
-/// Casts an address to bytes32.
+/// Casts an `address` to `bytes32`
+///
 /// @dev The 20-byte address is right-aligned in the 32-byte result, padded with leading zeros.
-/// Example: `address(0x11...11)` becomes `bytes32(0x00000000000000000000000011...11)`
-/// @param addr   The address to cast.
-/// @return buf   The bytes32 representation.
+///      Example: `address(0x11...11)` becomes `bytes32(0x00000000000000000000000011...11)`
+///
+/// @param addr   The `address` to cast
+/// @return       The `bytes32` representation
 function _addressToBytes32(address addr) pure returns (bytes32) {
     return bytes32(uint256(uint160(addr)));
 }
 
-/// Casts bytes32 to an address.
+/// Casts `bytes32` to an `address`
+///
 /// @dev Extracts the rightmost 20 bytes of the bytes32 value.
-/// Example: `bytes32(0x...11...11)` becomes `address(0x11...11)`.
-/// @param _buf   The bytes32 to cast.
-/// @return The address represented by the lower 20 bytes of _buf.
-function _bytes32ToAddress(bytes32 _buf) pure returns (address) {
-    return address(uint160(uint256(_buf)));
+///      Example: `bytes32(0x...11...11)` becomes `address(0x11...11)`.
+///
+/// @param buf   The `bytes32` to cast
+/// @return      The `address` represented by the lower 20 bytes of `buf`
+function _bytes32ToAddress(bytes32 buf) pure returns (address) {
+    return address(uint160(uint256(buf)));
 }

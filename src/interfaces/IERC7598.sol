@@ -48,6 +48,6 @@ interface IERC7598 {
     ///
     /// @param authorizer   Authorizer's address
     /// @param nonce        Nonce of the authorization
-    /// @param signature     Signature bytes signed by an EOA wallet or a contract wallet
+    /// @param signature    Signature bytes signed by an EOA wallet or a contract wallet
     function cancelAuthorization(address authorizer, bytes32 nonce, bytes memory signature) external;
 }

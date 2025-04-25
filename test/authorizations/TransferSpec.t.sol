@@ -30,7 +30,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
 
     function test_asTransferSpec_correctMagic() external pure {
         (bytes memory data, uint40 magicType) = _magic("circle.gateway.TransferSpec");
-        bytes29 ref = data.asTransferSpec();
+        bytes29 ref = data._asTransferSpec();
         assertEq(TypedMemView.typeOf(ref), magicType);
         assertEq(bytes4(uint32(magicType)), TRANSFER_SPEC_MAGIC);
     }
@@ -41,7 +41,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         // The first 4 bytes of data will be the incorrect magic.
         bytes4 incorrectMagic = bytes4(data);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecMagic.selector, incorrectMagic));
-        data.asTransferSpec();
+        data._asTransferSpec();
     }
 
     // ===== Field Accessor Tests =====
@@ -50,7 +50,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = new bytes(0);
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
-        bytes29 ref = encodedSpec.asTransferSpec();
+        bytes29 ref = encodedSpec._asTransferSpec();
         _verifyTransferSpecFieldsFromView(ref, spec);
     }
 
@@ -58,7 +58,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = SHORT_METADATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
-        bytes29 ref = encodedSpec.asTransferSpec();
+        bytes29 ref = encodedSpec._asTransferSpec();
         _verifyTransferSpecFieldsFromView(ref, spec);
     }
 
@@ -66,7 +66,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = LONG_METADATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
-        bytes29 ref = encodedSpec.asTransferSpec();
+        bytes29 ref = encodedSpec._asTransferSpec();
         _verifyTransferSpecFieldsFromView(ref, spec);
     }
 
@@ -76,7 +76,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = SHORT_METADATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
-        bytes29 ref = encodedSpec.asTransferSpec();
+        bytes29 ref = encodedSpec._asTransferSpec();
 
         bytes32 expectedHash = keccak256(encodedSpec);
         bytes32 libHash = TransferSpecLib.getHash(ref);

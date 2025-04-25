@@ -54,7 +54,7 @@ contract GatewayCommon is
     /// and the domain to the given domain
     ///
     /// @param counterpart   The address of the counterpart contract (either `GatewayWallet` or `GatewayMinter`)
-    /// @param domain   The operator-issued identifier for this chain
+    /// @param domain        The operator-issued identifier for this chain
     function __GatewayCommon_init(address counterpart, uint32 domain) internal onlyInitializing {
         __Pausing_init(owner());
         __Counterpart_init(counterpart);

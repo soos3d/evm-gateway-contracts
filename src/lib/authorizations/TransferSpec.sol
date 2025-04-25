@@ -17,11 +17,13 @@
  */
 pragma solidity ^0.8.29;
 
-/// @dev Magic: bytes4(keccak256("circle.gateway.TransferSpec"))
-bytes4 constant TRANSFER_SPEC_MAGIC = 0xca85def7;
+// Magic value for marking byte encodings
+bytes4 constant TRANSFER_SPEC_MAGIC = 0xca85def7; // bytes4(keccak256("circle.gateway.TransferSpec"))
+
+// Version for marking byte encodings for easier forward compatibility
 uint32 constant TRANSFER_SPEC_VERSION = 1;
 
-// Field offsets
+// `TransferSpec` field offsets
 uint16 constant TRANSFER_SPEC_MAGIC_OFFSET = 0;
 uint16 constant TRANSFER_SPEC_VERSION_OFFSET = 4;
 uint16 constant TRANSFER_SPEC_SOURCE_DOMAIN_OFFSET = 8;
@@ -39,13 +41,13 @@ uint16 constant TRANSFER_SPEC_NONCE_OFFSET = 304;
 uint16 constant TRANSFER_SPEC_METADATA_LENGTH_OFFSET = 336;
 uint16 constant TRANSFER_SPEC_METADATA_OFFSET = 340;
 
-/// Describes a transfer that may happen. Embedded in both a BurnAuthorization and a MintAuthorization.
+/// Describes a transfer between domains. Embedded in both a `BurnAuthorization` and a `MintAuthorization`.
 ///
-/// @dev Magic: bytes4(keccak256("circle.gateway.TransferSpec"))
-/// @dev The keccak256 hash of the encoded TransferSpec is used as a cross-chain identifier, for both linkability
-///      and replay protection. As such, repeated transfers with identical parameters must use a different nonce.
+/// @dev Magic: `bytes4(keccak256("circle.gateway.TransferSpec"))`
+/// @dev The `keccak256` hash of the encoded `TransferSpec` is used as a cross-chain identifier, for both linkability
+///      and replay protection. As such, repeated transfers with identical parameters must use a different `nonce`.
 ///
-/// Byte encoding (big-endian):
+/// @dev Byte encoding (big-endian):
 ///     FIELD                     OFFSET   BYTES   NOTES
 ///     magic                          0       4   Always 0xca85def7
 ///     version                        4       4   Always 1
@@ -57,7 +59,7 @@ uint16 constant TRANSFER_SPEC_METADATA_OFFSET = 340;
 ///     destination token            112      32
 ///     source depositor             144      32
 ///     destination recipient        176      32
-///     source signer                208      32   May be 0, to indicate the same as depositor
+///     source signer                208      32
 ///     destination caller           240      32   May be 0, to allow any caller
 ///     value                        272      32
 ///     nonce                        304      32   Any random unique value, not necessarily sequential
