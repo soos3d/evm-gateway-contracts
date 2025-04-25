@@ -19,7 +19,8 @@ pragma solidity ^0.8.29;
 
 /// @title ERC-7597: Permit Extension for Smart Contract Accounts
 ///
-/// Extends EIP-2612 to support contract wallets by using `bytes` rather than `v`, `r`, and `s` for the signature
+/// @notice The interface from ERC-7597 that extends EIP-2612 to support contract wallets by using `bytes` rather than
+/// `v`, `r`, and `s` for the signature
 interface IERC7597 {
     /// Verify a signed approval permit and execute if valid
     ///

@@ -19,8 +19,8 @@ pragma solidity ^0.8.29;
 
 /// @title ERC-7598: Authorization Extension for Smart Contract Accounts
 ///
-/// A partial interface from ERC-7598 that extends ERC-3009 to support contract wallets by using `bytes` rather than
-/// `v`, `r`, and `s` for signatures
+/// @notice A partial interface from ERC-7598 that extends ERC-3009 to support contract wallets by using `bytes` rather
+/// than `v`, `r`, and `s` for signatures
 interface IERC7598 {
     /// Receive a transfer with a signed authorization from the payer
     ///

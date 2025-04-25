@@ -23,9 +23,9 @@ import {GatewayWallet} from "src/GatewayWallet.sol";
 
 /// @title Gateway Minter
 ///
-/// This contract allows the minting or transferring of funds deposited in the GatewayWallet contract, either on the
-/// same chain or on a different chain. Either operation requires a signed authorization from a signer configured in the
-/// contract. See the documentation for the `GatewayWallet` contract for more details.
+/// @notice This contract allows the minting or transferring of funds deposited in the GatewayWallet contract, either on
+/// the same chain or on a different chain. Either operation requires a signed authorization from a signer configured in
+/// the contract. See the documentation for the `GatewayWallet` contract for more details.
 contract GatewayMinter is GatewayCommon, Mints {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
