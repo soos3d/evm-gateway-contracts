@@ -32,7 +32,7 @@ import {SpendHashes} from "src/modules/common/SpendHashes.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Mints} from "src/modules/minter/Mints.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
-import {SpendMinter} from "src/SpendMinter.sol";
+import {GatewayMinter} from "src/GatewayMinter.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {MasterMinter} from "./../mock_fiattoken/contracts/minting/MasterMinter.sol";
@@ -63,7 +63,7 @@ contract MockGatewayWallet {
     }
 }
 
-/// Tests minting functionality of SpendMinter
+/// Tests minting functionality of GatewayMinter
 // solhint-disable max-states-count
 contract TestMints is Test, DeployUtils {
     using MessageHashUtils for bytes32;
@@ -88,7 +88,7 @@ contract TestMints is Test, DeployUtils {
     MintAuthorization private crossChainBaseAuth;
     MintAuthorization private sameChainBaseAuth;
 
-    SpendMinter private minter;
+    GatewayMinter private minter;
     MockGatewayWallet private wallet;
 
     function setUp() public {

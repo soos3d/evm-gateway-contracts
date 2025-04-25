@@ -29,7 +29,7 @@ import {GatewayWallet} from "src/GatewayWallet.sol";
 
 /// @title Mints
 ///
-/// Manages mints for the SpendMinter module
+/// Manages mints for the GatewayMinter module
 contract Mints is SpendCommon {
     using TransferSpecLib for bytes29;
     using MintAuthorizationLib for bytes29;

@@ -21,7 +21,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
 import {_addressToBytes32} from "src/lib/util/addresses.sol";
-import {SpendMinter} from "src/SpendMinter.sol";
+import {GatewayMinter} from "src/GatewayMinter.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 import {MasterMinter} from "./../mock_fiattoken/contracts/minting/MasterMinter.sol";
 import {FiatTokenV2_2} from "./../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
@@ -54,11 +54,11 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         uint256 walletBurnSignerKey;
         uint256 minterMintSignerKey;
         GatewayWallet wallet;
-        SpendMinter minter;
+        GatewayMinter minter;
         FiatTokenV2_2 usdc;
     }
 
-    /// @dev Helper for setting up multi-chain test environments with GatewayWallet and SpendMinter contracts
+    /// @dev Helper for setting up multi-chain test environments with GatewayWallet and GatewayMinter contracts
     /// @param chainName The name of the chain to fork, must match an RPC endpoint name in foundry.toml (e.g. "ethereum", "arbitrum")
     /// @return ChainSetup Struct containing all relevant contract instances and addresses
     function _initializeGatewayContracts(string memory chainName) internal returns (ChainSetup memory) {
@@ -77,7 +77,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         (address minterMintSigner, uint256 minterMintSignerKey) = makeAddrAndKey(vm.toString(chainId + 4));
 
         // Deploy core contracts
-        (GatewayWallet wallet, SpendMinter minter) = deploy(owner, domain);
+        (GatewayWallet wallet, GatewayMinter minter) = deploy(owner, domain);
         vm.makePersistent(address(wallet));
         vm.makePersistent(address(minter));
 

@@ -21,7 +21,7 @@ import {Burns} from "src/modules/wallet/Burns.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
 import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
-import {SpendMinter} from "src/SpendMinter.sol";
+import {GatewayMinter} from "src/GatewayMinter.sol";
 
 /// @title Gateway Wallet
 ///
@@ -35,7 +35,7 @@ import {SpendMinter} from "src/SpendMinter.sol";
 /// will allow the operator to burn those funds once the spend is observed on the destination chain.
 ///
 /// To spend funds on another chain, the user may request an authorization from the API and then use it to call `spend`
-/// on the SpendMinter contract on the desired chain. This will mint the funds to the requested destination, and may be
+/// on the GatewayMinter contract on the desired chain. This will mint the funds to the requested destination, and may be
 /// composed with other actions via a multicall contract or SCA implementation.
 ///
 /// To withdraw funds on the same chain, the user may request an authorization from the API just like any other spend
@@ -66,7 +66,7 @@ contract GatewayWallet is SpendCommon, Deposits, Withdrawals, Burns {
     }
 
     /// The address of the corresponding minter contract on the same domain
-    function minterContract() external view returns (SpendMinter) {
-        return SpendMinter(_counterpart());
+    function minterContract() external view returns (GatewayMinter) {
+        return GatewayMinter(_counterpart());
     }
 }

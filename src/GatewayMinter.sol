@@ -21,12 +21,12 @@ import {Mints} from "src/modules/minter/Mints.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 
-/// @title Spend Minter
+/// @title Gateway Minter
 ///
 /// This contract allows the spending of funds from the GatewayWallet contract, either on the same chain or on a different
 /// chain. Spending requires a signed authorization from the operator. See the documentation for the GatewayWallet
 /// contract for more details.
-contract SpendMinter is SpendCommon, Mints {
+contract GatewayMinter is SpendCommon, Mints {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         // Ensure that the implementation contract cannot be initialized, only the proxy

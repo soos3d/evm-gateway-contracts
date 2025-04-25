@@ -22,16 +22,16 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Mints} from "src/modules/minter/Mints.sol";
 import {SpendCommon} from "src/SpendCommon.sol";
-import {SpendMinter} from "src/SpendMinter.sol";
+import {GatewayMinter} from "src/GatewayMinter.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {OwnershipTest} from "test/util/OwnershipTest.sol";
 
-/// Tests ownership and initialization functionality of SpendMinter
-contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
+/// Tests ownership and initialization functionality of GatewayMinter
+contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
     uint32 private domain = 99;
 
-    SpendMinter private minter;
+    GatewayMinter private minter;
 
     /// Used by OwnershipTest
     function _subject() internal view override returns (address) {

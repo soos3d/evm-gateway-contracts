@@ -26,7 +26,7 @@ import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {OwnershipTest} from "test/util/OwnershipTest.sol";
 
-/// Tests ownership and initialization functionality of SpendMinter
+/// Tests ownership and initialization functionality of GatewayMinter
 contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
     uint32 private domain = 99;
 

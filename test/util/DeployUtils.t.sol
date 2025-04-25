@@ -18,7 +18,7 @@
 pragma solidity ^0.8.29;
 
 import {Test} from "forge-std/Test.sol";
-import {SpendMinter} from "src/SpendMinter.sol";
+import {GatewayMinter} from "src/GatewayMinter.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
@@ -28,7 +28,7 @@ contract TestDeployUtils is Test, DeployUtils {
     uint32 private domain = 99;
 
     function test_deploy() external {
-        (GatewayWallet wallet, SpendMinter minter) = deploy(owner, domain);
+        (GatewayWallet wallet, GatewayMinter minter) = deploy(owner, domain);
 
         assertNotEq(address(wallet), address(0));
         assertNotEq(address(minter), address(0));
@@ -53,7 +53,7 @@ contract TestDeployUtils is Test, DeployUtils {
     }
 
     function test_deployMinterOnly() external {
-        SpendMinter minter = deployMinterOnly(owner, domain);
+        GatewayMinter minter = deployMinterOnly(owner, domain);
 
         assertNotEq(address(minter), address(0));
         assertEq(minter.owner(), owner);

@@ -19,20 +19,20 @@ pragma solidity ^0.8.29;
 
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CommonBase} from "forge-std/Base.sol";
-import {SpendMinter} from "src/SpendMinter.sol";
+import {GatewayMinter} from "src/GatewayMinter.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
 
 /// Helpers for deploying the contracts during tests
 abstract contract DeployUtils is CommonBase {
-    function deploy(address owner, uint32 domain) public returns (GatewayWallet, SpendMinter) {
+    function deploy(address owner, uint32 domain) public returns (GatewayWallet, GatewayMinter) {
         // Deploy both placeholders
         UpgradeablePlaceholder walletProxy = deployPlaceholder(owner);
         UpgradeablePlaceholder minterProxy = deployPlaceholder(owner);
 
         // Deploy both implementation contracts
         GatewayWallet walletImpl = new GatewayWallet();
-        SpendMinter minterImpl = new SpendMinter();
+        GatewayMinter minterImpl = new GatewayMinter();
 
         // Upgrade both placeholders and tell them about each other
         vm.prank(owner);
@@ -41,13 +41,13 @@ abstract contract DeployUtils is CommonBase {
         );
         vm.prank(owner);
         minterProxy.upgradeToAndCall(
-            address(minterImpl), abi.encodeCall(SpendMinter.initialize, (address(walletProxy), domain))
+            address(minterImpl), abi.encodeCall(GatewayMinter.initialize, (address(walletProxy), domain))
         );
         vm.stopPrank();
 
         // Return the upgraded proxies
         GatewayWallet wallet = GatewayWallet(address(walletProxy));
-        SpendMinter minter = SpendMinter(address(minterProxy));
+        GatewayMinter minter = GatewayMinter(address(minterProxy));
         return (wallet, minter);
     }
 
@@ -59,12 +59,12 @@ abstract contract DeployUtils is CommonBase {
         return GatewayWallet(address(walletProxy));
     }
 
-    function deployMinterOnly(address owner, uint32 domain) public returns (SpendMinter) {
+    function deployMinterOnly(address owner, uint32 domain) public returns (GatewayMinter) {
         UpgradeablePlaceholder minterProxy = deployPlaceholder(owner);
-        SpendMinter minterImpl = new SpendMinter();
+        GatewayMinter minterImpl = new GatewayMinter();
         vm.prank(owner);
-        minterProxy.upgradeToAndCall(address(minterImpl), abi.encodeCall(SpendMinter.initialize, (address(0), domain)));
-        return SpendMinter(address(minterProxy));
+        minterProxy.upgradeToAndCall(address(minterImpl), abi.encodeCall(GatewayMinter.initialize, (address(0), domain)));
+        return GatewayMinter(address(minterProxy));
     }
 
     function deployPlaceholder(address owner) public returns (UpgradeablePlaceholder) {
