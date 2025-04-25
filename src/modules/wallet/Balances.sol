@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.29;
 
 import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";

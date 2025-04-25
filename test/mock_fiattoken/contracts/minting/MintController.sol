@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.29;
 
 import {Controller} from "./Controller.sol";
 import {MinterManagementInterface} from "./MinterManagementInterface.sol";
