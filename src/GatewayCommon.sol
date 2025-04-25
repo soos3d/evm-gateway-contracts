@@ -44,11 +44,6 @@ contract GatewayCommon is
     /// Thrown when an address is the zero address (duplicated here from `addresses.sol` so it gets included in the ABI)
     error InvalidAddress();
 
-    /// Implements the UUPS upgrade pattern by restricting upgrades to the owner
-    ///
-    /// @param newImplementation   The address of the new implementation
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         // Ensure that the implementation contract cannot be initialized, only the proxy
@@ -65,4 +60,9 @@ contract GatewayCommon is
         __Counterpart_init(counterpart);
         __Domain_init(domain);
     }
+
+    /// Implements the UUPS upgrade pattern by restricting upgrades to the owner
+    ///
+    /// @param newImplementation   The address of the new implementation
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }

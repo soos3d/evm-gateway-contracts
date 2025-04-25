@@ -26,22 +26,22 @@ import {GatewayMinter} from "src/GatewayMinter.sol";
 /// @title Gateway Wallet
 ///
 /// This contract allows users to deposit supported tokens. Once deposits are observed in a finalized block by the API,
-/// the user may request an authorization to instantly spend those funds on another chain. Spent funds are then burnt on
+/// the user may request an authorization to instantly mint those funds on another chain. Minted funds are then burnt on
 /// the chain where they were deposited.
 ///
 /// The spendable balance is the amount the user has deposited that may be spent on other chains, subject to finality
 /// observed by the API and an authorization obtained from the API. To obtain an authorization, the user must provide
-/// the API with a signed message containing the desired spend parameters along with an authorization to the API that
-/// will allow the operator to burn those funds once the spend is observed on the destination chain.
+/// the API with a signed message containing the desired parameters along with an authorization to the API that will
+/// allow the operator to burn those funds once the mint is observed on the destination chain.
 ///
-/// To spend funds on another chain, the user may request an authorization from the API and then use it to call `spend`
+/// To mint funds on another chain, the user may request an authorization from the API and then use it to call `spend`
 /// on the GatewayMinter contract on the desired chain. This will mint the funds to the requested destination, and may be
 /// composed with other actions via a multicall contract or SCA implementation.
 ///
-/// To withdraw funds on the same chain, the user may request an authorization from the API just like any other spend
-/// authorization. If the source and destination domains of the spend authorization are the same, the minter contract
+/// To withdraw funds on the same chain, the user may request an authorization from the API just like any other mint
+/// authorization. If the source and destination domains of the mint authorization are the same, the minter contract
 /// will call `sameChainSpend` on this contract to transfer the funds to the recipient instead of minting. No fee is
-/// charged for these spends.
+/// charged for these transfers.
 ///
 /// To ensure funds are withdrawable even if the API is unavailable, users may withdraw permissionlessly using a
 /// two-step process. First, the user must call `initiateWithdrawal` with the desired withdrawal amount. After a delay,
