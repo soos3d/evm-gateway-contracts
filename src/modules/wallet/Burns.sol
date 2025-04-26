@@ -41,7 +41,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     using MessageHashUtils for bytes32;
     using SafeERC20 for IERC20;
 
-    /// Emitted when the operator burns tokens that have been spent on another domain
+    /// Emitted when the operator burns tokens that have been minted on another domain
     ///
     /// @param token                  The token that was burned
     /// @param depositor              The depositor who owned the balance
@@ -306,7 +306,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
         return true;
     }
 
-    /// The address that may sign the calldata for burning tokens that have been spent
+    /// The address that may sign the calldata for burning tokens that have been minted on another domain
     ///
     /// @return   The stored burn signer
     function burnSigner() public view returns (address) {

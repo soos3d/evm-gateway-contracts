@@ -62,7 +62,7 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
     MockERC1271Wallet private depositorWallet;
 
     function setUp() public {
-        (depositor, depositorPrivateKey) = makeAddrAndKey("spendWalletDepositor");
+        (depositor, depositorPrivateKey) = makeAddrAndKey("gatewayWalletDepositor");
         wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
 
         usdc = ForkTestUtils.forkVars().usdc;

@@ -428,7 +428,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfInvalidSourceContractAuth() public {
+    function test_gatewayBurn_revertIfInvalidSourceContractAuth() public {
         BurnAuthorization memory invalidSourceContractAuth = baseAuth;
         address invalidSourceContract = makeAddr("invalidSourceContract");
         invalidSourceContractAuth.spec.sourceContract = AddressLib._addressToBytes32(invalidSourceContract);
@@ -451,7 +451,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfInvalidSourceContractAuthSet() public {
+    function test_gatewayBurn_revertIfInvalidSourceContractAuthSet() public {
         BurnAuthorization memory invalidSourceContractAuth = baseAuth;
         address invalidSourceContract = makeAddr("invalidSourceContract");
         invalidSourceContractAuth.spec.sourceContract = AddressLib._addressToBytes32(invalidSourceContract);
@@ -479,7 +479,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfUnsupportedTokenAuth() public {
+    function test_gatewayBurn_revertIfUnsupportedTokenAuth() public {
         address unsupportedToken = makeAddr("unsupportedToken");
         baseAuth.spec.sourceToken = AddressLib._addressToBytes32(unsupportedToken);
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
@@ -497,7 +497,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfUnsupportedTokenAuthSet() public {
+    function test_gatewayBurn_revertIfUnsupportedTokenAuthSet() public {
         BurnAuthorization memory unsupportedTokenAuth = baseAuth;
         address unsupportedToken = makeAddr("unsupportedToken");
         unsupportedTokenAuth.spec.sourceToken = AddressLib._addressToBytes32(unsupportedToken);
@@ -521,7 +521,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfWasNeverAuthorizedForBalanceAuth() public {
+    function test_gatewayBurn_revertIfWasNeverAuthorizedForBalanceAuth() public {
         BurnAuthorization memory neverAuthorizedAuth = baseAuth;
         (address neverAuthorizedSigner, uint256 neverAuthorizedSignerKey) = makeAddrAndKey("neverAuthorizedSigner");
         neverAuthorizedAuth.spec.sourceSigner = AddressLib._addressToBytes32(neverAuthorizedSigner);
@@ -540,7 +540,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfWasNeverAuthorizedForBalanceAuthSet() public {
+    function test_gatewayBurn_revertIfWasNeverAuthorizedForBalanceAuthSet() public {
         BurnAuthorization[] memory auths = new BurnAuthorization[](2);
         (address neverAuthorizedSigner, uint256 neverAuthorizedSignerKey) = makeAddrAndKey("neverAuthorizedSigner");
         auths[0] = baseAuth;
@@ -563,7 +563,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfInvalidSourceSignerAuth() public {
+    function test_gatewayBurn_revertIfInvalidSourceSignerAuth() public {
         BurnAuthorization memory mismatchedSignerAuth = baseAuth;
         address anotherAddress = makeAddr("anotherAddress");
         mismatchedSignerAuth.spec.sourceSigner = AddressLib._addressToBytes32(anotherAddress);
@@ -584,7 +584,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfInvalidSourceSignerAuthSet() public {
+    function test_gatewayBurn_revertIfInvalidSourceSignerAuthSet() public {
         BurnAuthorization memory auth1 = baseAuth;
         BurnAuthorization memory auth2MismatchedSigner = baseAuth;
         address anotherAddress = makeAddr("anotherAddress");

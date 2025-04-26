@@ -28,7 +28,7 @@ import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
 /// Tests mint authorization functionality of GatewayWallet
-contract SpendAuthorizationTest is Test, DeployUtils {
+contract MintAuthorizationTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private usdc = makeAddr("usdc");
 

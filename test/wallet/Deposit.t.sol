@@ -39,7 +39,7 @@ contract GatewayWalletDepositTest is Test, DeployUtils {
     GatewayWallet private wallet;
 
     function setUp() public {
-        (depositor, depositorPrivateKey) = makeAddrAndKey("spendWalletDepositor");
+        (depositor, depositorPrivateKey) = makeAddrAndKey("gatewayWalletDepositor");
         wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
 
         usdc = ForkTestUtils.forkVars().usdc;

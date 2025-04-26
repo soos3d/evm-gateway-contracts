@@ -47,7 +47,7 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
 
         // Offchain: Generate burn authorization and validate
         TransferSpec memory transferSpec =
-            _createTransferSpec(ethereum, arbitrum, SPEND_AMOUNT, depositor, recipient, depositor, address(0));
+            _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
             _signBurnAuthWithTransferSpec(transferSpec, ethereum.wallet, depositorPrivateKey);
         bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
@@ -63,8 +63,8 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
             arbitrum,
             encodedMintAuth,
             mintSignature,
-            SPEND_AMOUNT, /* expected total supply increment */
-            SPEND_AMOUNT, /* expected recipient balance increment */
+            MINT_AMOUNT, /* expected total supply increment */
+            MINT_AMOUNT, /* expected recipient balance increment */
             0 /* expected depositor balance decrement */
         );
 
@@ -73,11 +73,11 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
             ethereum,
             encodedBurnAuth,
             burnSignature,
-            SPEND_AMOUNT, /* expected total supply decrement */
-            SPEND_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
+            MINT_AMOUNT, /* expected total supply decrement */
+            MINT_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
         );
 
-        uint256 expectedRemainingBalance = DEPOSIT_AMOUNT - SPEND_AMOUNT - FEE_AMOUNT;
+        uint256 expectedRemainingBalance = DEPOSIT_AMOUNT - MINT_AMOUNT - FEE_AMOUNT;
         assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), 0);
         assertEq(ethereum.wallet.withdrawingBalance(address(ethereum.usdc), depositor), expectedRemainingBalance);
         assertEq(ethereum.wallet.withdrawableBalance(address(ethereum.usdc), depositor), 0);

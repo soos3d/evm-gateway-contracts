@@ -35,7 +35,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
     // Based on Ethereum, assuming 12 seconds per block, 21,600 blocks in 3 days.
     uint256 public constant WITHDRAW_DELAY = (3 * 24 * 60 * 60) / 12;
     uint256 public constant DEPOSIT_AMOUNT = 1000e6; // 1000 USDC
-    uint256 public constant SPEND_AMOUNT = 100e6; // 100 USDC
+    uint256 public constant MINT_AMOUNT = 100e6; // 100 USDC
     uint256 public constant FEE_AMOUNT = 10000; // 0.01 USDC
     bytes public constant METADATA = "Test metadata";
 
@@ -269,7 +269,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         assertEq(
             chain.wallet.totalBalance(address(chain.usdc), depositor),
             depositorTotalBalanceBefore - expectedDepositorBalanceDecrement,
-            "Depositor balance should decrease by amount used in same chain spend"
+            "Depositor balance should decrease by amount used in same chain transfer"
         );
     }
 }

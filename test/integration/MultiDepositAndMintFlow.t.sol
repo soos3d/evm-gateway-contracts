@@ -21,7 +21,7 @@ import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
 import {MultichainTestUtils} from "./../util/MultichainTestUtils.sol";
 
-contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
+contract MultiDepositAndMintFlowTest is MultichainTestUtils {
     ChainSetup private ethereum;
     ChainSetup private arbitrum;
     ChainSetup private base;
@@ -46,11 +46,10 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
         // Offchain: Generate burn authorization and validate
         TransferSpec[] memory transferSpecs = new TransferSpec[](3);
         transferSpecs[0] =
-            _createTransferSpec(arbitrum, ethereum, SPEND_AMOUNT, depositor, recipient, depositor, address(0));
-        transferSpecs[1] =
-            _createTransferSpec(base, ethereum, SPEND_AMOUNT, depositor, recipient, depositor, address(0));
+            _createTransferSpec(arbitrum, ethereum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
+        transferSpecs[1] = _createTransferSpec(base, ethereum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         transferSpecs[2] =
-            _createTransferSpec(ethereum, ethereum, SPEND_AMOUNT, depositor, recipient, depositor, address(0));
+            _createTransferSpec(ethereum, ethereum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
 
         BurnAuthorization[] memory burnAuths = new BurnAuthorization[](3);
         vm.selectFork(arbitrum.forkId);
@@ -77,9 +76,9 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
             _signMintAuthSetWithTransferSpec(transferSpecs, ethereum.minterMintSignerKey);
 
         // On Ethereum: Mint using mint authorization
-        uint256 expectedTotalSupplyIncrement = SPEND_AMOUNT * 2; // 2 cross chain spends
-        uint256 expectedRecipientBalanceIncrement = SPEND_AMOUNT * 3; // 3 spends total
-        uint256 expectedDepositorBalanceDecrement = SPEND_AMOUNT; // depositor balance reduces due to same chain spend
+        uint256 expectedTotalSupplyIncrement = MINT_AMOUNT * 2; // 2 cross chain transfers
+        uint256 expectedRecipientBalanceIncrement = MINT_AMOUNT * 3; // 3 transfers total
+        uint256 expectedDepositorBalanceDecrement = MINT_AMOUNT; // depositor balance reduces due to same chain transfer
         _mintFromChain(
             ethereum,
             encodedMintAuth,
@@ -94,17 +93,17 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
             arbitrum,
             encodedBurnAuth,
             burnSignature,
-            SPEND_AMOUNT, /* expected total supply decrement */
-            SPEND_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
+            MINT_AMOUNT, /* expected total supply decrement */
+            MINT_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
         );
         _burnFromChain(
             base,
             encodedBurnAuth,
             burnSignature,
-            SPEND_AMOUNT, /* expected total supply decrement */
-            SPEND_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
+            MINT_AMOUNT, /* expected total supply decrement */
+            MINT_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
         );
-        // Skip burn on Ethereum due to same chain spend
+        // Skip burn on Ethereum due to same chain transfer
     }
 
     function test_depositOnOneChainAndMintOnMultiple() public {
@@ -115,11 +114,10 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
         vm.selectFork(ethereum.forkId);
         TransferSpec[] memory transferSpecs = new TransferSpec[](3);
         transferSpecs[0] =
-            _createTransferSpec(ethereum, arbitrum, SPEND_AMOUNT, depositor, recipient, depositor, address(0));
-        transferSpecs[1] =
-            _createTransferSpec(ethereum, base, SPEND_AMOUNT, depositor, recipient, depositor, address(0));
+            _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
+        transferSpecs[1] = _createTransferSpec(ethereum, base, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         transferSpecs[2] =
-            _createTransferSpec(ethereum, ethereum, SPEND_AMOUNT, depositor, recipient, depositor, address(0));
+            _createTransferSpec(ethereum, ethereum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
             _signBurnAuthSetWithTransferSpec(transferSpecs, ethereum.wallet, depositorPrivateKey);
 
@@ -143,30 +141,30 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
         (bytes memory encodedMintAuth2, bytes memory mintSignature2) =
             _signMintAuthWithTransferSpec(transferSpecs[2], ethereum.minterMintSignerKey);
 
-        // On each fork: Spend mint authorization
+        // On each fork: Use mint authorization
         _mintFromChain(
             arbitrum,
             encodedMintAuth0,
             mintSignature0,
-            SPEND_AMOUNT, /* expected supply increment */
-            SPEND_AMOUNT, /* expected recipient balance increment */
+            MINT_AMOUNT, /* expected supply increment */
+            MINT_AMOUNT, /* expected recipient balance increment */
             0 /* expected depositor balance decrement */
         );
         _mintFromChain(
             base,
             encodedMintAuth1,
             mintSignature1,
-            SPEND_AMOUNT, /* expected supply increment */
-            SPEND_AMOUNT, /* expected recipient balance increment */
+            MINT_AMOUNT, /* expected supply increment */
+            MINT_AMOUNT, /* expected recipient balance increment */
             0 /* expected depositor balance decrement */
         );
-        _mintFromChain( // same chain spend
+        _mintFromChain( // same chain transfer
             ethereum,
             encodedMintAuth2,
             mintSignature2,
             0, /* expected supply increment */
-            SPEND_AMOUNT, /* expected recipient balance increment */
-            SPEND_AMOUNT /* expected depositor balance decrement */
+            MINT_AMOUNT, /* expected recipient balance increment */
+            MINT_AMOUNT /* expected depositor balance decrement */
         );
 
         // On Ethereum: Burn used amount
@@ -174,8 +172,8 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
             ethereum,
             encodedBurnAuth,
             burnSignature,
-            SPEND_AMOUNT * 2, /* expected total supply to decrement for 2 cross chain spends */
-            (SPEND_AMOUNT + FEE_AMOUNT) * 2 /* expected depositor balance to decrement for 2 spends plus fees */
+            MINT_AMOUNT * 2, /* expected total supply to decrement for 2 cross chain transfers */
+            (MINT_AMOUNT + FEE_AMOUNT) * 2 /* expected depositor balance to decrement for 2 transfers plus fees */
         );
     }
 }
