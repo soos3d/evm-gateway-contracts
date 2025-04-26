@@ -31,7 +31,7 @@ enum BalanceType {
 
 /// @title Balances
 ///
-/// Manages balances for the `GatewayWallet` contract
+/// @notice Manages balances for the `GatewayWallet` contract
 contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     /// Thrown during attempted withdrawals when there is no withdrawing balance to withdraw
     error NoWithdrawingBalance();

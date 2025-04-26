@@ -21,7 +21,7 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 
 /// @title TokenSupport
 ///
-/// Manages a set of tokens that are supported, and allows the owner to mark new tokens as supported
+/// @notice Manages a set of tokens that are supported, and allows the owner to mark new tokens as supported
 contract TokenSupport is Ownable2StepUpgradeable {
     /// Emitted when a token is added to the set of supported tokens
     ///

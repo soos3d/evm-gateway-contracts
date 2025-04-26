@@ -33,7 +33,7 @@ import {GatewayCommon} from "src/GatewayCommon.sol";
 
 /// @title Burns
 ///
-/// Manages burns for the `GatewayWallet` contract
+/// @notice Manages burns for the `GatewayWallet` contract
 contract Burns is GatewayCommon, Balances, Delegation {
     using TransferSpecLib for bytes29;
     using BurnAuthorizationLib for bytes29;

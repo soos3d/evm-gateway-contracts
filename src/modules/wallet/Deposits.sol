@@ -28,7 +28,7 @@ import {Balances} from "src/modules/wallet/Balances.sol";
 
 /// @title Deposits
 ///
-/// Manages deposits for the GatewayWallet contract
+/// @notice Manages deposits for the GatewayWallet contract
 contract Deposits is Pausing, Denylist, TokenSupport, Balances {
     using SafeERC20 for IERC20;
 

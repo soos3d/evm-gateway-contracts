@@ -24,7 +24,7 @@ import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 
 /// @title Authorization Status
 ///
-/// Represents the possible states of a delegate's authorization for a specific token and depositor.
+/// @notice Represents the possible states of a delegate's authorization for a specific token and depositor.
 enum AuthorizationStatus {
     /// @notice The delegate has never been authorized.
     Unauthorized,

@@ -21,7 +21,7 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 
 /// @title Denylist
 ///
-/// Manages a denylist of addresses that are not allowed to interact with the system.
+/// @notice Manages a denylist of addresses that are not allowed to interact with the system.
 contract Denylist is Ownable2StepUpgradeable {
     /// Emitted when an address is added to the denylist
     ///

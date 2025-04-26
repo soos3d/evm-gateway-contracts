@@ -21,7 +21,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 
 /// @title Domain
 ///
-/// Stores the operator-issued domain identifier of the current chain
+/// @notice Stores the operator-issued domain identifier of the current chain
 contract Domain is Initializable {
     /// Sets the domain during initialization
     ///

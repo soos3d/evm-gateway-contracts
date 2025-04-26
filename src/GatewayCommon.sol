@@ -29,7 +29,7 @@ import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 
 /// @title Gateway Common
 ///
-/// This contract contains functionality that is common between `GatewayWallet` and `GatewayMinter`.
+/// @notice Contains functionality that is common between `GatewayWallet` and `GatewayMinter`.
 contract GatewayCommon is
     Initializable,
     UUPSUpgradeable,

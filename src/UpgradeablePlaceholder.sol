@@ -23,7 +23,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 
 /// @title Upgradeable Placeholder
 ///
-/// A no-op, upgradeable implementation contract for UUPS proxies
+/// @notice A no-op, upgradeable implementation contract for UUPS proxies
 contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepUpgradeable {
     /// Thrown if the owner address is the zero address
     error NullOwnerNotAllowed();

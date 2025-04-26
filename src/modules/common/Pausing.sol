@@ -23,7 +23,7 @@ import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Pau
 
 /// @title Pausing
 ///
-/// Defines a `pauser` role that may pause and unpause the contract
+/// @notice Defines a `pauser` role that may pause and unpause the contract
 contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable {
     /// Emitted when the pauser address is updated
     ///

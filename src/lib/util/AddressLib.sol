@@ -19,7 +19,7 @@ pragma solidity ^0.8.29;
 
 /// @title AddressLib
 ///
-/// A collection of utilities for validating and converting addresses
+/// @notice A collection of utilities for validating and converting addresses
 library AddressLib {
     /// Thrown when an address is the zero address
     error InvalidAddress();
