@@ -21,6 +21,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {GatewayCommon} from "src/GatewayCommon.sol";
 import {IBurnToken} from "src/interfaces/IBurnToken.sol";
 import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
@@ -29,7 +30,6 @@ import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {Balances} from "src/modules/wallet/Balances.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
-import {GatewayCommon} from "src/GatewayCommon.sol";
 
 /// @title Burns
 ///

@@ -18,10 +18,10 @@
 pragma solidity ^0.8.29;
 
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
-import {GatewayWallet} from "src/GatewayWallet.sol";
 import {MockERC1271Wallet} from "test/mock_fiattoken/contracts/test/MockERC1271Wallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";

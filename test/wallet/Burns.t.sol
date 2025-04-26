@@ -19,6 +19,7 @@ pragma solidity ^0.8.29;
 
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
@@ -27,7 +28,6 @@ import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
-import {GatewayWallet} from "src/GatewayWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";

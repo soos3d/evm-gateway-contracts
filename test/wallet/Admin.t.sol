@@ -19,8 +19,8 @@ pragma solidity ^0.8.29;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Test} from "forge-std/Test.sol";
-import {WithdrawalDelay} from "src/modules/wallet/WithdrawalDelay.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
+import {WithdrawalDelay} from "src/modules/wallet/WithdrawalDelay.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 

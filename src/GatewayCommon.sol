@@ -24,8 +24,8 @@ import {Counterpart} from "src/modules/common/Counterpart.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {Domain} from "src/modules/common/Domain.sol";
 import {Pausing} from "src/modules/common/Pausing.sol";
-import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
+import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 
 /// @title Gateway Common
 ///

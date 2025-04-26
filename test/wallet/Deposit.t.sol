@@ -19,8 +19,8 @@ pragma solidity ^0.8.29;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
-import {Deposits} from "src/modules/wallet/Deposits.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
+import {Deposits} from "src/modules/wallet/Deposits.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 

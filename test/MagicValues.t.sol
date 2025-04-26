@@ -17,6 +17,7 @@
  */
 pragma solidity ^0.8.29;
 
+import {Test} from "forge-std/Test.sol";
 import {BURN_AUTHORIZATION_MAGIC, BURN_AUTHORIZATION_SET_MAGIC} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {MINT_AUTHORIZATION_MAGIC, MINT_AUTHORIZATION_SET_MAGIC} from "src/lib/authorizations/MintAuthorizations.sol";
 import {CounterpartStorage} from "src/modules/common/Counterpart.sol";
@@ -30,7 +31,6 @@ import {BalancesStorage} from "src/modules/wallet/Balances.sol";
 import {BurnsStorage} from "src/modules/wallet/Burns.sol";
 import {DelegationStorage} from "src/modules/wallet/Delegation.sol";
 import {WithdrawalDelayStorage} from "src/modules/wallet/WithdrawalDelay.sol";
-import {Test} from "forge-std/Test.sol";
 
 /// Ensures the magic values used throughout the codebase are correct
 contract TestMagicValues is Test {

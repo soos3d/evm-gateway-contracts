@@ -17,11 +17,11 @@
  */
 pragma solidity ^0.8.29;
 
+import {GatewayCommon} from "src/GatewayCommon.sol";
+import {GatewayMinter} from "src/GatewayMinter.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
 import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
-import {GatewayCommon} from "src/GatewayCommon.sol";
-import {GatewayMinter} from "src/GatewayMinter.sol";
 
 /// @title Gateway Wallet
 ///

@@ -19,9 +19,9 @@ pragma solidity ^0.8.29;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {Burns} from "src/modules/wallet/Burns.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 import {AddressLib} from "src/lib/util/AddressLib.sol";
+import {Burns} from "src/modules/wallet/Burns.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {OwnershipTest} from "test/util/OwnershipTest.sol";

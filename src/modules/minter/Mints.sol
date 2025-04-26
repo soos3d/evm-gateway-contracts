@@ -19,13 +19,13 @@ pragma solidity ^0.8.29;
 
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {GatewayCommon} from "src/GatewayCommon.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {IMintToken} from "src/interfaces/IMintToken.sol";
 import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {AddressLib} from "src/lib/util/AddressLib.sol";
-import {GatewayCommon} from "src/GatewayCommon.sol";
-import {GatewayWallet} from "src/GatewayWallet.sol";
 
 /// @title Mints
 ///

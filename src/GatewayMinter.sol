@@ -17,9 +17,9 @@
  */
 pragma solidity ^0.8.29;
 
-import {Mints} from "src/modules/minter/Mints.sol";
 import {GatewayCommon} from "src/GatewayCommon.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
+import {Mints} from "src/modules/minter/Mints.sol";
 
 /// @title Gateway Minter
 ///
