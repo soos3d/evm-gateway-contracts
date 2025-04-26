@@ -51,7 +51,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @param signer                 The address that authorized the transfer
     /// @param value                  The value that was spent
     /// @param fee                    The fee charged for the burn
-    /// @param fromSpendable          The value burnt from the `spendable` balance
+    /// @param fromAvailable          The value burnt from the `available` balance
     /// @param fromWithdrawing        The value burnt from the `withdrawing` balance
     event BurnedSpent(
         address indexed token,
@@ -62,7 +62,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
         address signer,
         uint256 value,
         uint256 fee,
-        uint256 fromSpendable,
+        uint256 fromAvailable,
         uint256 fromWithdrawing
     );
 
@@ -75,7 +75,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @param recipient         The recipient of the funds
     /// @param signer            The address that authorized the transfer
     /// @param value             The value transferred to the recipient
-    /// @param fromSpendable     The value transferred from the `spendable` balance
+    /// @param fromAvailable     The value transferred from the `available` balance
     /// @param fromWithdrawing   The value transferred from the `withdrawing` balance
     event TransferredSpent(
         address indexed token,
@@ -84,7 +84,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
         address recipient,
         address signer,
         uint256 value,
-        uint256 fromSpendable,
+        uint256 fromAvailable,
         uint256 fromWithdrawing
     );
 
@@ -94,13 +94,13 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @param token                The token being burned
     /// @param depositor            The depositor who owns the balance
     /// @param value                The amount that needed to be burned
-    /// @param spendableBalance     The amount that was present in the spendable balance
+    /// @param availableBalance     The amount that was present in the available balance
     /// @param withdrawingBalance   The amount that was present in the withdrawing balance
     event InsufficientBalance(
         address indexed token,
         address indexed depositor,
         uint256 value,
-        uint256 spendableBalance,
+        uint256 availableBalance,
         uint256 withdrawingBalance
     );
 
@@ -521,11 +521,11 @@ contract Burns is GatewayCommon, Balances, Delegation {
         uint256 value = spec.getValue();
 
         // Reduce the balances of the depositor by amount being burned + the fee, returning the overall amounts that were drawn from each balance type
-        (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value + fee);
+        (uint256 fromAvailable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value + fee);
 
-        deductedAmount = fromSpendable + fromWithdrawing;
+        deductedAmount = fromAvailable + fromWithdrawing;
         if (deductedAmount < value + fee) {
-            emit InsufficientBalance(token, depositor, value + fee, fromSpendable, fromWithdrawing);
+            emit InsufficientBalance(token, depositor, value + fee, fromAvailable, fromWithdrawing);
         }
 
         // If the full amount could not be deducted, we want to prioritize burning over taking the fee
@@ -545,7 +545,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
             signer,
             deductedAmount - actualFeeCharged,
             actualFeeCharged,
-            fromSpendable,
+            fromAvailable,
             fromWithdrawing
         );
 
@@ -562,16 +562,16 @@ contract Burns is GatewayCommon, Balances, Delegation {
         uint256 value,
         bytes32 transferSpecHash
     ) internal {
-        (uint256 fromSpendable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value);
+        (uint256 fromAvailable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value);
 
-        if (fromSpendable + fromWithdrawing != value) {
+        if (fromAvailable + fromWithdrawing != value) {
             revert InsufficientBalanceForSameChainSpend();
         }
 
         IERC20(token).safeTransfer(recipient, value);
 
         emit TransferredSpent(
-            token, depositor, transferSpecHash, recipient, signer, value, fromSpendable, fromWithdrawing
+            token, depositor, transferSpecHash, recipient, signer, value, fromAvailable, fromWithdrawing
         );
     }
 }

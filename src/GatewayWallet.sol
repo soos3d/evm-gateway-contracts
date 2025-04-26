@@ -29,14 +29,14 @@ import {GatewayMinter} from "src/GatewayMinter.sol";
 /// the API, the user may request an authorization to instantly mint those funds on another chain. Minted funds are then
 /// burnt on the chain where they were deposited.
 ///
-/// @notice The spendable balance is the amount the user has deposited that may be spent on other chains, subject to
+/// @notice The available balance is the amount the user has deposited that may be spent on other chains, subject to
 /// finality observed by the API and an authorization obtained from the API. To obtain an authorization, the user must
 /// provide the API with a signed message containing the desired parameters along with an authorization to the API that
 /// will allow the operator to burn those funds once the mint is observed on the destination chain.
 ///
 /// @notice To mint funds on another chain, the user may request an authorization from the API and then use it to call
-/// `spend` on the GatewayMinter contract on the desired chain. This will mint the funds to the requested destination,
-/// and may be composed with other actions via a multicall contract or SCA implementation.
+/// `gatewayMint` on the GatewayMinter contract on the desired chain. This will mint the funds to the requested
+/// destination, and may be composed with other actions via a multicall contract or SCA implementation.
 ///
 /// @notice To withdraw funds on the same chain, the user may request an authorization from the API just like any other
 /// mint authorization. If the source and destination domains of the mint authorization are the same, the minter
@@ -47,9 +47,9 @@ import {GatewayMinter} from "src/GatewayMinter.sol";
 /// two-step process. First, the user must call `initiateWithdrawal` with the desired withdrawal amount. After a delay,
 /// the user may call `withdraw` to complete the withdrawal and receive the funds. This delay ensures that no
 /// double-spends are possible and that the operator has time to burn any funds that are spent. The amount that is in
-/// the process of being withdrawn will no longer be spendable as soon as the withdrawal initiation is observed by the
+/// the process of being withdrawn will no longer be available as soon as the withdrawal initiation is observed by the
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
-/// `spendable` and `withdrawing` balances.
+/// `available` and `withdrawing` balances.
 contract GatewayWallet is GatewayCommon, Deposits, Withdrawals, Burns {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {

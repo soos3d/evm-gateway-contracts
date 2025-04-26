@@ -41,7 +41,7 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
         uint256 blockHeightWhenInitiatingWithdrawal = block.number;
         ethereum.wallet.initiateWithdrawal(address(ethereum.usdc), DEPOSIT_AMOUNT);
         vm.stopPrank();
-        assertEq(ethereum.wallet.spendableBalance(address(ethereum.usdc), depositor), 0);
+        assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), 0);
         assertEq(ethereum.wallet.withdrawingBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
         assertEq(ethereum.wallet.withdrawableBalance(address(ethereum.usdc), depositor), 0);
 
@@ -78,13 +78,13 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
         );
 
         uint256 expectedRemainingBalance = DEPOSIT_AMOUNT - SPEND_AMOUNT - FEE_AMOUNT;
-        assertEq(ethereum.wallet.spendableBalance(address(ethereum.usdc), depositor), 0);
+        assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), 0);
         assertEq(ethereum.wallet.withdrawingBalance(address(ethereum.usdc), depositor), expectedRemainingBalance);
         assertEq(ethereum.wallet.withdrawableBalance(address(ethereum.usdc), depositor), 0);
 
         // Fast forward to 3 days later
         vm.roll(blockHeightWhenInitiatingWithdrawal + WITHDRAW_DELAY + 1000);
-        assertEq(ethereum.wallet.spendableBalance(address(ethereum.usdc), depositor), 0);
+        assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), 0);
         assertEq(ethereum.wallet.withdrawingBalance(address(ethereum.usdc), depositor), expectedRemainingBalance);
         assertEq(ethereum.wallet.withdrawableBalance(address(ethereum.usdc), depositor), expectedRemainingBalance);
 
@@ -92,7 +92,7 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
         vm.prank(depositor);
         ethereum.wallet.withdraw(address(ethereum.usdc));
         assertEq(ethereum.usdc.balanceOf(depositor), expectedRemainingBalance);
-        assertEq(ethereum.wallet.spendableBalance(address(ethereum.usdc), depositor), 0);
+        assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), 0);
         assertEq(ethereum.wallet.withdrawingBalance(address(ethereum.usdc), depositor), 0);
         assertEq(ethereum.wallet.withdrawableBalance(address(ethereum.usdc), depositor), 0);
     }

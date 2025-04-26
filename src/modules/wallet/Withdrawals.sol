@@ -44,7 +44,7 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
         address indexed depositor,
         address indexed authorizer,
         uint256 value,
-        uint256 remainingSpendable,
+        uint256 remainingAvailable,
         uint256 totalWithdrawing,
         uint256 withdrawalBlock
     );
@@ -61,7 +61,7 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
     );
 
     error WithdrawalValueMustBePositive();
-    error WithdrawalValueExceedsSpendableBalance();
+    error WithdrawalValueExceedsAvailableBalance();
 
     /// Starts the withdrawal process. After `withdrawalDelay`, `withdraw` may be called to complete the withdrawal.
     /// Once a withdrawal has been initiated, that amount can no longer be spent. Repeated calls will add to the amount
@@ -128,17 +128,17 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
             revert WithdrawalValueMustBePositive();
         }
 
-        if (value > spendableBalance(token, depositor)) {
-            revert WithdrawalValueExceedsSpendableBalance();
+        if (value > availableBalance(token, depositor)) {
+            revert WithdrawalValueExceedsAvailableBalance();
         }
 
-        (uint256 remainingSpendable, uint256 totalWithdrawing) = _moveBalanceToWithdrawing(token, depositor, value);
+        (uint256 remainingAvailable, uint256 totalWithdrawing) = _moveBalanceToWithdrawing(token, depositor, value);
 
         uint256 withdrawalBlock = block.number + withdrawalDelay();
         _setWithdrawalBlock(token, depositor, withdrawalBlock);
 
         emit WithdrawalInitiated(
-            token, depositor, authorizer, value, remainingSpendable, totalWithdrawing, withdrawalBlock
+            token, depositor, authorizer, value, remainingAvailable, totalWithdrawing, withdrawalBlock
         );
     }
 

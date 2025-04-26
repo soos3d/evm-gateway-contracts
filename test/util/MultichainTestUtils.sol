@@ -177,7 +177,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         }
         vm.stopPrank();
         assertEq(chain.usdc.balanceOf(address(chain.wallet)), amount_);
-        assertEq(chain.wallet.spendableBalance(address(chain.usdc), depositor_), amount_);
+        assertEq(chain.wallet.availableBalance(address(chain.usdc), depositor_), amount_);
     }
 
     function _burnFromChain(

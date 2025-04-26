@@ -93,7 +93,7 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
         ethereum.wallet.depositWithPermit(address(ethereum.usdc), depositor, DEPOSIT_AMOUNT, deadline, permitSignature);
         vm.stopPrank();
         assertEq(ethereum.usdc.balanceOf(address(ethereum.wallet)), DEPOSIT_AMOUNT);
-        assertEq(ethereum.wallet.spendableBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
+        assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
 
         // Offchain: Generate burn authorization and validate
         TransferSpec memory transferSpec =
@@ -153,7 +153,7 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
         );
         vm.stopPrank();
         assertEq(ethereum.usdc.balanceOf(address(ethereum.wallet)), DEPOSIT_AMOUNT);
-        assertEq(ethereum.wallet.spendableBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
+        assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
 
         // Offchain: Generate burn authorization and validate
         TransferSpec memory transferSpec =

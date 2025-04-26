@@ -71,7 +71,7 @@ contract GatewayWalletDepositTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    function test_deposit_spendableBalanceUpdatedAfterTransfer() public {
+    function test_deposit_availableBalanceUpdatedAfterTransfer() public {
         vm.startPrank(depositor);
         IERC20(usdc).approve(address(wallet), initialUsdcBalance);
 
@@ -79,13 +79,13 @@ contract GatewayWalletDepositTest is Test, DeployUtils {
         vm.expectEmit(true, true, false, true);
         emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.deposit(usdc, initialUsdcBalance / 2);
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Deposit the other half
         vm.expectEmit(true, true, false, true);
         emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.deposit(usdc, initialUsdcBalance / 2);
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance);
 
         vm.stopPrank();
     }

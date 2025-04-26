@@ -130,7 +130,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
     }
 
-    function test_gatewayTransfer_succeedsWithSpendableBalanceOnly() public {
+    function test_gatewayTransfer_succeedsWithAvailableBalanceOnly() public {
         bytes32 transferSpecHash = keccak256(emptyAuthorization);
         vm.prank(depositor);
         wallet.deposit(usdc, spendValue);
@@ -140,7 +140,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         vm.prank(minterContract);
         wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
         assertEq(FiatTokenV2_2(usdc).balanceOf(recipient), spendValue);
-        assertEq(wallet.spendableBalance(usdc, depositor), 0);
+        assertEq(wallet.availableBalance(usdc, depositor), 0);
         assertEq(wallet.withdrawingBalance(usdc, depositor), 0);
         assertEq(wallet.totalBalance(usdc, depositor), 0);
     }
@@ -159,7 +159,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         vm.prank(minterContract);
         wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
         assertEq(FiatTokenV2_2(usdc).balanceOf(recipient), spendValue);
-        assertEq(wallet.spendableBalance(usdc, depositor), 0);
+        assertEq(wallet.availableBalance(usdc, depositor), 0);
         assertEq(wallet.withdrawingBalance(usdc, depositor), 0);
         assertEq(wallet.totalBalance(usdc, depositor), 0);
     }
@@ -167,7 +167,7 @@ contract TestSameChainSpend is Test, DeployUtils {
     function test_gatewayTransfer_succeedsWithBothBalances() public {
         bytes32 transferSpecHash = keccak256(emptyAuthorization);
         uint256 withdrawingAmount = 10;
-        uint256 spendableAmount = spendValue - withdrawingAmount;
+        uint256 availableAmount = spendValue - withdrawingAmount;
 
         vm.startPrank(depositor);
         {
@@ -178,14 +178,14 @@ contract TestSameChainSpend is Test, DeployUtils {
 
         vm.expectEmit(true, true, true, true);
         emit Burns.TransferredSpent(
-            usdc, depositor, transferSpecHash, recipient, authorizer, spendValue, spendableAmount, withdrawingAmount
+            usdc, depositor, transferSpecHash, recipient, authorizer, spendValue, availableAmount, withdrawingAmount
         );
 
         vm.prank(minterContract);
         wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
 
         assertEq(FiatTokenV2_2(usdc).balanceOf(recipient), spendValue);
-        assertEq(wallet.spendableBalance(usdc, depositor), 0);
+        assertEq(wallet.availableBalance(usdc, depositor), 0);
         assertEq(wallet.withdrawingBalance(usdc, depositor), 0);
         assertEq(wallet.totalBalance(usdc, depositor), 0);
     }

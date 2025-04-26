@@ -70,13 +70,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         address authorizer;
         uint256 value;
         uint256 fee;
-        uint256 fromSpendable;
+        uint256 fromAvailable;
         uint256 fromWithdrawing;
     }
 
     struct ExpectedBalances {
         uint256 depositorExternalUsdc;
-        uint256 depositorSpendable;
+        uint256 depositorAvailable;
         uint256 depositorWithdrawing;
         uint256 feeRecipientExternalUsdc;
         uint256 walletExternalUsdc;
@@ -222,7 +222,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             params.authorizer,
             params.value,
             params.fee,
-            params.fromSpendable,
+            params.fromAvailable,
             params.fromWithdrawing
         );
     }
@@ -767,7 +767,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         ExpectedBalances finalBalances;
         ExpectedBurnEventParams eventParams1;
         uint256 insufficientEventValueNeeded;
-        uint256 insufficientEventSpendableAvailable;
+        uint256 insufficientEventAvailableAvailable;
         uint256 insufficientEventWithdrawingAvailable;
         ExpectedBurnEventParams eventParams2;
     }
@@ -801,7 +801,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
             depositorExternalUsdc: depositorInitialBalance * 3 / 4, // $3750 external
-            depositorSpendable: depositorInitialBalance / 4, // $1250 spendable
+            depositorAvailable: depositorInitialBalance / 4, // $1250 available
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance + depositorInitialBalance / 4, // $5000 (original depositor) + $1250 (underFundedDepositor) = $6250 total in wallet
@@ -814,7 +814,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             address(usdc),
             underFundedDepositor,
             auth.spec.value + fee, // Total needed: $2500 + $0.50 = $2500.50
-            depositorInitialBalance / 4, // Spendable available: $1250
+            depositorInitialBalance / 4, // Available available: $1250
             0 // Withdrawing available: $0
         );
 
@@ -825,9 +825,9 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         expectedParams.destinationDomain = auth.spec.destinationDomain;
         expectedParams.recipient = auth.spec.destinationRecipient;
         expectedParams.authorizer = underFundedDepositor;
-        expectedParams.value = depositorInitialBalance / 4; // fromSpendable - fee
+        expectedParams.value = depositorInitialBalance / 4; // fromAvailable - fee
         expectedParams.fee = 0; // Actual fee charged: $0 (waived)
-        expectedParams.fromSpendable = depositorInitialBalance / 4; // Actual amount deducted from spendable: $1250
+        expectedParams.fromAvailable = depositorInitialBalance / 4; // Actual amount deducted from available: $1250
         expectedParams.fromWithdrawing = 0;
         _expectBurnEvent(expectedParams);
 
@@ -836,7 +836,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Assert final state
         ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
             depositorExternalUsdc: depositorInitialBalance * 3 / 4, // $3750
-            depositorSpendable: 0, // Spendable becomes $0
+            depositorAvailable: 0, // Available becomes $0
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0, // Fee recipient gets $0
             walletExternalUsdc: depositorInitialBalance, // Wallet balance: $6250 - $1250 = $5000
@@ -909,7 +909,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Initial Balances
         testData.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0, // Depositor transferred all funds in
-            depositorSpendable: testData.initialDeposit,
+            depositorAvailable: testData.initialDeposit,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: testData.initialFeeRecipientBalance, // May have balance from other tests
             walletExternalUsdc: testData.initialWalletBalance, // Wallet holds initial depositor + this new one
@@ -923,7 +923,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         testData.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0, // Fully depleted
+            depositorAvailable: 0, // Fully depleted
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: testData.initialFeeRecipientBalance + finalTotalFeeCharged, // Initial + $0.20
             walletExternalUsdc: testData.initialWalletBalance - finalTotalDeducted, // Initial wallet bal - $1000
@@ -938,15 +938,15 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             destinationDomain: testData.auth1.spec.destinationDomain,
             recipient: testData.auth1.spec.destinationRecipient,
             authorizer: testData.depositorAddr,
-            value: testData.value1, // fromSpendable - fee
+            value: testData.value1, // fromAvailable - fee
             fee: testData.fee1,
-            fromSpendable: testData.value1 + testData.fee1,
+            fromAvailable: testData.value1 + testData.fee1,
             fromWithdrawing: 0
         });
 
         // Insufficient Balance Event (Auth 2)
         testData.insufficientEventValueNeeded = neededForAuth2; // $500.10
-        testData.insufficientEventSpendableAvailable = balanceAfterAuth1; // $399.80
+        testData.insufficientEventAvailableAvailable = balanceAfterAuth1; // $399.80
         testData.insufficientEventWithdrawingAvailable = 0;
 
         // Event 2 (Auth 2)
@@ -957,9 +957,9 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             destinationDomain: testData.auth2.spec.destinationDomain,
             recipient: testData.auth2.spec.destinationRecipient,
             authorizer: testData.depositorAddr,
-            value: deductedForAuth2 - actualFeeAuth2, // fromSpendable - fee
+            value: deductedForAuth2 - actualFeeAuth2, // fromAvailable - fee
             fee: actualFeeAuth2, // Actual fee $0
-            fromSpendable: deductedForAuth2, // Amount actually deducted $399.80
+            fromAvailable: deductedForAuth2, // Amount actually deducted $399.80
             fromWithdrawing: 0
         });
 
@@ -974,7 +974,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             address(usdc),
             testData.depositorAddr,
             testData.insufficientEventValueNeeded,
-            testData.insufficientEventSpendableAvailable,
+            testData.insufficientEventAvailableAvailable,
             testData.insufficientEventWithdrawingAvailable
         );
         _expectBurnEvent(testData.eventParams2); // Event for partially successful auth2
@@ -1016,7 +1016,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
             depositorExternalUsdc: depositorInitialBalance * 3 / 4 - fee / 2, // $3750 external - $0.25 (half of fee)
-            depositorSpendable: depositorInitialBalance / 4 + fee / 2, // $1250 spendable + $0.25 (half of fee)
+            depositorAvailable: depositorInitialBalance / 4 + fee / 2, // $1250 available + $0.25 (half of fee)
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance + depositorInitialBalance / 4 + fee / 2, // $5000 (original depositor) + $1250 (underFundedDepositor) + $0.25 (half of fee) = $6250.25 total in wallet
@@ -1029,7 +1029,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             address(usdc),
             underFundedDepositor,
             auth.spec.value + fee, // Total needed: $1250 + $0.50 = $1250.50
-            depositorInitialBalance / 4 + fee / 2, // Spendable available: $1250 + $0.25 (half of fee)
+            depositorInitialBalance / 4 + fee / 2, // Available available: $1250 + $0.25 (half of fee)
             0 // Withdrawing available: $0
         );
 
@@ -1041,8 +1041,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         expectedParams.recipient = auth.spec.destinationRecipient;
         expectedParams.authorizer = underFundedDepositor;
         expectedParams.fee = fee / 2; // Actual fee charged: $0.25 (half of fee)
-        expectedParams.fromSpendable = depositorInitialBalance / 4 + fee / 2; // Actual amount deducted from spendable: $1250.25
-        expectedParams.value = expectedParams.fromSpendable - expectedParams.fee;
+        expectedParams.fromAvailable = depositorInitialBalance / 4 + fee / 2; // Actual amount deducted from available: $1250.25
+        expectedParams.value = expectedParams.fromAvailable - expectedParams.fee;
         expectedParams.fromWithdrawing = 0;
         _expectBurnEvent(expectedParams);
 
@@ -1051,7 +1051,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Assert final state
         ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
             depositorExternalUsdc: depositorInitialBalance * 3 / 4 - fee / 2, // $3750 external - $0.25 (half of fee)
-            depositorSpendable: 0, // Spendable becomes $0
+            depositorAvailable: 0, // Available becomes $0
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: fee / 2, // Fee recipient gets $0.25 (half of fee)
             walletExternalUsdc: depositorInitialBalance, // Wallet balance: $6250 - $1250 = $5000
@@ -1126,7 +1126,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Initial Balances
         testData.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: testData.initialDeposit,
+            depositorAvailable: testData.initialDeposit,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: testData.initialFeeRecipientBalance,
             walletExternalUsdc: testData.initialWalletBalance,
@@ -1140,7 +1140,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         testData.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0, // Fully depleted
+            depositorAvailable: 0, // Fully depleted
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: testData.initialFeeRecipientBalance + finalTotalFeeCharged, // Initial + $0.50
             walletExternalUsdc: testData.initialWalletBalance - finalTotalDeducted, // Initial wallet bal - $1000
@@ -1157,13 +1157,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             authorizer: testData.depositorAddr,
             value: testData.value1,
             fee: testData.fee1,
-            fromSpendable: testData.value1 + testData.fee1,
+            fromAvailable: testData.value1 + testData.fee1,
             fromWithdrawing: 0
         });
 
         // Insufficient Balance Event (Auth 2)
         testData.insufficientEventValueNeeded = neededForAuth2; // $200.00
-        testData.insufficientEventSpendableAvailable = balanceAfterAuth1; // $199.90
+        testData.insufficientEventAvailableAvailable = balanceAfterAuth1; // $199.90
         testData.insufficientEventWithdrawingAvailable = 0;
 
         // Event 2 (Auth 2)
@@ -1176,7 +1176,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             authorizer: testData.depositorAddr,
             value: deductedForAuth2 - actualFeeAuth2, // Requested value $199.50
             fee: actualFeeAuth2, // Actual fee $0.40
-            fromSpendable: deductedForAuth2, // Amount actually deducted $199.90
+            fromAvailable: deductedForAuth2, // Amount actually deducted $199.90
             fromWithdrawing: 0
         });
 
@@ -1191,7 +1191,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             address(usdc),
             testData.depositorAddr,
             testData.insufficientEventValueNeeded,
-            testData.insufficientEventSpendableAvailable,
+            testData.insufficientEventAvailableAvailable,
             testData.insufficientEventWithdrawingAvailable
         );
         _expectBurnEvent(testData.eventParams2); // Event for successful value burn, partial fee
@@ -1211,11 +1211,11 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     // This section tests successful `burnSpent` calls by varying several parameters:
     // 1. Input Structure: How authorizations are grouped (single vs. multiple sets, single vs. multiple auths per set).
     // 2. Domain Relevance: Whether authorizations are for the current domain (processed) or another (skipped).
-    // 3. Balance Source: Where funds are drawn from (spendable only, withdrawing only, or both).
+    // 3. Balance Source: Where funds are drawn from (available only, withdrawing only, or both).
     // 4. Authorization Signer: Who signed the authorization (the depositor, an authorized delegate, or a now revoked delegate).
 
     struct SingleBurnTestConfig {
-        string contextSuffix; // Short description (e.g., "(Spendable, Depositor)")
+        string contextSuffix; // Short description (e.g., "(Available, Depositor)")
         BurnAuthorization auth; // The specific authorization to test
         uint256 fee; // The fee for this specific burn
         uint256 signerKey; // Private key of the authorizer (depositor or delegate)
@@ -1232,7 +1232,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     ) internal view {
         // Fetch actual balances
         uint256 actualDepositorExternalUsdc = usdc.balanceOf(depositorAddr);
-        uint256 actualDepositorSpendable = wallet.spendableBalance(address(usdc), depositorAddr);
+        uint256 actualDepositorAvailable = wallet.availableBalance(address(usdc), depositorAddr);
         uint256 actualDepositorWithdrawing = wallet.withdrawingBalance(address(usdc), depositorAddr);
         uint256 actualFeeRecipientExternalUsdc = usdc.balanceOf(feeRecipientAddr);
         uint256 actualWalletExternalUsdc = usdc.balanceOf(address(wallet));
@@ -1244,9 +1244,9 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             string.concat(context, ": Depositor External USDC mismatch")
         );
         assertEq(
-            actualDepositorSpendable,
-            expected.depositorSpendable,
-            string.concat(context, ": Depositor Spendable mismatch")
+            actualDepositorAvailable,
+            expected.depositorAvailable,
+            string.concat(context, ": Depositor Available mismatch")
         );
         assertEq(
             actualDepositorWithdrawing,
@@ -1300,13 +1300,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         );
     }
 
-    function test_burnSpent_singleAuth_currentDomain_fromSpendableBalance_depositorSigner() public {
+    function test_burnSpent_singleAuth_currentDomain_fromAvailableBalance_depositorSigner() public {
         BurnAuthorization memory auth = baseAuth;
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = depositorKey;
         address expectedAuthorizer = depositor;
-        string memory contextSuffix = "(Spendable, Depositor)";
+        string memory contextSuffix = "(Available, Depositor)";
         uint256 expectedTotalDeducted = burnValue + fee;
 
         SingleBurnTestConfig memory config;
@@ -1318,7 +1318,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance,
+            depositorAvailable: depositorInitialBalance,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1327,7 +1327,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance - expectedTotalDeducted,
+            depositorAvailable: depositorInitialBalance - expectedTotalDeducted,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
@@ -1343,14 +1343,14 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: expectedTotalDeducted,
+            fromAvailable: expectedTotalDeducted,
             fromWithdrawing: 0
         });
 
         _executeAndAssertSingleBurn(config);
     }
 
-    function test_burnSpent_singleAuth_currentDomain_fromSpendableBalance_delegateSigner() public {
+    function test_burnSpent_singleAuth_currentDomain_fromAvailableBalance_delegateSigner() public {
         // Setup delegate
         vm.startPrank(depositor);
         wallet.addDelegate(address(usdc), delegate);
@@ -1363,7 +1363,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate
         address expectedAuthorizer = delegate; // Authorizer is delegate
-        string memory contextSuffix = "(Spendable, Delegate)";
+        string memory contextSuffix = "(Available, Delegate)";
         uint256 expectedTotalDeducted = burnValue + fee;
 
         SingleBurnTestConfig memory config;
@@ -1375,7 +1375,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance,
+            depositorAvailable: depositorInitialBalance,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1384,7 +1384,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance - expectedTotalDeducted,
+            depositorAvailable: depositorInitialBalance - expectedTotalDeducted,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
@@ -1400,14 +1400,14 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: expectedTotalDeducted,
+            fromAvailable: expectedTotalDeducted,
             fromWithdrawing: 0
         });
 
         _executeAndAssertSingleBurn(config);
     }
 
-    function test_burnSpent_singleAuth_currentDomain_fromSpendableBalance_revokedDelegateSigner() public {
+    function test_burnSpent_singleAuth_currentDomain_fromAvailableBalance_revokedDelegateSigner() public {
         // Setup and revoke delegate
         vm.startPrank(depositor);
         wallet.addDelegate(address(usdc), delegate);
@@ -1421,7 +1421,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate (before revocation)
         address expectedAuthorizer = delegate; // Authorizer is revoked delegate
-        string memory contextSuffix = "(Spendable, Revoked Delegate)";
+        string memory contextSuffix = "(Available, Revoked Delegate)";
         uint256 expectedTotalDeducted = burnValue + fee;
 
         SingleBurnTestConfig memory config;
@@ -1433,7 +1433,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance,
+            depositorAvailable: depositorInitialBalance,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1442,7 +1442,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance - expectedTotalDeducted,
+            depositorAvailable: depositorInitialBalance - expectedTotalDeducted,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
@@ -1458,7 +1458,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: expectedTotalDeducted,
+            fromAvailable: expectedTotalDeducted,
             fromWithdrawing: 0
         });
 
@@ -1487,7 +1487,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
+            depositorAvailable: 0,
             depositorWithdrawing: depositorInitialBalance,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1496,7 +1496,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
+            depositorAvailable: 0,
             depositorWithdrawing: depositorInitialBalance - expectedTotalDeducted,
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
@@ -1512,7 +1512,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: 0,
+            fromAvailable: 0,
             fromWithdrawing: expectedTotalDeducted
         });
 
@@ -1547,7 +1547,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
+            depositorAvailable: 0,
             depositorWithdrawing: depositorInitialBalance,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1556,7 +1556,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
+            depositorAvailable: 0,
             depositorWithdrawing: depositorInitialBalance - expectedTotalDeducted,
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
@@ -1572,7 +1572,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: 0,
+            fromAvailable: 0,
             fromWithdrawing: expectedTotalDeducted
         });
 
@@ -1605,7 +1605,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
+            depositorAvailable: 0,
             depositorWithdrawing: depositorInitialBalance,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1614,7 +1614,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
+            depositorAvailable: 0,
             depositorWithdrawing: depositorInitialBalance - expectedTotalDeducted,
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
@@ -1630,7 +1630,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: 0,
+            fromAvailable: 0,
             fromWithdrawing: expectedTotalDeducted
         });
 
@@ -1640,7 +1640,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     function test_burnSpent_singleAuth_currentDomain_fromBothBalances_depositorSigner() public {
         // Move some funds to withdrawing balance
         uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
-        uint256 remainingSpendable = depositorInitialBalance / 4;
+        uint256 remainingAvailable = depositorInitialBalance / 4;
 
         vm.startPrank(depositor);
         wallet.initiateWithdrawal(address(usdc), withdrawAmount);
@@ -1663,7 +1663,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: remainingSpendable,
+            depositorAvailable: remainingAvailable,
             depositorWithdrawing: withdrawAmount,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1672,8 +1672,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
-            depositorWithdrawing: withdrawAmount - (expectedTotalDeducted - remainingSpendable),
+            depositorAvailable: 0,
+            depositorWithdrawing: withdrawAmount - (expectedTotalDeducted - remainingAvailable),
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
             usdcTotalSupply: initialTotalSupply - burnValue
@@ -1688,8 +1688,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: remainingSpendable,
-            fromWithdrawing: expectedTotalDeducted - remainingSpendable
+            fromAvailable: remainingAvailable,
+            fromWithdrawing: expectedTotalDeducted - remainingAvailable
         });
 
         _executeAndAssertSingleBurn(config);
@@ -1698,7 +1698,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     function test_burnSpent_singleAuth_currentDomain_fromBothBalances_delegateSigner() public {
         // Move some funds to withdrawing balance
         uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
-        uint256 remainingSpendable = depositorInitialBalance - withdrawAmount;
+        uint256 remainingAvailable = depositorInitialBalance - withdrawAmount;
 
         // Setup delegate
         vm.startPrank(depositor);
@@ -1725,7 +1725,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: remainingSpendable,
+            depositorAvailable: remainingAvailable,
             depositorWithdrawing: withdrawAmount,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1734,8 +1734,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0, // Spendable used up
-            depositorWithdrawing: withdrawAmount - (expectedTotalDeducted - remainingSpendable),
+            depositorAvailable: 0, // Available used up
+            depositorWithdrawing: withdrawAmount - (expectedTotalDeducted - remainingAvailable),
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
             usdcTotalSupply: initialTotalSupply - burnValue
@@ -1750,8 +1750,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: remainingSpendable,
-            fromWithdrawing: expectedTotalDeducted - remainingSpendable
+            fromAvailable: remainingAvailable,
+            fromWithdrawing: expectedTotalDeducted - remainingAvailable
         });
 
         _executeAndAssertSingleBurn(config);
@@ -1760,7 +1760,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     function test_burnSpent_singleAuth_currentDomain_fromBothBalances_revokedDelegateSigner() public {
         // Move some funds to withdrawing balance
         uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
-        uint256 remainingSpendable = depositorInitialBalance - withdrawAmount;
+        uint256 remainingAvailable = depositorInitialBalance - withdrawAmount;
 
         // Setup and revoke delegate
         vm.startPrank(depositor);
@@ -1788,7 +1788,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: remainingSpendable,
+            depositorAvailable: remainingAvailable,
             depositorWithdrawing: withdrawAmount,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1797,8 +1797,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
-            depositorWithdrawing: withdrawAmount - (expectedTotalDeducted - remainingSpendable),
+            depositorAvailable: 0,
+            depositorWithdrawing: withdrawAmount - (expectedTotalDeducted - remainingAvailable),
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
             usdcTotalSupply: initialTotalSupply - burnValue
@@ -1813,8 +1813,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: remainingSpendable,
-            fromWithdrawing: expectedTotalDeducted - remainingSpendable
+            fromAvailable: remainingAvailable,
+            fromWithdrawing: expectedTotalDeducted - remainingAvailable
         });
 
         _executeAndAssertSingleBurn(config);
@@ -1858,7 +1858,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     /// - authorizations[0]: Single auth, current domain.
     /// - authorizations[1]: Set of 3 auths (current, other, current).
     /// Expects burns for the 3 current-domain auths to succeed and the other-domain auth to be skipped.
-    function test_burnSpent_multipleSets_mixedDomains_fromSpendable_depositorSigner() public {
+    function test_burnSpent_multipleSets_mixedDomains_fromAvailable_depositorSigner() public {
         MultiSetMixedDomainTestData memory testData;
 
         testData.fee1 = defaultMaxFee / 10;
@@ -1930,7 +1930,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.expectedTotalDeducted = testData.expectedTotalValueBurned + testData.expectedTotalFeeCharged;
         testData.initialExpectedBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance,
+            depositorAvailable: depositorInitialBalance,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1947,7 +1947,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.eventParams1.authorizer = depositor;
         testData.eventParams1.value = testData.value1;
         testData.eventParams1.fee = testData.fee1;
-        testData.eventParams1.fromSpendable = testData.value1 + testData.fee1; // Assuming drawn from spendable first
+        testData.eventParams1.fromAvailable = testData.value1 + testData.fee1; // Assuming drawn from available first
         testData.eventParams1.fromWithdrawing = 0;
         _expectBurnEvent(testData.eventParams1);
 
@@ -1960,7 +1960,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.eventParams2.authorizer = depositor;
         testData.eventParams2.value = testData.value2;
         testData.eventParams2.fee = testData.fee2;
-        testData.eventParams2.fromSpendable = testData.value2 + testData.fee2;
+        testData.eventParams2.fromAvailable = testData.value2 + testData.fee2;
         testData.eventParams2.fromWithdrawing = 0;
         _expectBurnEvent(testData.eventParams2);
 
@@ -1973,7 +1973,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.eventParams4.authorizer = depositor;
         testData.eventParams4.value = testData.value4;
         testData.eventParams4.fee = testData.fee4;
-        testData.eventParams4.fromSpendable = testData.value4 + testData.fee4;
+        testData.eventParams4.fromAvailable = testData.value4 + testData.fee4;
         testData.eventParams4.fromWithdrawing = 0;
         _expectBurnEvent(testData.eventParams4);
 
@@ -1981,7 +1981,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         testData.finalExpectedBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance - testData.expectedTotalDeducted,
+            depositorAvailable: depositorInitialBalance - testData.expectedTotalDeducted,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: testData.expectedTotalFeeCharged,
             walletExternalUsdc: depositorInitialBalance - testData.expectedTotalDeducted,
@@ -2014,7 +2014,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         ExpectedBurnEventParams eventParams2;
     }
 
-    function test_burnSpent_multipleDepositors_currentDomain_fromSpendable_depositorSigners() public {
+    function test_burnSpent_multipleDepositors_currentDomain_fromAvailable_depositorSigners() public {
         // Setup second depositor balance
         deal(address(usdc), depositor2, depositor2InitialBalance, true);
         vm.startPrank(depositor2);
@@ -2069,11 +2069,11 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.initialWalletBalance = usdc.balanceOf(address(wallet));
 
         // Depositor 1 Initial State
-        assertEq(wallet.spendableBalance(address(usdc), depositor), depositorInitialBalance, "Initial D1 Spendable");
+        assertEq(wallet.availableBalance(address(usdc), depositor), depositorInitialBalance, "Initial D1 Available");
         assertEq(wallet.withdrawingBalance(address(usdc), depositor), 0, "Initial D1 Withdrawing");
 
         // Depositor 2 Initial State
-        assertEq(wallet.spendableBalance(address(usdc), depositor2), depositor2InitialBalance, "Initial D2 Spendable");
+        assertEq(wallet.availableBalance(address(usdc), depositor2), depositor2InitialBalance, "Initial D2 Available");
         assertEq(wallet.withdrawingBalance(address(usdc), depositor2), 0, "Initial D2 Withdrawing");
 
         // Event for Depositor 1's burn
@@ -2085,7 +2085,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.eventParams1.authorizer = depositor;
         testData.eventParams1.value = testData.burnValue1;
         testData.eventParams1.fee = testData.fee1;
-        testData.eventParams1.fromSpendable = testData.burnValue1 + testData.fee1;
+        testData.eventParams1.fromAvailable = testData.burnValue1 + testData.fee1;
         testData.eventParams1.fromWithdrawing = 0;
         _expectBurnEvent(testData.eventParams1);
 
@@ -2098,7 +2098,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.eventParams2.authorizer = depositor2;
         testData.eventParams2.value = testData.burnValue2;
         testData.eventParams2.fee = testData.fee2;
-        testData.eventParams2.fromSpendable = testData.burnValue2 + testData.fee2;
+        testData.eventParams2.fromAvailable = testData.burnValue2 + testData.fee2;
         testData.eventParams2.fromWithdrawing = 0;
         _expectBurnEvent(testData.eventParams2);
 
@@ -2110,18 +2110,18 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         // Check Depositor 1 Final State
         assertEq(
-            wallet.spendableBalance(address(usdc), depositor),
+            wallet.availableBalance(address(usdc), depositor),
             depositorInitialBalance - (testData.burnValue1 + testData.fee1),
-            "Final D1 Spendable"
+            "Final D1 Available"
         );
         assertEq(wallet.withdrawingBalance(address(usdc), depositor), 0, "Final D1 Withdrawing");
         assertEq(usdc.balanceOf(depositor), 0, "Final D1 External");
 
         // Check Depositor 2 Final State
         assertEq(
-            wallet.spendableBalance(address(usdc), depositor2),
+            wallet.availableBalance(address(usdc), depositor2),
             depositor2InitialBalance - (testData.burnValue2 + testData.fee2),
-            "Final D2 Spendable"
+            "Final D2 Available"
         );
         assertEq(wallet.withdrawingBalance(address(usdc), depositor2), 0, "Final D2 Withdrawing");
         assertEq(usdc.balanceOf(depositor2), 0, "Final D2 External");

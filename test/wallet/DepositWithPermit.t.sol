@@ -153,12 +153,12 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         wallet.depositWithPermit(usdc, depositor, 2 * initialUsdcBalance, eip2612PermitDeadline, v, r, s);
     }
 
-    function test_depositWithPermit_with2612Interface_spendableBalanceUpdatedAfterTransfer() public {
+    function test_depositWithPermit_with2612Interface_availableBalanceUpdatedAfterTransfer() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance);
         vm.expectEmit(true, true, false, true);
         emit Deposits.Deposited(usdc, depositor, initialUsdcBalance);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance);
     }
 
     function test_depositWithPermit_with2612Interface_revertIfPermitReplayed() public {
@@ -166,7 +166,7 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         vm.expectEmit(true, true, false, true);
         emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, v, r, s);
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Attempt to replay the same permit signature
         vm.expectRevert(bytes(EIP2612_INVALID_SIGNATURE));
@@ -254,17 +254,17 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         wallet.depositWithPermit(usdc, depositor, 2 * initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
-    function test_depositWithPermit_with7597Interface_withEOASignature_spendableBalanceUpdatedAfterTransfer() public {
+    function test_depositWithPermit_with7597Interface_withEOASignature_availableBalanceUpdatedAfterTransfer() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance);
         vm.expectEmit(true, true, false, true);
         emit Deposits.Deposited(usdc, depositor, initialUsdcBalance);
 
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
 
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance);
     }
 
-    function test_depositWithPermit_with7597Interface_withSCASignature_spendableBalanceUpdatedAfterTransfer() public {
+    function test_depositWithPermit_with7597Interface_withSCASignature_availableBalanceUpdatedAfterTransfer() public {
         address depositorWalletAddress = address(depositorWallet);
         deal(usdc, depositorWalletAddress, initialUsdcBalance);
         depositorWallet.setSignatureValid(true);
@@ -274,7 +274,7 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
 
         wallet.depositWithPermit(usdc, depositorWalletAddress, initialUsdcBalance, eip2612PermitDeadline, signature);
 
-        assertEq(wallet.spendableBalance(usdc, depositorWalletAddress), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositorWalletAddress), initialUsdcBalance);
     }
 
     function test_depositWithPermit_with7597Interface_revertIfPermitReplayed() public {
@@ -282,7 +282,7 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         vm.expectEmit(true, true, false, true);
         emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, signature);
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Attempt to replay the same permit signature
         vm.expectRevert(bytes(EIP2612_INVALID_SIGNATURE));

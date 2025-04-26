@@ -233,7 +233,7 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         );
     }
 
-    function test_depositWithAuthorization_with3009Interface_spendableBalanceUpdatedAfterTransfer() public {
+    function test_depositWithAuthorization_with3009Interface_availableBalanceUpdatedAfterTransfer() public {
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
         skip(activeTimeOffset);
         vm.expectEmit(true, true, false, true);
@@ -241,7 +241,7 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance);
     }
 
     function test_depositWithAuthorization_with3009Interface_revertIfAuthorizationReplayed() public {
@@ -252,7 +252,7 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance / 2, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Attempt to replay the same authorization
         vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_USED_OR_CANCELED));
@@ -410,7 +410,7 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         );
     }
 
-    function test_depositWithAuthorization_with7598Interface_withEOASignature_spendableBalanceUpdatedAfterTransfer()
+    function test_depositWithAuthorization_with7598Interface_withEOASignature_availableBalanceUpdatedAfterTransfer()
         public
     {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
@@ -420,10 +420,10 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance);
     }
 
-    function test_depositWithAuthorization_with7598Interface_withSCASignature_spendableBalanceUpdatedAfterTransfer()
+    function test_depositWithAuthorization_with7598Interface_withSCASignature_availableBalanceUpdatedAfterTransfer()
         public
     {
         address depositorWalletAddress = address(depositorWallet);
@@ -443,7 +443,7 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
             erc3009Nonce,
             signature
         );
-        assertEq(wallet.spendableBalance(usdc, depositorWalletAddress), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositorWalletAddress), initialUsdcBalance);
     }
 
     function test_depositWithAuthorization_with7598Interface_revertIfAuthorizationReplayed() public {
@@ -454,7 +454,7 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance / 2, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Attempt to replay the same authorization
         vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_USED_OR_CANCELED));
