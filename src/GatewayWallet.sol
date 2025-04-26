@@ -29,10 +29,10 @@ import {GatewayMinter} from "src/GatewayMinter.sol";
 /// the API, the user may request an authorization to instantly mint those funds on another chain. Minted funds are then
 /// burnt on the chain where they were deposited.
 ///
-/// @notice The available balance is the amount the user has deposited that may be spent on other chains, subject to
-/// finality observed by the API and an authorization obtained from the API. To obtain an authorization, the user must
-/// provide the API with a signed message containing the desired parameters along with an authorization to the API that
-/// will allow the operator to burn those funds once the mint is observed on the destination chain.
+/// @notice The available balance is the amount the user has deposited that may be used instantly on any chain, subject
+/// to finality observed by the API and an authorization obtained from the API. To obtain an authorization, the user
+/// must provide the API with a signed message containing the desired parameters along with an authorization to the API
+/// that will allow the operator to burn those funds once the mint is observed on the destination chain.
 ///
 /// @notice To mint funds on another chain, the user may request an authorization from the API and then use it to call
 /// `gatewayMint` on the GatewayMinter contract on the desired chain. This will mint the funds to the requested
@@ -46,7 +46,7 @@ import {GatewayMinter} from "src/GatewayMinter.sol";
 /// @notice To ensure funds are withdrawable even if the API is unavailable, users may withdraw permissionlessly using a
 /// two-step process. First, the user must call `initiateWithdrawal` with the desired withdrawal amount. After a delay,
 /// the user may call `withdraw` to complete the withdrawal and receive the funds. This delay ensures that no
-/// double-spends are possible and that the operator has time to burn any funds that are spent. The amount that is in
+/// double-spends are possible and that the operator has time to burn any funds that are minted. The amount that is in
 /// the process of being withdrawn will no longer be available as soon as the withdrawal initiation is observed by the
 /// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
 /// `available` and `withdrawing` balances.

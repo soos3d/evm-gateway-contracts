@@ -65,11 +65,11 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
 
         // On each fork, validate burn authorization
         vm.selectFork(ethereum.forkId);
-        bool isValidBurnAuthEthereum = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        bool isValidBurnAuthEthereum = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
         vm.selectFork(arbitrum.forkId);
-        bool isValidBurnAuthArbitrum = arbitrum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        bool isValidBurnAuthArbitrum = arbitrum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
         vm.selectFork(base.forkId);
-        bool isValidBurnAuthBase = base.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        bool isValidBurnAuthBase = base.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuthEthereum && isValidBurnAuthArbitrum && isValidBurnAuthBase);
 
         // Offchain: Generate mint authorization given valid burn authorization
@@ -89,7 +89,7 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
             expectedDepositorBalanceDecrement
         );
 
-        // On each fork: Burn spent amount
+        // On each fork: Burn used amount
         _burnFromChain(
             arbitrum,
             encodedBurnAuth,
@@ -125,11 +125,11 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
 
         // On each fork, validate burn authorization
         vm.selectFork(arbitrum.forkId);
-        bool isValidBurnAuthArbitrum = arbitrum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        bool isValidBurnAuthArbitrum = arbitrum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
         vm.selectFork(base.forkId);
-        bool isValidBurnAuthBase = base.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        bool isValidBurnAuthBase = base.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
         vm.selectFork(ethereum.forkId);
-        bool isValidBurnAuthEthereum = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        bool isValidBurnAuthEthereum = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuthEthereum && isValidBurnAuthArbitrum && isValidBurnAuthBase);
 
         // Offchain: Generate mint authorization given valid burn authorization
@@ -169,7 +169,7 @@ contract MultiDepositAndSpendFlowTest is MultichainTestUtils {
             SPEND_AMOUNT /* expected depositor balance decrement */
         );
 
-        // On Ethereum: Burn spent amount
+        // On Ethereum: Burn used amount
         _burnFromChain(
             ethereum,
             encodedBurnAuth,

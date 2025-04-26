@@ -216,7 +216,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         // Get burn signer signature and execute burn
         bytes memory burnSignerSignature =
             _signBurnAuthorizations(encodedBurnAuths, burnSignatures, fees, chain.walletBurnSignerKey);
-        chain.wallet.burnSpent(encodedBurnAuths, burnSignatures, fees, burnSignerSignature);
+        chain.wallet.gatewayBurn(encodedBurnAuths, burnSignatures, fees, burnSignerSignature);
 
         // Verify state after burn
         assertEq(

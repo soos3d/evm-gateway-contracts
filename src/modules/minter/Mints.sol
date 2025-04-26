@@ -38,7 +38,7 @@ contract Mints is GatewayCommon {
 
     /// Emitted when a mint authorization is used
     ///
-    /// @param token              The token that was spent
+    /// @param token              The token that was minted or transferred
     /// @param recipient          The recipient of the funds
     /// @param transferSpecHash   The `keccak256` hash of the `TransferSpec`, shared with the burn authorization
     /// @param sourceDomain       The domain the funds came from
@@ -88,8 +88,8 @@ contract Mints is GatewayCommon {
 
     /// Thrown when a mint authorization has a destination domain that does not match the one for this contract
     ///
-    /// @param index          The index of the mint authorization with the issue
-    /// @param authDomain     The destination domain from the mint authorization
+    /// @param index            The index of the mint authorization with the issue
+    /// @param authDomain       The destination domain from the mint authorization
     /// @param expectedDomain   The domain of this contract
     error InvalidAuthorizationDestinationDomainAtIndex(uint32 index, uint32 authDomain, uint32 expectedDomain);
 
@@ -107,6 +107,12 @@ contract Mints is GatewayCommon {
     /// @param authContract       The source contract from the mint authorization
     /// @param expectedContract   The address of the wallet contract on the same domain
     error InvalidAuthorizationSourceContractAtIndex(uint32 index, address authContract, address expectedContract);
+
+    /// Thrown then the destination token in a mint authorization is not supported
+    ///
+    /// @param index              The index of the mint authorization with the issue
+    /// @param destinationToken   The destination token from the mint authorization
+    error UnsupportedTokenAtIndex(uint32 index, address destinationToken);
 
     /// Thrown when a mint authorization is for the same domain as the source but has a source token that does not
     /// match the destination token
@@ -127,6 +133,8 @@ contract Mints is GatewayCommon {
     /// Accepts either a single encoded `MintAuthorization` or several in an encoded `MintAuthorizationSet`. Emits an
     /// event containing the `keccak256` hash of the encoded `TransferSpec` (which is the same for the corresponding
     /// burn that will happen on the source domain), to be used as a cross-chain identifier and for replay protection.
+    ///
+    /// @dev See `MintAuthorizations.sol` for encoding details
     ///
     /// @param authorization   The byte-encoded mint authorization(s)
     /// @param signature       The signature of the `mintAuthorizationSigner` on the `authorization`
@@ -258,7 +266,9 @@ contract Mints is GatewayCommon {
 
         // Ensure the destination token is supported
         address destinationToken = AddressLib._bytes32ToAddress(spec.getDestinationToken());
-        _ensureTokenSupported(destinationToken);
+        if (!isTokenSupported(destinationToken)) {
+            revert UnsupportedTokenAtIndex(index, destinationToken);
+        }
 
         // If the source and destinations match, perform additional validations
         uint32 sourceDomain = spec.getSourceDomain();

@@ -29,7 +29,6 @@ import {TransferSpecLib, BYTES4_BYTES} from "src/lib/authorizations/TransferSpec
 import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
-import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Mints} from "src/modules/minter/Mints.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
 import {GatewayMinter} from "src/GatewayMinter.sol";
@@ -59,7 +58,7 @@ contract MockGatewayWallet {
         bytes32 transferSpecHash
     ) external {
         ERC20(token).transfer(recipient, value);
-        emit Burns.TransferredSpent(token, depositor, transferSpecHash, recipient, authorizer, value, value, 0);
+        emit Burns.GatewayTransferred(token, depositor, transferSpecHash, recipient, authorizer, value, value, 0);
     }
 }
 
@@ -448,7 +447,7 @@ contract TestMints is Test, DeployUtils {
         unsupportedDestinationTokenAuth.spec.destinationToken = AddressLib._addressToBytes32(unsupportedToken);
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(unsupportedDestinationTokenAuth);
 
-        vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
+        vm.expectRevert(abi.encodeWithSelector(Mints.UnsupportedTokenAtIndex.selector, 0, unsupportedToken));
         _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
@@ -464,7 +463,7 @@ contract TestMints is Test, DeployUtils {
         MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
 
-        vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
+        vm.expectRevert(abi.encodeWithSelector(Mints.UnsupportedTokenAtIndex.selector, 1, unsupportedToken));
         _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
     }
 

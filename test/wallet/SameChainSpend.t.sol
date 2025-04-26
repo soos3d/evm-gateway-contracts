@@ -124,7 +124,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         bytes32 transferSpecHash = keccak256(emptyAuthorization);
         vm.prank(depositor);
         wallet.deposit(usdc, spendValue - 1); // Deposit less than spend amount
-        vm.expectRevert(Burns.InsufficientBalanceForSameChainSpend.selector);
+        vm.expectRevert(Burns.InsufficientBalanceForTransfer.selector);
 
         vm.prank(minterContract);
         wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
@@ -135,7 +135,9 @@ contract TestSameChainSpend is Test, DeployUtils {
         vm.prank(depositor);
         wallet.deposit(usdc, spendValue);
         vm.expectEmit(true, true, true, true);
-        emit Burns.TransferredSpent(usdc, depositor, transferSpecHash, recipient, authorizer, spendValue, spendValue, 0);
+        emit Burns.GatewayTransferred(
+            usdc, depositor, transferSpecHash, recipient, authorizer, spendValue, spendValue, 0
+        );
 
         vm.prank(minterContract);
         wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
@@ -154,7 +156,9 @@ contract TestSameChainSpend is Test, DeployUtils {
         }
         vm.stopPrank();
         vm.expectEmit(true, true, true, true);
-        emit Burns.TransferredSpent(usdc, depositor, transferSpecHash, recipient, authorizer, spendValue, 0, spendValue);
+        emit Burns.GatewayTransferred(
+            usdc, depositor, transferSpecHash, recipient, authorizer, spendValue, 0, spendValue
+        );
 
         vm.prank(minterContract);
         wallet.gatewayTransfer(usdc, depositor, recipient, authorizer, spendValue, transferSpecHash);
@@ -177,7 +181,7 @@ contract TestSameChainSpend is Test, DeployUtils {
         vm.stopPrank();
 
         vm.expectEmit(true, true, true, true);
-        emit Burns.TransferredSpent(
+        emit Burns.GatewayTransferred(
             usdc, depositor, transferSpecHash, recipient, authorizer, spendValue, availableAmount, withdrawingAmount
         );
 
