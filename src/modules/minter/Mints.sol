@@ -328,12 +328,12 @@ contract Mints is GatewayCommon {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the Mints module
+/// Implements the EIP-7201 storage pattern for the `Mints` module
 library MintsStorage {
     /// @custom:storage-location 7201:circle.gateway.Mints
     struct Data {
-        /// Maps token addresses to their corresponding minter contract addresses.
-        /// The token minter contracts must have permission to mint the associated token.
+        /// Maps token addresses to their corresponding minter contract addresses. Absence of an entry means the token
+        /// itself should be used as the minter. The minter contract must have permission to mint the associated token.
         mapping(address token => address tokenMintAuthority) tokenMintAuthorities;
         /// The address of the operator that can sign mint authorizations
         address mintAuthorizationSigner;

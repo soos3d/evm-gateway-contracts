@@ -242,7 +242,7 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the Balances module
+/// Implements the EIP-7201 storage pattern for the `Balances` module
 library BalancesStorage {
     /// @custom:storage-location 7201:circle.gateway.Balances
     struct Data {

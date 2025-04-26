@@ -627,17 +627,17 @@ contract Burns is GatewayCommon, Balances, Delegation {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the Burns module
+/// Implements the EIP-7201 storage pattern for the `Burns` module
 library BurnsStorage {
     /// @custom:storage-location 7201:circle.gateway.Burns
     struct Data {
-        /// The address that may sign the calldata for burning tokens that have been spent
+        /// The address that may sign the calldata for burning tokens that have been minted on another chain
         address burnSigner;
         /// The address that will receive the onchain fee for burns
         address feeRecipient;
     }
 
-    /// keccak256(abi.encode(uint256(keccak256("circle.gateway.Burns")) - 1)) & ~bytes32(uint256(0xff))
+    /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Burns"))) - 1)) & ~bytes32(uint256(0xff))`
     bytes32 private constant SLOT = 0x931ec06eaaa2cd8a002032d3364041b052af597aa8c169fcc20c959a9f557100;
 
     /// EIP-7201 getter for the storage slot

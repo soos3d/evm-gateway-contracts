@@ -76,7 +76,7 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the WithdrawalDelay module
+/// Implements the EIP-7201 storage pattern for the `WithdrawalDelay` module
 library WithdrawalDelayStorage {
     /// @custom:storage-location 7201:circle.gateway.WithdrawalDelay
     struct Data {
@@ -87,7 +87,7 @@ library WithdrawalDelayStorage {
         uint256 withdrawalDelay;
     }
 
-    /// keccak256(abi.encode(uint256(keccak256("circle.gateway.WithdrawalDelay")) - 1)) & ~bytes32(uint256(0xff))
+    /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.WithdrawalDelay"))) - 1)) & ~bytes32(uint256(0xff))`
     bytes32 private constant SLOT = 0x8f0d2169d60e1d6e8f336adc673aa9b36c7a3956bc915f85e5cfebff815daa00;
 
     /// EIP-7201 getter for the storage slot

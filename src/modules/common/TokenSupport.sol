@@ -69,7 +69,7 @@ contract TokenSupport is Ownable2StepUpgradeable {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the TokenSupport module
+/// Implements the EIP-7201 storage pattern for the `TokenSupport` module
 library TokenSupportStorage {
     /// @custom:storage-location 7201:circle.gateway.TokenSupport
     struct Data {

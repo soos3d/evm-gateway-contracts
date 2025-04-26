@@ -26,18 +26,18 @@ import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 ///
 /// @notice Represents the possible states of a delegate's authorization for a specific token and depositor.
 enum AuthorizationStatus {
-    /// @notice The delegate has never been authorized.
+    /// The delegate has never been authorized
     Unauthorized,
-    /// @notice The delegate is currently authorized to act on behalf of the depositor for the token.
+    /// The delegate is currently authorized to act on behalf of the depositor for the token
     Authorized,
-    /// @notice The delegate was previously authorized, but the authorization has been revoked.
-    /// @dev This state is distinct from Unauthorized to handle specific scenarios like signed burn authorizations.
+    /// The delegate was previously authorized, but the authorization has been revoked. This state is distinct from
+    /// `Unauthorized` to handle specific scenarios like signed burn authorizations.
     Revoked
 }
 
 /// @title Delegation
 ///
-/// Manages delegation for the GatewayWallet contract
+/// @notice Manages delegation for the `GatewayWallet` contract
 contract Delegation is Pausing, Denylist, TokenSupport {
     /// Emitted when a delegate is authorized for a depositor's balance
     ///

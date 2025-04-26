@@ -52,7 +52,7 @@ contract TransferSpecHashes {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the TransferSpecHashes module
+/// Implements the EIP-7201 storage pattern for the `TransferSpecHashes` module
 library TransferSpecHashesStorage {
     /// @custom:storage-location 7201:circle.gateway.TransferSpecHashes
     struct Data {

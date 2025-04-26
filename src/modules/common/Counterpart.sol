@@ -78,7 +78,7 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the Counterpart module
+/// Implements the EIP-7201 storage pattern for the `Counterpart` module
 library CounterpartStorage {
     /// @custom:storage-location 7201:circle.gateway.Counterpart
     struct Data {

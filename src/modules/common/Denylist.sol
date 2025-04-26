@@ -136,7 +136,7 @@ contract Denylist is Ownable2StepUpgradeable {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the Denylist module
+/// Implements the EIP-7201 storage pattern for the `Denylist` module
 library DenylistStorage {
     /// @custom:storage-location 7201:circle.gateway.Denylist
     struct Data {

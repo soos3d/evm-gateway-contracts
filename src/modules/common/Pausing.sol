@@ -83,7 +83,7 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the Pausing module
+/// Implements the EIP-7201 storage pattern for the `Pausing` module
 library PausingStorage {
     /// @custom:storage-location 7201:circle.gateway.Pausing
     struct Data {

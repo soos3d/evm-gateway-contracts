@@ -46,7 +46,7 @@ contract Domain is Initializable {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the Domain module
+/// Implements the EIP-7201 storage pattern for the `Domain` module
 library DomainStorage {
     /// @custom:storage-location 7201:circle.gateway.Domain
     struct Data {
