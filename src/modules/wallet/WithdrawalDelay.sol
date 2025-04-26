@@ -21,7 +21,7 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 
 /// @title WithdrawalDelay
 ///
-/// @notice Manages the delay between initiating and completing withdrawals for the GatewayWallet contract.
+/// @notice Manages the delay between initiating and completing withdrawals for the `GatewayWallet` contract.
 contract WithdrawalDelay is Ownable2StepUpgradeable {
     /// Emitted when the withdrawal delay is updated
     ///
@@ -32,6 +32,7 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
     error WithdrawalNotYetAvailable();
 
     /// The number of blocks that must pass after calling `initiateWithdrawal` before a withdrawal can be completed
+    /// @return   The number of blocks that must pass
     function withdrawalDelay() public view returns (uint256) {
         return WithdrawalDelayStorage.get().withdrawalDelay;
     }
@@ -42,11 +43,13 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
+    /// @return            The block number at which the withdrawal will be withdrawable
     function withdrawalBlock(address token, address depositor) public view returns (uint256) {
         return WithdrawalDelayStorage.get().withdrawableAtBlocks[token][depositor];
     }
 
-    /// Sets the number of blocks that must pass before a withdrawal can be completed
+    /// Sets the number of blocks that must pass before a withdrawal can be completed. Care must be taken for the
+    /// difference between `block.number` and RPC block number for certain networks.
     ///
     /// @dev May only be called by the `owner` role
     ///
