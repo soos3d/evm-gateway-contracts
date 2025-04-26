@@ -41,9 +41,6 @@ contract GatewayCommon is
     TransferSpecHashes,
     Domain
 {
-    /// Thrown when an address is the zero address (duplicated here from `addresses.sol` so it gets included in the ABI)
-    error InvalidAddress();
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         // Ensure that the implementation contract cannot be initialized, only the proxy

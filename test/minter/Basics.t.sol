@@ -21,8 +21,8 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Mints} from "src/modules/minter/Mints.sol";
-import {GatewayCommon} from "src/GatewayCommon.sol";
 import {GatewayMinter} from "src/GatewayMinter.sol";
+import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {OwnershipTest} from "test/util/OwnershipTest.sol";
@@ -74,7 +74,7 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         vm.startPrank(owner);
         minter.addSupportedToken(token);
 
-        vm.expectRevert(abi.encodeWithSelector(GatewayCommon.InvalidAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(AddressLib.InvalidAddress.selector));
         minter.updateMintAuthority(token, address(0));
     }
 
@@ -122,7 +122,7 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
 
     function test_updateMintAuthorizationSigner_revertWhenZeroAddress() public {
         vm.startPrank(owner);
-        vm.expectRevert(GatewayCommon.InvalidAddress.selector);
+        vm.expectRevert(AddressLib.InvalidAddress.selector);
         minter.updateMintAuthorizationSigner(address(0));
         vm.stopPrank();
     }

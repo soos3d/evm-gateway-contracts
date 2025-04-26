@@ -22,12 +22,12 @@ import {Test} from "forge-std/Test.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
-import {GatewayCommon} from "src/GatewayCommon.sol";
+import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-/// Tests Spend Authorization functionality of GatewayWallet
+/// Tests mint authorization functionality of GatewayWallet
 contract SpendAuthorizationTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private usdc = makeAddr("usdc");
@@ -120,7 +120,7 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         address delegate = address(0);
 
         vm.startPrank(owner);
-        vm.expectRevert(abi.encodeWithSelector(GatewayCommon.InvalidAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(AddressLib.InvalidAddress.selector));
         wallet.addDelegate(usdc, delegate);
         vm.stopPrank();
     }
@@ -209,7 +209,7 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         address delegate = address(0);
 
         vm.startPrank(owner);
-        vm.expectRevert(abi.encodeWithSelector(GatewayCommon.InvalidAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(AddressLib.InvalidAddress.selector));
         wallet.removeDelegate(usdc, delegate);
         vm.stopPrank();
     }
