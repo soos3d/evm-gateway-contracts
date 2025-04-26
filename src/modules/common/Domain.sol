@@ -55,7 +55,7 @@ library DomainStorage {
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Domain"))) - 1)) & ~bytes32(uint256(0xff))`
-    bytes32 private constant SLOT = 0xfe4c86d7e89d95779292c8077b542f271e850fa895928d0b7b19a0ae50865c00;
+    bytes32 public constant SLOT = 0xfe4c86d7e89d95779292c8077b542f271e850fa895928d0b7b19a0ae50865c00;
 
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {

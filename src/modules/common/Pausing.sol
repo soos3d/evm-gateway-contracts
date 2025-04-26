@@ -92,7 +92,7 @@ library PausingStorage {
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Pausing"))) - 1)) & ~bytes32(uint256(0xff))`
-    bytes32 private constant SLOT = 0x7e0f0117f6f510f2a35b1c8185f303b28ba884334cd776f9d98e2abef24e2f00;
+    bytes32 public constant SLOT = 0x7e0f0117f6f510f2a35b1c8185f303b28ba884334cd776f9d98e2abef24e2f00;
 
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {

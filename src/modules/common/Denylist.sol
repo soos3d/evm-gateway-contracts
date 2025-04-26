@@ -147,7 +147,7 @@ library DenylistStorage {
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Denylist"))) - 1)) & ~bytes32(uint256(0xff))`
-    bytes32 private constant SLOT = 0x77aee7014301166d8532df7f3d0b1c40d5b12f074d2d69255b43654e04193400;
+    bytes32 public constant SLOT = 0x77aee7014301166d8532df7f3d0b1c40d5b12f074d2d69255b43654e04193400;
 
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {

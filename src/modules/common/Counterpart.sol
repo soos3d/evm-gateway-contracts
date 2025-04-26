@@ -87,7 +87,7 @@ library CounterpartStorage {
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Counterpart"))) - 1)) & ~bytes32(uint256(0xff))`
-    bytes32 private constant SLOT = 0x93e77e25ef9d7551b01674a3ef68f44dcb2b33c68692c96a16f33bfe6d355b00;
+    bytes32 public constant SLOT = 0x93e77e25ef9d7551b01674a3ef68f44dcb2b33c68692c96a16f33bfe6d355b00;
 
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {

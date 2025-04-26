@@ -340,7 +340,7 @@ library MintsStorage {
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Mints"))) - 1)) & ~bytes32(uint256(0xff))`
-    bytes32 private constant SLOT = 0xa13f18ce64168e6d2f5aa74009cc3360c0bed33f0845237965d1e1378d32aa00;
+    bytes32 public constant SLOT = 0xa13f18ce64168e6d2f5aa74009cc3360c0bed33f0845237965d1e1378d32aa00;
 
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {

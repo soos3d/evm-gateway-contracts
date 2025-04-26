@@ -91,7 +91,7 @@ library WithdrawalDelayStorage {
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.WithdrawalDelay"))) - 1)) & ~bytes32(uint256(0xff))`
-    bytes32 private constant SLOT = 0x8f0d2169d60e1d6e8f336adc673aa9b36c7a3956bc915f85e5cfebff815daa00;
+    bytes32 public constant SLOT = 0x8f0d2169d60e1d6e8f336adc673aa9b36c7a3956bc915f85e5cfebff815daa00;
 
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {

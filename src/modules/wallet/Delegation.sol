@@ -172,7 +172,7 @@ library DelegationStorage {
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Delegation"))) - 1)) & ~bytes32(uint256(0xff))`
-    bytes32 private constant SLOT = 0xbcbbce9c37b75586602042f686570dadc3d32ddb14a687daffcfefad2ac57b00;
+    bytes32 public constant SLOT = 0xbcbbce9c37b75586602042f686570dadc3d32ddb14a687daffcfefad2ac57b00;
 
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {

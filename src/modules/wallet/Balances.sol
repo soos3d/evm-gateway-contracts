@@ -253,7 +253,7 @@ library BalancesStorage {
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Balances"))) - 1)) & ~bytes32(uint256(0xff))`
-    bytes32 private constant SLOT = 0xdd3dca88e892815d13ea80f1982e32e4fe3d0a89f03d14d3565bf56d58c31a00;
+    bytes32 public constant SLOT = 0xdd3dca88e892815d13ea80f1982e32e4fe3d0a89f03d14d3565bf56d58c31a00;
 
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {

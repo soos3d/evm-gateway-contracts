@@ -61,7 +61,7 @@ library TransferSpecHashesStorage {
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.TransferSpecHashes"))) - 1)) & ~bytes32(uint256(0xff))`
-    bytes32 private constant SLOT = 0x20b6f2ac2ef95221991caf3be38efadb0bb1d3093c65d3a8c962def8d652ee00;
+    bytes32 public constant SLOT = 0x20b6f2ac2ef95221991caf3be38efadb0bb1d3093c65d3a8c962def8d652ee00;
 
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {

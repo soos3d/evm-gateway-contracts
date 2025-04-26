@@ -78,7 +78,7 @@ library TokenSupportStorage {
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.TokenSupport"))) - 1)) & ~bytes32(uint256(0xff))`
-    bytes32 private constant SLOT = 0x3ba16516a08fb9c5c48fb6662657ad4ffe1c779829969b4c7abdb9287bbf8500;
+    bytes32 public constant SLOT = 0x3ba16516a08fb9c5c48fb6662657ad4ffe1c779829969b4c7abdb9287bbf8500;
 
     function get() internal pure returns (Data storage $) {
         assembly {

@@ -638,7 +638,7 @@ library BurnsStorage {
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Burns"))) - 1)) & ~bytes32(uint256(0xff))`
-    bytes32 private constant SLOT = 0x931ec06eaaa2cd8a002032d3364041b052af597aa8c169fcc20c959a9f557100;
+    bytes32 public constant SLOT = 0x931ec06eaaa2cd8a002032d3364041b052af597aa8c169fcc20c959a9f557100;
 
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {
