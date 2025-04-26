@@ -28,7 +28,7 @@ import {Balances} from "src/modules/wallet/Balances.sol";
 
 /// @title Deposits
 ///
-/// @notice Manages deposits for the GatewayWallet contract
+/// @notice Manages deposits for the `GatewayWallet` contract
 contract Deposits is Pausing, Denylist, TokenSupport, Balances {
     using SafeERC20 for IERC20;
 
@@ -39,7 +39,7 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
     /// @param value       The amount that was deposited
     event Deposited(address indexed token, address indexed depositor, uint256 value);
 
-    /// Thrown for deposits with a value of 0
+    /// Thrown for attempted zero-value deposits
     error DepositValueMustBePositive();
 
     /// Deposit tokens after approving this contract for the token
@@ -54,27 +54,32 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         notDenylisted(msg.sender)
         tokenSupported(token)
     {
+        // Ensure that the value is non-zero
         if (value == 0) {
             revert DepositValueMustBePositive();
         }
 
-        _increaseAvailableBalance(token, msg.sender, value);
+        // Increase the depositor's available balance
+        address depositor = msg.sender;
+        _increaseAvailableBalance(token, depositor, value);
 
-        IERC20(token).safeTransferFrom(msg.sender, address(this), value);
+        // Transfer the tokens from the depositor to this contract
+        IERC20(token).safeTransferFrom(depositor, address(this), value);
 
-        emit Deposited(token, msg.sender, value);
+        // Emit an event to signal the deposit
+        emit Deposited(token, depositor, value);
     }
 
     /// Deposit tokens with an EIP-2612 permit
     ///
-    /// @dev The resulting balance in this contract belongs to `owner`
+    /// @dev The resulting balance in this contract belongs to the `owner` specified in the permit
     /// @dev The permit's `spender` must be the address of this contract
     /// @dev The full permitted `value` is always deposited
     ///
     /// @param token      The token to deposit
     /// @param owner      The depositor's address
     /// @param value      The amount to be deposited
-    /// @param deadline   The unix time at which the signature expires, or max uint256 value to signal no expiration
+    /// @param deadline   The unix time at which the signature expires, or max `uint256` value to signal no expiration
     /// @param v          v of the signature
     /// @param r          r of the signature
     /// @param s          s of the signature
@@ -92,7 +97,7 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
 
     /// Deposit tokens with an EIP-7597 permit, passing the signature as bytes to allow for SCA deposits
     ///
-    /// @dev The resulting balance in this contract belongs to `owner`
+    /// @dev The resulting balance in this contract belongs to the `owner` specified in the permit
     /// @dev The permit's `spender` must be the address of this contract
     /// @dev The full permitted `value` is always deposited
     /// @dev EOA wallet signatures should be packed in the order of r, s, v
@@ -100,7 +105,7 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
     /// @param token       The token to deposit
     /// @param owner       The depositor's address
     /// @param value       The amount to be deposited
-    /// @param deadline    The unix time at which the signature expires, or max uint256 value to signal no expiration
+    /// @param deadline    The unix time at which the signature expires, or max `uint256` value to signal no expiration
     /// @param signature   Signature bytes signed by an EOA wallet or a contract wallet
     function depositWithPermit(address token, address owner, uint256 value, uint256 deadline, bytes calldata signature)
         external
@@ -114,9 +119,9 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
 
     /// Deposit tokens with an ERC-3009 authorization
     ///
-    /// @dev The resulting balance in this contract belongs to `from`
+    /// @dev The resulting balance in this contract belongs to the `from` specified in the authorization
     /// @dev The authorization's `to` must be the address of this contract
-    /// @dev The transfer will be done via `transferWithAuthorization`
+    /// @dev The transfer will be done via `receiveWithAuthorization`
     ///
     /// @param token         The token to deposit
     /// @param from          The depositor's address
@@ -143,7 +148,7 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
 
     /// Deposit tokens with an ERC-7598 authorization, passing the signature as bytes to allow for SCA deposits
     ///
-    /// @dev The resulting balance in this contract belongs to `from`
+    /// @dev The resulting balance in this contract belongs to the `from` specified in the authorization
     /// @dev The authorization's `to` must be the address of this contract
     /// @dev The transfer will be done via `receiveWithAuthorization`
     /// @dev EOA wallet signatures should be packed in the order of r, s, v
@@ -151,8 +156,8 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
     /// @param token         The token to deposit
     /// @param from          The depositor's address
     /// @param value         The amount to be deposited
-    /// @param validAfter    The unix time after which this is valid
-    /// @param validBefore   The unix time before which this is valid
+    /// @param validAfter    The time after which this is valid (unix time)
+    /// @param validBefore   The time before which this is valid (unix time)
     /// @param nonce         Unique nonce
     /// @param signature     Signature bytes signed by an EOA wallet or a contract wallet
     function depositWithAuthorization(
@@ -167,25 +172,30 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         _depositWithAuthorization(token, from, value, validAfter, validBefore, nonce, signature);
     }
 
-    /// @dev Internal implementation for depositing tokens using an EIP-2612 permit
+    /// Internal implementation for depositing tokens using an EIP-2612 permit
     ///
-    /// @param token      The ERC20 token contract address that supports EIP-2612 permits
+    /// @param token      The address of a token that supports EIP-2612 permits
     /// @param owner      The address that owns the tokens and signed the permit
-    /// @param value      The amount of tokens to deposit
+    /// @param value      The amount to deposit
     /// @param deadline   The unix timestamp after which the permit signature expires
     /// @param signature  The signature bytes containing v, r, s components
     function _depositWithPermit(address token, address owner, uint256 value, uint256 deadline, bytes memory signature)
         internal
     {
+        // Ensure that the value is non-zero
         if (value == 0) {
             revert DepositValueMustBePositive();
         }
 
-        _increaseAvailableBalance(token, owner, value);
+        // Increase the depositor's available balance
+        address depositor = owner;
+        _increaseAvailableBalance(token, depositor, value);
 
-        IERC7597(token).permit(owner, address(this), value, deadline, signature);
-        IERC20(token).safeTransferFrom(owner, address(this), value);
+        // Execute the permit and transfer the tokens from the depositor to this contract
+        IERC7597(token).permit(depositor, address(this), value, deadline, signature);
+        IERC20(token).safeTransferFrom(depositor, address(this), value);
 
+        // Emit an event to signal the deposit
         emit Deposited(token, owner, value);
     }
 
@@ -207,14 +217,21 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         bytes32 nonce,
         bytes memory signature
     ) internal {
+        // Ensure that the value is non-zero
         if (value == 0) {
             revert DepositValueMustBePositive();
         }
 
-        _increaseAvailableBalance(token, from, value);
+        // Increase the depositor's available balance
+        address depositor = from;
+        _increaseAvailableBalance(token, depositor, value);
 
-        IERC7598(token).receiveWithAuthorization(from, address(this), value, validAfter, validBefore, nonce, signature);
+        // Execute the authorization to transfer the tokens from the depositor to this contract
+        IERC7598(token).receiveWithAuthorization(
+            depositor, address(this), value, validAfter, validBefore, nonce, signature
+        );
 
-        emit Deposited(token, from, value);
+        // Emit an event to signal the deposit
+        emit Deposited(token, depositor, value);
     }
 }
