@@ -53,10 +53,13 @@ contract Delegation is Pausing, Denylist, TokenSupport {
     /// @param delegate    The delegate that was removed
     event DelegateRemoved(address indexed token, address indexed depositor, address delegate);
 
+    /// Thrown when a delegate is not authorized to act on behalf of a depositor
     error NotAuthorized();
+
+    /// Thrown when attempting to authorize an address for itself
     error CannotDelegateToSelf();
 
-    /// Modifier that reverts if an address is not authorized to withdraw and transfer tokens on behalf of the depositor
+    /// Reverts if an address is not authorized to withdraw and transfer tokens on behalf of the depositor
     ///
     /// @param token       The token to check
     /// @param depositor   The depositor to check
@@ -81,21 +84,22 @@ contract Delegation is Pausing, Denylist, TokenSupport {
         notDenylisted(delegate)
         tokenSupported(token)
     {
+        // Ensure that the delegate is not the zero address
         AddressLib._checkNotZeroAddress(delegate);
 
+        // Ensure that the delegate is not the caller
         if (delegate == msg.sender) {
             revert CannotDelegateToSelf();
         }
 
+        // Store the authorization and emit an event
         DelegationStorage.get().authorizedDelegates[token][msg.sender][delegate] = AuthorizationStatus.Authorized;
         emit DelegateAdded(token, msg.sender, delegate);
     }
 
     /// Stop allowing `delegate` to withdraw or transfer the caller's `token` balance. This revokation is not respected
-    /// for burn authorizations that have been signed, so that burns cannot be prevented by removing the delegate
+    /// for burn authorizations that have been signed, so that burns cannot be prevented by removing the delegate.
     //
-    /// @dev This revokes the allowance granted by `addDelegate`
-    ///
     /// @param token      The token the delegate should no longer be authorized for
     /// @param delegate   The address that should no longer be authorized
     function removeDelegate(address token, address delegate)
@@ -104,8 +108,10 @@ contract Delegation is Pausing, Denylist, TokenSupport {
         notDenylisted(msg.sender)
         tokenSupported(token)
     {
+        // Ensure that the delegate is not the zero address
         AddressLib._checkNotZeroAddress(delegate);
 
+        // Check the existing authorization status
         DelegationStorage.Data storage $ = DelegationStorage.get();
         AuthorizationStatus existingStatus = $.authorizedDelegates[token][msg.sender][delegate];
 
@@ -114,12 +120,11 @@ contract Delegation is Pausing, Denylist, TokenSupport {
             return;
         }
 
-        // Otherwise, mark the authorization as revoked. The API will treat this the same as Unauthorized for the
-        // purpose of issuing mint authorizations, but the wallet contract will allow burn authorizations signed by
-        // revoked delegates in order to prevent a front-running attack where an authorization is revoked before the
-        // burn has a chance to happen.
+        // Otherwise, mark the authorization as revoked and emit an event. The API will treat this the same as
+        // `Unauthorized` for the purpose of issuing mint authorizations, but the wallet contract will allow burn
+        // authorizations signed by revoked delegates in order to prevent a front-running attack where an authorization
+        // is revoked before the burn has a chance to happen.
         $.authorizedDelegates[token][msg.sender][delegate] = AuthorizationStatus.Revoked;
-
         emit DelegateRemoved(token, msg.sender, delegate);
     }
 
@@ -129,12 +134,16 @@ contract Delegation is Pausing, Denylist, TokenSupport {
     /// @param depositor   The depositor to check
     /// @param addr        The address to check
     function isAuthorizedForBalance(address token, address depositor, address addr) public view returns (bool) {
+        // A depositor is always authorized for its own balance
         if (addr == depositor) return true;
 
-        return DelegationStorage.get().authorizedDelegates[token][depositor][addr] == AuthorizationStatus.Authorized;
+        // Otherwise, check that the stored authorization status is `Authorized`
+        AuthorizationStatus status = DelegationStorage.get().authorizedDelegates[token][depositor][addr];
+        return status == AuthorizationStatus.Authorized;
     }
 
-    /// Check if an address has ever been authorized to withdraw and transfer tokens on behalf of a depositor
+    /// Check if an address has ever been authorized to withdraw and transfer tokens on behalf of a depositor. This
+    /// includes both currently-valid and revoked authorizations.
     ///
     /// @param token       The token to check
     /// @param depositor   The depositor to check
@@ -144,13 +153,16 @@ contract Delegation is Pausing, Denylist, TokenSupport {
         view
         returns (bool)
     {
+        // A depositor is always authorized for its own balance
         if (addr == depositor) return true;
 
-        return DelegationStorage.get().authorizedDelegates[token][depositor][addr] != AuthorizationStatus.Unauthorized;
+        // Otherwise, check that the stored authorization status is either `Authorized` or `Revoked`
+        AuthorizationStatus status = DelegationStorage.get().authorizedDelegates[token][depositor][addr];
+        return status != AuthorizationStatus.Unauthorized;
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the Delegation module
+/// Implements the EIP-7201 storage pattern for the `Delegation` module
 library DelegationStorage {
     /// @custom:storage-location 7201:circle.gateway.Delegation
     struct Data {
@@ -159,7 +171,7 @@ library DelegationStorage {
             authorizedDelegates;
     }
 
-    /// keccak256(abi.encode(uint256(keccak256("circle.gateway.Delegation")) - 1)) & ~bytes32(uint256(0xff))
+    /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Delegation"))) - 1)) & ~bytes32(uint256(0xff))`
     bytes32 private constant SLOT = 0xbcbbce9c37b75586602042f686570dadc3d32ddb14a687daffcfefad2ac57b00;
 
     /// EIP-7201 getter for the storage slot
