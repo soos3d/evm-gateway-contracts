@@ -215,7 +215,7 @@ contract Mints is GatewayCommon {
     /// @param signature       The signature on the `authorization` to verify
     function _verifyMintAuthorizationSignature(bytes memory authorization, bytes memory signature) internal view {
         address recoveredSigner = ECDSA.recover(keccak256(authorization).toEthSignedMessageHash(), signature);
-        if (recoveredSigner != MintsStorage.get().mintAuthorizationSigner) {
+        if (recoveredSigner != mintAuthorizationSigner()) {
             revert InvalidMintAuthorizationSigner();
         }
     }
@@ -318,7 +318,7 @@ contract Mints is GatewayCommon {
                 specHash
             );
         } else {
-            address mintAuthority = MintsStorage.get().tokenMintAuthorities[token];
+            address mintAuthority = tokenMintAuthority(token);
             address minter = (mintAuthority == address(0)) ? token : mintAuthority;
             IMintToken(minter).mint(recipient, value);
         }
@@ -333,7 +333,8 @@ library MintsStorage {
     /// @custom:storage-location 7201:circle.gateway.Mints
     struct Data {
         /// Maps token addresses to their corresponding minter contract addresses. Absence of an entry means the token
-        /// itself should be used as the minter. The minter contract must have permission to mint the associated token.
+        /// itself should be used as the minter. This contract must have permission to mint the associated token via
+        /// the minter contract.
         mapping(address token => address tokenMintAuthority) tokenMintAuthorities;
         /// The address of the operator that can sign mint authorizations
         address mintAuthorizationSigner;

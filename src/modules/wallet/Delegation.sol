@@ -99,7 +99,7 @@ contract Delegation is Pausing, Denylist, TokenSupport {
 
     /// Stop allowing `delegate` to withdraw or transfer the caller's `token` balance. This revokation is not respected
     /// for burn authorizations that have been signed, so that burns cannot be prevented by removing the delegate.
-    //
+    ///
     /// @param token      The token the delegate should no longer be authorized for
     /// @param delegate   The address that should no longer be authorized
     function removeDelegate(address token, address delegate)
