@@ -39,15 +39,15 @@ contract Denylist is Ownable2StepUpgradeable {
     /// @param newDenylister   The new denylister address
     event DenylisterChanged(address indexed oldDenylister, address indexed newDenylister);
 
-    /// Thrown when an address is denied from interacting with the contract
-    ///
-    /// @param addr   The denylisted address
-    error AccountDenylisted(address addr);
-
     /// Thrown when an unauthorized address attempts to denylist or un-denylist addresses
     ///
     /// @param addr   The unauthorized address
     error UnauthorizedDenylister(address addr);
+
+    /// Thrown when an address is denied from interacting with the contract
+    ///
+    /// @param addr   The denylisted address
+    error AccountDenylisted(address addr);
 
     /// Restricts access to a function to addresses that are not denylisted
     ///

@@ -33,14 +33,14 @@ enum BalanceType {
 ///
 /// @notice Manages balances for the `GatewayWallet` contract
 contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
-    /// Thrown during attempted withdrawals when there is no withdrawing balance to withdraw
-    error NoWithdrawingBalance();
-
     /// Thrown when the ERC-1155 `balanceOf` function is called with an invalid `BalanceType`
     error InvalidBalanceType(uint96 balanceType);
 
     /// Thrown when the ERC-1155 `balanceOfBatch` function is called with arrays of different lengths
     error InputArrayLengthMismatch();
+
+    /// Thrown during attempted withdrawals when there is no withdrawing balance to withdraw
+    error NoWithdrawingBalance();
 
     /// The total balance of a depositor for a token. This will always be equal to the sum of `availableBalance` and
     /// `withdrawingBalance`.

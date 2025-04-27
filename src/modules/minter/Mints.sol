@@ -68,16 +68,11 @@ contract Mints is GatewayCommon {
     /// @param newMintAuthorizationSigner   The new mint authorization signer address
     event MintAuthorizationSignerUpdated(address oldMintAuthorizationSigner, address newMintAuthorizationSigner);
 
-    /// Thrown when a mint authorization was not signed by the right address
-    error InvalidMintAuthorizationSigner();
-
     /// Thrown when a mint authorization set is empty
     error MustHaveAtLeastOneMintAuthorization();
 
-    /// Thrown when a mint authorization's value is zero
-    ///
-    /// @param index   The index of the mint authorization with the issue
-    error AuthorizationValueMustBePositiveAtIndex(uint32 index);
+    /// Thrown when a mint authorization was not signed by the right address
+    error InvalidMintAuthorizationSigner();
 
     /// Thrown when a mint authorization is expired
     ///
@@ -85,6 +80,18 @@ contract Mints is GatewayCommon {
     /// @param maxBlockHeight   The mint authorization's expiration block height
     /// @param currentBlock     The current block height
     error AuthorizationExpiredAtIndex(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
+
+    /// Thrown when a mint authorization's value is zero
+    ///
+    /// @param index   The index of the mint authorization with the issue
+    error AuthorizationValueMustBePositiveAtIndex(uint32 index);
+
+    /// Thrown when a mint authorization has a non-zero destination caller but was used by a different caller
+    ///
+    /// @param index          The index of the mint authorization with the issue
+    /// @param authCaller     The destination caller from the mint authorization
+    /// @param actualCaller   The caller that used the mint authorization
+    error InvalidAuthorizationDestinationCallerAtIndex(uint32 index, address authCaller, address actualCaller);
 
     /// Thrown when a mint authorization has a destination domain that does not match the one for this contract
     ///
@@ -100,6 +107,12 @@ contract Mints is GatewayCommon {
     /// @param expectedContract   The address of this contract
     error InvalidAuthorizationDestinationContractAtIndex(uint32 index, address authContract, address expectedContract);
 
+    /// Thrown then the destination token in a mint authorization is not supported
+    ///
+    /// @param index              The index of the mint authorization with the issue
+    /// @param destinationToken   The destination token from the mint authorization
+    error UnsupportedTokenAtIndex(uint32 index, address destinationToken);
+
     /// Thrown when a mint authorization is for the same domain as the source but has a source contract that does not
     /// match the address of the wallet contract on the same domain
     ///
@@ -108,12 +121,6 @@ contract Mints is GatewayCommon {
     /// @param expectedContract   The address of the wallet contract on the same domain
     error InvalidAuthorizationSourceContractAtIndex(uint32 index, address authContract, address expectedContract);
 
-    /// Thrown then the destination token in a mint authorization is not supported
-    ///
-    /// @param index              The index of the mint authorization with the issue
-    /// @param destinationToken   The destination token from the mint authorization
-    error UnsupportedTokenAtIndex(uint32 index, address destinationToken);
-
     /// Thrown when a mint authorization is for the same domain as the source but has a source token that does not
     /// match the destination token
     ///
@@ -121,13 +128,6 @@ contract Mints is GatewayCommon {
     /// @param sourceToken        The source token
     /// @param destinationToken   The destination token
     error InvalidAuthorizationTokenAtIndex(uint32 index, address sourceToken, address destinationToken);
-
-    /// Thrown when a mint authorization has a non-zero destination caller but was used by a different caller
-    ///
-    /// @param index          The index of the mint authorization with the issue
-    /// @param authCaller     The destination caller from the mint authorization
-    /// @param actualCaller   The caller that used the mint authorization
-    error InvalidAuthorizationDestinationCallerAtIndex(uint32 index, address authCaller, address actualCaller);
 
     /// Mint funds (or transfer them from the wallet contract if on the same domain) via a signed mint authorization.
     /// Accepts either a single encoded `MintAuthorization` or several in an encoded `MintAuthorizationSet`. Emits an

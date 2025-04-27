@@ -116,20 +116,17 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @param newFeeRecipient   The new fee recipient address
     event FeeRecipientUpdated(address oldFeeRecipient, address newFeeRecipient);
 
-    /// Thrown when the calldata for `gatewayBurn` is not signed by the `burnSigner`
-    error InvalidBurnSigner();
+    /// Thrown when a burn authorization set or batch is empty
+    error MustHaveAtLeastOneBurnAuthorization();
 
     /// Thrown when there is a mismatch between burn authorizations, signatures, or fees
     error MismatchedBurn();
 
-    /// Thrown when a burn authorization set or batch is empty
-    error MustHaveAtLeastOneBurnAuthorization();
-
-    /// Thrown during `gatewayTransfer` when the depositor's balance is insufficient to fulfil the `TransferSpec`
-    error InsufficientBalanceForTransfer();
-
     /// Thrown when burn authorizations in a set are not all for the same token
     error NotAllSameToken();
+
+    /// Thrown when the calldata for `gatewayBurn` is not signed by the `burnSigner`
+    error InvalidBurnSigner();
 
     /// Thrown when there are no burn authorizations that are relevant to the current domain
     error NoRelevantBurnAuthorizations();
@@ -146,12 +143,12 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @param currentBlock     The current block height
     error AuthorizationExpiredAtIndex(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
 
-    /// Thrown when a burn authorization is not signed by the burn signer specified in the `TransferSpec`
+    /// Thrown when the fee charged for a burn is too high
     ///
-    /// @param index        The index of the burn authorization with the issue
-    /// @param authSigner   The source signer from the burn authorization
-    /// @param actualSigner The signer that was recovered from the signature
-    error InvalidAuthorizationSourceSignerAtIndex(uint32 index, address authSigner, address actualSigner);
+    /// @param index       The index of the burn authorization with the issue
+    /// @param maxFee      The maximum fee that was allowed by the source signer
+    /// @param actualFee   The fee that the operator attempted to charge
+    error BurnFeeTooHighAtIndex(uint32 index, uint256 maxFee, uint256 actualFee);
 
     /// Thrown when a burn authorization has the wrong source contract
     ///
@@ -166,12 +163,15 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @param sourceToken   The source token from the burn authorization
     error UnsupportedTokenAtIndex(uint32 index, address sourceToken);
 
-    /// Thrown when the fee charged for a burn is too high
+    /// Thrown when a burn authorization is not signed by the burn signer specified in the `TransferSpec`
     ///
-    /// @param index       The index of the burn authorization with the issue
-    /// @param maxFee      The maximum fee that was allowed by the source signer
-    /// @param actualFee   The fee that the operator attempted to charge
-    error BurnFeeTooHighAtIndex(uint32 index, uint256 maxFee, uint256 actualFee);
+    /// @param index        The index of the burn authorization with the issue
+    /// @param authSigner   The source signer from the burn authorization
+    /// @param actualSigner The signer that was recovered from the signature
+    error InvalidAuthorizationSourceSignerAtIndex(uint32 index, address authSigner, address actualSigner);
+
+    /// Thrown during `gatewayTransfer` when the depositor's balance is insufficient to fulfil the `TransferSpec`
+    error InsufficientBalanceForTransfer();
 
     /// Called by the operator to debit the depositor's balance and burn tokens after an equivalent amount was minted on
     /// another chain. Charges a fee for the burn (which may be at most each burn authorization's `maxFee`), and sends
