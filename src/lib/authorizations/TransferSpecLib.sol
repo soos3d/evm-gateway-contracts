@@ -79,7 +79,7 @@ library TransferSpecLib {
     // Common iteration errors
     error CursorOutOfBounds();
 
-    /// Converts a magic value from the byte encodings to a `TypedMemView` type
+    /// Converts a magic value from the byte encoding to a `TypedMemView` type
     ///
     /// @param magic   The magic value to convert
     /// @return        The `TypedMemView` type for the magic value

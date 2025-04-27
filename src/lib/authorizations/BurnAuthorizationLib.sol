@@ -251,7 +251,7 @@ library BurnAuthorizationLib {
     ///      when no elements are remaining.
     ///
     /// @param c      The `AuthorizationCursor` struct
-    /// @return ref   The current element the cursor is pointing at
+    /// @return ref   The element the cursor was pointing at immediately before this function was called
     function next(AuthorizationCursor memory c) internal pure returns (bytes29 ref) {
         if (c.done) {
             revert TransferSpecLib.CursorOutOfBounds();

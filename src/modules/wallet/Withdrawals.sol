@@ -163,6 +163,7 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
     ///
     /// @param token       The token to withdraw
     /// @param depositor   The owner of the balance from which the withdrawal should come
+    /// @param authorizer  The address that authorized the withdrawal completion
     /// @param recipient   The recipient of the funds
     function _withdraw(address token, address depositor, address authorizer, address recipient) internal {
         // Ensure that the withdrawal was initiated at least `withdrawalDelay` blocks ago

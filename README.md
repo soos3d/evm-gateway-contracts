@@ -19,7 +19,7 @@ These are the contracts that support the Circle Gateway product. See the contrac
 
 To run tests using Foundry, run `yarn test`. This will run all tests using the default Anvil localnet.
 
-To run tests against multiple networks forked from each supported networks, run `yarn test:all`. If failures related to remote state from an old block are encountered, either point to archive nodes or run `./scripts/update_block_numbers.sh` to pin the latest block for each network and try again.
+To run tests against each supported network (by forking from each network's RPC endpoint), run `yarn test:all`. If failures related to remote state from an old block are encountered, either point to archive nodes or run `./scripts/update_block_numbers.sh` to pin the latest block for each network and try again.
 
 To run tests and output a gas report for the top-level contracts, run `yarn test:gas`.
 
@@ -60,7 +60,7 @@ This project relies heavily on the `TypedMemView` library (`lib/memview-sol/`) f
 
 ## Continuous Integration using Github Actions
 
-We use Github actions to run linter and all the tests. The workflow configuration can be found in [.github/workflows/pipeline.yml](.github/workflows/pipeline.yml). While not a complete replacement, all CI steps may be run locally with `yarn ci`.
+We use Github actions to run the linter and all the tests. The workflow configuration can be found in [.github/workflows/pipeline.yml](.github/workflows/pipeline.yml). While not a complete replacement, all CI steps may be run locally with `yarn ci`.
 
 ## Manual Triggering of the Olympix CI Workflow
 

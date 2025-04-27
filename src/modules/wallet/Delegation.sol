@@ -97,7 +97,7 @@ contract Delegation is Pausing, Denylist, TokenSupport {
         emit DelegateAdded(token, msg.sender, delegate);
     }
 
-    /// Stop allowing `delegate` to withdraw or transfer the caller's `token` balance. This revokation is not respected
+    /// Stop allowing `delegate` to withdraw or transfer the caller's `token` balance. This revocation is not respected
     /// for burn authorizations that have been signed, so that burns cannot be prevented by removing the delegate.
     ///
     /// @param token      The token the delegate should no longer be authorized for

@@ -26,17 +26,18 @@ import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
 /// @title Gateway Wallet
 ///
 /// @notice This contract allows users to deposit supported tokens. Once deposits are observed in a finalized block by
-/// the API, the user may request an authorization to instantly mint those funds on another chain. Minted funds are then
-/// burnt on the chain where they were deposited.
+/// the operator, the user may request an authorization to instantly mint those funds on another chain. Minted funds are
+/// then burned on the chain where they were deposited.
 ///
 /// @notice The available balance is the amount the user has deposited that may be used instantly on any chain, subject
-/// to finality observed by the API and an authorization obtained from the API. To obtain an authorization, the user
-/// must provide the API with a signed message containing the desired parameters along with an authorization to the API
-/// that will allow the operator to burn those funds once the mint is observed on the destination chain.
+/// to finality observed by the operator and a mint authorization obtained from the API. To obtain a mint authorization,
+/// the user must provide the operator with a signed message containing the desired parameters, which acts as a burn
+/// authorization that will allow the operator to burn those funds once the mint is observed on the destination chain.
 ///
-/// @notice To mint funds on another chain, the user may request an authorization from the API and then use it to call
-/// `gatewayMint` on the GatewayMinter contract on the desired chain. This will mint the funds to the requested
-/// destination, and may be composed with other actions via a multicall contract or SCA implementation.
+/// @notice To mint funds on another chain, the user may use a mint authorization obtained from the API to call
+/// `gatewayMint` on the `GatewayMinter` contract on the desired chain. This will mint the funds to the requested
+/// destination, and may be composed with other actions via a multicall contract or SCA implementation. A fee is
+/// deducted from the user's balance within the `GatewayWallet` contract in addition to the requested amount.
 ///
 /// @notice To withdraw funds on the same chain, the user may request an authorization from the API just like any other
 /// mint authorization. If the source and destination domains of the mint authorization are the same, the minter
@@ -48,8 +49,8 @@ import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
 /// the user may call `withdraw` to complete the withdrawal and receive the funds. This delay ensures that no
 /// double-spends are possible and that the operator has time to burn any funds that are minted. The amount that is in
 /// the process of being withdrawn will no longer be available as soon as the withdrawal initiation is observed by the
-/// API in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both their
-/// `available` and `withdrawing` balances.
+/// operator in a finalized block. If a double-spend was attempted, the contract will burn the user's funds from both
+/// their `available` and `withdrawing` balances.
 contract GatewayWallet is GatewayCommon, Deposits, Withdrawals, Burns {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -57,7 +58,7 @@ contract GatewayWallet is GatewayCommon, Deposits, Withdrawals, Burns {
         _disableInitializers();
     }
 
-    /// Initializes the contract with the counterpart minter address
+    /// Initializes the contract with the counterpart minter address and domain
     ///
     /// @param minter   The address of the minter contract on the same chain
     /// @param domain   The operator-issued identifier for this chain

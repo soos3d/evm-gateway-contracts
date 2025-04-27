@@ -107,14 +107,14 @@ contract Mints is GatewayCommon {
     /// @param expectedContract   The address of this contract
     error InvalidAuthorizationDestinationContractAtIndex(uint32 index, address authContract, address expectedContract);
 
-    /// Thrown then the destination token in a mint authorization is not supported
+    /// Thrown when the destination token in a mint authorization is not supported
     ///
     /// @param index              The index of the mint authorization with the issue
     /// @param destinationToken   The destination token from the mint authorization
     error UnsupportedTokenAtIndex(uint32 index, address destinationToken);
 
     /// Thrown when a mint authorization is for the same domain as the source but has a source contract that does not
-    /// match the address of the wallet contract on the same domain
+    /// match the expected counterpart wallet contract address
     ///
     /// @param index              The index of the mint authorization with the issue
     /// @param authContract       The source contract from the mint authorization

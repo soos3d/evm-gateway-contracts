@@ -19,7 +19,7 @@ pragma solidity ^0.8.29;
 
 /// @title ERC-3009: Transfer With Authorization
 ///
-/// A partial interface from ERC-3009 used by `GatewayWallet` and its tests
+/// @notice A partial interface from ERC-3009 used by `GatewayWallet` and its tests
 interface IERC3009 {
     /// Receive a transfer with a signed authorization from the payer
     ///

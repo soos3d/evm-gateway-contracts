@@ -28,7 +28,7 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
     /// @param newDelay   The new value of the delay, in blocks
     event WithdrawalDelayUpdated(uint256 newDelay);
 
-    /// Thrown when a withdrawal has not waited long enough since initialization
+    /// Thrown when the required withdrawal delay has not yet passed since the most recent withdrawal was initiated
     error WithdrawalNotYetAvailable();
 
     /// The number of blocks that must pass after calling `initiateWithdrawal` before a withdrawal can be completed

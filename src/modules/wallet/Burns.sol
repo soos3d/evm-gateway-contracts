@@ -157,7 +157,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @param expectedContract   The address of this contract
     error InvalidAuthorizationSourceContractAtIndex(uint32 index, address authContract, address expectedContract);
 
-    /// Thrown then the source token in a burn authorization is not supported
+    /// Thrown when the source token in a burn authorization is not supported
     ///
     /// @param index         The index of the burn authorization with the issue
     /// @param sourceToken   The source token from the burn authorization
@@ -170,7 +170,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @param actualSigner The signer that was recovered from the signature
     error InvalidAuthorizationSourceSignerAtIndex(uint32 index, address authSigner, address actualSigner);
 
-    /// Thrown during `gatewayTransfer` when the depositor's balance is insufficient to fulfil the `TransferSpec`
+    /// Thrown during `gatewayTransfer` when the depositor's balance is insufficient to fulfill the `TransferSpec`
     error InsufficientBalanceForTransfer();
 
     /// Called by the operator to debit the depositor's balance and burn tokens after an equivalent amount was minted on
@@ -268,7 +268,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     ///
     /// @param authorization   A byte-encoded (set of) burn authorization(s)
     /// @param signer          The address that will sign the burn authorization(s)
-    /// @return                Whether the burn authorization(s) are valid and the signer is the expected one
+    /// @return                Whether the burn authorization(s) would be valid with the given signer
     function validateBurnAuthorizations(bytes memory authorization, address signer) external view returns (bool) {
         // Validate the burn authorization(s) and get an iteration cursor
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(authorization);

@@ -19,7 +19,7 @@ pragma solidity ^0.8.29;
 
 /// @title IERC1155Balance
 ///
-/// The balance interface from ERC-1155
+/// @notice The balance interface from ERC-1155
 interface IERC1155Balance {
     /// Returns the value of tokens of token type `id` owned by `account`
     ///

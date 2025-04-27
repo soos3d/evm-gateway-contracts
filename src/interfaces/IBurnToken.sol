@@ -19,7 +19,7 @@ pragma solidity ^0.8.29;
 
 /// @title IBurnToken
 ///
-/// Used interact with a token that supports burning
+/// @notice Used to interact with a token that supports burning
 interface IBurnToken {
     /// Allows a minter to burn some of its own tokens
     ///
