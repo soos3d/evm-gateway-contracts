@@ -2170,6 +2170,14 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         assertEq(walletEncoded, libEncoded);
     }
 
+    function test_validateBurnAuthorizations_revertIfNoAuthorizations() public {
+        BurnAuthorization[] memory auths = new BurnAuthorization[](0);
+        bytes memory encodedAuths =
+            BurnAuthorizationLib.encodeBurnAuthorizationSet(BurnAuthorizationSet({authorizations: auths}));
+        vm.expectRevert(Burns.MustHaveAtLeastOneBurnAuthorization.selector);
+        wallet.validateBurnAuthorizations(encodedAuths, depositor);
+    }
+
     function test_validateBurnAuthorizations_success_singleAuth() public view {
         BurnAuthorization memory auth = baseAuth;
         auth.spec.sourceSigner = bytes32(uint256(uint160(depositor)));

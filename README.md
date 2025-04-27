@@ -40,7 +40,7 @@ Run `yarn format` to check the formatting of all `.sol` files in the `src` and `
 
 ### Coverage
 
-Run `yarn coverage` to generate a coverage report for the tests.
+Run `yarn coverage` to generate a coverage report for the tests. This depends on the `lcov` and `genhtml` commands, which may be installed on macOS with `brew install lcov`. The coverage report will be generated in the `coverage` directory.
 
 ## Development
 
