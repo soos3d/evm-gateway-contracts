@@ -54,30 +54,117 @@ library TransferSpecLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
 
-    // TransferSpec errors
+    // --- TransferSpec errors -----------------------------------------------------------------------------------------
+
+    /// Thrown when casting data as a `TransferSpec` and the input is shorter than the expected magic length
+    ///
+    /// @param expectedMinimumLength   The expected minimum length of the data
+    /// @param actualLength            The actual length of the data
+    error TransferSpecDataTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+
+    /// Thrown when casting data as a `TransferSpec` and the magic value is not the expected value
+    ///
+    /// @param actualMagic   The magic value found in the data
     error InvalidTransferSpecMagic(bytes4 actualMagic);
-    error InvalidTransferSpecVersion(uint32 actualVersion);
+
+    /// Thrown when validating an encoded `TransferSpec` and the header is shorter than expected
+    ///
+    /// @param expectedMinimumLength   The expected minimum length of the header
+    /// @param actualLength            The actual length of the header
     error TransferSpecHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+
+    /// Thrown when validating an encoded `TransferSpec` and the version is not the expected value
+    ///
+    /// @param actualVersion   The version found in the data
+    error InvalidTransferSpecVersion(uint32 actualVersion);
+
+    /// Thrown when validating an encoded `TransferSpec` and the length of the data is different than what is implied by
+    /// the metadata length
+    ///
+    /// @param expectedTotalLength   The expected length of the data
+    /// @param actualTotalLength     The actual length of the data
     error TransferSpecOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
+
+    /// Thrown when encoding a `TransferSpec` and the metadata length exceeds the maximum encodable length
+    ///
+    /// @param actualLength   The actual length of the metadata
+    /// @param maxLength      The maximum encodable length of the metadata
     error TransferSpecMetadataFieldTooLarge(uint256 actualLength, uint256 maxLength);
 
-    // Common Authorization errors
+    // --- Common Authorization errors ---------------------------------------------------------------------------------
+
+    /// Thrown when casting data as an authorization or authorization set and the input is shorter than the expected
+    /// magic length
+    ///
+    /// @param expectedMinimumLength   The expected minimum length of the data
+    /// @param actualLength            The actual length of the data
     error AuthorizationDataTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+
+    /// Thrown when casting data as an authorization or authorization set and the magic value is not an expected value
+    ///
+    /// @param actualMagic   The magic value found in the data
     error InvalidAuthorizationMagic(bytes4 actualMagic);
-    error InvalidAuthorizationSetMagic(bytes4 actualMagic);
+
+    /// Thrown when validating an encoded authorization and the header is shorter than expected
+    ///
+    /// @param expectedMinimumLength   The expected minimum length of the header
+    /// @param actualLength            The actual length of the header
     error AuthorizationHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+
+    /// Thrown when validating an encoded authorization and the length of the data is different than what is implied by
+    /// the embedded `TransferSpec`
+    ///
+    /// @param expectedTotalLength   The expected length of the data
+    /// @param actualTotalLength     The actual length of the data
     error AuthorizationOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
 
-    // Common Authorization set errors
+    // --- Common AuthorizationSet errors ------------------------------------------------------------------------------
+
+    /// Thrown when validating an encoded authorization set and the set header is shorter than expected
+    ///
+    /// @param expectedMinimumLength   The expected minimum length of the header
+    /// @param actualLength            The actual length of the header
     error AuthorizationSetHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+
+    /// Thrown when validating an encoded authorization set and one of the elements' headers is shorter than expected
+    ///
+    /// @param index             The index of the element with the issue
+    /// @param actualSetLength   The actual length of the encoded set
+    /// @param requiredOffset    The expected offset of the element header
     error AuthorizationSetElementHeaderTooShort(uint32 index, uint256 actualSetLength, uint256 requiredOffset);
+
+    /// Thrown when validating an encoded authorization set and one of the elements is shorter than expected
+    ///
+    /// @param index             The index of the element with the issue
+    /// @param actualSetLength   The actual length of the encoded set
+    /// @param requiredOffset    The expected offset of the element header
     error AuthorizationSetElementTooShort(uint32 index, uint256 actualSetLength, uint256 requiredOffset);
+
+    /// Thrown when validating an encoded authorization set and one of the elements has an unexpected magic value
+    ///
+    /// @param index         The index of the element with the issue
+    /// @param actualMagic   The magic value found in the element
     error AuthorizationSetInvalidElementMagic(uint32 index, bytes4 actualMagic);
+
+    /// Thrown when validating an encoded authorization set and the length of the data is different than what is implied
+    /// by the authorizations themselves
+    ///
+    /// @param expectedTotalLength   The expected length of the data
+    /// @param actualTotalLength     The actual length of the data
     error AuthorizationSetOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
+
+    /// Thrown when encoding an authorization set and the number of elements exceeds the maximum encodable value
+    ///
+    /// @param maxElements   The maximum number of elements that it is possible to encode
     error AuthorizationSetTooManyElements(uint32 maxElements);
 
-    // Common iteration errors
+    // --- Common iteration errors -------------------------------------------------------------------------------------
+
+    /// Thrown when iterating over an authorization or authorization set and `next()` is called on a cursor that is
+    /// already `done`
     error CursorOutOfBounds();
+
+    // --- Common utilities --------------------------------------------------------------------------------------------
 
     /// Converts a magic value from the byte encoding to a `TypedMemView` type
     ///
@@ -98,7 +185,7 @@ library TransferSpecLib {
     /// @return ref   A `TypedMemView` reference to `data`, typed as a transfer spec
     function _asTransferSpec(bytes memory data) internal pure returns (bytes29 ref) {
         if (data.length < BYTES4_BYTES) {
-            revert AuthorizationDataTooShort(BYTES4_BYTES, data.length);
+            revert TransferSpecDataTooShort(BYTES4_BYTES, data.length);
         }
 
         ref = data.ref(_toMemViewType(TRANSFER_SPEC_MAGIC));

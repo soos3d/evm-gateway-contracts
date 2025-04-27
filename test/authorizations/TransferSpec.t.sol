@@ -47,7 +47,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_asTransferSpec_tooShortMagic() external {
         bytes memory data = new bytes(0);
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.AuthorizationDataTooShort.selector, 4, 0));
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.TransferSpecDataTooShort.selector, 4, 0));
         data._asTransferSpec();
     }
 
