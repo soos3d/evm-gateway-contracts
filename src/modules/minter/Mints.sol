@@ -345,7 +345,7 @@ library MintsStorage {
 
     /// EIP-7201 getter for the storage slot
     function get() internal pure returns (Data storage $) {
-        assembly {
+        assembly ("memory-safe") {
             $.slot := SLOT
         }
     }

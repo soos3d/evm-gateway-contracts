@@ -81,7 +81,7 @@ library TokenSupportStorage {
     bytes32 public constant SLOT = 0x3ba16516a08fb9c5c48fb6662657ad4ffe1c779829969b4c7abdb9287bbf8500;
 
     function get() internal pure returns (Data storage $) {
-        assembly {
+        assembly ("memory-safe") {
             $.slot := SLOT
         }
     }
