@@ -136,7 +136,9 @@ contract Denylist is Ownable2StepUpgradeable {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the `Denylist` module
+/// @title DenylistStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `Denylist` module
 library DenylistStorage {
     /// @custom:storage-location 7201:circle.gateway.Denylist
     struct Data {
@@ -150,6 +152,8 @@ library DenylistStorage {
     bytes32 public constant SLOT = 0x77aee7014301166d8532df7f3d0b1c40d5b12f074d2d69255b43654e04193400;
 
     /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `Denylist` module
     function get() internal pure returns (Data storage $) {
         assembly ("memory-safe") {
             $.slot := SLOT

@@ -33,7 +33,10 @@ contract GatewayMinter is GatewayCommon, Mints {
         _disableInitializers();
     }
 
-    /// Initializes the contract with the counterpart wallet address
+    /// Initializes the contract with the counterpart wallet address and domain
+    ///
+    /// @dev Assumes the contract is being deployed behind a proxy and that proxy has already been initialized using the
+    ///      `UpgradeablePlaceholder` contract
     ///
     /// @param wallet   The address of the wallet contract on the same chain
     /// @param domain   The operator-issued identifier for this chain
@@ -42,6 +45,8 @@ contract GatewayMinter is GatewayCommon, Mints {
     }
 
     /// The address of the corresponding wallet contract on the same domain
+    ///
+    /// @return   The `GatewayWallet` address
     function walletContract() external view returns (GatewayWallet) {
         return GatewayWallet(_counterpart());
     }

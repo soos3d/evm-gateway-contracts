@@ -20,8 +20,8 @@ pragma solidity ^0.8.29;
 import {TransferSpec} from "./TransferSpec.sol";
 
 // Magic values for marking byte encodings
-bytes4 constant MINT_AUTHORIZATION_MAGIC = 0x23ba354a; // bytes4(keccak256("circle.gateway.MintAuthorization"))
-bytes4 constant MINT_AUTHORIZATION_SET_MAGIC = 0x95f860bd; // bytes4(keccak256("circle.gateway.MintAuthorizationSet"))
+bytes4 constant MINT_AUTHORIZATION_MAGIC = 0x23ba354a; // `bytes4(keccak256("circle.gateway.MintAuthorization"))`
+bytes4 constant MINT_AUTHORIZATION_SET_MAGIC = 0x95f860bd; // `bytes4(keccak256("circle.gateway.MintAuthorizationSet"))`
 
 // `MintAuthorization` field offsets
 uint16 constant MINT_AUTHORIZATION_MAGIC_OFFSET = 0;
@@ -34,7 +34,9 @@ uint16 constant MINT_AUTHORIZATION_SET_MAGIC_OFFSET = 0;
 uint16 constant MINT_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
 uint16 constant MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
 
-/// Passed to the `GatewayMinter` contract on the destination domain by the user or a relayer
+/// @title MintAuthorization
+///
+/// @notice Passed to the `GatewayMinter` contract on the destination domain by the user or a relayer
 ///
 /// @dev Magic: `bytes4(keccak256("circle.gateway.MintAuthorization"))`
 /// @dev The `keccak256` hash of the encoded `TransferSpec` is used as a cross-chain identifier, for both linkability
@@ -51,7 +53,9 @@ struct MintAuthorization {
     TransferSpec spec; //        A description of the transfer
 }
 
-/// Represents multiple `MintAuthorizations` packed together, for transferring from multiple domains.
+/// @title MintAuthorizationSet
+///
+/// @notice Represents multiple `MintAuthorizations` packed together, for transferring from multiple domains
 ///
 /// @dev Magic: bytes4(keccak256("circle.gateway.MintAuthorizationSet"))
 ///

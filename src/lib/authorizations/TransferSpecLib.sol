@@ -384,6 +384,18 @@ library TransferSpecLib {
     }
 
     /// Encode the first part of a `TransferSpec` struct into bytes
+    ///
+    /// @dev Encoding is split into two parts to avoid "stack too deep" errors
+    ///
+    /// @param version               The `version` field
+    /// @param sourceDomain          The `sourceDomain` field
+    /// @param destinationDomain     The `destinationDomain` field
+    /// @param sourceContract        The `sourceContract` field
+    /// @param destinationContract   The `destinationContract` field
+    /// @param sourceToken           The `sourceToken` field
+    /// @param destinationToken      The `destinationToken` field
+    /// @param sourceDepositor       The `sourceDepositor` field
+    /// @return                      The encoded bytes
     function _encodeTransferSpecHeader(
         uint32 version,
         uint32 sourceDomain,
@@ -408,6 +420,16 @@ library TransferSpecLib {
     }
 
     /// Encode the last part of a `TransferSpec` struct into bytes
+    ///
+    /// @dev Encoding is split into two parts to avoid "stack too deep" errors
+    ///
+    /// @param destinationRecipient   The `destinationRecipient` field
+    /// @param sourceSigner           The `sourceSigner` field
+    /// @param destinationCaller      The `destinationCaller` field
+    /// @param value                  The `value` field
+    /// @param nonce                  The `nonce` field
+    /// @param metadata               The `metadata` field
+    /// @return                       The encoded bytes
     function _encodeTransferSpecFooter(
         bytes32 destinationRecipient,
         bytes32 sourceSigner,

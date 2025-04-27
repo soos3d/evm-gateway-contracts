@@ -20,8 +20,8 @@ pragma solidity ^0.8.29;
 import {TransferSpec} from "./TransferSpec.sol";
 
 // Magic values for marking byte encodings
-bytes4 constant BURN_AUTHORIZATION_MAGIC = 0x71a020ae; // bytes4(keccak256("circle.gateway.BurnAuthorization"))
-bytes4 constant BURN_AUTHORIZATION_SET_MAGIC = 0xb12eecd9; // bytes4(keccak256("circle.gateway.BurnAuthorizationSet"))
+bytes4 constant BURN_AUTHORIZATION_MAGIC = 0x71a020ae; // `bytes4(keccak256("circle.gateway.BurnAuthorization"))`
+bytes4 constant BURN_AUTHORIZATION_SET_MAGIC = 0xb12eecd9; // `bytes4(keccak256("circle.gateway.BurnAuthorizationSet"))`
 
 // `BurnAuthorization` field offsets
 uint16 constant BURN_AUTHORIZATION_MAGIC_OFFSET = 0;
@@ -30,12 +30,14 @@ uint16 constant BURN_AUTHORIZATION_MAX_FEE_OFFSET = 36;
 uint16 constant BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 68;
 uint16 constant BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 72;
 
-// BurnAuthorizationSet field offsets
+// `BurnAuthorizationSet` field offsets
 uint16 constant BURN_AUTHORIZATION_SET_MAGIC_OFFSET = 0;
 uint16 constant BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
 uint16 constant BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
 
-/// Passed to the `GatewayWallet` contract on the source domain by the operator, in order to burn those funds
+/// @title BurnAuthorization
+///
+/// @notice Passed to the `GatewayWallet` contract on the source domain by the operator, in order to burn those funds
 ///
 /// @dev Magic: `bytes4(keccak256("circle.gateway.BurnAuthorization"))`
 /// @dev The `keccak256` hash of the encoded `TransferSpec` is used as a cross-chain identifier, for both linkability
@@ -54,8 +56,10 @@ struct BurnAuthorization {
     TransferSpec spec; //        A description of the transfer
 }
 
-/// Represents multiple `BurnAuthorization`s packed together, which allows a wallet to sign a single payload for a set
-/// of burns from multiple domains, as long as the signature scheme is shared.
+/// @title BurnAuthorizationSet
+///
+/// @notice Represents multiple `BurnAuthorization`s packed together, which allows a wallet to sign a single payload for
+/// a set of burns from multiple domains, as long as the signature scheme is shared.
 ///
 /// @dev Magic: `bytes4(keccak256("circle.gateway.BurnAuthorizationSet"))`
 ///

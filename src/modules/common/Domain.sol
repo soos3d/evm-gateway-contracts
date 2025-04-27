@@ -25,7 +25,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 contract Domain is Initializable {
     /// Sets the domain during initialization
     ///
-    /// @param _domain The operator-issued identifier for the current chain
+    /// @param _domain   The operator-issued identifier for the current chain
     function __Domain_init(uint32 _domain) internal onlyInitializing {
         DomainStorage.get().domain = _domain;
     }
@@ -46,7 +46,9 @@ contract Domain is Initializable {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the `Domain` module
+/// @title DomainStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `Domain` module
 library DomainStorage {
     /// @custom:storage-location 7201:circle.gateway.Domain
     struct Data {
@@ -58,6 +60,8 @@ library DomainStorage {
     bytes32 public constant SLOT = 0xfe4c86d7e89d95779292c8077b542f271e850fa895928d0b7b19a0ae50865c00;
 
     /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `Domain` module
     function get() internal pure returns (Data storage $) {
         assembly ("memory-safe") {
             $.slot := SLOT

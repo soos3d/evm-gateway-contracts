@@ -31,6 +31,8 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
     event CounterpartUpdated(address newCounterpart);
 
     /// Thrown when the counterpart is expected, but an unauthorized caller is used
+    ///
+    /// @param caller   The address of the unauthorized caller
     error UnauthorizedCounterpart(address caller);
 
     /// Sets the counterpart during initialization
@@ -78,7 +80,9 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the `Counterpart` module
+/// @title CounterpartStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `Counterpart` module
 library CounterpartStorage {
     /// @custom:storage-location 7201:circle.gateway.Counterpart
     struct Data {
@@ -90,6 +94,8 @@ library CounterpartStorage {
     bytes32 public constant SLOT = 0x93e77e25ef9d7551b01674a3ef68f44dcb2b33c68692c96a16f33bfe6d355b00;
 
     /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `Counterpart` module
     function get() internal pure returns (Data storage $) {
         assembly ("memory-safe") {
             $.slot := SLOT

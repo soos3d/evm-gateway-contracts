@@ -25,8 +25,8 @@ interface IMintToken {
     ///
     /// @dev The caller must be a minter and must not be blacklisted
     ///
-    /// @param _to       The address that will receive the minted tokens
-    /// @param _amount   The amount of tokens to mint. Must be less than or equal to the minter allowance of the caller.
-    /// @return          `true` if the operation was successful, `false` otherwise
-    function mint(address _to, uint256 _amount) external returns (bool);
+    /// @param to       The address that will receive the minted tokens
+    /// @param amount   The amount of tokens to mint. Must be less than or equal to the minter allowance of the caller.
+    /// @return         `true` if the operation was successful, `false` otherwise
+    function mint(address to, uint256 amount) external returns (bool);
 }

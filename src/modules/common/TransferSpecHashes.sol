@@ -29,7 +29,7 @@ contract TransferSpecHashes {
 
     /// Asserts that the given transfer spec hash has not been used, reverting if it has, and marks it as used
     ///
-    /// @param transferSpecHash    The transfer spec hash to check and mark
+    /// @param transferSpecHash   The transfer spec hash to check and mark
     function _checkAndMarkTransferSpecHash(bytes32 transferSpecHash) internal {
         _ensureTransferSpecHashNotUsed(transferSpecHash);
         _markTransferSpecHashAsUsed(transferSpecHash);
@@ -52,7 +52,9 @@ contract TransferSpecHashes {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the `TransferSpecHashes` module
+/// @title TransferSpecHashesStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `TransferSpecHashes` module
 library TransferSpecHashesStorage {
     /// @custom:storage-location 7201:circle.gateway.TransferSpecHashes
     struct Data {
@@ -64,6 +66,8 @@ library TransferSpecHashesStorage {
     bytes32 public constant SLOT = 0x20b6f2ac2ef95221991caf3be38efadb0bb1d3093c65d3a8c962def8d652ee00;
 
     /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `TransferSpecHashes` module
     function get() internal pure returns (Data storage $) {
         assembly ("memory-safe") {
             $.slot := SLOT

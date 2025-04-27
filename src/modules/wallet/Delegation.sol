@@ -133,6 +133,7 @@ contract Delegation is Pausing, Denylist, TokenSupport {
     /// @param token       The token to check
     /// @param depositor   The depositor to check
     /// @param addr        The address to check
+    /// @return            `true` if the address is authorized, `false` otherwise
     function isAuthorizedForBalance(address token, address depositor, address addr) public view returns (bool) {
         // A depositor is always authorized for its own balance
         if (addr == depositor) return true;
@@ -148,6 +149,7 @@ contract Delegation is Pausing, Denylist, TokenSupport {
     /// @param token       The token to check
     /// @param depositor   The depositor to check
     /// @param addr        The address to check
+    /// @return            `true` if the address has ever been authorized, `false` otherwise
     function _wasEverAuthorizedForBalance(address token, address depositor, address addr)
         internal
         view
@@ -162,7 +164,9 @@ contract Delegation is Pausing, Denylist, TokenSupport {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the `Delegation` module
+/// @title DelegationStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `Delegation` module
 library DelegationStorage {
     /// @custom:storage-location 7201:circle.gateway.Delegation
     struct Data {
@@ -175,6 +179,8 @@ library DelegationStorage {
     bytes32 public constant SLOT = 0xbcbbce9c37b75586602042f686570dadc3d32ddb14a687daffcfefad2ac57b00;
 
     /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `Delegation` module
     function get() internal pure returns (Data storage $) {
         assembly ("memory-safe") {
             $.slot := SLOT

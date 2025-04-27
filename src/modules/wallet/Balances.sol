@@ -21,7 +21,9 @@ import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {WithdrawalDelay} from "src/modules/wallet/WithdrawalDelay.sol";
 
-/// The various balances that are tracked, used for the ERC-1155 balance functions
+/// @title BalanceType
+///
+/// @notice The various balances that are tracked, used for the ERC-1155 balance functions
 enum BalanceType {
     Total,
     Available,
@@ -34,6 +36,8 @@ enum BalanceType {
 /// @notice Manages balances for the `GatewayWallet` contract
 contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     /// Thrown when the ERC-1155 `balanceOf` function is called with an invalid `BalanceType`
+    ///
+    /// @param balanceType   The invalid `BalanceType` that was passed
     error InvalidBalanceType(uint96 balanceType);
 
     /// Thrown when the ERC-1155 `balanceOfBatch` function is called with arrays of different lengths
@@ -203,11 +207,11 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
 
     /// Reduces a depositor's balances by a specified value, prioritizing the available balance
     ///
-    /// @param token               The token whose balance is being reduced
-    /// @param depositor           The depositor whose balance is being reduced
-    /// @param value               The amount to be reduced
-    /// @return fromAvailable      The amount deducted from the `available` balance
-    /// @return fromWithdrawing    The amount deducted from the `withdrawing` balance
+    /// @param token              The token whose balance is being reduced
+    /// @param depositor          The depositor whose balance is being reduced
+    /// @param value              The amount to be reduced
+    /// @return fromAvailable     The amount deducted from the `available` balance
+    /// @return fromWithdrawing   The amount deducted from the `withdrawing` balance
     function _reduceBalance(address token, address depositor, uint256 value)
         internal
         returns (uint256 fromAvailable, uint256 fromWithdrawing)
@@ -242,7 +246,9 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the `Balances` module
+/// @title BalancesStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `Balances` module
 library BalancesStorage {
     /// @custom:storage-location 7201:circle.gateway.Balances
     struct Data {
@@ -256,6 +262,8 @@ library BalancesStorage {
     bytes32 public constant SLOT = 0xdd3dca88e892815d13ea80f1982e32e4fe3d0a89f03d14d3565bf56d58c31a00;
 
     /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `Balances` module
     function get() internal pure returns (Data storage $) {
         assembly ("memory-safe") {
             $.slot := SLOT

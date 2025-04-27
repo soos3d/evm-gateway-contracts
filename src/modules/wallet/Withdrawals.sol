@@ -131,10 +131,10 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
 
     /// Internal helper function to initiate a withdrawal
     ///
-    /// @param token       The token to initiate a withdrawal for
-    /// @param depositor   The owner of the balance from which the withdrawal should come
-    /// @param authorizer  The address initiating the withdrawal
-    /// @param value       The amount to be withdrawn
+    /// @param token        The token to initiate a withdrawal for
+    /// @param depositor    The owner of the balance from which the withdrawal should come
+    /// @param authorizer   The address initiating the withdrawal
+    /// @param value        The amount to be withdrawn
     function _initiateWithdrawal(address token, address depositor, address authorizer, uint256 value) internal {
         // Ensure that the withdrawal value is non-zero
         if (value == 0) {
@@ -161,10 +161,10 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
 
     /// Internal helper function to complete a withdrawal
     ///
-    /// @param token       The token to withdraw
-    /// @param depositor   The owner of the balance from which the withdrawal should come
-    /// @param authorizer  The address that authorized the withdrawal completion
-    /// @param recipient   The recipient of the funds
+    /// @param token        The token to withdraw
+    /// @param depositor    The owner of the balance from which the withdrawal should come
+    /// @param authorizer   The address that authorized the withdrawal completion
+    /// @param recipient    The recipient of the funds
     function _withdraw(address token, address depositor, address authorizer, address recipient) internal {
         // Ensure that the withdrawal was initiated at least `withdrawalDelay` blocks ago
         _ensureWithdrawable(token, depositor);

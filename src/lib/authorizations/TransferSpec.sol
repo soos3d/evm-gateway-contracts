@@ -18,7 +18,7 @@
 pragma solidity ^0.8.29;
 
 // Magic value for marking byte encodings
-bytes4 constant TRANSFER_SPEC_MAGIC = 0xca85def7; // bytes4(keccak256("circle.gateway.TransferSpec"))
+bytes4 constant TRANSFER_SPEC_MAGIC = 0xca85def7; // `bytes4(keccak256("circle.gateway.TransferSpec"))`
 
 // Version for marking byte encodings for easier forward compatibility
 uint32 constant TRANSFER_SPEC_VERSION = 1;

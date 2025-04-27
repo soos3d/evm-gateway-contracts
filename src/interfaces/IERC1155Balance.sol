@@ -25,11 +25,13 @@ interface IERC1155Balance {
     ///
     /// @param account   The account to check
     /// @param id        The token type to check
+    /// @return          The amount of tokens of type `id` owned by `account`
     function balanceOf(address account, uint256 id) external view returns (uint256);
 
     /// The batched version of `balanceOf`
     ///
     /// @param accounts   The accounts to check
     /// @param ids        The token types to check
+    /// @return           The amounts of tokens of type `ids` owned by `accounts`
     function balanceOfBatch(address[] memory accounts, uint256[] memory ids) external view returns (uint256[] memory);
 }

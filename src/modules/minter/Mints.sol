@@ -328,7 +328,9 @@ contract Mints is GatewayCommon {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the `Mints` module
+/// @title MintsStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `Mints` module
 library MintsStorage {
     /// @custom:storage-location 7201:circle.gateway.Mints
     struct Data {
@@ -344,6 +346,8 @@ library MintsStorage {
     bytes32 public constant SLOT = 0xa13f18ce64168e6d2f5aa74009cc3360c0bed33f0845237965d1e1378d32aa00;
 
     /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `Mints` module
     function get() internal pure returns (Data storage $) {
         assembly ("memory-safe") {
             $.slot := SLOT

@@ -174,11 +174,11 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
 
     /// Internal implementation for depositing tokens using an EIP-2612 permit
     ///
-    /// @param token      The address of a token that supports EIP-2612 permits
-    /// @param owner      The address that owns the tokens and signed the permit
-    /// @param value      The amount to deposit
-    /// @param deadline   The unix timestamp after which the permit signature expires
-    /// @param signature  The signature bytes containing v, r, s components
+    /// @param token       The address of a token that supports EIP-2612 permits
+    /// @param owner       The address that owns the tokens and signed the permit
+    /// @param value       The amount to deposit
+    /// @param deadline    The unix timestamp after which the permit signature expires
+    /// @param signature   The signature bytes containing v, r, s components
     function _depositWithPermit(address token, address owner, uint256 value, uint256 deadline, bytes memory signature)
         internal
     {

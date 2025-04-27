@@ -83,7 +83,9 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the `Pausing` module
+/// @title PausingStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `Pausing` module
 library PausingStorage {
     /// @custom:storage-location 7201:circle.gateway.Pausing
     struct Data {
@@ -95,6 +97,8 @@ library PausingStorage {
     bytes32 public constant SLOT = 0x7e0f0117f6f510f2a35b1c8185f303b28ba884334cd776f9d98e2abef24e2f00;
 
     /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `Pausing` module
     function get() internal pure returns (Data storage $) {
         assembly ("memory-safe") {
             $.slot := SLOT

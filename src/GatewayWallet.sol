@@ -60,6 +60,9 @@ contract GatewayWallet is GatewayCommon, Deposits, Withdrawals, Burns {
 
     /// Initializes the contract with the counterpart minter address and domain
     ///
+    /// @dev Assumes the contract is being deployed behind a proxy and that proxy has already been initialized using the
+    ///      `UpgradeablePlaceholder` contract
+    ///
     /// @param minter   The address of the minter contract on the same chain
     /// @param domain   The operator-issued identifier for this chain
     function initialize(address minter, uint32 domain) external reinitializer(2) {
@@ -67,6 +70,8 @@ contract GatewayWallet is GatewayCommon, Deposits, Withdrawals, Burns {
     }
 
     /// The address of the corresponding minter contract on the same domain
+    ///
+    /// @return   The `GatewayMinter` address
     function minterContract() external view returns (GatewayMinter) {
         return GatewayMinter(_counterpart());
     }

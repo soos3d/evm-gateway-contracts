@@ -32,6 +32,7 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
     error WithdrawalNotYetAvailable();
 
     /// The number of blocks that must pass after calling `initiateWithdrawal` before a withdrawal can be completed
+    ///
     /// @return   The number of blocks that must pass
     function withdrawalDelay() public view returns (uint256) {
         return WithdrawalDelayStorage.get().withdrawalDelay;
@@ -79,7 +80,9 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the `WithdrawalDelay` module
+/// @title WithdrawalDelayStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `WithdrawalDelay` module
 library WithdrawalDelayStorage {
     /// @custom:storage-location 7201:circle.gateway.WithdrawalDelay
     struct Data {
@@ -94,6 +97,8 @@ library WithdrawalDelayStorage {
     bytes32 public constant SLOT = 0x8f0d2169d60e1d6e8f336adc673aa9b36c7a3956bc915f85e5cfebff815daa00;
 
     /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `WithdrawalDelay` module
     function get() internal pure returns (Data storage $) {
         assembly ("memory-safe") {
             $.slot := SLOT

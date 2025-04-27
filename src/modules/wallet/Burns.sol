@@ -165,9 +165,9 @@ contract Burns is GatewayCommon, Balances, Delegation {
 
     /// Thrown when a burn authorization is not signed by the burn signer specified in the `TransferSpec`
     ///
-    /// @param index        The index of the burn authorization with the issue
-    /// @param authSigner   The source signer from the burn authorization
-    /// @param actualSigner The signer that was recovered from the signature
+    /// @param index          The index of the burn authorization with the issue
+    /// @param authSigner     The source signer from the burn authorization
+    /// @param actualSigner   The signer that was recovered from the signature
     error InvalidAuthorizationSourceSignerAtIndex(uint32 index, address authSigner, address actualSigner);
 
     /// Thrown during `gatewayTransfer` when the depositor's balance is insufficient to fulfill the `TransferSpec`
@@ -221,10 +221,10 @@ contract Burns is GatewayCommon, Balances, Delegation {
     ///
     /// @param token              The token being transferred
     /// @param depositor          The owner of the funds being transferred
-    /// @param transferSpecHash   The `keccak256` hash of the `TransferSpec`
     /// @param recipient          The recipient of the transfer
     /// @param signer             The address that authorized the transfer
     /// @param value              The amount being transferred
+    /// @param transferSpecHash   The `keccak256` hash of the `TransferSpec`
     function gatewayTransfer(
         address token,
         address depositor,
@@ -268,7 +268,8 @@ contract Burns is GatewayCommon, Balances, Delegation {
     ///
     /// @param authorization   A byte-encoded (set of) burn authorization(s)
     /// @param signer          The address that will sign the burn authorization(s)
-    /// @return                Whether the burn authorization(s) would be valid with the given signer
+    /// @return                `true` if the burn authorization(s) would be valid with the given signer, `false`
+    ///                        otherwise
     function validateBurnAuthorizations(bytes memory authorization, address signer) external view returns (bool) {
         // Validate the burn authorization(s) and get an iteration cursor
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(authorization);
@@ -605,6 +606,15 @@ contract Burns is GatewayCommon, Balances, Delegation {
     }
 
     /// Internal implementation of `gatewayTransfer`
+    ///
+    /// @dev Assumes the caller has already verified all preconditions
+    ///
+    /// @param token              The token being transferred
+    /// @param depositor          The owner of the funds being transferred
+    /// @param recipient          The recipient of the transfer
+    /// @param signer             The address that authorized the transfer
+    /// @param value              The amount being transferred
+    /// @param transferSpecHash   The `keccak256` hash of the `TransferSpec`
     function _gatewayTransfer(
         address token,
         address depositor,
@@ -627,7 +637,9 @@ contract Burns is GatewayCommon, Balances, Delegation {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the `Burns` module
+/// @title BurnsStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `Burns` module
 library BurnsStorage {
     /// @custom:storage-location 7201:circle.gateway.Burns
     struct Data {
@@ -641,6 +653,8 @@ library BurnsStorage {
     bytes32 public constant SLOT = 0x931ec06eaaa2cd8a002032d3364041b052af597aa8c169fcc20c959a9f557100;
 
     /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `Burns` module
     function get() internal pure returns (Data storage $) {
         assembly ("memory-safe") {
             $.slot := SLOT

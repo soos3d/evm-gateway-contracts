@@ -17,7 +17,9 @@
  */
 pragma solidity ^0.8.29;
 
-/// Used to iterate over a single authorization or a set of authorizations in a uniform way
+/// @title AuthorizationCursor
+///
+/// @notice Used to iterate over a single authorization or a set of authorizations in a uniform way
 struct AuthorizationCursor {
     /// The view pointing to the start of the encoded single authorization or authorization set
     bytes29 setOrAuthView;

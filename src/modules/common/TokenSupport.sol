@@ -69,7 +69,9 @@ contract TokenSupport is Ownable2StepUpgradeable {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the `TokenSupport` module
+/// @title TokenSupportStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `TokenSupport` module
 library TokenSupportStorage {
     /// @custom:storage-location 7201:circle.gateway.TokenSupport
     struct Data {
@@ -80,6 +82,9 @@ library TokenSupportStorage {
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.TokenSupport"))) - 1)) & ~bytes32(uint256(0xff))`
     bytes32 public constant SLOT = 0x3ba16516a08fb9c5c48fb6662657ad4ffe1c779829969b4c7abdb9287bbf8500;
 
+    /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `TokenSupport` module
     function get() internal pure returns (Data storage $) {
         assembly ("memory-safe") {
             $.slot := SLOT
