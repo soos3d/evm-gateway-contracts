@@ -66,7 +66,7 @@ contract GatewayWallet is GatewayCommon, Deposits, Withdrawals, Burns {
     /// @param pauser_            The address to initialize the `pauser` role
     /// @param denylister_        The address to initialize the `denylister` role
     /// @param minter_            The address of the `GatewayMinter` contract for this domain
-    /// @param supportedTokens_            The list of tokens to support initially
+    /// @param supportedTokens_   The list of tokens to support initially
     /// @param domain_            The operator-issued identifier for this chain
     /// @param withdrawalDelay_   The initial value for `withdrawalDelay`, in blocks
     /// @param burnSigner_        The address to initialize the `burnSigner` role
