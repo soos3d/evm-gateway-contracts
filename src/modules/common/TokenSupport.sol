@@ -35,10 +35,10 @@ contract TokenSupport is Ownable2StepUpgradeable {
 
     /// Initializes supported tokens
     ///
-    /// @param tokens_   The initially-supported tokens
-    function __TokenSupport_init(address[] calldata tokens_) internal onlyInitializing {
-        for (uint256 i = 0; i < tokens_.length; i++) {
-            addSupportedToken(tokens_[i]);
+    /// @param supportedTokens_   The initially-supported tokens
+    function __TokenSupport_init(address[] calldata supportedTokens_) internal onlyInitializing {
+        for (uint256 i = 0; i < supportedTokens_.length; i++) {
+            addSupportedToken(supportedTokens_[i]);
         }
     }
 

@@ -29,7 +29,7 @@ import {AddressLib} from "src/lib/util/AddressLib.sol";
 
 /// @title Mints
 ///
-/// @notice Manages mints for the GatewayMinter contract
+/// @notice Manages mints for the `GatewayMinter` contract
 contract Mints is GatewayCommon {
     using TransferSpecLib for bytes29;
     using MintAuthorizationLib for bytes29;
