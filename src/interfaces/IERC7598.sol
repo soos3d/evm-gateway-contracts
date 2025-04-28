@@ -24,6 +24,7 @@ pragma solidity ^0.8.29;
 interface IERC7598 {
     /// Receive a transfer with a signed authorization from the payer
     ///
+    /// @dev EOA wallet signatures should be packed in the order of r, s, v.
     /// @dev This has an additional check to ensure that the payee's address matches the caller of this function to
     ///      prevent front-running attacks. (See security considerations)
     ///
@@ -45,6 +46,8 @@ interface IERC7598 {
     ) external;
 
     /// Attempt to cancel an authorization
+    ///
+    /// @dev EOA wallet signatures should be packed in the order of r, s, v.
     ///
     /// @param authorizer   Authorizer's address
     /// @param nonce        Nonce of the authorization

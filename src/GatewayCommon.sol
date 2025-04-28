@@ -27,7 +27,7 @@ import {Pausing} from "src/modules/common/Pausing.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 
-/// @title Gateway Common
+/// @title GatewayCommon
 ///
 /// @notice Contains functionality that is common between `GatewayWallet` and `GatewayMinter`.
 contract GatewayCommon is
@@ -49,8 +49,8 @@ contract GatewayCommon is
 
     /// Initializes the contract and all of its modules, in the order of inheritance
     ///
-    /// @dev Assumes the contract is being deployed behind a proxy and that proxy has already been initialized using the
-    ///      `UpgradeablePlaceholder` contract
+    /// @dev Assumes the contract is being deployed behind a proxy and that the proxy has already been initialized using
+    ///      the `UpgradeablePlaceholder` contract
     ///
     /// @param pauser_            The address to initialize the pauser role
     /// @param denylister_        The address to initialize the denylister role

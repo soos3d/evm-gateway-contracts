@@ -289,10 +289,11 @@ contract Burns is GatewayCommon, Balances, Delegation {
         }
 
         // Iterate over the burn authorizations, validating each one
+        bytes29 auth;
         address token;
         while (!cursor.done) {
             // Get the next burn authorization
-            bytes29 auth = cursor.next();
+            auth = cursor.next();
 
             // Validate that everything about the burn authorization is as expected, and skip if it's not for this domain
             bool relevant = _validateBurnAuthorization(auth, signer, 0, cursor.index - 1);

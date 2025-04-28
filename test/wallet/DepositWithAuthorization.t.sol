@@ -19,7 +19,7 @@ pragma solidity ^0.8.29;
 
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
-import {IERC3009} from "src/interfaces/IERC3009.sol";
+import {IERC7598} from "src/interfaces/IERC7598.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
@@ -215,7 +215,8 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         (uint8 authorizationV, bytes32 authorizationR, bytes32 authorizationS) =
             _create3009AuthorizationSignature(initialUsdcBalance);
         (uint8 cancellationV, bytes32 cancellationR, bytes32 cancellationS) = _create3009CancellationSignature();
-        IERC3009(usdc).cancelAuthorization(depositor, erc3009Nonce, cancellationV, cancellationR, cancellationS);
+        bytes memory cancellationSignature = abi.encodePacked(cancellationR, cancellationS, cancellationV);
+        IERC7598(usdc).cancelAuthorization(depositor, erc3009Nonce, cancellationSignature);
 
         skip(activeTimeOffset);
 
@@ -394,7 +395,8 @@ contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
     function test_depositWithAuthorization_with7598Interface_revertIfAuthorizationCancelled() public {
         bytes memory authorizationSignature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
         (uint8 cancellationV, bytes32 cancellationR, bytes32 cancellationS) = _create3009CancellationSignature();
-        IERC3009(usdc).cancelAuthorization(depositor, erc3009Nonce, cancellationV, cancellationR, cancellationS);
+        bytes memory cancellationSignature = abi.encodePacked(cancellationR, cancellationS, cancellationV);
+        IERC7598(usdc).cancelAuthorization(depositor, erc3009Nonce, cancellationSignature);
 
         skip(activeTimeOffset);
 

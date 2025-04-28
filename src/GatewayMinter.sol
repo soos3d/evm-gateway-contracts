@@ -21,11 +21,12 @@ import {GatewayCommon} from "src/GatewayCommon.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 import {Mints} from "src/modules/minter/Mints.sol";
 
-/// @title Gateway Minter
+/// @title GatewayMinter
 ///
 /// @notice This contract allows the minting or transferring of funds deposited in the GatewayWallet contract, either on
-/// the same chain or on a different chain. Either operation requires a signed authorization from a signer configured in
-/// the contract. See the documentation for the `GatewayWallet` contract for more details.
+/// the same chain or on a different chain. Either operation requires a signed authorization from
+/// the `mintAuthorizationSigner` configured in the contract. See the documentation for the `GatewayWallet` contract for
+/// more details.
 contract GatewayMinter is GatewayCommon, Mints {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -35,8 +36,8 @@ contract GatewayMinter is GatewayCommon, Mints {
 
     /// Initializes the contract and all of its modules, in the order of inheritance
     ///
-    /// @dev Assumes the contract is being deployed behind a proxy and that proxy has already been initialized using the
-    ///      `UpgradeablePlaceholder` contract
+    /// @dev Assumes the contract is being deployed behind a proxy and that the proxy has already been initialized using
+    ///      the `UpgradeablePlaceholder` contract
     ///
     /// @param pauser_                    The address to initialize the `pauser` role
     /// @param denylister_                The address to initialize the `denylister` role

@@ -771,7 +771,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         ExpectedBalances finalBalances;
         ExpectedBurnEventParams eventParams1;
         uint256 insufficientEventValueNeeded;
-        uint256 insufficientEventAvailableAvailable;
+        uint256 insufficientEventBalanceAvailable;
         uint256 insufficientEventWithdrawingAvailable;
         ExpectedBurnEventParams eventParams2;
     }
@@ -818,7 +818,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             address(usdc),
             underFundedDepositor,
             auth.spec.value + fee, // Total needed: $2500 + $0.50 = $2500.50
-            depositorInitialBalance / 4, // Available available: $1250
+            depositorInitialBalance / 4, // Balance available: $1250
             0 // Withdrawing available: $0
         );
 
@@ -950,7 +950,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         // Insufficient Balance Event (Auth 2)
         testData.insufficientEventValueNeeded = neededForAuth2; // $500.10
-        testData.insufficientEventAvailableAvailable = balanceAfterAuth1; // $399.80
+        testData.insufficientEventBalanceAvailable = balanceAfterAuth1; // $399.80
         testData.insufficientEventWithdrawingAvailable = 0;
 
         // Event 2 (Auth 2)
@@ -978,7 +978,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             address(usdc),
             testData.depositorAddr,
             testData.insufficientEventValueNeeded,
-            testData.insufficientEventAvailableAvailable,
+            testData.insufficientEventBalanceAvailable,
             testData.insufficientEventWithdrawingAvailable
         );
         _expectBurnEvent(testData.eventParams2); // Event for partially successful auth2
@@ -1167,7 +1167,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         // Insufficient Balance Event (Auth 2)
         testData.insufficientEventValueNeeded = neededForAuth2; // $200.00
-        testData.insufficientEventAvailableAvailable = balanceAfterAuth1; // $199.90
+        testData.insufficientEventBalanceAvailable = balanceAfterAuth1; // $199.90
         testData.insufficientEventWithdrawingAvailable = 0;
 
         // Event 2 (Auth 2)
@@ -1195,7 +1195,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             address(usdc),
             testData.depositorAddr,
             testData.insufficientEventValueNeeded,
-            testData.insufficientEventAvailableAvailable,
+            testData.insufficientEventBalanceAvailable,
             testData.insufficientEventWithdrawingAvailable
         );
         _expectBurnEvent(testData.eventParams2); // Event for successful value burn, partial fee

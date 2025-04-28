@@ -23,7 +23,7 @@ import {Burns} from "src/modules/wallet/Burns.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
 import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
 
-/// @title Gateway Wallet
+/// @title GatewayWallet
 ///
 /// @notice This contract allows users to deposit supported tokens. Once deposits are observed in a finalized block by
 /// the operator, the user may request an authorization to instantly mint those funds on another chain. Minted funds are
@@ -60,8 +60,8 @@ contract GatewayWallet is GatewayCommon, Deposits, Withdrawals, Burns {
 
     /// Initializes the contract and all of its modules, in the order of inheritance
     ///
-    /// @dev Assumes the contract is being deployed behind a proxy and that proxy has already been initialized using the
-    ///      `UpgradeablePlaceholder` contract
+    /// @dev Assumes the contract is being deployed behind a proxy and that the proxy has already been initialized using
+    ///      the `UpgradeablePlaceholder` contract
     ///
     /// @param pauser_            The address to initialize the `pauser` role
     /// @param denylister_        The address to initialize the `denylister` role

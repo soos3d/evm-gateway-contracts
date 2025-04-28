@@ -126,7 +126,7 @@ library TransferSpecLib {
     /// @param actualLength            The actual length of the header
     error AuthorizationSetHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
 
-    /// Thrown when validating an encoded authorization set and one of the elements' headers is shorter than expected
+    /// Thrown when validating an encoded authorization set and one of the elements' header is shorter than expected
     ///
     /// @param index             The index of the element with the issue
     /// @param actualSetLength   The actual length of the encoded set
@@ -155,7 +155,7 @@ library TransferSpecLib {
 
     /// Thrown when encoding an authorization set and the number of elements exceeds the maximum encodable value
     ///
-    /// @param maxElements   The maximum number of elements that it is possible to encode
+    /// @param maxElements   The maximum number of elements that is possible to encode
     error AuthorizationSetTooManyElements(uint32 maxElements);
 
     // --- Common iteration errors -------------------------------------------------------------------------------------
