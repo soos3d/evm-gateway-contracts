@@ -19,18 +19,18 @@ pragma solidity ^0.8.29;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
+import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
-import {SpendCommon} from "src/SpendCommon.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {OwnershipTest} from "test/util/OwnershipTest.sol";
 
-/// Tests ownership and initialization functionality of SpendMinter
-contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
+/// Tests ownership and initialization functionality of GatewayMinter
+contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
     uint32 private domain = 99;
 
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
 
     /// Used by OwnershipTest
     function _subject() internal view override returns (address) {
@@ -44,7 +44,7 @@ contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
     function test_initialize_revertWhenReinitialized() public {
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
-        wallet.initialize(makeAddr("random"), domain);
+        wallet.initialize(address(0), address(0), address(0), new address[](0), uint32(0), 1, address(0), address(0));
     }
 
     function test_updateBurnSigner_revertWhenNotOwner() public {
@@ -58,7 +58,7 @@ contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
 
     function test_updateBurnSigner_revertWhenZeroAddress() public {
         vm.prank(owner);
-        vm.expectRevert(SpendCommon.InvalidAddress.selector);
+        vm.expectRevert(AddressLib.InvalidAddress.selector);
         wallet.updateBurnSigner(address(0));
     }
 
@@ -100,7 +100,7 @@ contract SpendWalletBasicsTest is OwnershipTest, DeployUtils {
 
     function test_updateFeeRecipient_revertWhenZeroAddress() public {
         vm.prank(owner);
-        vm.expectRevert(SpendCommon.InvalidAddress.selector);
+        vm.expectRevert(AddressLib.InvalidAddress.selector);
         wallet.updateFeeRecipient(address(0));
     }
 

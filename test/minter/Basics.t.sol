@@ -19,19 +19,19 @@ pragma solidity ^0.8.29;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {GatewayMinter} from "src/GatewayMinter.sol";
+import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Mints} from "src/modules/minter/Mints.sol";
-import {SpendCommon} from "src/SpendCommon.sol";
-import {SpendMinter} from "src/SpendMinter.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {OwnershipTest} from "test/util/OwnershipTest.sol";
 
-/// Tests ownership and initialization functionality of SpendMinter
-contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
+/// Tests ownership and initialization functionality of GatewayMinter
+contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
     uint32 private domain = 99;
 
-    SpendMinter private minter;
+    GatewayMinter private minter;
 
     /// Used by OwnershipTest
     function _subject() internal view override returns (address) {
@@ -45,7 +45,7 @@ contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
     function test_initialize_revertWhenReinitialized() public {
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
-        minter.initialize(makeAddr("random"), domain);
+        minter.initialize(address(0), address(0), address(0), new address[](0), uint32(0), address(0), new address[](0));
     }
 
     function test_updateMintAuthority_revertWhenNotOwner() public {
@@ -74,7 +74,7 @@ contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
         vm.startPrank(owner);
         minter.addSupportedToken(token);
 
-        vm.expectRevert(abi.encodeWithSelector(SpendCommon.InvalidAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(AddressLib.InvalidAddress.selector));
         minter.updateMintAuthority(token, address(0));
     }
 
@@ -122,7 +122,7 @@ contract SpendMinterBasicsTest is OwnershipTest, DeployUtils {
 
     function test_updateMintAuthorizationSigner_revertWhenZeroAddress() public {
         vm.startPrank(owner);
-        vm.expectRevert(SpendCommon.InvalidAddress.selector);
+        vm.expectRevert(AddressLib.InvalidAddress.selector);
         minter.updateMintAuthorizationSigner(address(0));
         vm.stopPrank();
     }

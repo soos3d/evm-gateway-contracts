@@ -17,12 +17,21 @@
  */
 pragma solidity ^0.8.29;
 
-/// The balance interface from ERC-1155
+/// @title IERC1155Balance
+///
+/// @notice The balance interface from ERC-1155
 interface IERC1155Balance {
-    function balanceOf(address depositor, uint256 id) external view returns (uint256);
+    /// Returns the value of tokens of token type `id` owned by `account`
+    ///
+    /// @param account   The account to check
+    /// @param id        The token type to check
+    /// @return          The amount of tokens of type `id` owned by `account`
+    function balanceOf(address account, uint256 id) external view returns (uint256);
 
-    function balanceOfBatch(address[] memory depositors, uint256[] memory ids)
-        external
-        view
-        returns (uint256[] memory);
+    /// The batched version of `balanceOf`
+    ///
+    /// @param accounts   The accounts to check
+    /// @param ids        The token types to check
+    /// @return           The amounts of tokens of type `ids` owned by `accounts`
+    function balanceOfBatch(address[] memory accounts, uint256[] memory ids) external view returns (uint256[] memory);
 }

@@ -18,11 +18,11 @@
 pragma solidity ^0.8.29;
 
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {GatewayMinter} from "src/GatewayMinter.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
-import {_addressToBytes32} from "src/lib/util/addresses.sol";
-import {SpendMinter} from "src/SpendMinter.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {MasterMinter} from "./../mock_fiattoken/contracts/minting/MasterMinter.sol";
 import {FiatTokenV2_2} from "./../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 import {DeployUtils} from "./DeployUtils.sol";
@@ -35,7 +35,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
     // Based on Ethereum, assuming 12 seconds per block, 21,600 blocks in 3 days.
     uint256 public constant WITHDRAW_DELAY = (3 * 24 * 60 * 60) / 12;
     uint256 public constant DEPOSIT_AMOUNT = 1000e6; // 1000 USDC
-    uint256 public constant SPEND_AMOUNT = 100e6; // 100 USDC
+    uint256 public constant MINT_AMOUNT = 100e6; // 100 USDC
     uint256 public constant FEE_AMOUNT = 10000; // 0.01 USDC
     bytes public constant METADATA = "Test metadata";
 
@@ -53,12 +53,12 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         uint32 domain;
         uint256 walletBurnSignerKey;
         uint256 minterMintSignerKey;
-        SpendWallet wallet;
-        SpendMinter minter;
+        GatewayWallet wallet;
+        GatewayMinter minter;
         FiatTokenV2_2 usdc;
     }
 
-    /// @dev Helper for setting up multi-chain test environments with SpendWallet and SpendMinter contracts
+    /// @dev Helper for setting up multi-chain test environments with GatewayWallet and GatewayMinter contracts
     /// @param chainName The name of the chain to fork, must match an RPC endpoint name in foundry.toml (e.g. "ethereum", "arbitrum")
     /// @return ChainSetup Struct containing all relevant contract instances and addresses
     function _initializeGatewayContracts(string memory chainName) internal returns (ChainSetup memory) {
@@ -77,7 +77,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         (address minterMintSigner, uint256 minterMintSignerKey) = makeAddrAndKey(vm.toString(chainId + 4));
 
         // Deploy core contracts
-        (SpendWallet wallet, SpendMinter minter) = deploy(owner, domain);
+        (GatewayWallet wallet, GatewayMinter minter) = deploy(owner, domain);
         vm.makePersistent(address(wallet));
         vm.makePersistent(address(minter));
 
@@ -153,14 +153,14 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
             version: 1,
             sourceDomain: sourceChain.domain,
             destinationDomain: destChain.domain,
-            sourceContract: _addressToBytes32(address(sourceChain.wallet)),
-            destinationContract: _addressToBytes32(address(destChain.minter)),
-            sourceToken: _addressToBytes32(address(sourceChain.usdc)),
-            destinationToken: _addressToBytes32(address(destChain.usdc)),
-            sourceDepositor: _addressToBytes32(depositor_),
-            destinationRecipient: _addressToBytes32(recipient_),
-            sourceSigner: _addressToBytes32(sourceSigner_),
-            destinationCaller: _addressToBytes32(destinationCaller_),
+            sourceContract: AddressLib._addressToBytes32(address(sourceChain.wallet)),
+            destinationContract: AddressLib._addressToBytes32(address(destChain.minter)),
+            sourceToken: AddressLib._addressToBytes32(address(sourceChain.usdc)),
+            destinationToken: AddressLib._addressToBytes32(address(destChain.usdc)),
+            sourceDepositor: AddressLib._addressToBytes32(depositor_),
+            destinationRecipient: AddressLib._addressToBytes32(recipient_),
+            sourceSigner: AddressLib._addressToBytes32(sourceSigner_),
+            destinationCaller: AddressLib._addressToBytes32(destinationCaller_),
             value: amount,
             nonce: keccak256(abi.encode(vm.randomUint())),
             metadata: METADATA
@@ -177,7 +177,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         }
         vm.stopPrank();
         assertEq(chain.usdc.balanceOf(address(chain.wallet)), amount_);
-        assertEq(chain.wallet.spendableBalance(address(chain.usdc), depositor_), amount_);
+        assertEq(chain.wallet.availableBalance(address(chain.usdc), depositor_), amount_);
     }
 
     function _burnFromChain(
@@ -216,7 +216,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         // Get burn signer signature and execute burn
         bytes memory burnSignerSignature =
             _signBurnAuthorizations(encodedBurnAuths, burnSignatures, fees, chain.walletBurnSignerKey);
-        chain.wallet.burnSpent(encodedBurnAuths, burnSignatures, fees, burnSignerSignature);
+        chain.wallet.gatewayBurn(encodedBurnAuths, burnSignatures, fees, burnSignerSignature);
 
         // Verify state after burn
         assertEq(
@@ -253,7 +253,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
 
         // Execute mint operation
         vm.prank(destinationCaller);
-        chain.minter.spend(encodedMintAuth, mintSignature);
+        chain.minter.gatewayMint(encodedMintAuth, mintSignature);
 
         // Verify state after mint
         assertEq(
@@ -269,7 +269,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         assertEq(
             chain.wallet.totalBalance(address(chain.usdc), depositor),
             depositorTotalBalanceBefore - expectedDepositorBalanceDecrement,
-            "Depositor balance should decrease by amount used in same chain spend"
+            "Depositor balance should decrease by amount used in same chain transfer"
         );
     }
 }

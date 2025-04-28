@@ -19,13 +19,13 @@ pragma solidity ^0.8.29;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-/// Tests basic deposit functionality of SpendWallet
-contract SpendWalletDepositTest is Test, DeployUtils {
+/// Tests basic deposit functionality of GatewayWallet
+contract GatewayWalletDepositTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     uint256 private depositorPrivateKey;
     address private depositor;
@@ -36,10 +36,10 @@ contract SpendWalletDepositTest is Test, DeployUtils {
     // Revert error strings
     string private constant ERC20_TRANSFER_AMOUNT_EXCEEDS_ALLOWANCE = "ERC20: transfer amount exceeds allowance";
 
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
 
     function setUp() public {
-        (depositor, depositorPrivateKey) = makeAddrAndKey("spendWalletDepositor");
+        (depositor, depositorPrivateKey) = makeAddrAndKey("gatewayWalletDepositor");
         wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
 
         usdc = ForkTestUtils.forkVars().usdc;
@@ -71,7 +71,7 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    function test_deposit_spendableBalanceUpdatedAfterTransfer() public {
+    function test_deposit_availableBalanceUpdatedAfterTransfer() public {
         vm.startPrank(depositor);
         IERC20(usdc).approve(address(wallet), initialUsdcBalance);
 
@@ -79,13 +79,13 @@ contract SpendWalletDepositTest is Test, DeployUtils {
         vm.expectEmit(true, true, false, true);
         emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.deposit(usdc, initialUsdcBalance / 2);
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Deposit the other half
         vm.expectEmit(true, true, false, true);
         emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.deposit(usdc, initialUsdcBalance / 2);
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance);
 
         vm.stopPrank();
     }

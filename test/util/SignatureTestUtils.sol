@@ -20,11 +20,11 @@ pragma solidity ^0.8.29;
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Test} from "forge-std/Test.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/MintAuthorizations.sol";
 import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
 
 contract SignatureTestUtils is Test {
     using MessageHashUtils for bytes32;
@@ -89,7 +89,7 @@ contract SignatureTestUtils is Test {
         (v, r, s) = vm.sign(privateKey, digest);
     }
 
-    function _signBurnAuthWithTransferSpec(TransferSpec memory transferSpec, SpendWallet wallet, uint256 signerKey)
+    function _signBurnAuthWithTransferSpec(TransferSpec memory transferSpec, GatewayWallet wallet, uint256 signerKey)
         internal
         view
         returns (bytes memory encodedAuth, bytes memory signature)
@@ -101,7 +101,7 @@ contract SignatureTestUtils is Test {
 
     function _signBurnAuthSetWithTransferSpec(
         TransferSpec[] memory transferSpecs,
-        SpendWallet wallet,
+        GatewayWallet wallet,
         uint256 signerKey
     ) internal view returns (bytes memory encodedAuth, bytes memory signature) {
         BurnAuthorization[] memory auths = new BurnAuthorization[](transferSpecs.length);
@@ -168,7 +168,7 @@ contract SignatureTestUtils is Test {
         });
     }
 
-    function _signBurnAuths(BurnAuthorization[] memory auths, SpendWallet wallet, uint256 signerKey)
+    function _signBurnAuths(BurnAuthorization[] memory auths, GatewayWallet wallet, uint256 signerKey)
         internal
         pure
         returns (bytes memory encodedAuth, bytes memory signature)

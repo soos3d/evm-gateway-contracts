@@ -18,17 +18,17 @@
 pragma solidity ^0.8.29;
 
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
+import {Denylist} from "src/modules/common/Denylist.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
 import {MockERC1271Wallet} from "test/mock_fiattoken/contracts/test/MockERC1271Wallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 
-/// Tests EIP-2612 permit deposit functionality of SpendWallet
-contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
+/// Tests EIP-2612 permit deposit functionality of GatewayWallet
+contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
     address private owner = makeAddr("owner");
     uint256 private depositorPrivateKey;
     address private depositor;
@@ -49,11 +49,11 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
     string private constant ECRECOVER_INVALID_SIGNATURE = "ECRecover: invalid signature";
     string private constant FIATTOKENV2_PERMIT_EXPIRED = "FiatTokenV2: permit is expired";
 
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
     MockERC1271Wallet private depositorWallet;
 
     function setUp() public {
-        (depositor, depositorPrivateKey) = makeAddrAndKey("spendWalletDepositor");
+        (depositor, depositorPrivateKey) = makeAddrAndKey("gatewayWalletDepositor");
         wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
 
         usdc = ForkTestUtils.forkVars().usdc;
@@ -107,7 +107,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         wallet.denylist(denylistedSender);
 
         vm.prank(denylistedSender);
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedSender));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
     }
 
@@ -117,7 +117,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         vm.prank(denylister);
         wallet.denylist(depositor);
 
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, depositor));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
     }
 
@@ -153,12 +153,12 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         wallet.depositWithPermit(usdc, depositor, 2 * initialUsdcBalance, eip2612PermitDeadline, v, r, s);
     }
 
-    function test_depositWithPermit_with2612Interface_spendableBalanceUpdatedAfterTransfer() public {
+    function test_depositWithPermit_with2612Interface_availableBalanceUpdatedAfterTransfer() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance);
         vm.expectEmit(true, true, false, true);
         emit Deposits.Deposited(usdc, depositor, initialUsdcBalance);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance);
     }
 
     function test_depositWithPermit_with2612Interface_revertIfPermitReplayed() public {
@@ -166,7 +166,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         vm.expectEmit(true, true, false, true);
         emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, v, r, s);
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Attempt to replay the same permit signature
         vm.expectRevert(bytes(EIP2612_INVALID_SIGNATURE));
@@ -199,7 +199,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         wallet.denylist(denylistedSender);
 
         vm.prank(denylistedSender);
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedSender));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
@@ -209,7 +209,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         vm.prank(denylister);
         wallet.denylist(depositor);
 
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, depositor));
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
@@ -254,17 +254,17 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         wallet.depositWithPermit(usdc, depositor, 2 * initialUsdcBalance, eip2612PermitDeadline, signature);
     }
 
-    function test_depositWithPermit_with7597Interface_withEOASignature_spendableBalanceUpdatedAfterTransfer() public {
+    function test_depositWithPermit_with7597Interface_withEOASignature_availableBalanceUpdatedAfterTransfer() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance);
         vm.expectEmit(true, true, false, true);
         emit Deposits.Deposited(usdc, depositor, initialUsdcBalance);
 
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
 
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance);
     }
 
-    function test_depositWithPermit_with7597Interface_withSCASignature_spendableBalanceUpdatedAfterTransfer() public {
+    function test_depositWithPermit_with7597Interface_withSCASignature_availableBalanceUpdatedAfterTransfer() public {
         address depositorWalletAddress = address(depositorWallet);
         deal(usdc, depositorWalletAddress, initialUsdcBalance);
         depositorWallet.setSignatureValid(true);
@@ -274,7 +274,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
 
         wallet.depositWithPermit(usdc, depositorWalletAddress, initialUsdcBalance, eip2612PermitDeadline, signature);
 
-        assertEq(wallet.spendableBalance(usdc, depositorWalletAddress), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositorWalletAddress), initialUsdcBalance);
     }
 
     function test_depositWithPermit_with7597Interface_revertIfPermitReplayed() public {
@@ -282,7 +282,7 @@ contract SpendWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         vm.expectEmit(true, true, false, true);
         emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, signature);
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Attempt to replay the same permit signature
         vm.expectRevert(bytes(EIP2612_INVALID_SIGNATURE));

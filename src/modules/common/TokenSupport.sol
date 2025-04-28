@@ -21,7 +21,7 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 
 /// @title TokenSupport
 ///
-/// Manages a set of tokens that are supported, and allows the owner to mark new tokens as supported
+/// @notice Manages a set of tokens that are supported, and allows the owner to mark new tokens as supported
 contract TokenSupport is Ownable2StepUpgradeable {
     /// Emitted when a token is added to the set of supported tokens
     ///
@@ -32,6 +32,15 @@ contract TokenSupport is Ownable2StepUpgradeable {
     ///
     /// @param token   The unsupported token
     error UnsupportedToken(address token);
+
+    /// Initializes supported tokens
+    ///
+    /// @param tokens_   The initially-supported tokens
+    function __TokenSupport_init(address[] calldata tokens_) internal onlyInitializing {
+        for (uint256 i = 0; i < tokens_.length; i++) {
+            addSupportedToken(tokens_[i]);
+        }
+    }
 
     /// Ensures that the given token is supported
     ///
@@ -44,16 +53,17 @@ contract TokenSupport is Ownable2StepUpgradeable {
     /// Whether or not a token is supported
     ///
     /// @param token   The token to check
+    /// @return        `true` if the token is supported, `false` otherwise
     function isTokenSupported(address token) public view returns (bool) {
         return TokenSupportStorage.get().supportedTokens[token];
     }
 
-    /// Marks a token as supported. Once supported, tokens can not be un-supported.
+    /// Marks a token as supported. Once supported, tokens cannot be un-supported.
     ///
     /// @dev May only be called by the `owner` role
     ///
     /// @param token   The token to be added
-    function addSupportedToken(address token) external onlyOwner {
+    function addSupportedToken(address token) public onlyOwner {
         TokenSupportStorage.get().supportedTokens[token] = true;
         emit TokenSupported(token);
     }
@@ -68,19 +78,24 @@ contract TokenSupport is Ownable2StepUpgradeable {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the TokenSupport module
+/// @title TokenSupportStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `TokenSupport` module
 library TokenSupportStorage {
-    /// @custom:storage-location 7201:circle.spend.TokenSupport
+    /// @custom:storage-location 7201:circle.gateway.TokenSupport
     struct Data {
         /// Whether or not a token is supported
         mapping(address token => bool supported) supportedTokens;
     }
 
-    /// keccak256(abi.encode(uint256(keccak256("circle.spend.TokenSupport")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant SLOT = 0x9504c81a957a40d134f71d3a6c01e888064674c3f380b2ffd4aefef7040d4300;
+    /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.TokenSupport"))) - 1)) & ~bytes32(uint256(0xff))`
+    bytes32 public constant SLOT = 0x3ba16516a08fb9c5c48fb6662657ad4ffe1c779829969b4c7abdb9287bbf8500;
 
+    /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `TokenSupport` module
     function get() internal pure returns (Data storage $) {
-        assembly {
+        assembly ("memory-safe") {
             $.slot := SLOT
         }
     }

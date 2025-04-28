@@ -21,7 +21,10 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-/// A no-op, upgradeable implementation contract for UUPS proxies
+/// @title Upgradeable Placeholder
+///
+/// @notice A no-op, upgradeable implementation contract for UUPS proxies. Intended to be deployed before either
+/// `GatewayWallet` or `GatewayMinter`.
 contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepUpgradeable {
     /// Thrown if the owner address is the zero address
     error NullOwnerNotAllowed();
@@ -40,10 +43,12 @@ contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepU
     ///
     /// @param newOwner   The address of the new owner
     function initialize(address newOwner) external initializer {
+        // Ensure that the owner address is not the zero address
         if (newOwner == address(0)) {
             revert NullOwnerNotAllowed();
         }
 
+        // Ensure that the owner address is not a contract
         if (newOwner.code.length > 0) {
             revert ContractOwnerNotAllowed(newOwner);
         }

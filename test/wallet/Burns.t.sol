@@ -19,15 +19,15 @@ pragma solidity ^0.8.29;
 
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {_addressToBytes32} from "src/lib/util/addresses.sol";
-import {SpendHashes} from "src/modules/common/SpendHashes.sol";
+import {AddressLib} from "src/lib/util/AddressLib.sol";
+import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
@@ -64,19 +64,19 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     struct ExpectedBurnEventParams {
         address token;
         address depositor;
-        bytes32 spendHash;
+        bytes32 transferSpecHash;
         uint32 destinationDomain;
         bytes32 recipient;
         address authorizer;
         uint256 value;
         uint256 fee;
-        uint256 fromSpendable;
+        uint256 fromAvailable;
         uint256 fromWithdrawing;
     }
 
     struct ExpectedBalances {
         uint256 depositorExternalUsdc;
-        uint256 depositorSpendable;
+        uint256 depositorAvailable;
         uint256 depositorWithdrawing;
         uint256 feeRecipientExternalUsdc;
         uint256 walletExternalUsdc;
@@ -87,7 +87,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     BurnAuthorization private baseAuth;
 
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
 
     function setUp() public {
         domain = ForkTestUtils.forkVars().domain;
@@ -142,13 +142,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
                 version: TRANSFER_SPEC_VERSION,
                 sourceDomain: domain,
                 destinationDomain: domain + 1, // A different destination domain
-                sourceContract: _addressToBytes32(address(wallet)),
-                destinationContract: _addressToBytes32(destinationContract),
-                sourceToken: _addressToBytes32(address(usdc)),
-                destinationToken: _addressToBytes32(destinationToken),
-                sourceDepositor: _addressToBytes32(depositor),
-                destinationRecipient: _addressToBytes32(recipient),
-                sourceSigner: _addressToBytes32(depositor),
+                sourceContract: AddressLib._addressToBytes32(address(wallet)),
+                destinationContract: AddressLib._addressToBytes32(destinationContract),
+                sourceToken: AddressLib._addressToBytes32(address(usdc)),
+                destinationToken: AddressLib._addressToBytes32(destinationToken),
+                sourceDepositor: AddressLib._addressToBytes32(depositor),
+                destinationRecipient: AddressLib._addressToBytes32(recipient),
+                sourceSigner: AddressLib._addressToBytes32(depositor),
                 destinationCaller: bytes32(0),
                 value: depositorInitialBalance / 2,
                 nonce: keccak256("nonce"),
@@ -190,7 +190,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[2][0] = 4;
     }
 
-    function _callBurnSpentSignedBy(
+    function _callGatewayBurnSignedBy(
         bytes[] memory authorizations,
         bytes[] memory signatures,
         uint256[][] memory fees,
@@ -198,8 +198,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     ) internal {
         bytes memory burnerSignature = _signBurnAuthorizations(authorizations, signatures, fees, signerKey);
 
-        // Call burnSpent with the arguments and signature
-        wallet.burnSpent(authorizations, signatures, fees, burnerSignature);
+        // Call gatewayBurn with the arguments and signature
+        wallet.gatewayBurn(authorizations, signatures, fees, burnerSignature);
     }
 
     function _signAuthOrAuthSet(bytes memory authOrAuthSet, uint256 signerKey)
@@ -213,56 +213,56 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     function _expectBurnEvent(ExpectedBurnEventParams memory params) internal {
         vm.expectEmit(true, true, true, true);
-        emit Burns.BurnedSpent(
+        emit Burns.GatewayBurned(
             params.token,
             params.depositor,
-            params.spendHash,
+            params.transferSpecHash,
             params.destinationDomain,
             params.recipient,
             params.authorizer,
             params.value,
             params.fee,
-            params.fromSpendable,
+            params.fromAvailable,
             params.fromWithdrawing
         );
     }
 
     // ===== Entry Checks / Modifier Tests =====
 
-    function test_burnSpent_revertIfPaused() public {
+    function test_gatewayBurn_revertIfPaused() public {
         vm.startPrank(owner);
         wallet.pause();
         vm.stopPrank();
 
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
-        wallet.burnSpent(authorizations, signatures, fees, new bytes(0));
+        wallet.gatewayBurn(authorizations, signatures, fees, new bytes(0));
     }
 
     // ===== BurnSigner Signature Tests =====
 
-    function test_burnSpent_randomArgs_wrongSigner() public {
+    function test_gatewayBurn_randomArgs_wrongSigner() public {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
         (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
         vm.expectRevert(Burns.InvalidBurnSigner.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, wrongSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, wrongSignerKey);
     }
 
-    function test_burnSpent_randomArgs_wrongSignatureLength() public {
+    function test_gatewayBurn_randomArgs_wrongSignatureLength() public {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
         vm.expectRevert(Burns.InvalidBurnSigner.selector);
-        wallet.burnSpent(authorizations, signatures, fees, bytes(hex"aaaa"));
+        wallet.gatewayBurn(authorizations, signatures, fees, bytes(hex"aaaa"));
     }
 
     // ===== Authorization Structural Validation Tests =====
 
-    function test_burnSpent_revertIfNoAuthorizations() public {
+    function test_gatewayBurn_revertIfNoAuthorizations() public {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
         vm.expectRevert(Burns.MustHaveAtLeastOneBurnAuthorization.selector);
-        wallet.burnSpent(authorizations, signatures, fees, new bytes(0));
+        wallet.gatewayBurn(authorizations, signatures, fees, new bytes(0));
     }
 
-    function test_burnSpent_revertIfAuthSetIsEmpty() public {
+    function test_gatewayBurn_revertIfAuthSetIsEmpty() public {
         BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: new BurnAuthorization[](0)});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
 
@@ -273,10 +273,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](0);
         vm.expectRevert(Burns.MustHaveAtLeastOneBurnAuthorization.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_revertIfFeesLengthMismatch() public {
+    function test_gatewayBurn_revertIfFeesLengthMismatch() public {
         BurnAuthorization[] memory auths = new BurnAuthorization[](1);
         auths[0] = baseAuth;
         BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
@@ -289,17 +289,17 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256[][] memory fees = new uint256[][](1);
         fees[0] = new uint256[](0); // empty, but should have length 1 to match authorizations and signatures
         vm.expectRevert(Burns.MismatchedBurn.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_revertIfInputLengthsMismatched() public {
+    function test_gatewayBurn_revertIfInputLengthsMismatched() public {
         vm.expectRevert(Burns.MismatchedBurn.selector);
-        wallet.burnSpent(new bytes[](2), new bytes[](1), new uint256[][](2), new bytes(0));
+        wallet.gatewayBurn(new bytes[](2), new bytes[](1), new uint256[][](2), new bytes(0));
     }
 
     // ===== Authorization Content Validation Tests =====
 
-    function test_burnSpent_revertIfZeroValueAuth() public {
+    function test_gatewayBurn_revertIfZeroValueAuth() public {
         baseAuth.spec.value = 0;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
 
@@ -311,10 +311,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](1);
 
         vm.expectRevert(abi.encodeWithSelector(Burns.AuthorizationValueMustBePositiveAtIndex.selector, 0));
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_revertIfZeroValueAuthSet() public {
+    function test_gatewayBurn_revertIfZeroValueAuthSet() public {
         BurnAuthorization memory zeroValueAuth = baseAuth;
         zeroValueAuth.spec.value = 0;
 
@@ -324,7 +324,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
 
-        // Prepare arguments for burnSpent
+        // Prepare arguments for gatewayBurn
         bytes[] memory authorizations = new bytes[](1);
         authorizations[0] = encodedAuthSet;
 
@@ -335,10 +335,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](2);
 
         vm.expectRevert(abi.encodeWithSelector(Burns.AuthorizationValueMustBePositiveAtIndex.selector, 1));
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_revertIfExpiredAuth() public {
+    function test_gatewayBurn_revertIfExpiredAuth() public {
         // Set maxBlockHeight to a past block
         baseAuth.maxBlockHeight = block.number - 1;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
@@ -355,10 +355,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.expectRevert(
             abi.encodeWithSelector(Burns.AuthorizationExpiredAtIndex.selector, 0, baseAuth.maxBlockHeight, block.number)
         );
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_revertIfExpiredAuthSet() public {
+    function test_gatewayBurn_revertIfExpiredAuthSet() public {
         BurnAuthorization memory expiredAuth = baseAuth;
         expiredAuth.maxBlockHeight = block.number - 1;
 
@@ -382,10 +382,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
                 Burns.AuthorizationExpiredAtIndex.selector, 1, expiredAuth.maxBlockHeight, block.number
             )
         );
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_revertIfFeeTooHighAuth() public {
+    function test_gatewayBurn_revertIfFeeTooHighAuth() public {
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
 
         bytes[] memory authorizations = new bytes[](1);
@@ -400,10 +400,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0][0] = highFee;
 
         vm.expectRevert(abi.encodeWithSelector(Burns.BurnFeeTooHighAtIndex.selector, 0, baseAuth.maxFee, highFee));
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_revertIfFeeTooHighAuthSet() public {
+    function test_gatewayBurn_revertIfFeeTooHighAuthSet() public {
         BurnAuthorization memory highFeeAuth = baseAuth;
 
         BurnAuthorization[] memory auths = new BurnAuthorization[](2);
@@ -425,13 +425,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0][1] = highFee;
 
         vm.expectRevert(abi.encodeWithSelector(Burns.BurnFeeTooHighAtIndex.selector, 1, highFeeAuth.maxFee, highFee));
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfInvalidSourceContractAuth() public {
+    function test_gatewayBurn_revertIfInvalidSourceContractAuth() public {
         BurnAuthorization memory invalidSourceContractAuth = baseAuth;
         address invalidSourceContract = makeAddr("invalidSourceContract");
-        invalidSourceContractAuth.spec.sourceContract = _addressToBytes32(invalidSourceContract);
+        invalidSourceContractAuth.spec.sourceContract = AddressLib._addressToBytes32(invalidSourceContract);
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(invalidSourceContractAuth);
 
         bytes[] memory authorizations = new bytes[](1);
@@ -444,15 +444,17 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](1);
 
         vm.expectRevert(
-            abi.encodeWithSelector(Burns.InvalidAuthorizationSourceContractAtIndex.selector, 0, invalidSourceContract)
+            abi.encodeWithSelector(
+                Burns.InvalidAuthorizationSourceContractAtIndex.selector, 0, invalidSourceContract, address(wallet)
+            )
         );
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfInvalidSourceContractAuthSet() public {
+    function test_gatewayBurn_revertIfInvalidSourceContractAuthSet() public {
         BurnAuthorization memory invalidSourceContractAuth = baseAuth;
         address invalidSourceContract = makeAddr("invalidSourceContract");
-        invalidSourceContractAuth.spec.sourceContract = _addressToBytes32(invalidSourceContract);
+        invalidSourceContractAuth.spec.sourceContract = AddressLib._addressToBytes32(invalidSourceContract);
 
         BurnAuthorization[] memory auths = new BurnAuthorization[](2);
         auths[0] = baseAuth;
@@ -470,14 +472,16 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](2);
 
         vm.expectRevert(
-            abi.encodeWithSelector(Burns.InvalidAuthorizationSourceContractAtIndex.selector, 1, invalidSourceContract)
+            abi.encodeWithSelector(
+                Burns.InvalidAuthorizationSourceContractAtIndex.selector, 1, invalidSourceContract, address(wallet)
+            )
         );
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfUnsupportedTokenAuth() public {
+    function test_gatewayBurn_revertIfUnsupportedTokenAuth() public {
         address unsupportedToken = makeAddr("unsupportedToken");
-        baseAuth.spec.sourceToken = _addressToBytes32(unsupportedToken);
+        baseAuth.spec.sourceToken = AddressLib._addressToBytes32(unsupportedToken);
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(baseAuth);
 
         bytes[] memory authorizations = new bytes[](1);
@@ -490,13 +494,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](1);
 
         vm.expectRevert(abi.encodeWithSelector(Burns.UnsupportedTokenAtIndex.selector, 0, unsupportedToken));
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfUnsupportedTokenAuthSet() public {
+    function test_gatewayBurn_revertIfUnsupportedTokenAuthSet() public {
         BurnAuthorization memory unsupportedTokenAuth = baseAuth;
         address unsupportedToken = makeAddr("unsupportedToken");
-        unsupportedTokenAuth.spec.sourceToken = _addressToBytes32(unsupportedToken);
+        unsupportedTokenAuth.spec.sourceToken = AddressLib._addressToBytes32(unsupportedToken);
 
         BurnAuthorization[] memory auths = new BurnAuthorization[](2);
         auths[0] = baseAuth;
@@ -514,13 +518,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](2);
 
         vm.expectRevert(abi.encodeWithSelector(Burns.UnsupportedTokenAtIndex.selector, 1, unsupportedToken));
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfWasNeverAuthorizedForBalanceAuth() public {
+    function test_gatewayBurn_revertIfWasNeverAuthorizedForBalanceAuth() public {
         BurnAuthorization memory neverAuthorizedAuth = baseAuth;
         (address neverAuthorizedSigner, uint256 neverAuthorizedSignerKey) = makeAddrAndKey("neverAuthorizedSigner");
-        neverAuthorizedAuth.spec.sourceSigner = _addressToBytes32(neverAuthorizedSigner);
+        neverAuthorizedAuth.spec.sourceSigner = AddressLib._addressToBytes32(neverAuthorizedSigner);
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(neverAuthorizedAuth);
         bytes[] memory authorizations = new bytes[](1);
         authorizations[0] = encodedAuth;
@@ -533,16 +537,16 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](1);
 
         vm.expectRevert(Delegation.NotAuthorized.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfWasNeverAuthorizedForBalanceAuthSet() public {
+    function test_gatewayBurn_revertIfWasNeverAuthorizedForBalanceAuthSet() public {
         BurnAuthorization[] memory auths = new BurnAuthorization[](2);
         (address neverAuthorizedSigner, uint256 neverAuthorizedSignerKey) = makeAddrAndKey("neverAuthorizedSigner");
         auths[0] = baseAuth;
-        auths[0].spec.sourceSigner = _addressToBytes32(neverAuthorizedSigner);
+        auths[0].spec.sourceSigner = AddressLib._addressToBytes32(neverAuthorizedSigner);
         auths[1] = baseAuth;
-        auths[1].spec.sourceSigner = _addressToBytes32(neverAuthorizedSigner);
+        auths[1].spec.sourceSigner = AddressLib._addressToBytes32(neverAuthorizedSigner);
         BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
 
@@ -556,13 +560,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](2);
 
         vm.expectRevert(Delegation.NotAuthorized.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfInvalidSourceSignerAuth() public {
+    function test_gatewayBurn_revertIfInvalidSourceSignerAuth() public {
         BurnAuthorization memory mismatchedSignerAuth = baseAuth;
         address anotherAddress = makeAddr("anotherAddress");
-        mismatchedSignerAuth.spec.sourceSigner = _addressToBytes32(anotherAddress);
+        mismatchedSignerAuth.spec.sourceSigner = AddressLib._addressToBytes32(anotherAddress);
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(mismatchedSignerAuth);
 
         bytes[] memory authorizations = new bytes[](1);
@@ -577,14 +581,14 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.expectRevert(
             abi.encodeWithSelector(Burns.InvalidAuthorizationSourceSignerAtIndex.selector, 0, anotherAddress, depositor)
         );
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpend_revertIfInvalidSourceSignerAuthSet() public {
+    function test_gatewayBurn_revertIfInvalidSourceSignerAuthSet() public {
         BurnAuthorization memory auth1 = baseAuth;
         BurnAuthorization memory auth2MismatchedSigner = baseAuth;
         address anotherAddress = makeAddr("anotherAddress");
-        auth2MismatchedSigner.spec.sourceSigner = _addressToBytes32(anotherAddress);
+        auth2MismatchedSigner.spec.sourceSigner = AddressLib._addressToBytes32(anotherAddress);
 
         BurnAuthorization[] memory auths = new BurnAuthorization[](2);
         auths[0] = auth1;
@@ -604,12 +608,12 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.expectRevert(
             abi.encodeWithSelector(Burns.InvalidAuthorizationSourceSignerAtIndex.selector, 1, anotherAddress, depositor)
         );
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
     // ===== Burn Failure Scenarios =====
 
-    function test_burnSpent_revertIfReplayed() public {
+    function test_gatewayBurn_revertIfReplayed() public {
         BurnAuthorization memory auth = baseAuth;
 
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
@@ -623,22 +627,22 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](1);
         fees[0][0] = 0;
 
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
 
         // Replay the same authorization
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
-        vm.expectRevert(abi.encodeWithSelector(SpendHashes.SpendHashUsed.selector, specHash));
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecHashes.TransferSpecHashUsed.selector, specHash));
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_revertIfNotAllSameToken() external {
+    function test_gatewayBurn_revertIfNotAllSameToken() external {
         address notUsdc = makeAddr("notUsdc");
         vm.startPrank(owner);
         wallet.addSupportedToken(notUsdc);
         vm.stopPrank();
 
         BurnAuthorization memory nonUsdcAuth = baseAuth;
-        nonUsdcAuth.spec.sourceToken = _addressToBytes32(notUsdc);
+        nonUsdcAuth.spec.sourceToken = AddressLib._addressToBytes32(notUsdc);
 
         BurnAuthorization[] memory auths = new BurnAuthorization[](2);
         auths[0] = baseAuth;
@@ -654,10 +658,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0] = new uint256[](2);
 
         vm.expectRevert(Burns.NotAllSameToken.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_singleAuth_revertIfOtherSourceDomain() public {
+    function test_gatewayBurn_singleAuth_revertIfOtherSourceDomain() public {
         BurnAuthorization memory otherDomainAuth = baseAuth;
         otherDomainAuth.spec.sourceDomain = domain + 1; // A different domain
 
@@ -673,10 +677,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0][0] = baseAuth.maxFee;
 
         vm.expectRevert(Burns.NoRelevantBurnAuthorizations.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_singleAuthSet_revertIfOtherSourceDomain() public {
+    function test_gatewayBurn_singleAuthSet_revertIfOtherSourceDomain() public {
         BurnAuthorization memory otherDomainAuth = baseAuth;
         otherDomainAuth.spec.sourceDomain = domain + 1; // A different domain
 
@@ -696,10 +700,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0][1] = baseAuth.maxFee;
 
         vm.expectRevert(Burns.NoRelevantBurnAuthorizations.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_singleAuth_revertIfSameDestinationDomain() public {
+    function test_gatewayBurn_singleAuth_revertIfSameDestinationDomain() public {
         BurnAuthorization memory sameDestDomainAuth = baseAuth;
         sameDestDomainAuth.spec.destinationDomain = domain; // The same domain as source
 
@@ -715,10 +719,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0][0] = baseAuth.maxFee;
 
         vm.expectRevert(Burns.NoRelevantBurnAuthorizations.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_burnSpent_singleAuthSet_revertIfSameDestinationDomain() public {
+    function test_gatewayBurn_singleAuthSet_revertIfSameDestinationDomain() public {
         BurnAuthorization memory sameDestDomainAuth = baseAuth;
         sameDestDomainAuth.spec.destinationDomain = domain; // The same domain as source
 
@@ -738,7 +742,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0][1] = baseAuth.maxFee;
 
         vm.expectRevert(Burns.NoRelevantBurnAuthorizations.selector);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
     // ===== Insufficient Balance Tests =====
@@ -767,12 +771,12 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         ExpectedBalances finalBalances;
         ExpectedBurnEventParams eventParams1;
         uint256 insufficientEventValueNeeded;
-        uint256 insufficientEventSpendableAvailable;
+        uint256 insufficientEventBalanceAvailable;
         uint256 insufficientEventWithdrawingAvailable;
         ExpectedBurnEventParams eventParams2;
     }
 
-    function test_burnSpent_singleAuth_insufficientBalanceForBurnValue() public {
+    function test_gatewayBurn_singleAuth_insufficientBalanceForBurnValue() public {
         // Setup the under funded depositor
         deal(address(usdc), underFundedDepositor, depositorInitialBalance, true); // Fund externally with initial $5000
         vm.startPrank(underFundedDepositor);
@@ -782,8 +786,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         BurnAuthorization memory auth = baseAuth;
         auth.spec.value = 2500 * 10 ** 6; // $2500
-        auth.spec.sourceDepositor = _addressToBytes32(underFundedDepositor);
-        auth.spec.sourceSigner = _addressToBytes32(underFundedDepositor);
+        auth.spec.sourceDepositor = AddressLib._addressToBytes32(underFundedDepositor);
+        auth.spec.sourceSigner = AddressLib._addressToBytes32(underFundedDepositor);
         uint256 fee = defaultMaxFee / 2; // $0.50
 
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
@@ -801,7 +805,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
             depositorExternalUsdc: depositorInitialBalance * 3 / 4, // $3750 external
-            depositorSpendable: depositorInitialBalance / 4, // $1250 spendable
+            depositorAvailable: depositorInitialBalance / 4, // $1250 available
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance + depositorInitialBalance / 4, // $5000 (original depositor) + $1250 (underFundedDepositor) = $6250 total in wallet
@@ -814,29 +818,29 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             address(usdc),
             underFundedDepositor,
             auth.spec.value + fee, // Total needed: $2500 + $0.50 = $2500.50
-            depositorInitialBalance / 4, // Spendable available: $1250
+            depositorInitialBalance / 4, // Balance available: $1250
             0 // Withdrawing available: $0
         );
 
         ExpectedBurnEventParams memory expectedParams;
         expectedParams.token = address(usdc);
         expectedParams.depositor = underFundedDepositor;
-        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
         expectedParams.destinationDomain = auth.spec.destinationDomain;
         expectedParams.recipient = auth.spec.destinationRecipient;
         expectedParams.authorizer = underFundedDepositor;
-        expectedParams.value = depositorInitialBalance / 4; // fromSpendable - fee
+        expectedParams.value = depositorInitialBalance / 4; // fromAvailable - fee
         expectedParams.fee = 0; // Actual fee charged: $0 (waived)
-        expectedParams.fromSpendable = depositorInitialBalance / 4; // Actual amount deducted from spendable: $1250
+        expectedParams.fromAvailable = depositorInitialBalance / 4; // Actual amount deducted from available: $1250
         expectedParams.fromWithdrawing = 0;
         _expectBurnEvent(expectedParams);
 
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
 
         // Assert final state
         ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
             depositorExternalUsdc: depositorInitialBalance * 3 / 4, // $3750
-            depositorSpendable: 0, // Spendable becomes $0
+            depositorAvailable: 0, // Available becomes $0
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0, // Fee recipient gets $0
             walletExternalUsdc: depositorInitialBalance, // Wallet balance: $6250 - $1250 = $5000
@@ -845,10 +849,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Final State", underFundedDepositor, feeRecipient, finalExpectedBalances);
     }
 
-    /// Tests burnSpent with an authorization set containing two auths for the same depositor.
+    /// Tests gatewayBurn with an authorization set containing two auths for the same depositor.
     /// The first auth succeeds, but depletes the balance such that the second auth
     /// triggers the InsufficientBalance event and results in a partial burn value and zero fee.
-    function test_burnSpent_singleAuthSet_secondAuthHasInsufficientBalanceForBurnValue() public {
+    function test_gatewayBurn_singleAuthSet_secondAuthHasInsufficientBalanceForBurnValue() public {
         AuthSetInsufficientBalanceTestData memory testData;
 
         (testData.depositorAddr, testData.depositorKey) = makeAddrAndKey("partiallyFundedDepositor");
@@ -867,15 +871,15 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         // Auth 1 (should succeed)
         testData.auth1 = baseAuth;
-        testData.auth1.spec.sourceDepositor = _addressToBytes32(testData.depositorAddr);
-        testData.auth1.spec.sourceSigner = _addressToBytes32(testData.depositorAddr);
+        testData.auth1.spec.sourceDepositor = AddressLib._addressToBytes32(testData.depositorAddr);
+        testData.auth1.spec.sourceSigner = AddressLib._addressToBytes32(testData.depositorAddr);
         testData.auth1.spec.value = testData.value1;
         testData.auth1.maxFee = defaultMaxFee;
 
         // Auth 2 (should have insufficient funds after Auth 1)
         testData.auth2 = baseAuth;
-        testData.auth2.spec.sourceDepositor = _addressToBytes32(testData.depositorAddr);
-        testData.auth2.spec.sourceSigner = _addressToBytes32(testData.depositorAddr);
+        testData.auth2.spec.sourceDepositor = AddressLib._addressToBytes32(testData.depositorAddr);
+        testData.auth2.spec.sourceSigner = AddressLib._addressToBytes32(testData.depositorAddr);
         testData.auth2.spec.value = testData.value2;
         testData.auth2.maxFee = defaultMaxFee;
 
@@ -909,7 +913,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Initial Balances
         testData.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0, // Depositor transferred all funds in
-            depositorSpendable: testData.initialDeposit,
+            depositorAvailable: testData.initialDeposit,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: testData.initialFeeRecipientBalance, // May have balance from other tests
             walletExternalUsdc: testData.initialWalletBalance, // Wallet holds initial depositor + this new one
@@ -923,7 +927,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         testData.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0, // Fully depleted
+            depositorAvailable: 0, // Fully depleted
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: testData.initialFeeRecipientBalance + finalTotalFeeCharged, // Initial + $0.20
             walletExternalUsdc: testData.initialWalletBalance - finalTotalDeducted, // Initial wallet bal - $1000
@@ -934,32 +938,32 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.eventParams1 = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: testData.depositorAddr,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec)),
             destinationDomain: testData.auth1.spec.destinationDomain,
             recipient: testData.auth1.spec.destinationRecipient,
             authorizer: testData.depositorAddr,
-            value: testData.value1, // fromSpendable - fee
+            value: testData.value1, // fromAvailable - fee
             fee: testData.fee1,
-            fromSpendable: testData.value1 + testData.fee1,
+            fromAvailable: testData.value1 + testData.fee1,
             fromWithdrawing: 0
         });
 
         // Insufficient Balance Event (Auth 2)
         testData.insufficientEventValueNeeded = neededForAuth2; // $500.10
-        testData.insufficientEventSpendableAvailable = balanceAfterAuth1; // $399.80
+        testData.insufficientEventBalanceAvailable = balanceAfterAuth1; // $399.80
         testData.insufficientEventWithdrawingAvailable = 0;
 
         // Event 2 (Auth 2)
         testData.eventParams2 = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: testData.depositorAddr,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec)),
             destinationDomain: testData.auth2.spec.destinationDomain,
             recipient: testData.auth2.spec.destinationRecipient,
             authorizer: testData.depositorAddr,
-            value: deductedForAuth2 - actualFeeAuth2, // fromSpendable - fee
+            value: deductedForAuth2 - actualFeeAuth2, // fromAvailable - fee
             fee: actualFeeAuth2, // Actual fee $0
-            fromSpendable: deductedForAuth2, // Amount actually deducted $399.80
+            fromAvailable: deductedForAuth2, // Amount actually deducted $399.80
             fromWithdrawing: 0
         });
 
@@ -974,12 +978,12 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             address(usdc),
             testData.depositorAddr,
             testData.insufficientEventValueNeeded,
-            testData.insufficientEventSpendableAvailable,
+            testData.insufficientEventBalanceAvailable,
             testData.insufficientEventWithdrawingAvailable
         );
         _expectBurnEvent(testData.eventParams2); // Event for partially successful auth2
 
-        _callBurnSpentSignedBy(testData.authorizations, testData.signatures, testData.fees, burnSignerKey);
+        _callGatewayBurnSignedBy(testData.authorizations, testData.signatures, testData.fees, burnSignerKey);
 
         // Assert final state
         _assertBalances(
@@ -987,7 +991,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         );
     }
 
-    function test_burnSpent_singleAuth_insufficientBalanceForBurnFee() public {
+    function test_gatewayBurn_singleAuth_insufficientBalanceForBurnFee() public {
         uint256 fee = defaultMaxFee / 2; // $0.50
 
         // Setup the under funded depositor
@@ -999,8 +1003,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         BurnAuthorization memory auth = baseAuth;
         auth.spec.value = depositorInitialBalance / 4; // $1250
-        auth.spec.sourceDepositor = _addressToBytes32(underFundedDepositor);
-        auth.spec.sourceSigner = _addressToBytes32(underFundedDepositor);
+        auth.spec.sourceDepositor = AddressLib._addressToBytes32(underFundedDepositor);
+        auth.spec.sourceSigner = AddressLib._addressToBytes32(underFundedDepositor);
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
         bytes memory signature = _signAuthOrAuthSet(encodedAuth, underFundedDepositorKey);
 
@@ -1016,7 +1020,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         ExpectedBalances memory initialExpectedBalances = ExpectedBalances({
             depositorExternalUsdc: depositorInitialBalance * 3 / 4 - fee / 2, // $3750 external - $0.25 (half of fee)
-            depositorSpendable: depositorInitialBalance / 4 + fee / 2, // $1250 spendable + $0.25 (half of fee)
+            depositorAvailable: depositorInitialBalance / 4 + fee / 2, // $1250 available + $0.25 (half of fee)
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance + depositorInitialBalance / 4 + fee / 2, // $5000 (original depositor) + $1250 (underFundedDepositor) + $0.25 (half of fee) = $6250.25 total in wallet
@@ -1029,29 +1033,29 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             address(usdc),
             underFundedDepositor,
             auth.spec.value + fee, // Total needed: $1250 + $0.50 = $1250.50
-            depositorInitialBalance / 4 + fee / 2, // Spendable available: $1250 + $0.25 (half of fee)
+            depositorInitialBalance / 4 + fee / 2, // Available available: $1250 + $0.25 (half of fee)
             0 // Withdrawing available: $0
         );
 
         ExpectedBurnEventParams memory expectedParams;
         expectedParams.token = address(usdc);
         expectedParams.depositor = underFundedDepositor;
-        expectedParams.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
+        expectedParams.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
         expectedParams.destinationDomain = auth.spec.destinationDomain;
         expectedParams.recipient = auth.spec.destinationRecipient;
         expectedParams.authorizer = underFundedDepositor;
         expectedParams.fee = fee / 2; // Actual fee charged: $0.25 (half of fee)
-        expectedParams.fromSpendable = depositorInitialBalance / 4 + fee / 2; // Actual amount deducted from spendable: $1250.25
-        expectedParams.value = expectedParams.fromSpendable - expectedParams.fee;
+        expectedParams.fromAvailable = depositorInitialBalance / 4 + fee / 2; // Actual amount deducted from available: $1250.25
+        expectedParams.value = expectedParams.fromAvailable - expectedParams.fee;
         expectedParams.fromWithdrawing = 0;
         _expectBurnEvent(expectedParams);
 
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
 
         // Assert final state
         ExpectedBalances memory finalExpectedBalances = ExpectedBalances({
             depositorExternalUsdc: depositorInitialBalance * 3 / 4 - fee / 2, // $3750 external - $0.25 (half of fee)
-            depositorSpendable: 0, // Spendable becomes $0
+            depositorAvailable: 0, // Available becomes $0
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: fee / 2, // Fee recipient gets $0.25 (half of fee)
             walletExternalUsdc: depositorInitialBalance, // Wallet balance: $6250 - $1250 = $5000
@@ -1060,10 +1064,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _assertBalances("Final State", underFundedDepositor, feeRecipient, finalExpectedBalances);
     }
 
-    /// Tests burnSpent with an authorization set containing two auths for the same depositor.
+    /// Tests gatewayBurn with an authorization set containing two auths for the same depositor.
     /// The first auth succeeds, but depletes the balance such that the second auth
     /// can cover its value but only a portion of its fee.
-    function test_burnSpent_singleAuthSet_secondAuthPartialFee() public {
+    function test_gatewayBurn_singleAuthSet_secondAuthPartialFee() public {
         AuthSetInsufficientBalanceTestData memory testData;
 
         (testData.depositorAddr, testData.depositorKey) = makeAddrAndKey("partialFeeDepositor");
@@ -1082,15 +1086,15 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         // Auth 1 (designed to succeed)
         testData.auth1 = baseAuth;
-        testData.auth1.spec.sourceDepositor = _addressToBytes32(testData.depositorAddr);
-        testData.auth1.spec.sourceSigner = _addressToBytes32(testData.depositorAddr);
+        testData.auth1.spec.sourceDepositor = AddressLib._addressToBytes32(testData.depositorAddr);
+        testData.auth1.spec.sourceSigner = AddressLib._addressToBytes32(testData.depositorAddr);
         testData.auth1.spec.value = testData.value1;
         testData.auth1.maxFee = defaultMaxFee;
 
         // Auth 2 (designed to have insufficient funds for full fee after Auth 1)
         testData.auth2 = baseAuth;
-        testData.auth2.spec.sourceDepositor = _addressToBytes32(testData.depositorAddr);
-        testData.auth2.spec.sourceSigner = _addressToBytes32(testData.depositorAddr);
+        testData.auth2.spec.sourceDepositor = AddressLib._addressToBytes32(testData.depositorAddr);
+        testData.auth2.spec.sourceSigner = AddressLib._addressToBytes32(testData.depositorAddr);
         testData.auth2.spec.value = testData.value2;
         testData.auth2.maxFee = defaultMaxFee;
 
@@ -1126,7 +1130,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Initial Balances
         testData.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: testData.initialDeposit,
+            depositorAvailable: testData.initialDeposit,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: testData.initialFeeRecipientBalance,
             walletExternalUsdc: testData.initialWalletBalance,
@@ -1140,7 +1144,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         testData.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0, // Fully depleted
+            depositorAvailable: 0, // Fully depleted
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: testData.initialFeeRecipientBalance + finalTotalFeeCharged, // Initial + $0.50
             walletExternalUsdc: testData.initialWalletBalance - finalTotalDeducted, // Initial wallet bal - $1000
@@ -1151,32 +1155,32 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.eventParams1 = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: testData.depositorAddr,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec)),
             destinationDomain: testData.auth1.spec.destinationDomain,
             recipient: testData.auth1.spec.destinationRecipient,
             authorizer: testData.depositorAddr,
             value: testData.value1,
             fee: testData.fee1,
-            fromSpendable: testData.value1 + testData.fee1,
+            fromAvailable: testData.value1 + testData.fee1,
             fromWithdrawing: 0
         });
 
         // Insufficient Balance Event (Auth 2)
         testData.insufficientEventValueNeeded = neededForAuth2; // $200.00
-        testData.insufficientEventSpendableAvailable = balanceAfterAuth1; // $199.90
+        testData.insufficientEventBalanceAvailable = balanceAfterAuth1; // $199.90
         testData.insufficientEventWithdrawingAvailable = 0;
 
         // Event 2 (Auth 2)
         testData.eventParams2 = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: testData.depositorAddr,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec)),
             destinationDomain: testData.auth2.spec.destinationDomain,
             recipient: testData.auth2.spec.destinationRecipient,
             authorizer: testData.depositorAddr,
             value: deductedForAuth2 - actualFeeAuth2, // Requested value $199.50
             fee: actualFeeAuth2, // Actual fee $0.40
-            fromSpendable: deductedForAuth2, // Amount actually deducted $199.90
+            fromAvailable: deductedForAuth2, // Amount actually deducted $199.90
             fromWithdrawing: 0
         });
 
@@ -1191,12 +1195,12 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             address(usdc),
             testData.depositorAddr,
             testData.insufficientEventValueNeeded,
-            testData.insufficientEventSpendableAvailable,
+            testData.insufficientEventBalanceAvailable,
             testData.insufficientEventWithdrawingAvailable
         );
         _expectBurnEvent(testData.eventParams2); // Event for successful value burn, partial fee
 
-        _callBurnSpentSignedBy(testData.authorizations, testData.signatures, testData.fees, burnSignerKey);
+        _callGatewayBurnSignedBy(testData.authorizations, testData.signatures, testData.fees, burnSignerKey);
 
         // Assert final state
         _assertBalances(
@@ -1208,14 +1212,14 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     //
     // Test Matrix for Successful Burns:
     //
-    // This section tests successful `burnSpent` calls by varying several parameters:
+    // This section tests successful `gatewayBurn` calls by varying several parameters:
     // 1. Input Structure: How authorizations are grouped (single vs. multiple sets, single vs. multiple auths per set).
     // 2. Domain Relevance: Whether authorizations are for the current domain (processed) or another (skipped).
-    // 3. Balance Source: Where funds are drawn from (spendable only, withdrawing only, or both).
+    // 3. Balance Source: Where funds are drawn from (available only, withdrawing only, or both).
     // 4. Authorization Signer: Who signed the authorization (the depositor, an authorized delegate, or a now revoked delegate).
 
     struct SingleBurnTestConfig {
-        string contextSuffix; // Short description (e.g., "(Spendable, Depositor)")
+        string contextSuffix; // Short description (e.g., "(Available, Depositor)")
         BurnAuthorization auth; // The specific authorization to test
         uint256 fee; // The fee for this specific burn
         uint256 signerKey; // Private key of the authorizer (depositor or delegate)
@@ -1232,7 +1236,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     ) internal view {
         // Fetch actual balances
         uint256 actualDepositorExternalUsdc = usdc.balanceOf(depositorAddr);
-        uint256 actualDepositorSpendable = wallet.spendableBalance(address(usdc), depositorAddr);
+        uint256 actualDepositorAvailable = wallet.availableBalance(address(usdc), depositorAddr);
         uint256 actualDepositorWithdrawing = wallet.withdrawingBalance(address(usdc), depositorAddr);
         uint256 actualFeeRecipientExternalUsdc = usdc.balanceOf(feeRecipientAddr);
         uint256 actualWalletExternalUsdc = usdc.balanceOf(address(wallet));
@@ -1244,9 +1248,9 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
             string.concat(context, ": Depositor External USDC mismatch")
         );
         assertEq(
-            actualDepositorSpendable,
-            expected.depositorSpendable,
-            string.concat(context, ": Depositor Spendable mismatch")
+            actualDepositorAvailable,
+            expected.depositorAvailable,
+            string.concat(context, ": Depositor Available mismatch")
         );
         assertEq(
             actualDepositorWithdrawing,
@@ -1289,7 +1293,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         fees[0][0] = config.fee;
 
         _expectBurnEvent(config.eventParams);
-        _callBurnSpentSignedBy(authorizations, signatures, fees, burnSignerKey);
+        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
 
         // Assert final state
         _assertBalances(
@@ -1300,13 +1304,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         );
     }
 
-    function test_burnSpent_singleAuth_currentDomain_fromSpendableBalance_depositorSigner() public {
+    function test_gatewayBurn_singleAuth_currentDomain_fromAvailableBalance_depositorSigner() public {
         BurnAuthorization memory auth = baseAuth;
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = depositorKey;
         address expectedAuthorizer = depositor;
-        string memory contextSuffix = "(Spendable, Depositor)";
+        string memory contextSuffix = "(Available, Depositor)";
         uint256 expectedTotalDeducted = burnValue + fee;
 
         SingleBurnTestConfig memory config;
@@ -1318,7 +1322,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance,
+            depositorAvailable: depositorInitialBalance,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1327,7 +1331,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance - expectedTotalDeducted,
+            depositorAvailable: depositorInitialBalance - expectedTotalDeducted,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
@@ -1337,33 +1341,33 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: expectedTotalDeducted,
+            fromAvailable: expectedTotalDeducted,
             fromWithdrawing: 0
         });
 
         _executeAndAssertSingleBurn(config);
     }
 
-    function test_burnSpent_singleAuth_currentDomain_fromSpendableBalance_delegateSigner() public {
+    function test_gatewayBurn_singleAuth_currentDomain_fromAvailableBalance_delegateSigner() public {
         // Setup delegate
         vm.startPrank(depositor);
         wallet.addDelegate(address(usdc), delegate);
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        auth.spec.sourceSigner = _addressToBytes32(delegate);
+        auth.spec.sourceSigner = AddressLib._addressToBytes32(delegate);
 
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate
         address expectedAuthorizer = delegate; // Authorizer is delegate
-        string memory contextSuffix = "(Spendable, Delegate)";
+        string memory contextSuffix = "(Available, Delegate)";
         uint256 expectedTotalDeducted = burnValue + fee;
 
         SingleBurnTestConfig memory config;
@@ -1375,7 +1379,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance,
+            depositorAvailable: depositorInitialBalance,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1384,7 +1388,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance - expectedTotalDeducted,
+            depositorAvailable: depositorInitialBalance - expectedTotalDeducted,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
@@ -1394,20 +1398,20 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: expectedTotalDeducted,
+            fromAvailable: expectedTotalDeducted,
             fromWithdrawing: 0
         });
 
         _executeAndAssertSingleBurn(config);
     }
 
-    function test_burnSpent_singleAuth_currentDomain_fromSpendableBalance_revokedDelegateSigner() public {
+    function test_gatewayBurn_singleAuth_currentDomain_fromAvailableBalance_revokedDelegateSigner() public {
         // Setup and revoke delegate
         vm.startPrank(depositor);
         wallet.addDelegate(address(usdc), delegate);
@@ -1415,13 +1419,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        auth.spec.sourceSigner = _addressToBytes32(delegate);
+        auth.spec.sourceSigner = AddressLib._addressToBytes32(delegate);
 
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
         uint256 signerKey = delegateKey; // Signed by delegate (before revocation)
         address expectedAuthorizer = delegate; // Authorizer is revoked delegate
-        string memory contextSuffix = "(Spendable, Revoked Delegate)";
+        string memory contextSuffix = "(Available, Revoked Delegate)";
         uint256 expectedTotalDeducted = burnValue + fee;
 
         SingleBurnTestConfig memory config;
@@ -1433,7 +1437,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance,
+            depositorAvailable: depositorInitialBalance,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1442,7 +1446,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance - expectedTotalDeducted,
+            depositorAvailable: depositorInitialBalance - expectedTotalDeducted,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
@@ -1452,20 +1456,20 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: expectedTotalDeducted,
+            fromAvailable: expectedTotalDeducted,
             fromWithdrawing: 0
         });
 
         _executeAndAssertSingleBurn(config);
     }
 
-    function test_burnSpent_singleAuth_currentDomain_fromWithdrawingBalance_depositorSigner() public {
+    function test_gatewayBurn_singleAuth_currentDomain_fromWithdrawingBalance_depositorSigner() public {
         vm.startPrank(depositor);
         wallet.initiateWithdrawal(address(usdc), depositorInitialBalance);
         vm.stopPrank();
@@ -1487,7 +1491,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
+            depositorAvailable: 0,
             depositorWithdrawing: depositorInitialBalance,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1496,7 +1500,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
+            depositorAvailable: 0,
             depositorWithdrawing: depositorInitialBalance - expectedTotalDeducted,
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
@@ -1506,20 +1510,20 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: 0,
+            fromAvailable: 0,
             fromWithdrawing: expectedTotalDeducted
         });
 
         _executeAndAssertSingleBurn(config);
     }
 
-    function test_burnSpent_singleAuth_currentDomain_fromWithdrawingBalance_delegateSigner() public {
+    function test_gatewayBurn_singleAuth_currentDomain_fromWithdrawingBalance_delegateSigner() public {
         // Move all depositor funds to withdrawing balance
         vm.startPrank(depositor);
         wallet.initiateWithdrawal(address(usdc), depositorInitialBalance);
@@ -1529,7 +1533,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        auth.spec.sourceSigner = _addressToBytes32(delegate);
+        auth.spec.sourceSigner = AddressLib._addressToBytes32(delegate);
 
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
@@ -1547,7 +1551,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
+            depositorAvailable: 0,
             depositorWithdrawing: depositorInitialBalance,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1556,7 +1560,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
+            depositorAvailable: 0,
             depositorWithdrawing: depositorInitialBalance - expectedTotalDeducted,
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
@@ -1566,20 +1570,20 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: 0,
+            fromAvailable: 0,
             fromWithdrawing: expectedTotalDeducted
         });
 
         _executeAndAssertSingleBurn(config);
     }
 
-    function test_burnSpent_singleAuth_currentDomain_fromWithdrawingBalance_revokedDelegateSigner() public {
+    function test_gatewayBurn_singleAuth_currentDomain_fromWithdrawingBalance_revokedDelegateSigner() public {
         vm.startPrank(depositor);
         wallet.initiateWithdrawal(address(usdc), depositorInitialBalance);
         wallet.addDelegate(address(usdc), delegate);
@@ -1587,7 +1591,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        auth.spec.sourceSigner = _addressToBytes32(delegate);
+        auth.spec.sourceSigner = AddressLib._addressToBytes32(delegate);
 
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
@@ -1605,7 +1609,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
+            depositorAvailable: 0,
             depositorWithdrawing: depositorInitialBalance,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1614,7 +1618,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
+            depositorAvailable: 0,
             depositorWithdrawing: depositorInitialBalance - expectedTotalDeducted,
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
@@ -1624,23 +1628,23 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: 0,
+            fromAvailable: 0,
             fromWithdrawing: expectedTotalDeducted
         });
 
         _executeAndAssertSingleBurn(config);
     }
 
-    function test_burnSpent_singleAuth_currentDomain_fromBothBalances_depositorSigner() public {
+    function test_gatewayBurn_singleAuth_currentDomain_fromBothBalances_depositorSigner() public {
         // Move some funds to withdrawing balance
         uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
-        uint256 remainingSpendable = depositorInitialBalance / 4;
+        uint256 remainingAvailable = depositorInitialBalance / 4;
 
         vm.startPrank(depositor);
         wallet.initiateWithdrawal(address(usdc), withdrawAmount);
@@ -1663,7 +1667,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: remainingSpendable,
+            depositorAvailable: remainingAvailable,
             depositorWithdrawing: withdrawAmount,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1672,8 +1676,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
-            depositorWithdrawing: withdrawAmount - (expectedTotalDeducted - remainingSpendable),
+            depositorAvailable: 0,
+            depositorWithdrawing: withdrawAmount - (expectedTotalDeducted - remainingAvailable),
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
             usdcTotalSupply: initialTotalSupply - burnValue
@@ -1682,23 +1686,23 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: remainingSpendable,
-            fromWithdrawing: expectedTotalDeducted - remainingSpendable
+            fromAvailable: remainingAvailable,
+            fromWithdrawing: expectedTotalDeducted - remainingAvailable
         });
 
         _executeAndAssertSingleBurn(config);
     }
 
-    function test_burnSpent_singleAuth_currentDomain_fromBothBalances_delegateSigner() public {
+    function test_gatewayBurn_singleAuth_currentDomain_fromBothBalances_delegateSigner() public {
         // Move some funds to withdrawing balance
         uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
-        uint256 remainingSpendable = depositorInitialBalance - withdrawAmount;
+        uint256 remainingAvailable = depositorInitialBalance - withdrawAmount;
 
         // Setup delegate
         vm.startPrank(depositor);
@@ -1707,7 +1711,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        auth.spec.sourceSigner = _addressToBytes32(delegate);
+        auth.spec.sourceSigner = AddressLib._addressToBytes32(delegate);
 
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
@@ -1725,7 +1729,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: remainingSpendable,
+            depositorAvailable: remainingAvailable,
             depositorWithdrawing: withdrawAmount,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1734,8 +1738,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0, // Spendable used up
-            depositorWithdrawing: withdrawAmount - (expectedTotalDeducted - remainingSpendable),
+            depositorAvailable: 0, // Available used up
+            depositorWithdrawing: withdrawAmount - (expectedTotalDeducted - remainingAvailable),
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
             usdcTotalSupply: initialTotalSupply - burnValue
@@ -1744,23 +1748,23 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: remainingSpendable,
-            fromWithdrawing: expectedTotalDeducted - remainingSpendable
+            fromAvailable: remainingAvailable,
+            fromWithdrawing: expectedTotalDeducted - remainingAvailable
         });
 
         _executeAndAssertSingleBurn(config);
     }
 
-    function test_burnSpent_singleAuth_currentDomain_fromBothBalances_revokedDelegateSigner() public {
+    function test_gatewayBurn_singleAuth_currentDomain_fromBothBalances_revokedDelegateSigner() public {
         // Move some funds to withdrawing balance
         uint256 withdrawAmount = depositorInitialBalance * 3 / 4;
-        uint256 remainingSpendable = depositorInitialBalance - withdrawAmount;
+        uint256 remainingAvailable = depositorInitialBalance - withdrawAmount;
 
         // Setup and revoke delegate
         vm.startPrank(depositor);
@@ -1770,7 +1774,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         vm.stopPrank();
 
         BurnAuthorization memory auth = baseAuth;
-        auth.spec.sourceSigner = _addressToBytes32(delegate);
+        auth.spec.sourceSigner = AddressLib._addressToBytes32(delegate);
 
         uint256 burnValue = depositorInitialBalance / 2;
         uint256 fee = defaultMaxFee / 2;
@@ -1788,7 +1792,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         uint256 initialTotalSupply = usdc.totalSupply();
         config.initialBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: remainingSpendable,
+            depositorAvailable: remainingAvailable,
             depositorWithdrawing: withdrawAmount,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1797,8 +1801,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         config.finalBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: 0,
-            depositorWithdrawing: withdrawAmount - (expectedTotalDeducted - remainingSpendable),
+            depositorAvailable: 0,
+            depositorWithdrawing: withdrawAmount - (expectedTotalDeducted - remainingAvailable),
             feeRecipientExternalUsdc: fee,
             walletExternalUsdc: depositorInitialBalance - expectedTotalDeducted,
             usdcTotalSupply: initialTotalSupply - burnValue
@@ -1807,14 +1811,14 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         config.eventParams = ExpectedBurnEventParams({
             token: address(usdc),
             depositor: depositor,
-            spendHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
+            transferSpecHash: keccak256(TransferSpecLib.encodeTransferSpec(auth.spec)),
             destinationDomain: auth.spec.destinationDomain,
             recipient: auth.spec.destinationRecipient,
             authorizer: expectedAuthorizer,
             value: burnValue,
             fee: fee,
-            fromSpendable: remainingSpendable,
-            fromWithdrawing: expectedTotalDeducted - remainingSpendable
+            fromAvailable: remainingAvailable,
+            fromWithdrawing: expectedTotalDeducted - remainingAvailable
         });
 
         _executeAndAssertSingleBurn(config);
@@ -1854,11 +1858,11 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         ExpectedBurnEventParams eventParams4;
     }
 
-    /// Tests burnSpent with multiple independent authorization inputs, including a set with mixed domain relevance.
+    /// Tests gatewayBurn with multiple independent authorization inputs, including a set with mixed domain relevance.
     /// - authorizations[0]: Single auth, current domain.
     /// - authorizations[1]: Set of 3 auths (current, other, current).
     /// Expects burns for the 3 current-domain auths to succeed and the other-domain auth to be skipped.
-    function test_burnSpent_multipleSets_mixedDomains_fromSpendable_depositorSigner() public {
+    function test_gatewayBurn_multipleSets_mixedDomains_fromAvailable_depositorSigner() public {
         MultiSetMixedDomainTestData memory testData;
 
         testData.fee1 = defaultMaxFee / 10;
@@ -1930,7 +1934,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.expectedTotalDeducted = testData.expectedTotalValueBurned + testData.expectedTotalFeeCharged;
         testData.initialExpectedBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance,
+            depositorAvailable: depositorInitialBalance,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: 0,
             walletExternalUsdc: depositorInitialBalance,
@@ -1941,47 +1945,47 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Event for auth1
         testData.eventParams1.token = address(usdc);
         testData.eventParams1.depositor = depositor;
-        testData.eventParams1.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec));
+        testData.eventParams1.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec));
         testData.eventParams1.destinationDomain = testData.auth1.spec.destinationDomain;
         testData.eventParams1.recipient = testData.auth1.spec.destinationRecipient;
         testData.eventParams1.authorizer = depositor;
         testData.eventParams1.value = testData.value1;
         testData.eventParams1.fee = testData.fee1;
-        testData.eventParams1.fromSpendable = testData.value1 + testData.fee1; // Assuming drawn from spendable first
+        testData.eventParams1.fromAvailable = testData.value1 + testData.fee1; // Assuming drawn from available first
         testData.eventParams1.fromWithdrawing = 0;
         _expectBurnEvent(testData.eventParams1);
 
         // Event for auth2
         testData.eventParams2.token = address(usdc);
         testData.eventParams2.depositor = depositor;
-        testData.eventParams2.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec));
+        testData.eventParams2.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec));
         testData.eventParams2.destinationDomain = testData.auth2.spec.destinationDomain;
         testData.eventParams2.recipient = testData.auth2.spec.destinationRecipient;
         testData.eventParams2.authorizer = depositor;
         testData.eventParams2.value = testData.value2;
         testData.eventParams2.fee = testData.fee2;
-        testData.eventParams2.fromSpendable = testData.value2 + testData.fee2;
+        testData.eventParams2.fromAvailable = testData.value2 + testData.fee2;
         testData.eventParams2.fromWithdrawing = 0;
         _expectBurnEvent(testData.eventParams2);
 
         // Event for auth4 (auth3 is skipped)
         testData.eventParams4.token = address(usdc);
         testData.eventParams4.depositor = depositor;
-        testData.eventParams4.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth4.spec));
+        testData.eventParams4.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth4.spec));
         testData.eventParams4.destinationDomain = testData.auth4.spec.destinationDomain;
         testData.eventParams4.recipient = testData.auth4.spec.destinationRecipient;
         testData.eventParams4.authorizer = depositor;
         testData.eventParams4.value = testData.value4;
         testData.eventParams4.fee = testData.fee4;
-        testData.eventParams4.fromSpendable = testData.value4 + testData.fee4;
+        testData.eventParams4.fromAvailable = testData.value4 + testData.fee4;
         testData.eventParams4.fromWithdrawing = 0;
         _expectBurnEvent(testData.eventParams4);
 
-        _callBurnSpentSignedBy(testData.authorizations, testData.signatures, testData.fees, burnSignerKey);
+        _callGatewayBurnSignedBy(testData.authorizations, testData.signatures, testData.fees, burnSignerKey);
 
         testData.finalExpectedBalances = ExpectedBalances({
             depositorExternalUsdc: 0,
-            depositorSpendable: depositorInitialBalance - testData.expectedTotalDeducted,
+            depositorAvailable: depositorInitialBalance - testData.expectedTotalDeducted,
             depositorWithdrawing: 0,
             feeRecipientExternalUsdc: testData.expectedTotalFeeCharged,
             walletExternalUsdc: depositorInitialBalance - testData.expectedTotalDeducted,
@@ -2014,7 +2018,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         ExpectedBurnEventParams eventParams2;
     }
 
-    function test_burnSpent_multipleDepositors_currentDomain_fromSpendable_depositorSigners() public {
+    function test_gatewayBurn_multipleDepositors_currentDomain_fromAvailable_depositorSigners() public {
         // Setup second depositor balance
         deal(address(usdc), depositor2, depositor2InitialBalance, true);
         vm.startPrank(depositor2);
@@ -2033,14 +2037,14 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         // Authorization for depositor 1
         testData.auth1 = baseAuth;
-        testData.auth1.spec.sourceDepositor = _addressToBytes32(depositor);
+        testData.auth1.spec.sourceDepositor = AddressLib._addressToBytes32(depositor);
         testData.auth1.spec.value = testData.burnValue1;
         testData.auth1.maxFee = defaultMaxFee; // Ensure provided fee1 is allowed
 
         // Authorization for depositor 2
         testData.auth2 = baseAuth;
-        testData.auth2.spec.sourceDepositor = _addressToBytes32(depositor2);
-        testData.auth2.spec.sourceSigner = _addressToBytes32(depositor2);
+        testData.auth2.spec.sourceDepositor = AddressLib._addressToBytes32(depositor2);
+        testData.auth2.spec.sourceSigner = AddressLib._addressToBytes32(depositor2);
         testData.auth2.spec.value = testData.burnValue2;
         testData.auth2.maxFee = defaultMaxFee;
 
@@ -2069,40 +2073,40 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         testData.initialWalletBalance = usdc.balanceOf(address(wallet));
 
         // Depositor 1 Initial State
-        assertEq(wallet.spendableBalance(address(usdc), depositor), depositorInitialBalance, "Initial D1 Spendable");
+        assertEq(wallet.availableBalance(address(usdc), depositor), depositorInitialBalance, "Initial D1 Available");
         assertEq(wallet.withdrawingBalance(address(usdc), depositor), 0, "Initial D1 Withdrawing");
 
         // Depositor 2 Initial State
-        assertEq(wallet.spendableBalance(address(usdc), depositor2), depositor2InitialBalance, "Initial D2 Spendable");
+        assertEq(wallet.availableBalance(address(usdc), depositor2), depositor2InitialBalance, "Initial D2 Available");
         assertEq(wallet.withdrawingBalance(address(usdc), depositor2), 0, "Initial D2 Withdrawing");
 
         // Event for Depositor 1's burn
         testData.eventParams1.token = address(usdc);
         testData.eventParams1.depositor = depositor;
-        testData.eventParams1.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec));
+        testData.eventParams1.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth1.spec));
         testData.eventParams1.destinationDomain = testData.auth1.spec.destinationDomain;
         testData.eventParams1.recipient = testData.auth1.spec.destinationRecipient;
         testData.eventParams1.authorizer = depositor;
         testData.eventParams1.value = testData.burnValue1;
         testData.eventParams1.fee = testData.fee1;
-        testData.eventParams1.fromSpendable = testData.burnValue1 + testData.fee1;
+        testData.eventParams1.fromAvailable = testData.burnValue1 + testData.fee1;
         testData.eventParams1.fromWithdrawing = 0;
         _expectBurnEvent(testData.eventParams1);
 
         // Event for Depositor 2's burn
         testData.eventParams2.token = address(usdc);
         testData.eventParams2.depositor = depositor2;
-        testData.eventParams2.spendHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec));
+        testData.eventParams2.transferSpecHash = keccak256(TransferSpecLib.encodeTransferSpec(testData.auth2.spec));
         testData.eventParams2.destinationDomain = testData.auth2.spec.destinationDomain;
         testData.eventParams2.recipient = testData.auth2.spec.destinationRecipient;
         testData.eventParams2.authorizer = depositor2;
         testData.eventParams2.value = testData.burnValue2;
         testData.eventParams2.fee = testData.fee2;
-        testData.eventParams2.fromSpendable = testData.burnValue2 + testData.fee2;
+        testData.eventParams2.fromAvailable = testData.burnValue2 + testData.fee2;
         testData.eventParams2.fromWithdrawing = 0;
         _expectBurnEvent(testData.eventParams2);
 
-        _callBurnSpentSignedBy(testData.authorizations, testData.signatures, testData.fees, burnSignerKey);
+        _callGatewayBurnSignedBy(testData.authorizations, testData.signatures, testData.fees, burnSignerKey);
 
         testData.expectedTotalFee = testData.fee1 + testData.fee2;
         testData.expectedTotalValueBurned = testData.burnValue1 + testData.burnValue2;
@@ -2110,18 +2114,18 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         // Check Depositor 1 Final State
         assertEq(
-            wallet.spendableBalance(address(usdc), depositor),
+            wallet.availableBalance(address(usdc), depositor),
             depositorInitialBalance - (testData.burnValue1 + testData.fee1),
-            "Final D1 Spendable"
+            "Final D1 Available"
         );
         assertEq(wallet.withdrawingBalance(address(usdc), depositor), 0, "Final D1 Withdrawing");
         assertEq(usdc.balanceOf(depositor), 0, "Final D1 External");
 
         // Check Depositor 2 Final State
         assertEq(
-            wallet.spendableBalance(address(usdc), depositor2),
+            wallet.availableBalance(address(usdc), depositor2),
             depositor2InitialBalance - (testData.burnValue2 + testData.fee2),
-            "Final D2 Spendable"
+            "Final D2 Available"
         );
         assertEq(wallet.withdrawingBalance(address(usdc), depositor2), 0, "Final D2 Withdrawing");
         assertEq(usdc.balanceOf(depositor2), 0, "Final D2 External");
@@ -2166,14 +2170,21 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         assertEq(walletEncoded, libEncoded);
     }
 
+    function test_validateBurnAuthorizations_revertIfNoAuthorizations() public {
+        BurnAuthorization[] memory auths = new BurnAuthorization[](0);
+        bytes memory encodedAuths =
+            BurnAuthorizationLib.encodeBurnAuthorizationSet(BurnAuthorizationSet({authorizations: auths}));
+        vm.expectRevert(Burns.MustHaveAtLeastOneBurnAuthorization.selector);
+        wallet.validateBurnAuthorizations(encodedAuths, depositor);
+    }
+
     function test_validateBurnAuthorizations_success_singleAuth() public view {
         BurnAuthorization memory auth = baseAuth;
         auth.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
 
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
-        bytes memory signature = _signAuthOrAuthSet(encodedAuth, depositorKey);
 
-        assertTrue(wallet.validateBurnAuthorizations(encodedAuth, signature));
+        assertTrue(wallet.validateBurnAuthorizations(encodedAuth, depositor));
     }
 
     function test_validateBurnAuthorizations_success_setOfAuths() public view {
@@ -2190,9 +2201,8 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         authSet.authorizations = authArray;
 
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-        bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
 
-        assertTrue(wallet.validateBurnAuthorizations(encodedAuthSet, signature));
+        assertTrue(wallet.validateBurnAuthorizations(encodedAuthSet, depositor));
     }
 
     function test_validateBurnAuthorizations_failure_mismatchedSigner_singleAuth() public {
@@ -2202,16 +2212,15 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
 
         // Sign with a different key (attacker)
-        (address attacker, uint256 attackerKey) = makeAddrAndKey("attacker");
-        bytes memory invalidSignature = _signAuthOrAuthSet(encodedAuth, attackerKey);
+        address attacker = makeAddr("attacker");
 
-        // Expect revert because the recovered signer (attacker) is not authorized for the depositor's balance
+        // Expect revert because the signer (attacker) is not authorized for the depositor's balance
         vm.expectRevert(
             abi.encodeWithSelector(
                 Burns.InvalidAuthorizationSourceSignerAtIndex.selector, uint32(0), depositor, attacker
             )
         );
-        wallet.validateBurnAuthorizations(encodedAuth, invalidSignature);
+        wallet.validateBurnAuthorizations(encodedAuth, attacker);
     }
 
     function test_validateBurnAuthorizations_failure_mismatchedSigner_SetOfAuths() public {
@@ -2232,8 +2241,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         authSet.authorizations = authArray;
 
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-        // Sign with the depositor key
-        bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
 
         // Expect revert because the recovered signer (depositor) won't match auth2's sourceSigner (otherSignerAddr)
         vm.expectRevert(
@@ -2241,7 +2248,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
                 Burns.InvalidAuthorizationSourceSignerAtIndex.selector, uint32(1), otherSignerAddr, depositor
             )
         );
-        wallet.validateBurnAuthorizations(encodedAuthSet, signature);
+        wallet.validateBurnAuthorizations(encodedAuthSet, depositor);
     }
 
     function test_validateBurnAuthorizations_success_irrelevantDomain_singleAuth() public view {
@@ -2249,10 +2256,9 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         auth.spec.sourceDomain = domain + 1; // Irrelevant domain
 
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
-        bytes memory signature = _signAuthOrAuthSet(encodedAuth, depositorKey);
 
         // Validation should succeed even if the data isn't relevant to the current domain
-        assertTrue(wallet.validateBurnAuthorizations(encodedAuth, signature));
+        assertTrue(wallet.validateBurnAuthorizations(encodedAuth, depositor));
     }
 
     function test_validateBurnAuthorizations_success_irrelevantDomain_setOfAuths() public view {
@@ -2268,16 +2274,15 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         authSet.authorizations = authArray;
 
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-        bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
 
         // Validation should succeed even if there are irrelevant domains
-        assertTrue(wallet.validateBurnAuthorizations(encodedAuthSet, signature));
+        assertTrue(wallet.validateBurnAuthorizations(encodedAuthSet, depositor));
     }
 
     function test_validateBurnAuthorizations_revert_notAllSameToken_setOfAuths() public {
         BurnAuthorization memory usdcAuth = baseAuth; // Auth for USDC
         BurnAuthorization memory otherTokenAuth = baseAuth;
-        otherTokenAuth.spec.sourceToken = _addressToBytes32(otherToken); // Auth for the other token
+        otherTokenAuth.spec.sourceToken = AddressLib._addressToBytes32(otherToken); // Auth for the other token
 
         BurnAuthorization[] memory authArray = new BurnAuthorization[](2);
         authArray[0] = usdcAuth;
@@ -2287,10 +2292,9 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         authSet.authorizations = authArray;
 
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-        bytes memory signature = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
 
         // Should revert because the relevant auths are for different tokens
         vm.expectRevert(Burns.NotAllSameToken.selector);
-        wallet.validateBurnAuthorizations(encodedAuthSet, signature);
+        wallet.validateBurnAuthorizations(encodedAuthSet, depositor);
     }
 }

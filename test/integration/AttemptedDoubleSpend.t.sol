@@ -41,16 +41,16 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
         uint256 blockHeightWhenInitiatingWithdrawal = block.number;
         ethereum.wallet.initiateWithdrawal(address(ethereum.usdc), DEPOSIT_AMOUNT);
         vm.stopPrank();
-        assertEq(ethereum.wallet.spendableBalance(address(ethereum.usdc), depositor), 0);
+        assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), 0);
         assertEq(ethereum.wallet.withdrawingBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
         assertEq(ethereum.wallet.withdrawableBalance(address(ethereum.usdc), depositor), 0);
 
         // Offchain: Generate burn authorization and validate
         TransferSpec memory transferSpec =
-            _createTransferSpec(ethereum, arbitrum, SPEND_AMOUNT, depositor, recipient, depositor, address(0));
+            _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
             _signBurnAuthWithTransferSpec(transferSpec, ethereum.wallet, depositorPrivateKey);
-        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuth);
 
         // Offchain: Generate mint authorization given valid burn authorization
@@ -63,28 +63,28 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
             arbitrum,
             encodedMintAuth,
             mintSignature,
-            SPEND_AMOUNT, /* expected total supply increment */
-            SPEND_AMOUNT, /* expected recipient balance increment */
+            MINT_AMOUNT, /* expected total supply increment */
+            MINT_AMOUNT, /* expected recipient balance increment */
             0 /* expected depositor balance decrement */
         );
 
-        // On Ethereum: Burn spent amount
+        // On Ethereum: Burn used amount
         _burnFromChain(
             ethereum,
             encodedBurnAuth,
             burnSignature,
-            SPEND_AMOUNT, /* expected total supply decrement */
-            SPEND_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
+            MINT_AMOUNT, /* expected total supply decrement */
+            MINT_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
         );
 
-        uint256 expectedRemainingBalance = DEPOSIT_AMOUNT - SPEND_AMOUNT - FEE_AMOUNT;
-        assertEq(ethereum.wallet.spendableBalance(address(ethereum.usdc), depositor), 0);
+        uint256 expectedRemainingBalance = DEPOSIT_AMOUNT - MINT_AMOUNT - FEE_AMOUNT;
+        assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), 0);
         assertEq(ethereum.wallet.withdrawingBalance(address(ethereum.usdc), depositor), expectedRemainingBalance);
         assertEq(ethereum.wallet.withdrawableBalance(address(ethereum.usdc), depositor), 0);
 
         // Fast forward to 3 days later
         vm.roll(blockHeightWhenInitiatingWithdrawal + WITHDRAW_DELAY + 1000);
-        assertEq(ethereum.wallet.spendableBalance(address(ethereum.usdc), depositor), 0);
+        assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), 0);
         assertEq(ethereum.wallet.withdrawingBalance(address(ethereum.usdc), depositor), expectedRemainingBalance);
         assertEq(ethereum.wallet.withdrawableBalance(address(ethereum.usdc), depositor), expectedRemainingBalance);
 
@@ -92,7 +92,7 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
         vm.prank(depositor);
         ethereum.wallet.withdraw(address(ethereum.usdc));
         assertEq(ethereum.usdc.balanceOf(depositor), expectedRemainingBalance);
-        assertEq(ethereum.wallet.spendableBalance(address(ethereum.usdc), depositor), 0);
+        assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), 0);
         assertEq(ethereum.wallet.withdrawingBalance(address(ethereum.usdc), depositor), 0);
         assertEq(ethereum.wallet.withdrawableBalance(address(ethereum.usdc), depositor), 0);
     }

@@ -21,7 +21,7 @@ import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
 import {MultichainTestUtils} from "./../util/MultichainTestUtils.sol";
 
-contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
+contract SingleDepositAndMintFlowTest is MultichainTestUtils {
     ChainSetup private ethereum;
     ChainSetup private arbitrum;
 
@@ -37,16 +37,16 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
         deal(address(ethereum.usdc), depositor, DEPOSIT_AMOUNT);
     }
 
-    function test_depositAndSpendFlow() public {
+    function test_depositAndMintFlow() public {
         // On Ethereum: Deposit USDC
         _depositToChain(ethereum, depositor, DEPOSIT_AMOUNT);
 
         // Offchain: Generate burn authorization and validate
         TransferSpec memory transferSpec =
-            _createTransferSpec(ethereum, arbitrum, SPEND_AMOUNT, depositor, recipient, depositor, address(0));
+            _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
             _signBurnAuthWithTransferSpec(transferSpec, ethereum.wallet, depositorPrivateKey);
-        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuth);
 
         // Offchain: Generate mint authorization given valid burn authorization
@@ -59,22 +59,22 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
             arbitrum,
             encodedMintAuth,
             mintSignature,
-            SPEND_AMOUNT, /* expected supply increment */
-            SPEND_AMOUNT, /* expected recipient balance increment */
+            MINT_AMOUNT, /* expected supply increment */
+            MINT_AMOUNT, /* expected recipient balance increment */
             0 /* expected depositor balance decrement */
         );
 
-        // On Ethereum: Burn spent amount
+        // On Ethereum: Burn used amount
         _burnFromChain(
             ethereum,
             encodedBurnAuth,
             burnSignature,
-            SPEND_AMOUNT, /* expected total supply decrement */
-            SPEND_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
+            MINT_AMOUNT, /* expected total supply decrement */
+            MINT_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
         );
     }
 
-    function test_depositAndSpendByDelegate() public {
+    function test_depositAndMintByDelegate() public {
         // On Ethereum:
         vm.selectFork(ethereum.forkId);
 
@@ -93,14 +93,14 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
         ethereum.wallet.depositWithPermit(address(ethereum.usdc), depositor, DEPOSIT_AMOUNT, deadline, permitSignature);
         vm.stopPrank();
         assertEq(ethereum.usdc.balanceOf(address(ethereum.wallet)), DEPOSIT_AMOUNT);
-        assertEq(ethereum.wallet.spendableBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
+        assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
 
         // Offchain: Generate burn authorization and validate
         TransferSpec memory transferSpec =
-            _createTransferSpec(ethereum, arbitrum, SPEND_AMOUNT, depositor, recipient, delegate, destinationCaller);
+            _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, delegate, destinationCaller);
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
             _signBurnAuthWithTransferSpec(transferSpec, ethereum.wallet, delegatePrivateKey);
-        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, delegate);
         assertTrue(isValidBurnAuth);
 
         // Offchain: Generate mint authorization given valid burn authorization
@@ -113,22 +113,22 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
             arbitrum,
             encodedMintAuth,
             mintSignature,
-            SPEND_AMOUNT, /* expected supply increment */
-            SPEND_AMOUNT, /* expected recipient balance increment */
+            MINT_AMOUNT, /* expected supply increment */
+            MINT_AMOUNT, /* expected recipient balance increment */
             0 /* expected depositor balance decrement */
         );
 
-        // On Ethereum: Burn spent amount
+        // On Ethereum: Burn used amount
         _burnFromChain(
             ethereum,
             encodedBurnAuth,
             burnSignature,
-            SPEND_AMOUNT, /* expected total supply decrement */
-            SPEND_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
+            MINT_AMOUNT, /* expected total supply decrement */
+            MINT_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
         );
     }
 
-    function test_depositAndSameChainSpend() public {
+    function test_depositAndSameChainTransfer() public {
         // On Ethereum:
         vm.selectFork(ethereum.forkId);
 
@@ -153,14 +153,14 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
         );
         vm.stopPrank();
         assertEq(ethereum.usdc.balanceOf(address(ethereum.wallet)), DEPOSIT_AMOUNT);
-        assertEq(ethereum.wallet.spendableBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
+        assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
 
         // Offchain: Generate burn authorization and validate
         TransferSpec memory transferSpec =
-            _createTransferSpec(ethereum, ethereum, SPEND_AMOUNT, depositor, recipient, depositor, address(0));
+            _createTransferSpec(ethereum, ethereum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
             _signBurnAuthWithTransferSpec(transferSpec, ethereum.wallet, depositorPrivateKey);
-        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, burnSignature);
+        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuth);
 
         // Offchain: Generate mint authorization given valid burn authorization
@@ -168,16 +168,16 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
             _signMintAuthWithTransferSpec(transferSpec, ethereum.minterMintSignerKey);
 
         // On Ethereum: mint on the same chain using mint authorization
-        _mintFromChain( // same chain spend
+        _mintFromChain( // same chain transfer
             ethereum,
             encodedMintAuth,
             mintSignature,
-            0, /* no supply increment for same chain spend */
-            SPEND_AMOUNT, /* expected recipient balance increment */
-            SPEND_AMOUNT /* expected depositor balance decrement */
+            0, /* no supply increment for same chain transfer */
+            MINT_AMOUNT, /* expected recipient balance increment */
+            MINT_AMOUNT /* expected depositor balance decrement */
         );
 
-        // On Ethereum: Burn spent amount
+        // On Ethereum: Burn used amount
         uint256 numAuths = 1;
         bytes[] memory allBurnAuths = new bytes[](numAuths);
         allBurnAuths[0] = encodedBurnAuth;
@@ -188,6 +188,6 @@ contract SingleDepositAndSpendFlowTest is MultichainTestUtils {
         vm.expectRevert(Burns.NoRelevantBurnAuthorizations.selector);
         bytes memory burnSignerSignature =
             _signBurnAuthorizations(allBurnAuths, allSignatures, fees, ethereum.walletBurnSignerKey);
-        ethereum.wallet.burnSpent(allBurnAuths, allSignatures, fees, burnSignerSignature);
+        ethereum.wallet.gatewayBurn(allBurnAuths, allSignatures, fees, burnSignerSignature);
     }
 }

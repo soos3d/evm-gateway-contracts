@@ -22,8 +22,8 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 
 /// @title Counterpart
 ///
-/// Manages pairs of contracts that each need to know the address of the other, namely the `SpendWallet` and
-/// `SpendMinter` contracts.
+/// @notice Manages pairs of contracts that each need to know the address of the other, namely the `GatewayWallet` and
+/// `GatewayMinter` contracts.
 contract Counterpart is Initializable, Ownable2StepUpgradeable {
     /// Emitted when the counterpart is updated
     ///
@@ -31,13 +31,15 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
     event CounterpartUpdated(address newCounterpart);
 
     /// Thrown when the counterpart is expected, but an unauthorized caller is used
+    ///
+    /// @param caller   The address of the unauthorized caller
     error UnauthorizedCounterpart(address caller);
 
-    /// Sets the counterpart during initialization
+    /// Initializes the `counterpart` contract address
     ///
-    /// @param counterpart   The counterpart address
-    function __Counterpart_init(address counterpart) internal onlyInitializing {
-        _setCounterpart(counterpart);
+    /// @param counterpart_   The counterpart address
+    function __Counterpart_init(address counterpart_) internal onlyInitializing {
+        _setCounterpart(counterpart_);
     }
 
     /// Restricts the caller to the `counterpart` role, reverting with an error for other callers
@@ -49,7 +51,7 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
     /// Updates the counterpart (only callable by the owner)
     ///
     /// @param newCounterpart   The new counterpart contract address
-    function updateCounterpart(address newCounterpart) external onlyOwner {
+    function updateCounterpart(address newCounterpart) public onlyOwner {
         _setCounterpart(newCounterpart);
     }
 
@@ -63,6 +65,8 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
     }
 
     /// Returns the counterpart address
+    ///
+    /// @return   The counterpart address
     function _counterpart() internal view returns (address) {
         return CounterpartStorage.get().counterpart;
     }
@@ -76,20 +80,24 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the Counterpart module
+/// @title CounterpartStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `Counterpart` module
 library CounterpartStorage {
-    /// @custom:storage-location 7201:circle.spend.Counterpart
+    /// @custom:storage-location 7201:circle.gateway.Counterpart
     struct Data {
         /// The address of the counterpart contract on the same chain
         address counterpart;
     }
 
-    /// keccak256(abi.encode(uint256(keccak256("circle.spend.Counterpart")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant SLOT = 0x70565df7873d79606231fdb63c2348309f93e2c30a5f9f935737851220372500;
+    /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Counterpart"))) - 1)) & ~bytes32(uint256(0xff))`
+    bytes32 public constant SLOT = 0x93e77e25ef9d7551b01674a3ef68f44dcb2b33c68692c96a16f33bfe6d355b00;
 
     /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `Counterpart` module
     function get() internal pure returns (Data storage $) {
-        assembly {
+        assembly ("memory-safe") {
             $.slot := SLOT
         }
     }

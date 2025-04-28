@@ -27,24 +27,25 @@ import {WithdrawalDelay} from "src/modules/wallet/WithdrawalDelay.sol";
 
 /// @title Withdrawals
 ///
-/// Manages withdrawals for the SpendWallet contract
+/// @notice Manages withdrawals for the `GatewayWallet` contract
 contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delegation {
     using SafeERC20 for IERC20;
 
     /// Emitted when a withdrawal is initiated
     ///
-    /// @param token              The token that is being withdrawn
-    /// @param depositor          The owner of the funds being withdrawn
-    /// @param authorizer         The address that initiated the withdrawal
-    /// @param value              The value that is newly being withdrawn
-    /// @param totalWithdrawing   The total value that is now being withdrawn
-    /// @param withdrawalBlock    The block number at which the withdrawal can be completed
+    /// @param token                The token that is being withdrawn
+    /// @param depositor            The owner of the funds being withdrawn
+    /// @param authorizer           The address that initiated the withdrawal
+    /// @param value                The value that was added to the in-progress withdrawal
+    /// @param remainingAvailable   The remaining available balance after the withdrawal
+    /// @param totalWithdrawing     The total value that is now being withdrawn
+    /// @param withdrawalBlock      The block number at which the full withdrawal can be completed
     event WithdrawalInitiated(
         address indexed token,
         address indexed depositor,
         address indexed authorizer,
         uint256 value,
-        uint256 remainingSpendable,
+        uint256 remainingAvailable,
         uint256 totalWithdrawing,
         uint256 withdrawalBlock
     );
@@ -60,22 +61,34 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
         address indexed token, address indexed depositor, address indexed recipient, address authorizer, uint256 value
     );
 
+    /// Thrown when a zero-value withdrawal is attempted
     error WithdrawalValueMustBePositive();
-    error WithdrawalValueExceedsSpendableBalance();
+
+    /// Thrown with a withdrawal is attempted that exceeds the available balance
+    error WithdrawalValueExceedsAvailableBalance();
+
+    /// Initializes the underlying `WithdrawalDelay` module
+    ///
+    /// @param withdrawalDelay_   The initial value for the delay, in blocks
+    function __Withdrawals_init(uint256 withdrawalDelay_) internal onlyInitializing {
+        __WithdrawalDelay_init(withdrawalDelay_);
+    }
 
     /// Starts the withdrawal process. After `withdrawalDelay`, `withdraw` may be called to complete the withdrawal.
-    /// Once a withdrawal has been initiated, that amount can no longer be spent. Repeated calls will add to the amount
+    /// Once a withdrawal has been initiated, that amount can no longer be used. Repeated calls will add to the amount
     /// and reset the timer.
     ///
     /// @param token   The token to initiate a withdrawal for
     /// @param value   The amount to be withdrawn
     function initiateWithdrawal(address token, uint256 value) external whenNotPaused tokenSupported(token) {
-        _initiateWithdrawal(token, msg.sender, msg.sender, value);
+        address depositor = msg.sender;
+        address authorizer = msg.sender;
+        _initiateWithdrawal(token, depositor, authorizer, value);
     }
 
     /// Starts the withdrawal process on behalf of a depositor who has authorized the caller. After `withdrawalDelay`,
     /// `withdraw` may be called to complete the withdrawal. Once a withdrawal has been initiated, that amount can no
-    /// longer be spent. Repeated calls will add to the amount and reset the timer.
+    /// longer be used. Repeated calls will add to the amount and reset the timer.
     ///
     /// @dev The caller of this method must be the depositor or an authorized delegate of `depositor` for `token`
     ///
@@ -88,73 +101,89 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
         tokenSupported(token)
         authorizedForBalance(token, depositor, msg.sender)
     {
-        _initiateWithdrawal(token, depositor, msg.sender, value);
+        address authorizer = msg.sender;
+        _initiateWithdrawal(token, depositor, authorizer, value);
     }
 
-    /// Completes a withdrawal that was initiated at least `withdrawalDelay` blocks ago.
+    /// Completes a withdrawal that was initiated at least `withdrawalDelay` blocks ago
     ///
-    /// @dev The full amount that was initiated is always withdrawn
+    /// @dev The full amount that is in the process of being withdrawn is always withdrawn
     ///
     /// @param token   The token to withdraw
     function withdraw(address token) external whenNotPaused tokenSupported(token) {
-        _withdraw(token, msg.sender, msg.sender);
+        address depositor = msg.sender;
+        address authorizer = msg.sender;
+        address recipient = msg.sender;
+        _withdraw(token, depositor, authorizer, recipient);
     }
 
-    /// Completes a withdrawal that was initiated at least `withdrawalDelay` blocks ago. The funds are sent to the
-    /// specified recipient.
+    /// Completes a withdrawal that was initiated at least `withdrawalDelay` blocks ago, on behalf of another depositor.
+    /// The funds are sent to the specified recipient.
     ///
+    /// @dev The caller of this method must be the depositor or an authorized delegate of `depositor` for `token`
     /// @dev The full amount that was initiated is always withdrawn
     ///
     /// @param token       The token to withdraw
     /// @param depositor   The owner of the balance from which the withdrawal should come
-    /// @param recipient   The recipient of the funds
+    /// @param recipient   The address that should receive the funds
     function withdraw(address token, address depositor, address recipient)
         external
         whenNotPaused
         tokenSupported(token)
         authorizedForBalance(token, depositor, msg.sender)
     {
-        _withdraw(token, depositor, recipient);
+        address authorizer = msg.sender;
+        _withdraw(token, depositor, authorizer, recipient);
     }
 
     /// Internal helper function to initiate a withdrawal
     ///
-    /// @param token       The token to initiate a withdrawal for
-    /// @param depositor   The owner of the balance from which the withdrawal should come
-    /// @param authorizer  The address initiating the withdrawal
-    /// @param value       The amount to be withdrawn
+    /// @param token        The token to initiate a withdrawal for
+    /// @param depositor    The owner of the balance from which the withdrawal should come
+    /// @param authorizer   The address initiating the withdrawal
+    /// @param value        The amount to be withdrawn
     function _initiateWithdrawal(address token, address depositor, address authorizer, uint256 value) internal {
+        // Ensure that the withdrawal value is non-zero
         if (value == 0) {
             revert WithdrawalValueMustBePositive();
         }
 
-        if (value > spendableBalance(token, depositor)) {
-            revert WithdrawalValueExceedsSpendableBalance();
+        // Ensure that the depositor has enough available balance to cover the withdrawal
+        if (value > availableBalance(token, depositor)) {
+            revert WithdrawalValueExceedsAvailableBalance();
         }
 
-        (uint256 remainingSpendable, uint256 totalWithdrawing) = _moveBalanceToWithdrawing(token, depositor, value);
+        // Move the specified amount from the depositor's available balance to their in-progress withdrawal balance
+        (uint256 remainingAvailable, uint256 totalWithdrawing) = _moveBalanceToWithdrawing(token, depositor, value);
 
+        // Calculate and set the block height at which the withdrawal may be completed
         uint256 withdrawalBlock = block.number + withdrawalDelay();
         _setWithdrawalBlock(token, depositor, withdrawalBlock);
 
+        // Emit an event to signal the withdrawal initiation
         emit WithdrawalInitiated(
-            token, depositor, authorizer, value, remainingSpendable, totalWithdrawing, withdrawalBlock
+            token, depositor, authorizer, value, remainingAvailable, totalWithdrawing, withdrawalBlock
         );
     }
 
     /// Internal helper function to complete a withdrawal
     ///
-    /// @param token       The token to withdraw
-    /// @param depositor   The owner of the balance from which the withdrawal should come
-    /// @param recipient   The recipient of the funds
-    function _withdraw(address token, address depositor, address recipient) internal {
+    /// @param token        The token to withdraw
+    /// @param depositor    The owner of the balance from which the withdrawal should come
+    /// @param authorizer   The address that authorized the withdrawal completion
+    /// @param recipient    The recipient of the funds
+    function _withdraw(address token, address depositor, address authorizer, address recipient) internal {
+        // Ensure that the withdrawal was initiated at least `withdrawalDelay` blocks ago
         _ensureWithdrawable(token, depositor);
 
+        // Empty the depositor's in-progress withdrawal balance and reset the withdrawal block
         uint256 balanceToWithdraw = _emptyWithdrawingBalance(token, depositor);
         _setWithdrawalBlock(token, depositor, 0);
 
+        // Transfer the funds to the specified recipient
         IERC20(token).safeTransfer(recipient, balanceToWithdraw);
 
-        emit WithdrawalCompleted(token, depositor, recipient, msg.sender, balanceToWithdraw);
+        // Emit an event to signal the withdrawal completion
+        emit WithdrawalCompleted(token, depositor, recipient, authorizer, balanceToWithdraw);
     }
 }

@@ -30,7 +30,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
 
     function test_asTransferSpec_correctMagic() external pure {
         (bytes memory data, uint40 magicType) = _magic("circle.gateway.TransferSpec");
-        bytes29 ref = data.asTransferSpec();
+        bytes29 ref = data._asTransferSpec();
         assertEq(TypedMemView.typeOf(ref), magicType);
         assertEq(bytes4(uint32(magicType)), TRANSFER_SPEC_MAGIC);
     }
@@ -41,7 +41,14 @@ contract TransferSpecTest is AuthorizationTestUtils {
         // The first 4 bytes of data will be the incorrect magic.
         bytes4 incorrectMagic = bytes4(data);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecMagic.selector, incorrectMagic));
-        data.asTransferSpec();
+        data._asTransferSpec();
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_asTransferSpec_tooShortMagic() external {
+        bytes memory data = new bytes(0);
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.TransferSpecDataTooShort.selector, 4, 0));
+        data._asTransferSpec();
     }
 
     // ===== Field Accessor Tests =====
@@ -50,7 +57,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = new bytes(0);
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
-        bytes29 ref = encodedSpec.asTransferSpec();
+        bytes29 ref = encodedSpec._asTransferSpec();
         _verifyTransferSpecFieldsFromView(ref, spec);
     }
 
@@ -58,7 +65,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = SHORT_METADATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
-        bytes29 ref = encodedSpec.asTransferSpec();
+        bytes29 ref = encodedSpec._asTransferSpec();
         _verifyTransferSpecFieldsFromView(ref, spec);
     }
 
@@ -66,7 +73,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = LONG_METADATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
-        bytes29 ref = encodedSpec.asTransferSpec();
+        bytes29 ref = encodedSpec._asTransferSpec();
         _verifyTransferSpecFieldsFromView(ref, spec);
     }
 
@@ -76,11 +83,34 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = SHORT_METADATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
-        bytes29 ref = encodedSpec.asTransferSpec();
+        bytes29 ref = encodedSpec._asTransferSpec();
 
         bytes32 expectedHash = keccak256(encodedSpec);
         bytes32 libHash = TransferSpecLib.getHash(ref);
 
         assertEq(libHash, expectedHash, "Hash mismatch for non-empty metadata");
+    }
+
+    // ===== Failure Tests =====
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_encode_tooLongMetadata() public {
+        // Simulate metadata with a size of `type(uint32).max + 1`
+        bytes memory metadata = SHORT_METADATA;
+        uint256 maxSize = uint256(type(uint32).max);
+        assembly {
+            mstore(metadata, add(maxSize, 1))
+        }
+
+        // Create a transfer spec with the corrupted metadata
+        TransferSpec memory spec;
+        spec.version = TRANSFER_SPEC_VERSION;
+        spec.metadata = metadata;
+
+        // Expect it to revert because the metadata is too long
+        vm.expectRevert(
+            abi.encodeWithSelector(TransferSpecLib.TransferSpecMetadataFieldTooLarge.selector, maxSize + 1, maxSize)
+        );
+        TransferSpecLib.encodeTransferSpec(spec);
     }
 }

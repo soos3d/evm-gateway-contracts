@@ -19,16 +19,16 @@ pragma solidity ^0.8.29;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {Balances} from "src/modules/wallet/Balances.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
 import {WithdrawalDelay} from "src/modules/wallet/WithdrawalDelay.sol";
 import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-/// Tests withdrawal functionality of SpendWallet
-contract SpendWalletWithdrawalTest is Test, DeployUtils {
+/// Tests withdrawal functionality of GatewayWallet
+contract GatewayWalletWithdrawalTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private depositor = makeAddr("depositor");
     address private delegate = makeAddr("delegate");
@@ -36,7 +36,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     uint256 private initialUsdcBalance = 1000 * 10 ** 6;
     uint256 private initialWithdrawalDelay = 100;
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
 
     enum WithdrawalType {
         Direct,
@@ -84,7 +84,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     // Helper function to verify initial state for a depositor
     function _assertInitialState(address depositorAddress) internal view {
         assertEq(IERC20(usdc).balanceOf(depositorAddress), 0);
-        assertEq(wallet.spendableBalance(usdc, depositorAddress), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositorAddress), initialUsdcBalance);
         assertEq(wallet.withdrawingBalance(usdc, depositorAddress), 0);
         assertEq(wallet.withdrawableBalance(usdc, depositorAddress), 0);
         assertEq(wallet.withdrawalBlock(usdc, depositorAddress), 0);
@@ -97,7 +97,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         address actor,
         address depositorAddress,
         uint256 withdrawalAmount,
-        uint256 expectedSpendableBalance,
+        uint256 expectedAvailableBalance,
         uint256 expectedWithdrawingBalance,
         uint256 expectedWithdrawableBalance,
         uint256 expectedWithdrawalBlock
@@ -109,7 +109,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             depositorAddress,
             actor,
             withdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawalBlock
         );
@@ -121,11 +121,11 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         }
         vm.stopPrank();
 
-        assertEq(wallet.spendableBalance(usdc, depositorAddress), expectedSpendableBalance);
+        assertEq(wallet.availableBalance(usdc, depositorAddress), expectedAvailableBalance);
         assertEq(wallet.withdrawingBalance(usdc, depositorAddress), expectedWithdrawingBalance);
         assertEq(wallet.withdrawableBalance(usdc, depositorAddress), expectedWithdrawableBalance);
         assertEq(wallet.withdrawalBlock(usdc, depositorAddress), expectedWithdrawalBlock);
-        assertEq(wallet.totalBalance(usdc, depositorAddress), expectedSpendableBalance + expectedWithdrawingBalance);
+        assertEq(wallet.totalBalance(usdc, depositorAddress), expectedAvailableBalance + expectedWithdrawingBalance);
     }
 
     // Helper function to verify state after withdrawal completion for a depositor
@@ -135,7 +135,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         address depositorAddress,
         address recipient,
         uint256 expectedWithdrawalAmount,
-        uint256 expectedSpendableBalance
+        uint256 expectedAvailableBalance
     ) internal {
         vm.startPrank(actor);
         vm.expectEmit(true, true, true, true);
@@ -147,11 +147,11 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         }
         vm.stopPrank();
 
-        assertEq(wallet.spendableBalance(usdc, depositorAddress), expectedSpendableBalance);
+        assertEq(wallet.availableBalance(usdc, depositorAddress), expectedAvailableBalance);
         assertEq(wallet.withdrawingBalance(usdc, depositorAddress), 0);
         assertEq(wallet.withdrawableBalance(usdc, depositorAddress), 0);
         assertEq(wallet.withdrawalBlock(usdc, depositorAddress), 0);
-        assertEq(wallet.totalBalance(usdc, depositorAddress), expectedSpendableBalance);
+        assertEq(wallet.totalBalance(usdc, depositorAddress), expectedAvailableBalance);
     }
 
     // ===== Basic Error Tests - Withdrawal Initiation =====
@@ -174,20 +174,20 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    function test_directInitiateWithdrawal_revertIfValueExceedsSpendableBalance() public {
+    function test_directInitiateWithdrawal_revertIfValueExceedsAvailableBalance() public {
         vm.startPrank(depositor);
-        vm.expectRevert(Withdrawals.WithdrawalValueExceedsSpendableBalance.selector);
+        vm.expectRevert(Withdrawals.WithdrawalValueExceedsAvailableBalance.selector);
         wallet.initiateWithdrawal(usdc, 2 * initialUsdcBalance);
         vm.stopPrank();
     }
 
-    function test_authorizedInitiateWithdrawal_revertIfValueExceedsSpendableBalance() public {
+    function test_authorizedInitiateWithdrawal_revertIfValueExceedsAvailableBalance() public {
         vm.startPrank(depositor);
         wallet.addDelegate(usdc, delegate);
         vm.stopPrank();
 
         vm.startPrank(delegate);
-        vm.expectRevert(Withdrawals.WithdrawalValueExceedsSpendableBalance.selector);
+        vm.expectRevert(Withdrawals.WithdrawalValueExceedsAvailableBalance.selector);
         wallet.initiateWithdrawal(usdc, depositor, 2 * initialUsdcBalance);
         vm.stopPrank();
     }
@@ -239,9 +239,9 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     /// Tests that withdrawal cannot be completed before the delay period
     /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in spendable balance
+    /// 1. Initial state: depositor has initialUsdcBalance in available balance
     /// 2. Initiate withdrawal of 1/4 initialUsdcBalance:
-    ///    - spendable balance decreases by withdrawal amount
+    ///    - available balance decreases by withdrawal amount
     ///    - withdrawing balance increases by withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 3. Attempt immediate withdrawal -> reverts with WithdrawalNotYetAvailable
@@ -250,7 +250,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
         _assertInitialState(depositor);
 
         uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedSpendableBalance = initialUsdcBalance - withdrawalAmount;
+        uint256 expectedAvailableBalance = initialUsdcBalance - withdrawalAmount;
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -259,7 +259,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             withdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedBlockHeightWhenWithdrawable
@@ -292,9 +292,9 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     /// Tests a simple withdrawal flow
     /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in spendable balance
+    /// 1. Initial state: depositor has initialUsdcBalance in available balance
     /// 2. Initiate withdrawal of 1/4 initialUsdcBalance:
-    ///    - spendable balance decreases by withdrawal amount
+    ///    - available balance decreases by withdrawal amount
     ///    - withdrawing balance increases by withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 3. After delay:
@@ -303,7 +303,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
     function test_withdrawal_balancesUpdatedAfterSimpleWithdrawal() public testWithdrawalTypes {
         _assertInitialState(depositor);
         uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedSpendableBalance = initialUsdcBalance - withdrawalAmount;
+        uint256 expectedAvailableBalance = initialUsdcBalance - withdrawalAmount;
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -312,7 +312,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             withdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedBlockHeightWhenWithdrawable
@@ -323,7 +323,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         address actor = withdrawalType == WithdrawalType.Direct ? depositor : delegate;
         _completeWithdrawalAndVerifyState(
-            withdrawalType, actor, depositor, actor, withdrawalAmount, expectedSpendableBalance
+            withdrawalType, actor, depositor, actor, withdrawalAmount, expectedAvailableBalance
         );
         assertEq(IERC20(usdc).balanceOf(actor), withdrawalAmount);
     }
@@ -332,14 +332,14 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     /// Tests initiating a second withdrawal before first withdrawal is ready
     /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in spendable balance
+    /// 1. Initial state: depositor has initialUsdcBalance in available balance
     /// 2. Initiate first withdrawal of 1/4 initialUsdcBalance:
-    ///    - spendable balance decreases by first withdrawal amount
+    ///    - available balance decreases by first withdrawal amount
     ///    - withdrawing balance increases by first withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 3. At halfway point:
     ///    - Initiate second withdrawal of 1/2 initialUsdcBalance
-    ///    - spendable balance decreases by second withdrawal amount
+    ///    - available balance decreases by second withdrawal amount
     ///    - withdrawing balance increases by second withdrawal amount
     ///    - withdrawal block resets to current block + withdrawalDelay (new delay starts from this point)
     /// 4. After delay:
@@ -353,7 +353,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate first withdrawal
         uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount;
+        uint256 expectedAvailableBalance = initialUsdcBalance - firstWithdrawalAmount;
         uint256 expectedWithdrawingBalance = firstWithdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedFirstBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -362,7 +362,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             firstWithdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedFirstBlockHeightWhenWithdrawable
@@ -373,7 +373,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate second withdrawal
         uint256 secondWithdrawalAmount = initialUsdcBalance / 2;
-        expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
+        expectedAvailableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedWithdrawableBalance = 0;
         uint256 expectedSecondBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -382,7 +382,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             secondWithdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedSecondBlockHeightWhenWithdrawable
@@ -398,21 +398,21 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             depositor,
             actor,
             firstWithdrawalAmount + secondWithdrawalAmount,
-            expectedSpendableBalance
+            expectedAvailableBalance
         );
         assertEq(IERC20(usdc).balanceOf(actor), firstWithdrawalAmount + secondWithdrawalAmount);
     }
 
     /// Tests initiating a second withdrawal after first withdrawal is ready
     /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in spendable balance
+    /// 1. Initial state: depositor has initialUsdcBalance in available balance
     /// 2. Initiate first withdrawal of 1/4 initialUsdcBalance:
-    ///    - spendable balance decreases by first withdrawal amount
+    ///    - available balance decreases by first withdrawal amount
     ///    - withdrawing balance increases by first withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 3. After first withdrawal delay:
     ///    - Initiate second withdrawal of 1/2 initialUsdcBalance
-    ///    - spendable balance decreases by second withdrawal amount
+    ///    - available balance decreases by second withdrawal amount
     ///    - withdrawing balance increases by second withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 4. After second delay:
@@ -426,7 +426,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate first withdrawal
         uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount;
+        uint256 expectedAvailableBalance = initialUsdcBalance - firstWithdrawalAmount;
         uint256 expectedWithdrawingBalance = firstWithdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedFirstBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -435,7 +435,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             firstWithdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedFirstBlockHeightWhenWithdrawable
@@ -446,7 +446,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate second withdrawal
         uint256 secondWithdrawalAmount = initialUsdcBalance / 2;
-        expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
+        expectedAvailableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedWithdrawableBalance = 0;
         uint256 expectedSecondBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -455,7 +455,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             secondWithdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedSecondBlockHeightWhenWithdrawable
@@ -471,20 +471,20 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             depositor,
             actor,
             firstWithdrawalAmount + secondWithdrawalAmount,
-            expectedSpendableBalance
+            expectedAvailableBalance
         );
         assertEq(IERC20(usdc).balanceOf(actor), firstWithdrawalAmount + secondWithdrawalAmount);
     }
 
     /// Tests two concurrent withdrawals initiated at the same time
     /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in spendable balance
+    /// 1. Initial state: depositor has initialUsdcBalance in available balance
     /// 2. Initiate first withdrawal of 1/4 initialUsdcBalance:
-    ///    - spendable balance decreases by first withdrawal amount
+    ///    - available balance decreases by first withdrawal amount
     ///    - withdrawing balance increases by first withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 3. Immediately initiate second withdrawal of 1/2 initialUsdcBalance:
-    ///    - spendable balance decreases by second withdrawal amount
+    ///    - available balance decreases by second withdrawal amount
     ///    - withdrawing balance increases by second withdrawal amount
     ///    - withdrawal block remains at current block + withdrawalDelay (both withdrawals share same delay)
     /// 4. After delay:
@@ -495,7 +495,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate first withdrawal
         uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount;
+        uint256 expectedAvailableBalance = initialUsdcBalance - firstWithdrawalAmount;
         uint256 expectedWithdrawingBalance = firstWithdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedFirstBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -504,7 +504,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             firstWithdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedFirstBlockHeightWhenWithdrawable
@@ -512,7 +512,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate second withdrawal
         uint256 secondWithdrawalAmount = initialUsdcBalance / 2;
-        expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
+        expectedAvailableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedWithdrawableBalance = 0;
         _initiateWithdrawalAndVerifyState(
@@ -520,7 +520,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             secondWithdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedFirstBlockHeightWhenWithdrawable /* Both withdrawals should be available at the same time */
@@ -536,22 +536,22 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             depositor,
             actor,
             firstWithdrawalAmount + secondWithdrawalAmount,
-            expectedSpendableBalance
+            expectedAvailableBalance
         );
         assertEq(IERC20(usdc).balanceOf(actor), firstWithdrawalAmount + secondWithdrawalAmount);
     }
 
     /// Tests updating withdrawal delay and initiating a new withdrawal
     /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in spendable balance
+    /// 1. Initial state: depositor has initialUsdcBalance in available balance
     /// 2. Initiate first withdrawal of 1/4 initialUsdcBalance:
-    ///    - spendable balance decreases by first withdrawal amount
+    ///    - available balance decreases by first withdrawal amount
     ///    - withdrawing balance increases by first withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 3. Update withdrawal delay to half of original:
     ///    - withdrawalDelay updated to new value
     /// 4. Initiate second withdrawal of 1/2 initialUsdcBalance:
-    ///    - spendable balance decreases by second withdrawal amount
+    ///    - available balance decreases by second withdrawal amount
     ///    - withdrawing balance increases by second withdrawal amount
     ///    - withdrawal block set to current block + new withdrawalDelay (uses updated delay)
     /// 5. After delay:
@@ -565,7 +565,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate first withdrawal
         uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount;
+        uint256 expectedAvailableBalance = initialUsdcBalance - firstWithdrawalAmount;
         uint256 expectedWithdrawingBalance = firstWithdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedFirstBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -574,7 +574,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             firstWithdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedFirstBlockHeightWhenWithdrawable
@@ -587,7 +587,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Initiate second withdrawal
         uint256 secondWithdrawalAmount = initialUsdcBalance / 2;
-        expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
+        expectedAvailableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedWithdrawableBalance = 0;
         uint256 expectedSecondBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -596,7 +596,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             secondWithdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedSecondBlockHeightWhenWithdrawable
@@ -612,7 +612,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             depositor,
             actor,
             firstWithdrawalAmount + secondWithdrawalAmount,
-            expectedSpendableBalance
+            expectedAvailableBalance
         );
         assertEq(IERC20(usdc).balanceOf(actor), firstWithdrawalAmount + secondWithdrawalAmount);
     }
@@ -621,9 +621,9 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     /// Tests direct withdrawal initiation followed by authorized completion
     /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in spendable balance
+    /// 1. Initial state: depositor has initialUsdcBalance in available balance
     /// 2. Depositor initiates withdrawal:
-    ///    - spendable balance decreases by withdrawal amount
+    ///    - available balance decreases by withdrawal amount
     ///    - withdrawing balance increases by withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 3. After delay:
@@ -640,7 +640,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Depositor initiates withdrawal directly
         uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedSpendableBalance = initialUsdcBalance - withdrawalAmount;
+        uint256 expectedAvailableBalance = initialUsdcBalance - withdrawalAmount;
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -650,7 +650,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             depositor,
             depositor,
             withdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedBlockHeightWhenWithdrawable
@@ -666,7 +666,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             depositor,
             delegate,
             withdrawalAmount,
-            expectedSpendableBalance
+            expectedAvailableBalance
         );
         assertEq(IERC20(usdc).balanceOf(delegate), withdrawalAmount);
 
@@ -676,9 +676,9 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     /// Tests authorized withdrawal initiation followed by direct completion
     /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in spendable balance
+    /// 1. Initial state: depositor has initialUsdcBalance in available balance
     /// 2. Authorized delegate initiates withdrawal:
-    ///    - spendable balance decreases by withdrawal amount
+    ///    - available balance decreases by withdrawal amount
     ///    - withdrawing balance increases by withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 3. After delay:
@@ -695,7 +695,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Delegate initiates withdrawal on behalf of depositor
         uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedSpendableBalance = initialUsdcBalance - withdrawalAmount;
+        uint256 expectedAvailableBalance = initialUsdcBalance - withdrawalAmount;
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -705,7 +705,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             delegate,
             depositor,
             withdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedBlockHeightWhenWithdrawable
@@ -716,7 +716,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Depositor completes the withdrawal. Depositor receives the funds, not the delegate
         _completeWithdrawalAndVerifyState(
-            WithdrawalType.Direct, depositor, depositor, depositor, withdrawalAmount, expectedSpendableBalance
+            WithdrawalType.Direct, depositor, depositor, depositor, withdrawalAmount, expectedAvailableBalance
         );
         assertEq(IERC20(usdc).balanceOf(depositor), withdrawalAmount);
 
@@ -726,9 +726,9 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     /// Tests withdrawal after delegate authorization is revoked
     /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in spendable balance
+    /// 1. Initial state: depositor has initialUsdcBalance in available balance
     /// 2. Authorized delegate initiates withdrawal:
-    ///    - spendable balance decreases by withdrawal amount
+    ///    - available balance decreases by withdrawal amount
     ///    - withdrawing balance increases by withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 3. Depositor revokes delegate authorization
@@ -746,7 +746,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Delegate initiates withdrawal on behalf of depositor
         uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedSpendableBalance = initialUsdcBalance - withdrawalAmount;
+        uint256 expectedAvailableBalance = initialUsdcBalance - withdrawalAmount;
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -756,7 +756,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             delegate,
             depositor,
             withdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedBlockHeightWhenWithdrawable
@@ -778,7 +778,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Depositor completes the withdrawal and succeeds
         _completeWithdrawalAndVerifyState(
-            WithdrawalType.Direct, depositor, depositor, depositor, withdrawalAmount, expectedSpendableBalance
+            WithdrawalType.Direct, depositor, depositor, depositor, withdrawalAmount, expectedAvailableBalance
         );
         assertEq(IERC20(usdc).balanceOf(depositor), withdrawalAmount);
 
@@ -788,13 +788,13 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     /// Tests multiple delegate initiating and completing withdrawals for same depositor
     /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in spendable balance
+    /// 1. Initial state: depositor has initialUsdcBalance in available balance
     /// 2. First delegate initiates withdrawal:
-    ///    - spendable balance decreases by first withdrawal amount
+    ///    - available balance decreases by first withdrawal amount
     ///    - withdrawing balance increases by first withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 3. Second delegate initiates withdrawal:
-    ///    - spendable balance decreases by second withdrawal amount
+    ///    - available balance decreases by second withdrawal amount
     ///    - withdrawing balance increases by second withdrawal amount
     ///    - withdrawal block remains unchanged (both withdrawals share same delay)
     /// 4. After delay:
@@ -815,7 +815,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // First delegate initiates withdrawal
         uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount;
+        uint256 expectedAvailableBalance = initialUsdcBalance - firstWithdrawalAmount;
         uint256 expectedWithdrawingBalance = firstWithdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -825,7 +825,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             delegate,
             depositor,
             firstWithdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedBlockHeightWhenWithdrawable
@@ -833,7 +833,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Second delegate initiates withdrawal
         uint256 secondWithdrawalAmount = initialUsdcBalance / 3;
-        expectedSpendableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
+        expectedAvailableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
 
         _initiateWithdrawalAndVerifyState(
@@ -841,7 +841,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             delegate2,
             depositor,
             secondWithdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedBlockHeightWhenWithdrawable // Both withdrawals are ready at the same time
@@ -857,7 +857,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             depositor,
             delegate,
             firstWithdrawalAmount + secondWithdrawalAmount,
-            expectedSpendableBalance
+            expectedAvailableBalance
         );
         assertEq(IERC20(usdc).balanceOf(delegate), firstWithdrawalAmount + secondWithdrawalAmount);
 
@@ -876,13 +876,13 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     /// Tests same delegate initiating withdrawals for multiple depositors
     /// State transitions:
-    /// 1. Initial state: multiple depositors each have initialUsdcBalance in spendable balance
+    /// 1. Initial state: multiple depositors each have initialUsdcBalance in available balance
     /// 2. Delegate initiates withdrawal for first depositor:
-    ///    - first depositor's spendable balance decreases by withdrawal amount
+    ///    - first depositor's available balance decreases by withdrawal amount
     ///    - first depositor's withdrawing balance increases by withdrawal amount
     ///    - first depositor's withdrawal block set to current block + withdrawalDelay
     /// 3. Delegate initiates withdrawal for second depositor:
-    ///    - second depositor's spendable balance decreases by withdrawal amount
+    ///    - second depositor's available balance decreases by withdrawal amount
     ///    - second depositor's withdrawing balance increases by withdrawal amount
     ///    - second depositor's withdrawal block set to current block + withdrawalDelay
     /// 4. After delay:
@@ -915,7 +915,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Delegate initiates withdrawal for first depositor
         uint256 withdrawalAmount1 = initialUsdcBalance / 3;
-        uint256 expectedSpendableBalance1 = initialUsdcBalance - withdrawalAmount1;
+        uint256 expectedAvailableBalance1 = initialUsdcBalance - withdrawalAmount1;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
 
         _initiateWithdrawalAndVerifyState(
@@ -923,7 +923,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             delegate,
             depositor,
             withdrawalAmount1,
-            expectedSpendableBalance1,
+            expectedAvailableBalance1,
             withdrawalAmount1,
             0,
             expectedBlockHeightWhenWithdrawable
@@ -931,14 +931,14 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Delegate initiates withdrawal for second depositor
         uint256 withdrawalAmount2 = initialUsdcBalance / 2;
-        uint256 expectedSpendableBalance2 = initialUsdcBalance - withdrawalAmount2;
+        uint256 expectedAvailableBalance2 = initialUsdcBalance - withdrawalAmount2;
 
         _initiateWithdrawalAndVerifyState(
             WithdrawalType.Authorized,
             delegate,
             depositor2,
             withdrawalAmount2,
-            expectedSpendableBalance2,
+            expectedAvailableBalance2,
             withdrawalAmount2,
             0,
             expectedBlockHeightWhenWithdrawable
@@ -949,13 +949,13 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Complete first withdrawal and check balance
         _completeWithdrawalAndVerifyState(
-            WithdrawalType.Authorized, delegate, depositor, delegate, withdrawalAmount1, expectedSpendableBalance1
+            WithdrawalType.Authorized, delegate, depositor, delegate, withdrawalAmount1, expectedAvailableBalance1
         );
         assertEq(IERC20(usdc).balanceOf(delegate), withdrawalAmount1);
 
         // Complete second withdrawal and check balance
         _completeWithdrawalAndVerifyState(
-            WithdrawalType.Authorized, delegate, depositor2, delegate, withdrawalAmount2, expectedSpendableBalance2
+            WithdrawalType.Authorized, delegate, depositor2, delegate, withdrawalAmount2, expectedAvailableBalance2
         );
         assertEq(IERC20(usdc).balanceOf(delegate), withdrawalAmount1 + withdrawalAmount2);
 
@@ -966,9 +966,9 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
     /// Tests that authorized withdrawals can send funds to a different recipient
     /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in spendable balance
+    /// 1. Initial state: depositor has initialUsdcBalance in available balance
     /// 2. Authorized delegate initiates withdrawal:
-    ///    - spendable balance decreases by withdrawal amount
+    ///    - available balance decreases by withdrawal amount
     ///    - withdrawing balance increases by withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 3. After delay:
@@ -988,7 +988,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Delegate initiates withdrawal on behalf of depositor
         uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedSpendableBalance = initialUsdcBalance - withdrawalAmount;
+        uint256 expectedAvailableBalance = initialUsdcBalance - withdrawalAmount;
         uint256 expectedWithdrawingBalance = withdrawalAmount;
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
@@ -998,7 +998,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
             delegate,
             depositor,
             withdrawalAmount,
-            expectedSpendableBalance,
+            expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawableBalance,
             expectedBlockHeightWhenWithdrawable
@@ -1009,7 +1009,7 @@ contract SpendWalletWithdrawalTest is Test, DeployUtils {
 
         // Delegate completes the withdrawal and sends funds to recipient
         _completeWithdrawalAndVerifyState(
-            WithdrawalType.Authorized, delegate, depositor, recipient, withdrawalAmount, expectedSpendableBalance
+            WithdrawalType.Authorized, delegate, depositor, recipient, withdrawalAmount, expectedAvailableBalance
         );
 
         // Verify recipient received the funds

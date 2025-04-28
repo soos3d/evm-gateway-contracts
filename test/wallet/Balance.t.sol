@@ -19,20 +19,20 @@ pragma solidity ^0.8.29;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Balances, BalanceType} from "src/modules/wallet/Balances.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-contract SpendWalletBalanceTest is Test, DeployUtils {
+contract GatewayWalletBalanceTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private depositor = makeAddr("depositor");
     address private usdc;
 
     uint256 private initialUsdcBalance = 1000 * 10 ** 6;
     uint256 private initialWithdrawalDelay = 100;
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
 
     function setUp() public {
         wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
@@ -81,17 +81,17 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
         wallet.initiateWithdrawal(usdc, withdrawAmount);
         vm.stopPrank();
 
-        // Verify total balance is sum of spendable and withdrawing balances
+        // Verify total balance is sum of available and withdrawing balances
         uint256 balanceId = _createBalanceId(usdc, BalanceType.Total);
         assertEq(wallet.balanceOf(depositor, balanceId), initialUsdcBalance);
         assertEq(
             wallet.balanceOf(depositor, balanceId),
-            wallet.spendableBalance(usdc, depositor) + wallet.withdrawingBalance(usdc, depositor)
+            wallet.availableBalance(usdc, depositor) + wallet.withdrawingBalance(usdc, depositor)
         );
     }
 
-    function test_balanceOf_returnsSpendableBalance() public view {
-        uint256 balanceId = _createBalanceId(usdc, BalanceType.Spendable);
+    function test_balanceOf_returnsAvailableBalance() public view {
+        uint256 balanceId = _createBalanceId(usdc, BalanceType.Available);
         assertEq(wallet.balanceOf(depositor, balanceId), initialUsdcBalance);
     }
 
@@ -147,12 +147,12 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
 
         // Check all balance types
         uint256 totalBalanceId = _createBalanceId(usdc, BalanceType.Total);
-        uint256 spendableBalanceId = _createBalanceId(usdc, BalanceType.Spendable);
+        uint256 availableBalanceId = _createBalanceId(usdc, BalanceType.Available);
         uint256 withdrawingBalanceId = _createBalanceId(usdc, BalanceType.Withdrawing);
         uint256 withdrawableBalanceId = _createBalanceId(usdc, BalanceType.Withdrawable);
 
         assertEq(wallet.balanceOf(depositor, totalBalanceId), initialUsdcBalance - withdrawAmount);
-        assertEq(wallet.balanceOf(depositor, spendableBalanceId), initialUsdcBalance - withdrawAmount);
+        assertEq(wallet.balanceOf(depositor, availableBalanceId), initialUsdcBalance - withdrawAmount);
         assertEq(wallet.balanceOf(depositor, withdrawingBalanceId), 0);
         assertEq(wallet.balanceOf(depositor, withdrawableBalanceId), 0);
     }
@@ -164,7 +164,7 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
 
         // Check all balance types
         uint256 totalBalanceId = _createBalanceId(usdc, BalanceType.Total);
-        uint256 spendableBalanceId = _createBalanceId(usdc, BalanceType.Spendable);
+        uint256 availableBalanceId = _createBalanceId(usdc, BalanceType.Available);
         uint256 withdrawingBalanceId = _createBalanceId(usdc, BalanceType.Withdrawing);
         uint256 withdrawableBalanceId = _createBalanceId(usdc, BalanceType.Withdrawable);
 
@@ -176,7 +176,7 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
 
         // Check balances after initiating withdrawals
         assertEq(wallet.balanceOf(depositor, totalBalanceId), initialUsdcBalance);
-        assertEq(wallet.balanceOf(depositor, spendableBalanceId), initialUsdcBalance - totalWithdrawing);
+        assertEq(wallet.balanceOf(depositor, availableBalanceId), initialUsdcBalance - totalWithdrawing);
         assertEq(wallet.balanceOf(depositor, withdrawingBalanceId), totalWithdrawing);
         assertEq(wallet.balanceOf(depositor, withdrawableBalanceId), 0);
 
@@ -185,7 +185,7 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
 
         // Check balances when withdrawals become available
         assertEq(wallet.balanceOf(depositor, totalBalanceId), initialUsdcBalance);
-        assertEq(wallet.balanceOf(depositor, spendableBalanceId), initialUsdcBalance - totalWithdrawing);
+        assertEq(wallet.balanceOf(depositor, availableBalanceId), initialUsdcBalance - totalWithdrawing);
         assertEq(wallet.balanceOf(depositor, withdrawingBalanceId), totalWithdrawing);
         assertEq(wallet.balanceOf(depositor, withdrawableBalanceId), totalWithdrawing);
 
@@ -195,7 +195,7 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
 
         // Check final balances
         assertEq(wallet.balanceOf(depositor, totalBalanceId), initialUsdcBalance - totalWithdrawing);
-        assertEq(wallet.balanceOf(depositor, spendableBalanceId), initialUsdcBalance - totalWithdrawing);
+        assertEq(wallet.balanceOf(depositor, availableBalanceId), initialUsdcBalance - totalWithdrawing);
         assertEq(wallet.balanceOf(depositor, withdrawingBalanceId), 0);
         assertEq(wallet.balanceOf(depositor, withdrawableBalanceId), 0);
         assertEq(IERC20(usdc).balanceOf(depositor), totalWithdrawing);
@@ -219,12 +219,12 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
 
         // Query all balance types for same depositor/token
         depositors[uint256(BalanceType.Total)] = depositor;
-        depositors[uint256(BalanceType.Spendable)] = depositor;
+        depositors[uint256(BalanceType.Available)] = depositor;
         depositors[uint256(BalanceType.Withdrawing)] = depositor;
         depositors[uint256(BalanceType.Withdrawable)] = depositor;
 
         ids[uint256(BalanceType.Total)] = _createBalanceId(usdc, BalanceType.Total);
-        ids[uint256(BalanceType.Spendable)] = _createBalanceId(usdc, BalanceType.Spendable);
+        ids[uint256(BalanceType.Available)] = _createBalanceId(usdc, BalanceType.Available);
         ids[uint256(BalanceType.Withdrawing)] = _createBalanceId(usdc, BalanceType.Withdrawing);
         ids[uint256(BalanceType.Withdrawable)] = _createBalanceId(usdc, BalanceType.Withdrawable);
 
@@ -232,7 +232,7 @@ contract SpendWalletBalanceTest is Test, DeployUtils {
 
         // Assert each balance type matches expected value
         assertEq(balances[uint256(BalanceType.Total)], initialUsdcBalance, "Total balance mismatch");
-        assertEq(balances[uint256(BalanceType.Spendable)], initialUsdcBalance, "Spendable balance mismatch");
+        assertEq(balances[uint256(BalanceType.Available)], initialUsdcBalance, "Available balance mismatch");
         assertEq(balances[uint256(BalanceType.Withdrawing)], 0, "Withdrawing balance should be 0");
         assertEq(balances[uint256(BalanceType.Withdrawable)], 0, "Withdrawable balance should be 0");
     }

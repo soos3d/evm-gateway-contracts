@@ -19,20 +19,20 @@ pragma solidity ^0.8.29;
 
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {Test} from "forge-std/Test.sol";
-import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
+import {AddressLib} from "src/lib/util/AddressLib.sol";
+import {Denylist} from "src/modules/common/Denylist.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
-import {SpendCommon} from "src/SpendCommon.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-/// Tests Spend Authorization functionality of SpendWallet
-contract SpendAuthorizationTest is Test, DeployUtils {
+/// Tests mint authorization functionality
+contract MintAuthorizationTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private usdc = makeAddr("usdc");
 
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
 
     function setUp() public {
         wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
@@ -120,7 +120,7 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         address delegate = address(0);
 
         vm.startPrank(owner);
-        vm.expectRevert(abi.encodeWithSelector(SpendCommon.InvalidAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(AddressLib.InvalidAddress.selector));
         wallet.addDelegate(usdc, delegate);
         vm.stopPrank();
     }
@@ -146,7 +146,7 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         wallet.denylist(denylistedDelegate);
         vm.stopPrank();
 
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedDelegate));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedDelegate));
         vm.startPrank(owner);
         wallet.addDelegate(usdc, denylistedDelegate);
         vm.stopPrank();
@@ -161,7 +161,7 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         wallet.denylist(denylistedSender);
         vm.stopPrank();
 
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedSender));
         vm.startPrank(denylistedSender);
         wallet.addDelegate(usdc, delegate);
         vm.stopPrank();
@@ -209,7 +209,7 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         address delegate = address(0);
 
         vm.startPrank(owner);
-        vm.expectRevert(abi.encodeWithSelector(SpendCommon.InvalidAddress.selector));
+        vm.expectRevert(abi.encodeWithSelector(AddressLib.InvalidAddress.selector));
         wallet.removeDelegate(usdc, delegate);
         vm.stopPrank();
     }
@@ -264,7 +264,7 @@ contract SpendAuthorizationTest is Test, DeployUtils {
         wallet.denylist(denylistedSender);
         vm.stopPrank();
 
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedSender));
         vm.startPrank(denylistedSender);
         wallet.removeDelegate(usdc, delegate);
         vm.stopPrank();

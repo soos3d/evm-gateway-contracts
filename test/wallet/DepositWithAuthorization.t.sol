@@ -18,18 +18,18 @@
 pragma solidity ^0.8.29;
 
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import {IERC3009} from "src/interfaces/IERC3009.sol";
-import {Denylistable} from "src/modules/common/Denylistable.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
+import {IERC7598} from "src/interfaces/IERC7598.sol";
+import {Denylist} from "src/modules/common/Denylist.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
 import {MockERC1271Wallet} from "test/mock_fiattoken/contracts/test/MockERC1271Wallet.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 
-/// Tests ERC-3009 authorization deposit functionality of SpendWallet
-contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
+/// Tests ERC-3009 authorization deposit functionality of GatewayWallet
+contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
     address private owner = makeAddr("owner");
     uint256 private depositorPrivateKey;
     address private depositor;
@@ -58,11 +58,11 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
     string private constant FIATTOKENV2_AUTHORIZATION_IS_EXPIRED = "FiatTokenV2: authorization is expired";
     string private constant FIATTOKENV2_AUTHORIZATION_IS_NOT_YET_VALID = "FiatTokenV2: authorization is not yet valid";
 
-    SpendWallet private wallet;
+    GatewayWallet private wallet;
     MockERC1271Wallet private depositorWallet;
 
     function setUp() public {
-        (depositor, depositorPrivateKey) = makeAddrAndKey("spendWalletDepositor");
+        (depositor, depositorPrivateKey) = makeAddrAndKey("gatewayWalletDepositor");
         wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
 
         usdc = ForkTestUtils.forkVars().usdc;
@@ -136,7 +136,7 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         wallet.denylist(denylistedSender);
 
         vm.prank(denylistedSender);
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedSender));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
@@ -148,7 +148,7 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         vm.prank(denylister);
         wallet.denylist(depositor);
 
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, depositor));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
@@ -215,7 +215,8 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         (uint8 authorizationV, bytes32 authorizationR, bytes32 authorizationS) =
             _create3009AuthorizationSignature(initialUsdcBalance);
         (uint8 cancellationV, bytes32 cancellationR, bytes32 cancellationS) = _create3009CancellationSignature();
-        IERC3009(usdc).cancelAuthorization(depositor, erc3009Nonce, cancellationV, cancellationR, cancellationS);
+        bytes memory cancellationSignature = abi.encodePacked(cancellationR, cancellationS, cancellationV);
+        IERC7598(usdc).cancelAuthorization(depositor, erc3009Nonce, cancellationSignature);
 
         skip(activeTimeOffset);
 
@@ -233,7 +234,7 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         );
     }
 
-    function test_depositWithAuthorization_with3009Interface_spendableBalanceUpdatedAfterTransfer() public {
+    function test_depositWithAuthorization_with3009Interface_availableBalanceUpdatedAfterTransfer() public {
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
         skip(activeTimeOffset);
         vm.expectEmit(true, true, false, true);
@@ -241,7 +242,7 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance);
     }
 
     function test_depositWithAuthorization_with3009Interface_revertIfAuthorizationReplayed() public {
@@ -252,7 +253,7 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance / 2, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Attempt to replay the same authorization
         vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_USED_OR_CANCELED));
@@ -298,7 +299,7 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         wallet.denylist(denylistedSender);
 
         vm.prank(denylistedSender);
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, denylistedSender));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedSender));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );
@@ -310,7 +311,7 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         vm.prank(denylister);
         wallet.denylist(depositor);
 
-        vm.expectRevert(abi.encodeWithSelector(Denylistable.AccountDenylisted.selector, depositor));
+        vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, depositor));
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );
@@ -394,7 +395,8 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
     function test_depositWithAuthorization_with7598Interface_revertIfAuthorizationCancelled() public {
         bytes memory authorizationSignature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
         (uint8 cancellationV, bytes32 cancellationR, bytes32 cancellationS) = _create3009CancellationSignature();
-        IERC3009(usdc).cancelAuthorization(depositor, erc3009Nonce, cancellationV, cancellationR, cancellationS);
+        bytes memory cancellationSignature = abi.encodePacked(cancellationR, cancellationS, cancellationV);
+        IERC7598(usdc).cancelAuthorization(depositor, erc3009Nonce, cancellationSignature);
 
         skip(activeTimeOffset);
 
@@ -410,7 +412,7 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         );
     }
 
-    function test_depositWithAuthorization_with7598Interface_withEOASignature_spendableBalanceUpdatedAfterTransfer()
+    function test_depositWithAuthorization_with7598Interface_withEOASignature_availableBalanceUpdatedAfterTransfer()
         public
     {
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
@@ -420,10 +422,10 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance);
     }
 
-    function test_depositWithAuthorization_with7598Interface_withSCASignature_spendableBalanceUpdatedAfterTransfer()
+    function test_depositWithAuthorization_with7598Interface_withSCASignature_availableBalanceUpdatedAfterTransfer()
         public
     {
         address depositorWalletAddress = address(depositorWallet);
@@ -443,7 +445,7 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
             erc3009Nonce,
             signature
         );
-        assertEq(wallet.spendableBalance(usdc, depositorWalletAddress), initialUsdcBalance);
+        assertEq(wallet.availableBalance(usdc, depositorWalletAddress), initialUsdcBalance);
     }
 
     function test_depositWithAuthorization_with7598Interface_revertIfAuthorizationReplayed() public {
@@ -454,7 +456,7 @@ contract SpendWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance / 2, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );
-        assertEq(wallet.spendableBalance(usdc, depositor), initialUsdcBalance / 2);
+        assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Attempt to replay the same authorization
         vm.expectRevert(bytes(FIATTOKENV2_AUTHORIZATION_USED_OR_CANCELED));

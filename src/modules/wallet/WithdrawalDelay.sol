@@ -21,17 +21,26 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 
 /// @title WithdrawalDelay
 ///
-/// Manages the delay between initiating and completing withdrawals for the SpendWallet contract.
+/// @notice Manages the delay between initiating and completing withdrawals for the `GatewayWallet` contract.
 contract WithdrawalDelay is Ownable2StepUpgradeable {
     /// Emitted when the withdrawal delay is updated
     ///
     /// @param newDelay   The new value of the delay, in blocks
     event WithdrawalDelayUpdated(uint256 newDelay);
 
-    /// Thrown when a withdrawal has not waited long enough since initialization
+    /// Thrown when the required withdrawal delay has not yet passed since the most recent withdrawal was initiated
     error WithdrawalNotYetAvailable();
 
+    /// Initializes the `withdrawalDelay`
+    ///
+    /// @param withdrawalDelay_   The initial value for the delay, in blocks
+    function __WithdrawalDelay_init(uint256 withdrawalDelay_) internal onlyInitializing {
+        updateWithdrawalDelay(withdrawalDelay_);
+    }
+
     /// The number of blocks that must pass after calling `initiateWithdrawal` before a withdrawal can be completed
+    ///
+    /// @return   The number of blocks that must pass
     function withdrawalDelay() public view returns (uint256) {
         return WithdrawalDelayStorage.get().withdrawalDelay;
     }
@@ -42,16 +51,18 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
+    /// @return            The block number at which the withdrawal will be withdrawable
     function withdrawalBlock(address token, address depositor) public view returns (uint256) {
         return WithdrawalDelayStorage.get().withdrawableAtBlocks[token][depositor];
     }
 
-    /// Sets the number of blocks that must pass before a withdrawal can be completed
+    /// Sets the number of blocks that must pass before a withdrawal can be completed. Care must be taken for the
+    /// difference between `block.number` and RPC block number for certain networks.
     ///
     /// @dev May only be called by the `owner` role
     ///
     /// @param newDelay   The new value of the delay, in blocks
-    function updateWithdrawalDelay(uint256 newDelay) external onlyOwner {
+    function updateWithdrawalDelay(uint256 newDelay) public onlyOwner {
         WithdrawalDelayStorage.get().withdrawalDelay = newDelay;
         emit WithdrawalDelayUpdated(newDelay);
     }
@@ -76,7 +87,9 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
     }
 }
 
-/// Implements the EIP-7201 storage pattern for the WithdrawalDelay module
+/// @title WithdrawalDelayStorage
+///
+/// @notice Implements the EIP-7201 storage pattern for the `WithdrawalDelay` module
 library WithdrawalDelayStorage {
     /// @custom:storage-location 7201:circle.gateway.WithdrawalDelay
     struct Data {
@@ -87,12 +100,14 @@ library WithdrawalDelayStorage {
         uint256 withdrawalDelay;
     }
 
-    /// keccak256(abi.encode(uint256(keccak256("circle.gateway.WithdrawalDelay")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant SLOT = 0x8f0d2169d60e1d6e8f336adc673aa9b36c7a3956bc915f85e5cfebff815daa00;
+    /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.WithdrawalDelay"))) - 1)) & ~bytes32(uint256(0xff))`
+    bytes32 public constant SLOT = 0x8f0d2169d60e1d6e8f336adc673aa9b36c7a3956bc915f85e5cfebff815daa00;
 
     /// EIP-7201 getter for the storage slot
+    ///
+    /// @return $   The storage struct for the `WithdrawalDelay` module
     function get() internal pure returns (Data storage $) {
-        assembly {
+        assembly ("memory-safe") {
             $.slot := SLOT
         }
     }

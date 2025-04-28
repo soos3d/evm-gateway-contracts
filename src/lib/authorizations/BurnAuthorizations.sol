@@ -19,30 +19,31 @@ pragma solidity ^0.8.29;
 
 import {TransferSpec} from "./TransferSpec.sol";
 
-/// @dev Magic: bytes4(keccak256("circle.gateway.BurnAuthorization"))
-bytes4 constant BURN_AUTHORIZATION_MAGIC = 0x71a020ae;
-/// @dev Magic: bytes4(keccak256("circle.gateway.BurnAuthorizationSet"))
-bytes4 constant BURN_AUTHORIZATION_SET_MAGIC = 0xb12eecd9;
+// Magic values for marking byte encodings
+bytes4 constant BURN_AUTHORIZATION_MAGIC = 0x71a020ae; // `bytes4(keccak256("circle.gateway.BurnAuthorization"))`
+bytes4 constant BURN_AUTHORIZATION_SET_MAGIC = 0xb12eecd9; // `bytes4(keccak256("circle.gateway.BurnAuthorizationSet"))`
 
-// BurnAuthorization field offsets
+// `BurnAuthorization` field offsets
 uint16 constant BURN_AUTHORIZATION_MAGIC_OFFSET = 0;
 uint16 constant BURN_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET = 4;
 uint16 constant BURN_AUTHORIZATION_MAX_FEE_OFFSET = 36;
 uint16 constant BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 68;
 uint16 constant BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 72;
 
-// BurnAuthorizationSet field offsets
+// `BurnAuthorizationSet` field offsets
 uint16 constant BURN_AUTHORIZATION_SET_MAGIC_OFFSET = 0;
 uint16 constant BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
 uint16 constant BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
 
-/// Passed to the GatewayWallet contract on the source domain by the operator, in order to burn those funds.
+/// @title BurnAuthorization
 ///
-/// @dev Magic: bytes4(keccak256("circle.gateway.BurnAuthorization"))
-/// @dev The keccak256 hash of the encoded TransferSpec is used as a cross-chain identifier, for both linkability
-///      and replay protection.
+/// @notice Passed to the `GatewayWallet` contract on the source domain by the operator, in order to burn those funds
 ///
-/// Byte encoding (single, big-endian):
+/// @dev Magic: `bytes4(keccak256("circle.gateway.BurnAuthorization"))`
+/// @dev The `keccak256` hash of the encoded `TransferSpec` is used as a cross-chain identifier, for both linkability
+///      and replay protection. See `TransferSpecHashes.sol` for more details.
+///
+/// @dev Byte encoding (big-endian):
 ///     FIELD                      OFFSET   BYTES   NOTES
 ///     magic                           0       4   Always 0x71a020ae
 ///     max block height                4      32
@@ -55,16 +56,18 @@ struct BurnAuthorization {
     TransferSpec spec; //        A description of the transfer
 }
 
-/// Represents multiple BurnAuthorizations packed together and signed as a single payload, which allows a wallet to sign
-/// a single payload for a set of burns from multiple domains, as long as the signature scheme is shared.
+/// @title BurnAuthorizationSet
 ///
-/// @dev Magic: bytes4(keccak256("circle.gateway.BurnAuthorizationSet"))
+/// @notice Represents multiple `BurnAuthorization`s packed together, which allows a wallet to sign a single payload for
+/// a set of burns from multiple domains, as long as the signature scheme is shared.
 ///
-/// Byte encoding (big-endian):
+/// @dev Magic: `bytes4(keccak256("circle.gateway.BurnAuthorizationSet"))`
+///
+/// @dev Byte encoding (big-endian):
 ///     FIELD                      OFFSET   BYTES   NOTES
 ///     magic                           0       4   Always 0xb12eecd9
 ///     number of authorizations        4       4
-///     authorizations                  8       ?   Must be sorted by source domain and concatenated
+///     authorizations                  8       ?   Concatenated one after another
 struct BurnAuthorizationSet {
     BurnAuthorization[] authorizations;
 }

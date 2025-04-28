@@ -98,6 +98,23 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     // ===== Validation Failures: Set Structure =====
 
     /// forge-config: default.allow_internal_expect_revert = true
+    function test_encode_tooLongSet() public {
+        // Create an empty BurnAuthorizationSet
+        BurnAuthorization[] memory auths = new BurnAuthorization[](0);
+        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
+
+        // Simulate an array with a size of `type(uint32).max + 1`
+        uint256 maxSize = uint256(type(uint32).max);
+        assembly {
+            mstore(auths, add(maxSize, 1))
+        }
+
+        // Expect it to revert since the array is too long
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.AuthorizationSetTooManyElements.selector, maxSize));
+        BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_set_revertsOnDataTooShortForHeader() public {
         // Length is > magic (4) but < header (8)
         bytes memory shortData = abi.encodePacked(BURN_AUTHORIZATION_SET_MAGIC, hex"112233"); // 7 bytes

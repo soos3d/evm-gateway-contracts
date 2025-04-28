@@ -17,7 +17,16 @@
  */
 pragma solidity ^0.8.29;
 
-/// Used to interact with a contract that has privilege to mint.
+/// @title IMintToken
+///
+/// @notice Used to interact with a token that supports minting or a mint authority with the same interface
 interface IMintToken {
-    function mint(address _to, uint256 _amount) external returns (bool);
+    /// Mints tokens to an address
+    ///
+    /// @dev The caller must be a minter and must not be blacklisted
+    ///
+    /// @param to       The address that will receive the minted tokens
+    /// @param amount   The amount of tokens to mint. Must be less than or equal to the minter allowance of the caller.
+    /// @return         `true` if the operation was successful, `false` otherwise
+    function mint(address to, uint256 amount) external returns (bool);
 }

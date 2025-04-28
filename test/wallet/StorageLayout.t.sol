@@ -18,9 +18,9 @@
 pragma solidity ^0.8.29;
 
 import {Test} from "forge-std/Test.sol";
-import {SpendWallet} from "src/SpendWallet.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 
-contract Sample is SpendWallet {
+contract Sample is GatewayWallet {
     /// The answer to life, the universe, and everything
     uint256 private answer = 42;
 
@@ -32,10 +32,10 @@ contract Sample is SpendWallet {
     }
 }
 
-contract SpendWalletStorageLayout is Test {
-    /// Ensures that `SpendWallet` uses up no sequential storage slots and uses EIP-7201 for all modules
+contract GatewayWalletStorageLayout is Test {
+    /// Ensures that `GatewayWallet` uses up no sequential storage slots and uses EIP-7201 for all modules
     function test_storage_conflicts() external {
         Sample sample = new Sample();
-        assertEq(sample.getSlotZero(), 42, "At least one module in SpendWallet has declared sequential storage slots");
+        assertEq(sample.getSlotZero(), 42, "At least one module in GatewayWallet has declared sequential storage slots");
     }
 }
