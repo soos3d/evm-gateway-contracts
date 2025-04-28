@@ -173,6 +173,15 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// Thrown during `gatewayTransfer` when the depositor's balance is insufficient to fulfill the `TransferSpec`
     error InsufficientBalanceForTransfer();
 
+    /// Initializes the `burnSigner` and `feeRecipient` roles
+    ///
+    /// @param burnSigner_     The address to initialize the `burnSigner` role
+    /// @param feeRecipient_   The address to initialize the `feeRecipient` role
+    function __Burns_init(address burnSigner_, address feeRecipient_) internal onlyInitializing {
+        updateBurnSigner(burnSigner_);
+        updateFeeRecipient(feeRecipient_);
+    }
+
     /// Called by the operator to debit the depositor's balance and burn tokens after an equivalent amount was minted on
     /// another chain. Charges a fee for the burn (which may be at most each burn authorization's `maxFee`), and sends
     /// it to the `feeRecipient`.
@@ -326,7 +335,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @dev May only be called by the `owner` role
     ///
     /// @param newBurnSigner   The new burn caller address
-    function updateBurnSigner(address newBurnSigner) external onlyOwner {
+    function updateBurnSigner(address newBurnSigner) public onlyOwner {
         AddressLib._checkNotZeroAddress(newBurnSigner);
 
         BurnsStorage.Data storage $ = BurnsStorage.get();
@@ -340,7 +349,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @dev May only be called by the `owner` role
     ///
     /// @param newFeeRecipient   The new fee recipient address
-    function updateFeeRecipient(address newFeeRecipient) external onlyOwner {
+    function updateFeeRecipient(address newFeeRecipient) public onlyOwner {
         AddressLib._checkNotZeroAddress(newFeeRecipient);
 
         BurnsStorage.Data storage $ = BurnsStorage.get();

@@ -129,6 +129,27 @@ contract Mints is GatewayCommon {
     /// @param destinationToken   The destination token
     error InvalidAuthorizationTokenAtIndex(uint32 index, address sourceToken, address destinationToken);
 
+    /// Initializes the `mintAuthorizationSigner` role and any initial token mint authorities
+    ///
+    /// @param mintAuthorizationSigner_   The address to initialize the `mintAuthorizationSigner` role
+    /// @param tokens_                    The list of tokens to support initially
+    /// @param tokenMintAuthorities_      The list of initial token mint authorities (use the zero address for none)
+    function __Mints_init(
+        address mintAuthorizationSigner_,
+        address[] calldata tokens_,
+        address[] calldata tokenMintAuthorities_
+    ) internal onlyInitializing {
+        updateMintAuthorizationSigner(mintAuthorizationSigner_);
+
+        for (uint256 i = 0; i < tokenMintAuthorities_.length; i++) {
+            address mintAuthority = tokenMintAuthorities_[i];
+
+            if (mintAuthority != address(0)) {
+                updateMintAuthority(tokens_[i], tokenMintAuthorities_[i]);
+            }
+        }
+    }
+
     /// Mint funds (or transfer them from the wallet contract if on the same domain) via a signed mint authorization.
     /// Accepts either a single encoded `MintAuthorization` or several in an encoded `MintAuthorizationSet`. Emits an
     /// event containing the `keccak256` hash of the encoded `TransferSpec` (which is the same for the corresponding
@@ -138,6 +159,7 @@ contract Mints is GatewayCommon {
     ///
     /// @param authorization   The byte-encoded mint authorization(s)
     /// @param signature       The signature of the `mintAuthorizationSigner` on the `authorization`
+
     function gatewayMint(bytes memory authorization, bytes memory signature)
         external
         whenNotPaused
@@ -184,7 +206,7 @@ contract Mints is GatewayCommon {
     ///
     /// @param token              The token address to update the mint authority for
     /// @param newMintAuthority   The address to set as the new mint authority
-    function updateMintAuthority(address token, address newMintAuthority) external onlyOwner tokenSupported(token) {
+    function updateMintAuthority(address token, address newMintAuthority) public onlyOwner tokenSupported(token) {
         AddressLib._checkNotZeroAddress(newMintAuthority);
 
         MintsStorage.Data storage $ = MintsStorage.get();
@@ -198,7 +220,7 @@ contract Mints is GatewayCommon {
     /// @dev May only be called by the `owner` role
     ///
     /// @param newMintAuthorizationSigner   The new mint authorization signer address
-    function updateMintAuthorizationSigner(address newMintAuthorizationSigner) external onlyOwner {
+    function updateMintAuthorizationSigner(address newMintAuthorizationSigner) public onlyOwner {
         AddressLib._checkNotZeroAddress(newMintAuthorizationSigner);
 
         MintsStorage.Data storage $ = MintsStorage.get();

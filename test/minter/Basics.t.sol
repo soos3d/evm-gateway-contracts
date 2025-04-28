@@ -45,7 +45,7 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
     function test_initialize_revertWhenReinitialized() public {
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
-        minter.initialize(makeAddr("random"), domain);
+        minter.initialize(address(0), address(0), address(0), new address[](0), uint32(0), address(0), new address[](0));
     }
 
     function test_updateMintAuthority_revertWhenNotOwner() public {

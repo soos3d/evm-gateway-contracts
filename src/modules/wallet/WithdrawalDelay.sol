@@ -31,6 +31,13 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
     /// Thrown when the required withdrawal delay has not yet passed since the most recent withdrawal was initiated
     error WithdrawalNotYetAvailable();
 
+    /// Initializes the `withdrawalDelay`
+    ///
+    /// @param withdrawalDelay_   The initial value for the delay, in blocks
+    function __WithdrawalDelay_init(uint256 withdrawalDelay_) internal onlyInitializing {
+        updateWithdrawalDelay(withdrawalDelay_);
+    }
+
     /// The number of blocks that must pass after calling `initiateWithdrawal` before a withdrawal can be completed
     ///
     /// @return   The number of blocks that must pass
@@ -55,7 +62,7 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
     /// @dev May only be called by the `owner` role
     ///
     /// @param newDelay   The new value of the delay, in blocks
-    function updateWithdrawalDelay(uint256 newDelay) external onlyOwner {
+    function updateWithdrawalDelay(uint256 newDelay) public onlyOwner {
         WithdrawalDelayStorage.get().withdrawalDelay = newDelay;
         emit WithdrawalDelayUpdated(newDelay);
     }

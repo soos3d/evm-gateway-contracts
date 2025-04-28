@@ -18,11 +18,12 @@
 pragma solidity ^0.8.29;
 
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /// @title Denylist
 ///
 /// @notice Manages a denylist of addresses that are not allowed to interact with the system.
-contract Denylist is Ownable2StepUpgradeable {
+contract Denylist is Initializable, Ownable2StepUpgradeable {
     /// Emitted when an address is added to the denylist
     ///
     /// @param addr   The address that is now being denied from interacting with the contract
@@ -48,6 +49,13 @@ contract Denylist is Ownable2StepUpgradeable {
     ///
     /// @param addr   The denylisted address
     error AccountDenylisted(address addr);
+
+    /// Initializes the `denylister` role
+    ///
+    /// @param denylister_   The initial denylister address
+    function __Denylist_init(address denylister_) internal onlyInitializing {
+        updateDenylister(denylister_);
+    }
 
     /// Restricts access to a function to addresses that are not denylisted
     ///
@@ -105,7 +113,7 @@ contract Denylist is Ownable2StepUpgradeable {
     /// @dev May only be called by the `owner` role
     ///
     /// @param newDenylister   The new denylister address
-    function updateDenylister(address newDenylister) external onlyOwner {
+    function updateDenylister(address newDenylister) public onlyOwner {
         address oldDenylister = DenylistStorage.get().denylister;
         _setDenylister(newDenylister);
         emit DenylisterChanged(oldDenylister, newDenylister);

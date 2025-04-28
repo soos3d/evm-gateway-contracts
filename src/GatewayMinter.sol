@@ -33,15 +33,29 @@ contract GatewayMinter is GatewayCommon, Mints {
         _disableInitializers();
     }
 
-    /// Initializes the contract with the counterpart wallet address and domain
+    /// Initializes the contract and all of its modules, in the order of inheritance
     ///
     /// @dev Assumes the contract is being deployed behind a proxy and that proxy has already been initialized using the
     ///      `UpgradeablePlaceholder` contract
     ///
-    /// @param wallet   The address of the wallet contract on the same chain
-    /// @param domain   The operator-issued identifier for this chain
-    function initialize(address wallet, uint32 domain) external reinitializer(2) {
-        __GatewayCommon_init(wallet, domain);
+    /// @param pauser_                    The address to initialize the `pauser` role
+    /// @param denylister_                The address to initialize the `denylister` role
+    /// @param wallet_                    The address of the `GatewayWallet` contract for this domain
+    /// @param supportedTokens_           The list of tokens to support initially
+    /// @param domain_                    The operator-issued identifier for this chain
+    /// @param mintAuthorizationSigner_   The address to initialize the `mintAuthorizationSigner` role
+    /// @param tokenMintAuthorities_      The list of initial token mint authorities (use the zero address for none)
+    function initialize(
+        address pauser_,
+        address denylister_,
+        address wallet_,
+        address[] calldata supportedTokens_,
+        uint32 domain_,
+        address mintAuthorizationSigner_,
+        address[] calldata tokenMintAuthorities_
+    ) external reinitializer(2) {
+        __GatewayCommon_init(pauser_, denylister_, wallet_, supportedTokens_, domain_);
+        __Mints_init(mintAuthorizationSigner_, supportedTokens_, tokenMintAuthorities_);
     }
 
     /// The address of the corresponding wallet contract on the same domain

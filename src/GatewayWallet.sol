@@ -58,15 +58,32 @@ contract GatewayWallet is GatewayCommon, Deposits, Withdrawals, Burns {
         _disableInitializers();
     }
 
-    /// Initializes the contract with the counterpart minter address and domain
+    /// Initializes the contract and all of its modules, in the order of inheritance
     ///
     /// @dev Assumes the contract is being deployed behind a proxy and that proxy has already been initialized using the
     ///      `UpgradeablePlaceholder` contract
     ///
-    /// @param minter   The address of the minter contract on the same chain
-    /// @param domain   The operator-issued identifier for this chain
-    function initialize(address minter, uint32 domain) external reinitializer(2) {
-        __GatewayCommon_init(minter, domain);
+    /// @param pauser_            The address to initialize the `pauser` role
+    /// @param denylister_        The address to initialize the `denylister` role
+    /// @param minter_            The address of the `GatewayMinter` contract for this domain
+    /// @param supportedTokens_            The list of tokens to support initially
+    /// @param domain_            The operator-issued identifier for this chain
+    /// @param withdrawalDelay_   The initial value for `withdrawalDelay`, in blocks
+    /// @param burnSigner_        The address to initialize the `burnSigner` role
+    /// @param feeRecipient_      The address to initialize the `feeRecipient` role
+    function initialize(
+        address pauser_,
+        address denylister_,
+        address minter_,
+        address[] calldata supportedTokens_,
+        uint32 domain_,
+        uint256 withdrawalDelay_,
+        address burnSigner_,
+        address feeRecipient_
+    ) external reinitializer(2) {
+        __GatewayCommon_init(pauser_, denylister_, minter_, supportedTokens_, domain_);
+        __Withdrawals_init(withdrawalDelay_);
+        __Burns_init(burnSigner_, feeRecipient_);
     }
 
     /// The address of the corresponding minter contract on the same domain

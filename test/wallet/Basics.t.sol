@@ -44,7 +44,7 @@ contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
     function test_initialize_revertWhenReinitialized() public {
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
-        wallet.initialize(makeAddr("random"), domain);
+        wallet.initialize(address(0), address(0), address(0), new address[](0), uint32(0), 1, address(0), address(0));
     }
 
     function test_updateBurnSigner_revertWhenNotOwner() public {

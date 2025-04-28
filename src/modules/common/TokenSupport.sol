@@ -33,6 +33,15 @@ contract TokenSupport is Ownable2StepUpgradeable {
     /// @param token   The unsupported token
     error UnsupportedToken(address token);
 
+    /// Initializes supported tokens
+    ///
+    /// @param tokens_   The initially-supported tokens
+    function __TokenSupport_init(address[] calldata tokens_) internal onlyInitializing {
+        for (uint256 i = 0; i < tokens_.length; i++) {
+            addSupportedToken(tokens_[i]);
+        }
+    }
+
     /// Ensures that the given token is supported
     ///
     /// @param token   The token to check
@@ -54,7 +63,7 @@ contract TokenSupport is Ownable2StepUpgradeable {
     /// @dev May only be called by the `owner` role
     ///
     /// @param token   The token to be added
-    function addSupportedToken(address token) external onlyOwner {
+    function addSupportedToken(address token) public onlyOwner {
         TokenSupportStorage.get().supportedTokens[token] = true;
         emit TokenSupported(token);
     }

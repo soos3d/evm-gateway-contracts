@@ -35,12 +35,12 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
     /// @param caller   The unauthorized caller
     error UnauthorizedPauser(address caller);
 
-    /// Initializes the underlying `Pausable` contract and sets the initial pauser
+    /// Initializes the underlying `Pausable` contract and the `pauser` role
     ///
-    /// @param _pauser   The initial pauser address
-    function __Pausing_init(address _pauser) internal onlyInitializing {
+    /// @param pauser_   The initial pauser address
+    function __Pausing_init(address pauser_) internal onlyInitializing {
         __Pausable_init();
-        _setPauser(_pauser);
+        _setPauser(pauser_);
     }
 
     /// Restricts the caller to the `pauser` role, reverting with an error for other callers
@@ -70,7 +70,7 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
     /// @dev May only be called by the `owner` role
     ///
     /// @param newPauser   The new pauser address
-    function updatePauser(address newPauser) external onlyOwner {
+    function updatePauser(address newPauser) public onlyOwner {
         _setPauser(newPauser);
     }
 

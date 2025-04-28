@@ -37,11 +37,11 @@ abstract contract DeployUtils is CommonBase {
         // Upgrade both placeholders and tell them about each other
         vm.prank(owner);
         walletProxy.upgradeToAndCall(
-            address(walletImpl), abi.encodeCall(GatewayWallet.initialize, (address(minterProxy), domain))
+            address(walletImpl), _walletInitializationCall(owner, address(minterProxy), domain)
         );
         vm.prank(owner);
         minterProxy.upgradeToAndCall(
-            address(minterImpl), abi.encodeCall(GatewayMinter.initialize, (address(walletProxy), domain))
+            address(minterImpl), _minterInitializationCall(owner, address(walletProxy), domain)
         );
         vm.stopPrank();
 
@@ -55,9 +55,7 @@ abstract contract DeployUtils is CommonBase {
         UpgradeablePlaceholder walletProxy = deployPlaceholder(owner);
         GatewayWallet walletImpl = new GatewayWallet();
         vm.prank(owner);
-        walletProxy.upgradeToAndCall(
-            address(walletImpl), abi.encodeCall(GatewayWallet.initialize, (address(0), domain))
-        );
+        walletProxy.upgradeToAndCall(address(walletImpl), _walletInitializationCall(owner, address(0), domain));
         return GatewayWallet(address(walletProxy));
     }
 
@@ -65,9 +63,7 @@ abstract contract DeployUtils is CommonBase {
         UpgradeablePlaceholder minterProxy = deployPlaceholder(owner);
         GatewayMinter minterImpl = new GatewayMinter();
         vm.prank(owner);
-        minterProxy.upgradeToAndCall(
-            address(minterImpl), abi.encodeCall(GatewayMinter.initialize, (address(0), domain))
-        );
+        minterProxy.upgradeToAndCall(address(minterImpl), _minterInitializationCall(owner, address(0), domain));
         return GatewayMinter(address(minterProxy));
     }
 
@@ -83,5 +79,60 @@ abstract contract DeployUtils is CommonBase {
         UpgradeablePlaceholder placeholder = new UpgradeablePlaceholder();
         ERC1967Proxy proxy = new ERC1967Proxy(address(placeholder), initData);
         return UpgradeablePlaceholder(address(proxy));
+    }
+
+    function _walletInitializationCall(address owner, address minter, uint32 domain)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodeCall(
+            GatewayWallet.initialize,
+            (
+                owner, // pauser
+                owner, // denylister
+                minter, // minter contract
+                _initiallySupportedTokens(), // supported tokens
+                domain, // domain
+                0, // withdrawal delay
+                owner, // burn signer
+                owner // fee recipient
+            )
+        );
+    }
+
+    function _minterInitializationCall(address owner, address wallet, uint32 domain)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodeCall(
+            GatewayMinter.initialize,
+            (
+                owner, // pauser
+                owner, // denylister
+                wallet, // wallet contract
+                _initiallySupportedTokens(), // supported tokens
+                domain, // domain
+                owner, // mint authorization signer
+                _initialTokenMintAuthorities() // token mint authorities
+            )
+        );
+    }
+
+    function _initiallySupportedTokens() internal pure returns (address[] memory) {
+        address[] memory tokens = new address[](3);
+        tokens[0] = address(0xaaaa);
+        tokens[1] = address(0xbbbb);
+        tokens[2] = address(0xcccc);
+        return tokens;
+    }
+
+    function _initialTokenMintAuthorities() internal pure returns (address[] memory) {
+        address[] memory authorities = new address[](3);
+        authorities[0] = address(0x1111);
+        authorities[1] = address(0);
+        authorities[2] = address(0x3333);
+        return authorities;
     }
 }

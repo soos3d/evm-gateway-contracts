@@ -47,15 +47,28 @@ contract GatewayCommon is
         _disableInitializers();
     }
 
-    /// Initializes the contract, setting the counterpart to the given address, the pauser to the owner initially,
-    /// and the domain to the given domain
+    /// Initializes the contract and all of its modules, in the order of inheritance
     ///
-    /// @param counterpart   The address of the counterpart contract (either `GatewayWallet` or `GatewayMinter`)
-    /// @param domain        The operator-issued identifier for this chain
-    function __GatewayCommon_init(address counterpart, uint32 domain) internal onlyInitializing {
-        __Pausing_init(owner());
-        __Counterpart_init(counterpart);
-        __Domain_init(domain);
+    /// @dev Assumes the contract is being deployed behind a proxy and that proxy has already been initialized using the
+    ///      `UpgradeablePlaceholder` contract
+    ///
+    /// @param pauser_            The address to initialize the pauser role
+    /// @param denylister_        The address to initialize the denylister role
+    /// @param counterpart_       The address of the counterpart contract (either `GatewayWallet` or `GatewayMinter`)
+    /// @param supportedTokens_   The list of tokens to support initially
+    /// @param domain_            The operator-issued identifier for this chain
+    function __GatewayCommon_init(
+        address pauser_,
+        address denylister_,
+        address counterpart_,
+        address[] calldata supportedTokens_,
+        uint32 domain_
+    ) internal onlyInitializing {
+        __Pausing_init(pauser_);
+        __Denylist_init(denylister_);
+        __Counterpart_init(counterpart_);
+        __TokenSupport_init(supportedTokens_);
+        __Domain_init(domain_);
     }
 
     /// Implements the UUPS upgrade pattern by restricting upgrades to the owner

@@ -67,6 +67,13 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances, Delega
     /// Thrown with a withdrawal is attempted that exceeds the available balance
     error WithdrawalValueExceedsAvailableBalance();
 
+    /// Initializes the underlying `WithdrawalDelay` module
+    ///
+    /// @param withdrawalDelay_   The initial value for the delay, in blocks
+    function __Withdrawals_init(uint256 withdrawalDelay_) internal onlyInitializing {
+        __WithdrawalDelay_init(withdrawalDelay_);
+    }
+
     /// Starts the withdrawal process. After `withdrawalDelay`, `withdraw` may be called to complete the withdrawal.
     /// Once a withdrawal has been initiated, that amount can no longer be used. Repeated calls will add to the amount
     /// and reset the timer.
