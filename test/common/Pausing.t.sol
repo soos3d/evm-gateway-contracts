@@ -31,10 +31,6 @@ contract PausingHarness is Pausing {
         __Pausing_init(pauser);
     }
 
-    function getPauserFromStorage() public view returns (address) {
-        return PausingStorage.get().pauser;
-    }
-
     // Helper function to specifically test the modifier whenNotPaused
     function verifyWhenNotPausedModifier() public whenNotPaused {}
 
@@ -70,7 +66,7 @@ contract PausingTest is Test {
     }
 
     function testInitialization_success() public {
-        assertEq(pausing.getPauserFromStorage(), address(0), "Pauser should be zero address before initialization");
+        assertEq(pausing.pauser(), address(0), "Pauser should be zero address before initialization");
 
         vm.expectEmit(false, false, false, true);
         emit Pausing.PauserUpdated(pauser);

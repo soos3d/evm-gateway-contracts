@@ -45,10 +45,17 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
 
     /// Restricts the caller to the `pauser` role, reverting with an error for other callers
     modifier onlyPauser() {
-        if (PausingStorage.get().pauser != msg.sender) {
+        if (pauser() != msg.sender) {
             revert UnauthorizedPauser(msg.sender);
         }
         _;
+    }
+
+    /// The address with the `pauser` role that can pause and unpause the contract
+    ///
+    /// @return   The address of the pauser
+    function pauser() public view returns (address) {
+        return PausingStorage.get().pauser;
     }
 
     /// Pauses the contract
