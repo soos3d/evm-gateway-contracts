@@ -28,6 +28,14 @@ contract TransferSpecHashes {
     /// @param transferSpecHash   The transfer spec hash that was used
     error TransferSpecHashUsed(bytes32 transferSpecHash);
 
+    /// Whether or not a transfer spec hash has been used
+    ///
+    /// @param transferSpecHash   The transfer spec hash to check
+    /// @return                   `true` if the transfer spec hash has been used, `false` otherwise
+    function transferSpecHashUsed(bytes32 transferSpecHash) public view returns (bool) {
+        return TransferSpecHashesStorage.get().usedHashes[transferSpecHash];
+    }
+
     /// Asserts that the given transfer spec hash has not been used, reverting if it has, and marks it as used
     ///
     /// @param transferSpecHash   The transfer spec hash to check and mark
@@ -40,7 +48,7 @@ contract TransferSpecHashes {
     ///
     /// @param transferSpecHash   The transfer spec hash to check
     function _ensureTransferSpecHashNotUsed(bytes32 transferSpecHash) internal view {
-        if (TransferSpecHashesStorage.get().usedHashes[transferSpecHash]) {
+        if (transferSpecHashUsed(transferSpecHash)) {
             revert TransferSpecHashUsed(transferSpecHash);
         }
     }

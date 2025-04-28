@@ -73,6 +73,14 @@ contract TransferSpecHashesTest is Test {
         return address(proxy);
     }
 
+    function test_transferSpecHashes_marksAsUsed(uint256 seed) public {
+        TransferSpec memory spec = _createFakeTransferSpec(seed);
+        bytes32 transferSpecHash = _hashTransferSpec(spec);
+
+        transferSpecHashes.markTransferSpecHashAsUsed(transferSpecHash);
+        assertTrue(transferSpecHashes.transferSpecHashUsed(transferSpecHash));
+    }
+
     function test_transferSpecHashes_ensureTransferSpecHashNotUsedSucceedsIfNewTransferSpecHashFuzz(uint256 seed)
         public
         view
