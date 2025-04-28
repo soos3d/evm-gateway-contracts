@@ -20,7 +20,8 @@ pragma solidity ^0.8.29;
 /// @title TransferSpecHashes
 ///
 /// @notice Manages a set of "transfer spec hashes" that have been used, in order to prevent replay. A "transfer spec
-/// hash" is the `keccak256` hash of an encoded `TransferSpec` struct. This hash is also used as a cross-chain identifier.
+/// hash" is the `keccak256` hash of an encoded `TransferSpec` struct. This hash is also used as a cross-chain
+/// identifier.
 contract TransferSpecHashes {
     /// Thrown when a given transfer spec hash has already been used, to prevent replay
     ///
