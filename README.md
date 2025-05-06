@@ -11,7 +11,7 @@ These are the contracts that support the Circle Gateway product. See the contrac
 
 - Run `curl -L https://foundry.paradigm.xyz | bash`
 - Follow the instructions of that command to source env file
-- run `foundryup`
+- run `foundryup --install v1.0.0`
 
 ## Test
 
