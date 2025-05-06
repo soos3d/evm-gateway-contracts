@@ -23,7 +23,7 @@ import {Mints} from "src/modules/minter/Mints.sol";
 
 /// @title GatewayMinter
 ///
-/// @notice This contract allows the minting or transferring of funds deposited in the GatewayWallet contract, either on
+/// @notice This contract allows the minting of funds deposited in the GatewayWallet contract, either on
 /// the same chain or on a different chain. Either operation requires a signed authorization from
 /// the `mintAuthorizationSigner` configured in the contract. See the documentation for the `GatewayWallet` contract for
 /// more details.
