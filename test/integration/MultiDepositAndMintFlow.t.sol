@@ -76,34 +76,30 @@ contract MultiDepositAndMintFlowTest is MultichainTestUtils {
             _signMintAuthSetWithTransferSpec(transferSpecs, ethereum.minterMintSignerKey);
 
         // On Ethereum: Mint using mint authorization
-        uint256 expectedTotalSupplyIncrement = MINT_AMOUNT * 2; // 2 cross chain transfers
-        uint256 expectedRecipientBalanceIncrement = MINT_AMOUNT * 3; // 3 transfers total
-        uint256 expectedDepositorBalanceDecrement = MINT_AMOUNT; // depositor balance reduces due to same chain transfer
-        _mintFromChain(
-            ethereum,
-            encodedMintAuth,
-            mintSignature,
-            expectedTotalSupplyIncrement,
-            expectedRecipientBalanceIncrement,
-            expectedDepositorBalanceDecrement
-        );
+        _mintFromChain(ethereum, encodedMintAuth, mintSignature, MINT_AMOUNT * 3 /* expected total minted amount */ );
 
         // On each fork: Burn used amount
         _burnFromChain(
             arbitrum,
             encodedBurnAuth,
             burnSignature,
-            MINT_AMOUNT, /* expected total supply decrement */
-            MINT_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
+            MINT_AMOUNT, /* expected total burnt amount */
+            FEE_AMOUNT /* expected total fee amount */
         );
         _burnFromChain(
             base,
             encodedBurnAuth,
             burnSignature,
-            MINT_AMOUNT, /* expected total supply decrement */
-            MINT_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
+            MINT_AMOUNT, /* expected total burnt amount */
+            FEE_AMOUNT /* expected total fee amount */
         );
-        // Skip burn on Ethereum due to same chain transfer
+        _burnFromChain(
+            ethereum,
+            encodedBurnAuth,
+            burnSignature,
+            MINT_AMOUNT, /* expected total burnt amount */
+            FEE_AMOUNT /* expected total fee amount */
+        );
     }
 
     function test_depositOnOneChainAndMintOnMultiple() public {
@@ -142,38 +138,18 @@ contract MultiDepositAndMintFlowTest is MultichainTestUtils {
             _signMintAuthWithTransferSpec(transferSpecs[2], ethereum.minterMintSignerKey);
 
         // On each fork: Use mint authorization
-        _mintFromChain(
-            arbitrum,
-            encodedMintAuth0,
-            mintSignature0,
-            MINT_AMOUNT, /* expected supply increment */
-            MINT_AMOUNT, /* expected recipient balance increment */
-            0 /* expected depositor balance decrement */
-        );
-        _mintFromChain(
-            base,
-            encodedMintAuth1,
-            mintSignature1,
-            MINT_AMOUNT, /* expected supply increment */
-            MINT_AMOUNT, /* expected recipient balance increment */
-            0 /* expected depositor balance decrement */
-        );
+        _mintFromChain(arbitrum, encodedMintAuth0, mintSignature0, MINT_AMOUNT /* expected total minted amount */ );
+        _mintFromChain(base, encodedMintAuth1, mintSignature1, MINT_AMOUNT /* expected total minted amount */ );
         _mintFromChain( // same chain transfer
-            ethereum,
-            encodedMintAuth2,
-            mintSignature2,
-            0, /* expected supply increment */
-            MINT_AMOUNT, /* expected recipient balance increment */
-            MINT_AMOUNT /* expected depositor balance decrement */
-        );
+        ethereum, encodedMintAuth2, mintSignature2, MINT_AMOUNT /* expected total minted amount */ );
 
         // On Ethereum: Burn used amount
         _burnFromChain(
             ethereum,
             encodedBurnAuth,
             burnSignature,
-            MINT_AMOUNT * 2, /* expected total supply to decrement for 2 cross chain transfers */
-            (MINT_AMOUNT + FEE_AMOUNT) * 2 /* expected depositor balance to decrement for 2 transfers plus fees */
+            MINT_AMOUNT * 3, /* expected total burnt amount */
+            FEE_AMOUNT * 3 /* expected total fee amount */
         );
     }
 }

@@ -23,6 +23,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Test} from "forge-std/Test.sol";
 import {GatewayMinter} from "src/GatewayMinter.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/MintAuthorizations.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/authorizations/TransferSpec.sol";
@@ -43,22 +44,6 @@ contract MockMintableToken is ERC20 {
     function mint(address to, uint256 amount) external returns (bool) {
         _mint(to, amount);
         return true;
-    }
-}
-
-/// @notice Mock implementation of GatewayWallet for testing mints
-/// @dev Implements minimal gatewayTransfer functionality needed for tests
-contract MockGatewayWallet {
-    function gatewayTransfer(
-        address token,
-        address depositor,
-        address recipient,
-        address authorizer,
-        uint256 value,
-        bytes32 transferSpecHash
-    ) external {
-        ERC20(token).transfer(recipient, value);
-        emit Burns.GatewayTransferred(token, depositor, transferSpecHash, recipient, authorizer, value, value, 0);
     }
 }
 
@@ -88,13 +73,12 @@ contract TestMints is Test, DeployUtils {
     MintAuthorization private sameChainBaseAuth;
 
     GatewayMinter private minter;
-    MockGatewayWallet private wallet;
+    GatewayWallet private wallet;
 
     function setUp() public {
         domain = ForkTestUtils.forkVars().domain;
         usdc = FiatTokenV2_2(ForkTestUtils.forkVars().usdc);
-        minter = deployMinterOnly(owner, domain);
-        wallet = new MockGatewayWallet();
+        (wallet, minter) = deploy(owner, domain);
         mockToken = new MockMintableToken();
 
         (mintAuthorizationSigner, mintAuthorizationSignerKey) = makeAddrAndKey("mintAuthorizationSigner");

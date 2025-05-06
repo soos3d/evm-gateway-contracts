@@ -703,48 +703,6 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
     }
 
-    function test_gatewayBurn_singleAuth_revertIfSameDestinationDomain() public {
-        BurnAuthorization memory sameDestDomainAuth = baseAuth;
-        sameDestDomainAuth.spec.destinationDomain = domain; // The same domain as source
-
-        bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(sameDestDomainAuth);
-        bytes memory signature = _signAuthOrAuthSet(encodedAuth, depositorKey);
-
-        bytes[] memory authorizations = new bytes[](1);
-        authorizations[0] = encodedAuth;
-        bytes[] memory signatures = new bytes[](1);
-        signatures[0] = signature;
-        uint256[][] memory fees = new uint256[][](1);
-        fees[0] = new uint256[](1);
-        fees[0][0] = baseAuth.maxFee;
-
-        vm.expectRevert(Burns.NoRelevantBurnAuthorizations.selector);
-        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
-    }
-
-    function test_gatewayBurn_singleAuthSet_revertIfSameDestinationDomain() public {
-        BurnAuthorization memory sameDestDomainAuth = baseAuth;
-        sameDestDomainAuth.spec.destinationDomain = domain; // The same domain as source
-
-        BurnAuthorization[] memory auths = new BurnAuthorization[](2);
-        auths[0] = sameDestDomainAuth;
-        auths[1] = sameDestDomainAuth;
-        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: auths});
-        bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-
-        bytes[] memory authorizations = new bytes[](1);
-        authorizations[0] = encodedAuthSet;
-        bytes[] memory signatures = new bytes[](1);
-        signatures[0] = _signAuthOrAuthSet(encodedAuthSet, depositorKey);
-        uint256[][] memory fees = new uint256[][](1);
-        fees[0] = new uint256[](2);
-        fees[0][0] = baseAuth.maxFee;
-        fees[0][1] = baseAuth.maxFee;
-
-        vm.expectRevert(Burns.NoRelevantBurnAuthorizations.selector);
-        _callGatewayBurnSignedBy(authorizations, signatures, fees, burnSignerKey);
-    }
-
     // ===== Insufficient Balance Tests =====
 
     struct AuthSetInsufficientBalanceTestData {

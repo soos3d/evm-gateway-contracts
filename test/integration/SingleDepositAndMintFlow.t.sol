@@ -55,22 +55,15 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
             _signMintAuthWithTransferSpec(transferSpec, arbitrum.minterMintSignerKey);
 
         // On Arbitrum: Mint using mint authorization
-        _mintFromChain(
-            arbitrum,
-            encodedMintAuth,
-            mintSignature,
-            MINT_AMOUNT, /* expected supply increment */
-            MINT_AMOUNT, /* expected recipient balance increment */
-            0 /* expected depositor balance decrement */
-        );
+        _mintFromChain(arbitrum, encodedMintAuth, mintSignature, MINT_AMOUNT /* expected minted amount */ );
 
         // On Ethereum: Burn used amount
         _burnFromChain(
             ethereum,
             encodedBurnAuth,
             burnSignature,
-            MINT_AMOUNT, /* expected total supply decrement */
-            MINT_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
+            MINT_AMOUNT, /* expected total burnt amount */
+            FEE_AMOUNT /* expected total fee amount */
         );
     }
 
@@ -109,26 +102,19 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
             _signMintAuthWithTransferSpec(transferSpec, arbitrum.minterMintSignerKey);
 
         // On Arbitrum: Mint using mint authorization
-        _mintFromChain(
-            arbitrum,
-            encodedMintAuth,
-            mintSignature,
-            MINT_AMOUNT, /* expected supply increment */
-            MINT_AMOUNT, /* expected recipient balance increment */
-            0 /* expected depositor balance decrement */
-        );
+        _mintFromChain(arbitrum, encodedMintAuth, mintSignature, MINT_AMOUNT /* expected minted amount */ );
 
         // On Ethereum: Burn used amount
         _burnFromChain(
             ethereum,
             encodedBurnAuth,
             burnSignature,
-            MINT_AMOUNT, /* expected total supply decrement */
-            MINT_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
+            MINT_AMOUNT, /* expected total burnt amount */
+            FEE_AMOUNT /* expected total fee amount */
         );
     }
 
-    function test_depositAndSameChainTransfer() public {
+    function test_depositAndSameChainMintAndBurn() public {
         // On Ethereum:
         vm.selectFork(ethereum.forkId);
 
@@ -169,25 +155,15 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
 
         // On Ethereum: mint on the same chain using mint authorization
         _mintFromChain( // same chain transfer
-            ethereum,
-            encodedMintAuth,
-            mintSignature,
-            0, /* no supply increment for same chain transfer */
-            MINT_AMOUNT, /* expected recipient balance increment */
-            MINT_AMOUNT /* expected depositor balance decrement */
-        );
+        ethereum, encodedMintAuth, mintSignature, MINT_AMOUNT /* expected minted amount */ );
 
         // On Ethereum: Burn used amount
-        uint256 numAuths = 1;
-        bytes[] memory allBurnAuths = new bytes[](numAuths);
-        allBurnAuths[0] = encodedBurnAuth;
-        bytes[] memory allSignatures = new bytes[](numAuths);
-        allSignatures[0] = burnSignature;
-        uint256[][] memory fees = _createFees(allBurnAuths, FEE_AMOUNT);
-
-        vm.expectRevert(Burns.NoRelevantBurnAuthorizations.selector);
-        bytes memory burnSignerSignature =
-            _signBurnAuthorizations(allBurnAuths, allSignatures, fees, ethereum.walletBurnSignerKey);
-        ethereum.wallet.gatewayBurn(allBurnAuths, allSignatures, fees, burnSignerSignature);
+        _burnFromChain(
+            ethereum,
+            encodedBurnAuth,
+            burnSignature,
+            MINT_AMOUNT, /* expected total burnt amount */
+            FEE_AMOUNT /* expected total fee amount */
+        );
     }
 }

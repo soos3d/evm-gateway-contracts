@@ -184,24 +184,22 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         ChainSetup memory chain,
         bytes memory encodedBurnAuth,
         bytes memory burnSignature,
-        uint256 expectedTotalSupplyDecrement,
-        uint256 expectedDepositorBalanceDecrement
+        uint256 expectedTotalBurntAmount,
+        uint256 expectedTotalFeeAmount
     ) internal {
         bytes[] memory allBurnAuths = new bytes[](1);
         allBurnAuths[0] = encodedBurnAuth;
         bytes[] memory allSignatures = new bytes[](1);
         allSignatures[0] = burnSignature;
-        _burnFromChainMulti(
-            chain, allBurnAuths, allSignatures, expectedTotalSupplyDecrement, expectedDepositorBalanceDecrement
-        );
+        _burnFromChainMulti(chain, allBurnAuths, allSignatures, expectedTotalBurntAmount, expectedTotalFeeAmount);
     }
 
     function _burnFromChainMulti(
         ChainSetup memory chain,
         bytes[] memory encodedBurnAuths,
         bytes[] memory burnSignatures,
-        uint256 expectedTotalSupplyDecrement,
-        uint256 expectedDepositorBalanceDecrement
+        uint256 expectedTotalBurntAmount,
+        uint256 expectedTotalFeeAmount
     ) internal {
         vm.selectFork(chain.forkId);
 
@@ -221,17 +219,17 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         // Verify state after burn
         assertEq(
             chain.usdc.totalSupply(),
-            totalSupplyBefore - expectedTotalSupplyDecrement,
+            totalSupplyBefore - expectedTotalBurntAmount,
             "Total supply should decrease by expected amount"
         );
         assertEq(
             chain.wallet.totalBalance(address(chain.usdc), depositor),
-            depositorTotalBalanceBefore - expectedDepositorBalanceDecrement,
+            depositorTotalBalanceBefore - expectedTotalBurntAmount - expectedTotalFeeAmount,
             "Depositor balance should decrease by expected burnt amount plus fees"
         );
         assertEq(
             chain.usdc.balanceOf(chain.wallet.feeRecipient()),
-            feeRecipientBalanceBefore + (expectedDepositorBalanceDecrement - expectedTotalSupplyDecrement),
+            feeRecipientBalanceBefore + expectedTotalFeeAmount,
             "Fee recipient should receive expected fee amount"
         );
     }
@@ -240,16 +238,13 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         ChainSetup memory chain,
         bytes memory encodedMintAuth,
         bytes memory mintSignature,
-        uint256 expectedTotalSupplyIncrement,
-        uint256 expectedRecipientBalanceIncrement,
-        uint256 expectedDepositorBalanceDecrement
+        uint256 expectedTotalMinted
     ) internal {
         vm.selectFork(chain.forkId);
 
         // Record state before mint
         uint256 totalSupplyBefore = chain.usdc.totalSupply();
         uint256 recipientBalanceBefore = chain.usdc.balanceOf(recipient);
-        uint256 depositorTotalBalanceBefore = chain.wallet.totalBalance(address(chain.usdc), depositor);
 
         // Execute mint operation
         vm.prank(destinationCaller);
@@ -258,18 +253,13 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         // Verify state after mint
         assertEq(
             chain.usdc.totalSupply(),
-            totalSupplyBefore + expectedTotalSupplyIncrement,
+            totalSupplyBefore + expectedTotalMinted,
             "Total supply should increase by expected amount"
         );
         assertEq(
             chain.usdc.balanceOf(recipient),
-            recipientBalanceBefore + expectedRecipientBalanceIncrement,
+            recipientBalanceBefore + expectedTotalMinted,
             "Recipient balance should increase by total minted amount"
-        );
-        assertEq(
-            chain.wallet.totalBalance(address(chain.usdc), depositor),
-            depositorTotalBalanceBefore - expectedDepositorBalanceDecrement,
-            "Depositor balance should decrease by amount used in same chain transfer"
         );
     }
 }
