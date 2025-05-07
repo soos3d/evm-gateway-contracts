@@ -58,8 +58,7 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     }
 
     /// The balance that is available to the depositor, subject to deposits having been observed by the operator in a
-    /// finalized block and no mint authorizations having been issued but not yet burned by the operator or used on the
-    /// same chain
+    /// finalized block and no mint authorizations having been issued but not yet burned by the operator
     ///
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance

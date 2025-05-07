@@ -20,7 +20,6 @@ pragma solidity ^0.8.29;
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {GatewayCommon} from "src/GatewayCommon.sol";
-import {GatewayWallet} from "src/GatewayWallet.sol";
 import {IMintToken} from "src/interfaces/IMintToken.sol";
 import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
@@ -38,13 +37,13 @@ contract Mints is GatewayCommon {
 
     /// Emitted when a mint authorization is used
     ///
-    /// @param token              The token that was minted or transferred
+    /// @param token              The token that was minted
     /// @param recipient          The recipient of the funds
     /// @param transferSpecHash   The `keccak256` hash of the `TransferSpec`, shared with the burn authorization
     /// @param sourceDomain       The domain the funds came from
     /// @param sourceDepositor    The depositor on the source domain
     /// @param sourceSigner       The signer that authorized the transfer
-    /// @param value              The amount that was minted or transferred
+    /// @param value              The amount that was minted
     event MintAuthorizationUsed(
         address indexed token,
         address indexed recipient,
@@ -150,10 +149,10 @@ contract Mints is GatewayCommon {
         }
     }
 
-    /// Mint funds (or transfer them from the wallet contract if on the same domain) via a signed mint authorization.
-    /// Accepts either a single encoded `MintAuthorization` or several in an encoded `MintAuthorizationSet`. Emits an
-    /// event containing the `keccak256` hash of the encoded `TransferSpec` (which is the same for the corresponding
-    /// burn that will happen on the source domain), to be used as a cross-chain identifier and for replay protection.
+    /// Mint funds via a signed mint authorization. Accepts either a single encoded `MintAuthorization` or several in
+    /// an encoded `MintAuthorizationSet`. Emits an event containing the `keccak256` hash of the encoded
+    /// `TransferSpec` (which is the same for the corresponding burn that will happen on the source domain), to be
+    /// used as a cross-chain identifier and for replay protection.
     ///
     /// @dev See `MintAuthorizations.sol` for encoding details
     ///
@@ -181,7 +180,7 @@ contract Mints is GatewayCommon {
         while (!cursor.done) {
             auth = cursor.next();
             _validateMintAuthorization(auth, cursor.index - 1);
-            _mintOrTransfer(auth.getTransferSpec());
+            _mint(auth.getTransferSpec());
         }
     }
 
@@ -310,12 +309,11 @@ contract Mints is GatewayCommon {
         }
     }
 
-    /// Processes a single mint authorization according to its `TransferSpec`. If the source and destination domains
-    /// match, calls `gatewayTransfer` on the wallet contract to transfer the funds directly to the recipient. Otherwise,
-    /// mints tokens using the appropriate mint authority. Marks the transfer spec hash as used for replay protection
+    /// Executes a mint operation based on the provided `TransferSpec`. The function mints tokens through
+    /// the designated mint authority and records the transfer spec hash to prevent replay attacks
     ///
     /// @param spec   A `TypedMemView` reference to the `TransferSpec` from the mint authorization
-    function _mintOrTransfer(bytes29 spec) internal {
+    function _mint(bytes29 spec) internal {
         // Check for replay and mark this transfer spec hash as used
         bytes32 specHash = spec.getHash();
         _checkAndMarkTransferSpecHash(specHash);
@@ -328,22 +326,10 @@ contract Mints is GatewayCommon {
         bytes32 depositorBytes = spec.getSourceDepositor();
         bytes32 signerBytes = spec.getSourceSigner();
 
-        // If the source and destination domains match, call `gatewayTransfer` on the wallet contract. Otherwise, mint
-        // to the recipient using the appropriate mint authority
-        if (sourceDomain == domain()) {
-            GatewayWallet(_counterpart()).gatewayTransfer(
-                token,
-                AddressLib._bytes32ToAddress(depositorBytes),
-                recipient,
-                AddressLib._bytes32ToAddress(signerBytes),
-                value,
-                specHash
-            );
-        } else {
-            address mintAuthority = tokenMintAuthority(token);
-            address minter = (mintAuthority == address(0)) ? token : mintAuthority;
-            IMintToken(minter).mint(recipient, value);
-        }
+        // Mint to the recipient using the appropriate mint authority
+        address mintAuthority = tokenMintAuthority(token);
+        address minter = (mintAuthority == address(0)) ? token : mintAuthority;
+        IMintToken(minter).mint(recipient, value);
 
         // Emit an event with the mint authorization details
         emit MintAuthorizationUsed(token, recipient, specHash, sourceDomain, depositorBytes, signerBytes, value);

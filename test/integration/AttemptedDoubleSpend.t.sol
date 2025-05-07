@@ -59,22 +59,15 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
             _signMintAuthWithTransferSpec(transferSpec, arbitrum.minterMintSignerKey);
 
         // On Arbitrum: Mint using mint authorization
-        _mintFromChain(
-            arbitrum,
-            encodedMintAuth,
-            mintSignature,
-            MINT_AMOUNT, /* expected total supply increment */
-            MINT_AMOUNT, /* expected recipient balance increment */
-            0 /* expected depositor balance decrement */
-        );
+        _mintFromChain(arbitrum, encodedMintAuth, mintSignature, MINT_AMOUNT /* expected total minted amount */ );
 
         // On Ethereum: Burn used amount
         _burnFromChain(
             ethereum,
             encodedBurnAuth,
             burnSignature,
-            MINT_AMOUNT, /* expected total supply decrement */
-            MINT_AMOUNT + FEE_AMOUNT /* expected depositor balance decrement */
+            MINT_AMOUNT, /* expected total burnt amount */
+            FEE_AMOUNT /* expected total fee amount */
         );
 
         uint256 expectedRemainingBalance = DEPOSIT_AMOUNT - MINT_AMOUNT - FEE_AMOUNT;

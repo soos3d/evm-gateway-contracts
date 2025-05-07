@@ -66,28 +66,6 @@ contract Burns is GatewayCommon, Balances, Delegation {
         uint256 fromWithdrawing
     );
 
-    /// Emitted when a mint authorization is used on the same chain as its source, resulting in a transfer of the funds
-    /// to the recipient instead of a mint
-    ///
-    /// @param token              The token that was transferred
-    /// @param depositor          The depositor who owned the balance
-    /// @param transferSpecHash   The `keccak256` hash of the `TransferSpec`
-    /// @param recipient          The recipient of the funds
-    /// @param signer             The address that authorized the transfer
-    /// @param value              The value transferred to the recipient
-    /// @param fromAvailable      The value transferred from the `available` balance
-    /// @param fromWithdrawing    The value transferred from the `withdrawing` balance
-    event GatewayTransferred(
-        address indexed token,
-        address indexed depositor,
-        bytes32 indexed transferSpecHash,
-        address recipient,
-        address signer,
-        uint256 value,
-        uint256 fromAvailable,
-        uint256 fromWithdrawing
-    );
-
     /// Emitted when the depositor does not have a sufficient balance to cover what needs to be burned. This should
     /// never happen under normal circumstances.
     ///
@@ -170,9 +148,6 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @param actualSigner   The signer that was recovered from the signature
     error InvalidAuthorizationSourceSignerAtIndex(uint32 index, address authSigner, address actualSigner);
 
-    /// Thrown during `gatewayTransfer` when the depositor's balance is insufficient to fulfill the `TransferSpec`
-    error InsufficientBalanceForTransfer();
-
     /// Initializes the `burnSigner` and `feeRecipient` roles
     ///
     /// @param burnSigner_     The address to initialize the `burnSigner` role
@@ -220,37 +195,6 @@ contract Burns is GatewayCommon, Balances, Delegation {
         for (uint256 i = 0; i < authorizations.length; i++) {
             _validateAndProcessAuthorizationPayload(authorizations[i], signatures[i], fees[i]);
         }
-    }
-
-    /// Transfers funds to the recipient specified in a mint authorization being used on the same chain
-    ///
-    /// @dev The caller must be the `minterContract`
-    /// @dev Source and destination domains must match this contract's domain (enforced by `minterContract`)
-    /// @dev No fee is charged for same-chain transfers
-    ///
-    /// @param token              The token being transferred
-    /// @param depositor          The owner of the funds being transferred
-    /// @param recipient          The recipient of the transfer
-    /// @param signer             The address that authorized the transfer
-    /// @param value              The amount being transferred
-    /// @param transferSpecHash   The `keccak256` hash of the `TransferSpec`
-    function gatewayTransfer(
-        address token,
-        address depositor,
-        address recipient,
-        address signer,
-        uint256 value,
-        bytes32 transferSpecHash
-    )
-        external
-        whenNotPaused
-        onlyCounterpart
-        tokenSupported(token)
-        notDenylisted(depositor)
-        notDenylisted(signer)
-        authorizedForBalance(token, depositor, signer)
-    {
-        _gatewayTransfer(token, depositor, recipient, signer, value, transferSpecHash);
     }
 
     /// Returns the byte encoding of a single burn authorization
@@ -438,7 +382,6 @@ contract Burns is GatewayCommon, Balances, Delegation {
             bytes29 spec = auth.getTransferSpec();
 
             // Validate that everything about the burn authorization is as expected, skipping if it's not for this domain
-            // or if it is for a same-chain transfer
             bool relevant = _validateBurnAuthorization(auth, signer, fees[index], index);
             if (!relevant) {
                 continue;
@@ -502,11 +445,6 @@ contract Burns is GatewayCommon, Balances, Delegation {
         // caller so it can be skipped
         uint32 domain = spec.getSourceDomain();
         if (!_isCurrentDomain(domain)) {
-            return false;
-        }
-
-        // If the burn authorization is for a same-chain transfer, the burn should not be processed
-        if (domain == spec.getDestinationDomain()) {
             return false;
         }
 
@@ -613,37 +551,6 @@ contract Burns is GatewayCommon, Balances, Delegation {
 
         // Return the amount that was actually deducted and the actual fee charged
         return (deductedAmount, actualFeeCharged);
-    }
-
-    /// Internal implementation of `gatewayTransfer`
-    ///
-    /// @dev Assumes the caller has already verified all preconditions
-    ///
-    /// @param token              The token being transferred
-    /// @param depositor          The owner of the funds being transferred
-    /// @param recipient          The recipient of the transfer
-    /// @param signer             The address that authorized the transfer
-    /// @param value              The amount being transferred
-    /// @param transferSpecHash   The `keccak256` hash of the `TransferSpec`
-    function _gatewayTransfer(
-        address token,
-        address depositor,
-        address recipient,
-        address signer,
-        uint256 value,
-        bytes32 transferSpecHash
-    ) internal {
-        (uint256 fromAvailable, uint256 fromWithdrawing) = _reduceBalance(token, depositor, value);
-
-        if (fromAvailable + fromWithdrawing != value) {
-            revert InsufficientBalanceForTransfer();
-        }
-
-        IERC20(token).safeTransfer(recipient, value);
-
-        emit GatewayTransferred(
-            token, depositor, transferSpecHash, recipient, signer, value, fromAvailable, fromWithdrawing
-        );
     }
 }
 

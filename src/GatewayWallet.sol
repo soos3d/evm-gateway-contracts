@@ -39,10 +39,9 @@ import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
 /// destination, and may be composed with other actions via a multicall contract or SCA implementation. A fee is
 /// deducted from the user's balance within the `GatewayWallet` contract in addition to the requested amount.
 ///
-/// @notice To withdraw funds on the same chain, the user may request an authorization from the API just like any other
-/// mint authorization. If the source and destination domains of the mint authorization are the same, the minter
-/// contract will call `gatewayTransfer` on this contract to transfer the funds to the recipient instead of minting. No
-/// fee is charged for these transfers.
+/// @notice For same-chain withdrawals, users can obtain an API authorization similar to cross-chain mints. They then call
+/// `gatewayMint` on the `GatewayMinter` contract to receive their funds at their specified address, while their original
+/// deposit in the `GatewayWallet` contract is subsequently burned.
 ///
 /// @notice To ensure funds are withdrawable even if the API is unavailable, users may withdraw permissionlessly using a
 /// two-step process. First, the user must call `initiateWithdrawal` with the desired withdrawal amount. After a delay,

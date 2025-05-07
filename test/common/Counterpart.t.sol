@@ -33,9 +33,6 @@ contract CounterpartHarness is Counterpart {
     function counterpart() public view returns (address) {
         return _counterpart();
     }
-
-    // Helper function to specifically test the modifier onlyCounterpart
-    function verifyCounterpartModifier() public onlyCounterpart {}
 }
 
 contract CounterpartTest is Test {
@@ -78,23 +75,6 @@ contract CounterpartTest is Test {
 
         vm.startPrank(random);
         counterpart.updateCounterpart(counterpartAddress);
-        vm.stopPrank();
-    }
-
-    function testOnlyCounterpartModifier_success() public {
-        counterpart.initialize(owner, counterpartAddress);
-
-        vm.startPrank(counterpartAddress);
-        counterpart.verifyCounterpartModifier();
-        vm.stopPrank();
-    }
-
-    function testOnlyCounterpartModifier_revertIfNotCounterPartAddress() public {
-        address random = makeAddr("random");
-        vm.expectRevert(abi.encodeWithSelector(Counterpart.UnauthorizedCounterpart.selector, random));
-
-        vm.startPrank(random);
-        counterpart.verifyCounterpartModifier();
         vm.stopPrank();
     }
 }
