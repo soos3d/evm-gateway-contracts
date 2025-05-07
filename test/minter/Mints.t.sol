@@ -32,7 +32,6 @@ import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 import {Mints} from "src/modules/minter/Mints.sol";
-import {Burns} from "src/modules/wallet/Burns.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {MasterMinter} from "./../mock_fiattoken/contracts/minting/MasterMinter.sol";

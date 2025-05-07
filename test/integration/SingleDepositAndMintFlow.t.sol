@@ -18,7 +18,6 @@
 pragma solidity ^0.8.29;
 
 import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
-import {Burns} from "src/modules/wallet/Burns.sol";
 import {MultichainTestUtils} from "./../util/MultichainTestUtils.sol";
 
 contract SingleDepositAndMintFlowTest is MultichainTestUtils {
