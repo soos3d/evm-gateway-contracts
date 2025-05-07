@@ -84,7 +84,6 @@ contract TestMints is Test, DeployUtils {
         (mintAuthorizationSigner, mintAuthorizationSignerKey) = makeAddrAndKey("mintAuthorizationSigner");
         vm.startPrank(owner);
         {
-            minter.updateCounterpart(address(wallet));
             minter.addSupportedToken(address(usdc));
             minter.addSupportedToken(address(mockToken));
             minter.updateDenylister(owner);

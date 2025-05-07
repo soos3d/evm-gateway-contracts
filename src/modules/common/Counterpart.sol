@@ -30,11 +30,6 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
     /// @param newCounterpart   The new counterpart address
     event CounterpartUpdated(address newCounterpart);
 
-    /// Thrown when the counterpart is expected, but an unauthorized caller is used
-    ///
-    /// @param caller   The address of the unauthorized caller
-    error UnauthorizedCounterpart(address caller);
-
     /// Initializes the `counterpart` contract address
     ///
     /// @param counterpart_   The counterpart address
@@ -42,26 +37,11 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
         _setCounterpart(counterpart_);
     }
 
-    /// Restricts the caller to the `counterpart` role, reverting with an error for other callers
-    modifier onlyCounterpart() {
-        _ensureIsCounterpart(msg.sender);
-        _;
-    }
-
     /// Updates the counterpart (only callable by the owner)
     ///
     /// @param newCounterpart   The new counterpart contract address
     function updateCounterpart(address newCounterpart) public onlyOwner {
         _setCounterpart(newCounterpart);
-    }
-
-    /// Ensures that the given address is the counterpart contract
-    ///
-    /// @param addr   The address to check
-    function _ensureIsCounterpart(address addr) internal view {
-        if (_counterpart() != addr) {
-            revert UnauthorizedCounterpart(addr);
-        }
     }
 
     /// Returns the counterpart address
