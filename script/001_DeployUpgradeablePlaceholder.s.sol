@@ -49,7 +49,9 @@ contract DeployUpgradeablePlaceholder is BaseBytecodeDeployScript {
         // First deploy the placeholder implementation
         bool exists;
         address deployedAddress;
-        (exists, deployedAddress) = deployContract("UpgradeablePlaceholder.json", bytes32(0), bytes(""), EXPECTED_WALLET_PLACEHOLDER_IMPL_ADDRESS);
+        (exists, deployedAddress) = deployContract(
+            "UpgradeablePlaceholder.json", bytes32(0), bytes(""), EXPECTED_WALLET_PLACEHOLDER_IMPL_ADDRESS
+        );
         if (exists) {
             console.log("Wallet placeholder implementation already deployed at", deployedAddress);
         } else {
@@ -60,7 +62,10 @@ contract DeployUpgradeablePlaceholder is BaseBytecodeDeployScript {
         (exists, deployedAddress) = deployContract(
             "ERC1967Proxy.json",
             bytes32(0xab43ca3aeb90abc29a32d7d694048dbe70e318b860b06c237e0127f5ef0faeb9),
-            abi.encode(EXPECTED_WALLET_PLACEHOLDER_IMPL_ADDRESS, abi.encodeWithSignature("initialize(address)", temporaryWalletOwner)),
+            abi.encode(
+                EXPECTED_WALLET_PLACEHOLDER_IMPL_ADDRESS,
+                abi.encodeWithSignature("initialize(address)", temporaryWalletOwner)
+            ),
             EXPECTED_WALLET_PROXY_ADDRESS
         );
         if (exists) {
@@ -71,7 +76,9 @@ contract DeployUpgradeablePlaceholder is BaseBytecodeDeployScript {
 
         // Deploy minter placeholder implementation and proxy
         // First deploy the placeholder implementation. Use a different salt to avoid collision with the wallet placeholder implementation.
-        (exists, deployedAddress) = deployContract("UpgradeablePlaceholder.json", bytes32(uint256(1)), bytes(""), EXPECTED_MINTER_PLACEHOLDER_IMPL_ADDRESS);
+        (exists, deployedAddress) = deployContract(
+            "UpgradeablePlaceholder.json", bytes32(uint256(1)), bytes(""), EXPECTED_MINTER_PLACEHOLDER_IMPL_ADDRESS
+        );
         if (exists) {
             console.log("Minter placeholder implementation already deployed at", deployedAddress);
         } else {
@@ -82,7 +89,10 @@ contract DeployUpgradeablePlaceholder is BaseBytecodeDeployScript {
         (exists, deployedAddress) = deployContract(
             "ERC1967Proxy.json",
             bytes32(0x499508b504993bc2fdab3f6188e1b9969b2d9653ea6021d41953ae668257bedf),
-            abi.encode(EXPECTED_MINTER_PLACEHOLDER_IMPL_ADDRESS, abi.encodeWithSignature("initialize(address)", temporaryMinterOwner)),
+            abi.encode(
+                EXPECTED_MINTER_PLACEHOLDER_IMPL_ADDRESS,
+                abi.encodeWithSignature("initialize(address)", temporaryMinterOwner)
+            ),
             EXPECTED_MINTER_PROXY_ADDRESS
         );
         if (exists) {

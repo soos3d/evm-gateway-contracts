@@ -23,7 +23,6 @@ import {Script, console} from "forge-std/Script.sol";
 /// @notice Base contract for deploying contracts using CREATE2 factory with deterministic addresses
 /// @dev Abstract contract that provides functionality for deploying contracts with predetermined addresses
 abstract contract BaseBytecodeDeployScript is Script {
-
     /// @notice Deploys a contract using CREATE2 factory with a predetermined address
     /// @dev If the contract already exists at the expected address, returns the existing contract
     /// @param contractFileName Name of the contract's compiled artifact file
@@ -32,7 +31,10 @@ abstract contract BaseBytecodeDeployScript is Script {
     /// @param expectedAddress The predetermined address where the contract should be deployed
     /// @return exists Boolean indicating if contract already existed
     /// @return deployedAddress Address where the contract is deployed or exists
-    function deployContract(string memory contractFileName, bytes32 salt, bytes memory args, address expectedAddress) internal returns (bool exists, address deployedAddress) {
+    function deployContract(string memory contractFileName, bytes32 salt, bytes memory args, address expectedAddress)
+        internal
+        returns (bool exists, address deployedAddress)
+    {
         // Check if contract already exists at the expected address
         if (expectedAddress.code.length == 0) {
             exists = false;
@@ -44,7 +46,7 @@ abstract contract BaseBytecodeDeployScript is Script {
             // Extract bytecode from the compiled contract artifact.
             // Foundry compiled artifact file uses JSON format. The bytecode is stored in a second-level key (".bytecode.object") in the json file.
             bytes memory initCode = abi.decode(vm.parseJson(json, ".bytecode.object"), (bytes));
-            
+
             // Deploy contract using CREATE2 factory.
             // Foundry's CREATE2 factory expects the deployment data to be encoded as follows: salt + contract bytecode + constructor arguments
             bytes memory callData = abi.encodePacked(salt, initCode, args);
