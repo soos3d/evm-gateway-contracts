@@ -6,3 +6,4 @@ node_modules/
 !.yarn/releases
 lcov.info*
 block-numbers.json
+.env

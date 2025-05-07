@@ -13,6 +13,50 @@ These are the contracts that support the Circle Gateway product. See the contrac
 - Follow the instructions of that command to source env file
 - run `foundryup --install v1.0.0`
 
+## Deployment
+
+### Prerequisites
+
+Before deploying the contracts, ensure you have:
+
+1. Set up environment variables in `.env` file:
+   - `DEPLOYER_PRIVATE_KEY`: Private key of the deployer account
+   - `TEMP_GATEWAY_WALLET_PLACEHOLDER_OWNER_ADDRESS`: Temporary owner address for wallet placeholder
+   - `TEMP_GATEWAY_MINTER_PLACEHOLDER_OWNER_ADDRESS`: Temporary owner address for minter placeholder
+
+2. Verified you have sufficient funds in the deployer account for the target network
+
+### Deploy commands
+
+Deploy the GatewayWallet and GatewayMinter proxy with placeholder implementation.
+```bash
+forge script script/001_DeployUpgradeablePlaceholder.s.sol --rpc-url <RPC_URL> -vvvv --slow --broadcast --force
+```
+
+### Update Deployment scripts
+
+After smart contract auditing is done, we need to update the deployment script.
+
+#### Update compiled contract artifacts
+
+Run this following command to generate new artifacts and update the old ones
+```bash
+forge build src/UpgradeablePlaceholder.sol --force 
+cp out/UpgradeablePlaceholder.sol/UpgradeablePlaceholder.json script/compiled-contract-artifacts/UpgradeablePlaceholder.json
+```
+
+#### Update contract address
+
+Set addresses in `script/000_ContractAddress.sol` to `address(0)` to trigger new deployment. Update this file after new addresses are created.
+
+#### Find new slats
+
+Find slats that creates gas-efficient proxy addresses via:
+```bash
+cast create2 --starts-with 00000000 --init-code-hash <PLACEHOLDER_IMPL_INITCODE_HASH>
+```
+`PLACEHOLDER_IMPL_INITCODE_HASH` is keccak256 hash of `UpgradeablePlaceholder.sol` initcode + abi-encoded constuctor argument.
+
 ## Test
 
 ### Unit Tests and Fork Tests (Foundry)
