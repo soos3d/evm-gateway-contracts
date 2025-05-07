@@ -161,23 +161,22 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// another chain. Charges a fee for the burn (which may be at most each burn authorization's `maxFee`), and sends
     /// it to the `feeRecipient`.
     ///
-    /// @dev `authorizations`, `signatures`, and `fees` must all be the same length
+    /// @dev The `calldataBytes` input must be ABI-encoded and contain three arrays: `authorizations`, `signatures`,
+    ///      and `fees`, where `authorizations` represent a batch of byte-encoded burn authorizations, `signatures`
+    ///      represent the signatures on the `keccak256` hash of each authorization signed by the burn authorizer, and
+    ///      `fees` represent the fees charged for each authorization.
+    /// @dev `authorizations`, `signatures`, and `fees` encoded in the `calldataBytes` input must all be the same length.
     /// @dev For a set of burn authorizations, authorizations from other domains and those inadvertently submitted for
     ///      the same domain are ignored. The whole set is still needed to verify the signature.
     /// @dev See `lib/authorizations/BurnAuthorizations.sol` for encoding details
     ///
-    /// @param authorizations    A batch of byte-encoded burn authorizations or burn authorization sets
-    /// @param signatures        One signature for each burn authorization (set)
-    /// @param fees              The fees to be collected for each burn. Fees for burns on other domains are ignored and
-    ///                          may be passed as zero. Each fee must be no more than `maxFee` of the corresponding burn
-    ///                          authorization.
-    /// @param burnerSignature   A signature from `burnSigner` on the abi-encoded first three arguments
-    function gatewayBurn(
-        bytes[] memory authorizations,
-        bytes[] memory signatures,
-        uint256[][] memory fees,
-        bytes memory burnerSignature
-    ) external whenNotPaused {
+    /// @param calldataBytes     ABI-encoded (authorizations[], signatures[], fees[][]) arrays
+    /// @param burnerSignature   Signature from `burnSigner` on `calldataBytes`
+    function gatewayBurn(bytes calldata calldataBytes, bytes calldata burnerSignature) external whenNotPaused {
+        // Decode the calldata into the authorizations, signatures, and fees arrays
+        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) =
+            abi.decode(calldataBytes, (bytes[], bytes[], uint256[][]));
+
         // Ensure there is at least one burn authorization
         if (authorizations.length == 0) {
             revert MustHaveAtLeastOneBurnAuthorization();
@@ -189,7 +188,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
         }
 
         // Verify that the calldata was signed by the expected signer
-        _verifyBurnerSignature(burnerSignature);
+        _verifyBurnerSignature(calldataBytes, burnerSignature);
 
         // Process each burn authorization (set), validating and processing each one
         for (uint256 i = 0; i < authorizations.length; i++) {
@@ -303,27 +302,15 @@ contract Burns is GatewayCommon, Balances, Delegation {
         emit FeeRecipientUpdated(oldFeeRecipient, newFeeRecipient);
     }
 
-    /// Internal function to verify the signature of the `burnSigner` on the other arguments in calldata, hashing the
-    /// arguments from calldata rather than using abi.encode (which does a lot of copying and stack manipulation).
+    /// Internal function to verify the signature of the `burnSigner` on the `calldataBytes` input
     ///
-    /// @dev Must be called only from `gatewayBurn`, to ensure the calldata is as expected
-    ///
+    /// @param calldataBytes     Calldata that includes all of authorizations, signatures, and fees
     /// @param burnerSignature   The signature from the `burnSigner` to verify
-    function _verifyBurnerSignature(bytes memory burnerSignature) internal view {
+    function _verifyBurnerSignature(bytes calldata calldataBytes, bytes calldata burnerSignature) internal view {
         // Ensure that the signature is the expected length, to correctly index into the calldata
         if (burnerSignature.length != 65) {
             revert InvalidBurnSigner();
         }
-
-        // Isolate just the arguments that are signed in the calldata by slicing `msg.data`:
-        //     - Skips over the beginning of the calldata to get to the first argument
-        //         - 4 bytes for the function selector
-        //         - 128 bytes for the 4 argument offsets
-        //         - 4 + 128 = 132 = 0x84
-        //     - Does not include the last argument (the signature itself)
-        //         - We know it is 65 bytes (verified above), so takes up 128 (0x80) bytes
-        //           (32 for the length, and 96 for the 32-byte-aligned contents)
-        bytes memory calldataBytes = msg.data[0x84:msg.data.length - 0x80];
 
         // Verify the signature and revert if it's invalid
         address recoveredSigner = ECDSA.recover(keccak256(calldataBytes).toEthSignedMessageHash(), burnerSignature);
