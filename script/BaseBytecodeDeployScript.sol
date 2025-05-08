@@ -24,44 +24,45 @@ import {Script, console} from "forge-std/Script.sol";
 /// @dev Abstract contract that provides functionality for deploying contracts with predetermined addresses
 abstract contract BaseBytecodeDeployScript is Script {
     /// @notice Deploys a contract using CREATE2 factory with a predetermined address
-    /// @dev If the contract already exists at the expected address, returns the existing contract
+    /// @dev If the contract already exists at the expected address, returns true
     /// @param contractFileName Name of the contract's compiled artifact file
     /// @param salt The salt used for CREATE2 deployment
     /// @param args The constructor arguments for the contract
     /// @param expectedAddress The predetermined address where the contract should be deployed
-    /// @return exists Boolean indicating if contract already existed
-    /// @return deployedAddress Address where the contract is deployed or exists
-    function deployContract(string memory contractFileName, bytes32 salt, bytes memory args, address expectedAddress)
-        internal
-        returns (bool exists, address deployedAddress)
-    {
+    /// @return exists Boolean indicating if contract already existed at the expected address
+    function deployContract(
+        string memory contractFileName,
+        bytes32 salt,
+        bytes memory args,
+        address expectedAddress
+    ) internal returns (bool exists) {
         // Check if contract already exists at the expected address
-        if (expectedAddress.code.length == 0) {
-            exists = false;
-            // Get project root directory and construct path to compiled contract artifact
-            string memory root = vm.projectRoot();
-            string memory path = string.concat(root, "/script/compiled-contract-artifacts/", contractFileName);
-            string memory json = vm.readFile(path);
-
-            // Extract bytecode from the compiled contract artifact.
-            // Foundry compiled artifact file uses JSON format. The bytecode is stored in a second-level key (".bytecode.object") in the json file.
-            bytes memory initCode = abi.decode(vm.parseJson(json, ".bytecode.object"), (bytes));
-
-            // Deploy contract using CREATE2 factory.
-            // Foundry's CREATE2 factory expects the deployment data to be encoded as follows: salt + contract bytecode + constructor arguments
-            bytes memory callData = abi.encodePacked(salt, initCode, args);
-            (bool success, bytes memory result) = CREATE2_FACTORY.call(callData);
-
-            if (!success) {
-                revert("Failed to deploy contract.");
-            }
-
-            // Extract deployed contract address from the result
-            deployedAddress = address(bytes20(result));
-        } else {
-            // Contract already exists, return existing address
-            exists = true;
-            deployedAddress = expectedAddress;
+        if (expectedAddress.code.length != 0) {
+            return true;
         }
+
+        exists = false;
+
+        // Get project root directory and construct path to compiled contract artifact
+        string memory root = vm.projectRoot();
+        string memory path = string.concat(root, "/script/compiled-contract-artifacts/", contractFileName);
+        string memory json = vm.readFile(path);
+
+        // Extract bytecode from the compiled contract artifact.
+        // Foundry compiled artifact file uses JSON format.
+        // The bytecode is stored in a second-level key (".bytecode.object") in the json file.
+        bytes memory initCode = abi.decode(vm.parseJson(json, ".bytecode.object"), (bytes));
+
+        // Deploy contract using CREATE2 factory.
+        // Foundry's CREATE2 factory expects the deployment data to be encoded as follows:
+        // salt + contract bytecode + constructor arguments
+        bytes memory callData = abi.encodePacked(salt, initCode, args);
+        (bool success, bytes memory result) = CREATE2_FACTORY.call(callData);
+
+        if (!success) {
+            revert("Failed to deploy contract.");
+        }
+
+        require(address(bytes20(result)) == expectedAddress, "Deployed contract address does not match expected address");
     }
 }

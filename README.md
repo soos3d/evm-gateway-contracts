@@ -26,32 +26,38 @@ Before deploying the contracts, ensure you have:
 
 2. Verified you have sufficient funds in the deployer account for the target network
 
-### Deploy commands
+### Deploy Commands
 
 Deploy the GatewayWallet and GatewayMinter proxy with placeholder implementation.
 ```bash
 forge script script/001_DeployUpgradeablePlaceholder.s.sol --rpc-url <RPC_URL> -vvvv --slow --broadcast --force
 ```
 
-### Update Deployment scripts
+### How to Update Deployment Scripts
 
-After smart contract auditing is done, we need to update the deployment script.
+After smart contract auditing is done, we need to update the deployment script and artifacts.
 
-#### Update compiled contract artifacts
+#### Update Compiled Contract Artifacts
 
-Run this following command to generate new artifacts and update the old ones
+Run the following command to generate new artifacts if `openzepplin-contracts` submodule is updated. Current commit hash is `acd4ff7`.
+```bash
+forge build lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol --force
+cp out/ERC1967Proxy.sol/ERC1967Proxy.json script/compiled-contract-artifacts/ERC1967Proxy.json
+```
+
+Run the following command to generate new artifacts for Gateway smart contracts.
 ```bash
 forge build src/UpgradeablePlaceholder.sol --force 
 cp out/UpgradeablePlaceholder.sol/UpgradeablePlaceholder.json script/compiled-contract-artifacts/UpgradeablePlaceholder.json
 ```
 
-#### Update contract address
+#### Update Contract Address
 
 Set addresses in `script/000_ContractAddress.sol` to `address(0)` to trigger new deployment. Update this file after new addresses are created.
 
-#### Find new slats
+#### Find New Salts
 
-Find slats that creates gas-efficient proxy addresses via:
+Find salts that creates gas-efficient proxy addresses via:
 ```bash
 cast create2 --starts-with 00000000 --init-code-hash <PLACEHOLDER_IMPL_INITCODE_HASH>
 ```
