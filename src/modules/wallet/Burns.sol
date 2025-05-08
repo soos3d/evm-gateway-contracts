@@ -162,9 +162,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// it to the `feeRecipient`.
     ///
     /// @dev The `calldataBytes` input must be ABI-encoded and contain three arrays: `authorizations`, `signatures`,
-    ///      and `fees`, where `authorizations` represent a batch of byte-encoded burn authorizations, `signatures`
-    ///      represent the signatures on the `keccak256` hash of each authorization signed by the burn authorizer, and
-    ///      `fees` represent the fees charged for each authorization.
+    ///      and `fees`.
     /// @dev `authorizations`, `signatures`, and `fees` encoded in the `calldataBytes` input must all be the same length.
     /// @dev For a set of burn authorizations, authorizations from other domains and those inadvertently submitted for
     ///      the same domain are ignored. The whole set is still needed to verify the signature.
@@ -177,23 +175,11 @@ contract Burns is GatewayCommon, Balances, Delegation {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) =
             abi.decode(calldataBytes, (bytes[], bytes[], uint256[][]));
 
-        // Ensure there is at least one burn authorization
-        if (authorizations.length == 0) {
-            revert MustHaveAtLeastOneBurnAuthorization();
-        }
-
-        // Ensure the top-level arrays are all of the same length. The nested arrays of fees will be checked later on.
-        if (signatures.length != authorizations.length || fees.length != authorizations.length) {
-            revert MismatchedBurn();
-        }
-
         // Verify that the calldata was signed by the expected signer
         _verifyBurnerSignature(calldataBytes, burnerSignature);
 
-        // Process each burn authorization (set), validating and processing each one
-        for (uint256 i = 0; i < authorizations.length; i++) {
-            _validateAndProcessAuthorizationPayload(authorizations[i], signatures[i], fees[i]);
-        }
+        // Process the burn authorizations
+        _gatewayBurn(authorizations, signatures, fees);
     }
 
     /// Returns the byte encoding of a single burn authorization
@@ -316,6 +302,30 @@ contract Burns is GatewayCommon, Balances, Delegation {
         address recoveredSigner = ECDSA.recover(keccak256(calldataBytes).toEthSignedMessageHash(), burnerSignature);
         if (recoveredSigner != BurnsStorage.get().burnSigner) {
             revert InvalidBurnSigner();
+        }
+    }
+
+    /// Internal function that validates and processes burn authorizations.
+    ///
+    /// @param authorizations    A batch of byte-encoded burn authorizations or burn authorization sets
+    /// @param signatures        One signature for each burn authorization (set)
+    /// @param fees              The fees to be collected for each burn. Fees for burns on other domains are ignored and
+    ///                          may be passed as zero. Each fee must be no more than `maxFee` of the corresponding burn
+    ///                          authorization.
+    function _gatewayBurn(bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) internal {
+        // Ensure there is at least one burn authorization
+        if (authorizations.length == 0) {
+            revert MustHaveAtLeastOneBurnAuthorization();
+        }
+
+        // Ensure the top-level arrays are all of the same length. The nested arrays of fees will be checked later on.
+        if (signatures.length != authorizations.length || fees.length != authorizations.length) {
+            revert MismatchedBurn();
+        }
+
+        // Process each burn authorization (set), validating and processing each one
+        for (uint256 i = 0; i < authorizations.length; i++) {
+            _validateAndProcessAuthorizationPayload(authorizations[i], signatures[i], fees[i]);
         }
     }
 
