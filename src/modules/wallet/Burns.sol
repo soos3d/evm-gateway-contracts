@@ -178,7 +178,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) =
             abi.decode(calldataBytes, (bytes[], bytes[], uint256[][]));
 
-        // Process the burn authorizations
+        // Process the burn authorizationsπ
         _gatewayBurn(authorizations, signatures, fees);
     }
 
@@ -293,7 +293,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @param calldataBytes     Calldata that includes all of authorizations, signatures, and fees
     /// @param burnerSignature   The signature from the `burnSigner` to verify
     function _verifyBurnerSignature(bytes calldata calldataBytes, bytes calldata burnerSignature) internal view {
-        // Ensure that the signature is the expected length, to correctly index into the calldata
+        // Ensure that the signature is the expected length
         if (burnerSignature.length != 65) {
             revert InvalidBurnSigner();
         }
