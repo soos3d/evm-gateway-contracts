@@ -171,12 +171,12 @@ contract Burns is GatewayCommon, Balances, Delegation {
     /// @param calldataBytes     ABI-encoded (authorizations[], signatures[], fees[][]) arrays
     /// @param burnerSignature   Signature from `burnSigner` on `calldataBytes`
     function gatewayBurn(bytes calldata calldataBytes, bytes calldata burnerSignature) external whenNotPaused {
+        // Verify that the calldata was signed by the expected signer
+        _verifyBurnerSignature(calldataBytes, burnerSignature);
+
         // Decode the calldata into the authorizations, signatures, and fees arrays
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) =
             abi.decode(calldataBytes, (bytes[], bytes[], uint256[][]));
-
-        // Verify that the calldata was signed by the expected signer
-        _verifyBurnerSignature(calldataBytes, burnerSignature);
 
         // Process the burn authorizations
         _gatewayBurn(authorizations, signatures, fees);
