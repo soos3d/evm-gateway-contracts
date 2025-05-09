@@ -18,51 +18,66 @@
 pragma solidity ^0.8.29;
 
 import {Script, console} from "forge-std/Script.sol";
+import {ICreate2Factory} from "./interface/ICreate2Factory.sol";
 
 /// @title BaseBytecodeDeployScript
 /// @notice Base contract for deploying contracts using CREATE2 factory with deterministic addresses
 /// @dev Abstract contract that provides functionality for deploying contracts with predetermined addresses
 abstract contract BaseBytecodeDeployScript is Script {
-    /// @notice Deploys a contract using CREATE2 factory with a predetermined address
-    /// @dev If the contract already exists at the expected address, returns true
-    /// @param contractFileName Name of the contract's compiled artifact file
-    /// @param salt The salt used for CREATE2 deployment
-    /// @param args The constructor arguments for the contract
+    /// @notice Deploys a contract and executes multiple calls on it using CREATE2 factory
+    /// @dev Reads bytecode from compiled artifacts, deploys with CREATE2, and executes initialization calls
+    /// @param factory The CREATE2 factory contract address
+    /// @param contractFileName Name of the contract's compiled artifact file (e.g., "Contract.json")
+    /// @param salt The salt used for CREATE2 deployment to generate deterministic address
+    /// @param args The constructor arguments for the contract deployment
+    /// @param data Array of calldata for post-deployment initialization calls
     /// @param expectedAddress The predetermined address where the contract should be deployed
-    /// @return exists Boolean indicating if contract already existed at the expected address
-    function deployContract(
+    function deployAndMultiCall(
+        address factory,
+        string memory contractFileName,
+        bytes32 salt,
+        bytes memory args,
+        bytes[] memory data,
+        address expectedAddress
+    ) internal {
+        // Check if contract already exists at the expected address
+        if (expectedAddress.code.length != 0) {
+            console.log("Contract already deployed at", expectedAddress);
+        } else {
+            // Get project root directory and construct path to compiled contract artifact
+            string memory root = vm.projectRoot();
+            string memory path = string.concat(root, "/script/compiled-contract-artifacts/", contractFileName);
+            string memory json = vm.readFile(path);
+
+            // Extract bytecode from the compiled contract artifact.
+            // Foundry compiled artifact file uses JSON format.
+            // The bytecode is stored in a second-level key (".bytecode.object") in the json file.
+            bytes memory initCode = abi.decode(vm.parseJson(json, ".bytecode.object"), (bytes));
+
+            // Prepare the complete bytecode (contract bytecode + constructor arguments)
+            bytes memory bytecode = abi.encodePacked(initCode, args);
+
+            // Deploy contract and execute post-deployment calls using CREATE2 factory
+            address deployedAddress = ICreate2Factory(factory).deployAndMultiCall(0, salt, bytecode, data);
+            require(deployedAddress == expectedAddress, "Deployed contract address does not match expected address");
+            console.log("Deployed contract address", deployedAddress);
+        }
+    }
+
+    /// @notice Deploys a contract without any post-deployment initialization calls
+    /// @dev Wrapper around deployAndMultiCall that passes an empty array for post-deployment calls
+    /// @param factory The CREATE2 factory contract address
+    /// @param contractFileName Name of the contract's compiled artifact file (e.g., "Contract.json")
+    /// @param salt The salt used for CREATE2 deployment to generate deterministic address
+    /// @param args The constructor arguments for the contract deployment
+    /// @param expectedAddress The predetermined address where the contract should be deployed
+    function deploy(
+        address factory,
         string memory contractFileName,
         bytes32 salt,
         bytes memory args,
         address expectedAddress
-    ) internal returns (bool exists) {
-        // Check if contract already exists at the expected address
-        if (expectedAddress.code.length != 0) {
-            return true;
-        }
-
-        exists = false;
-
-        // Get project root directory and construct path to compiled contract artifact
-        string memory root = vm.projectRoot();
-        string memory path = string.concat(root, "/script/compiled-contract-artifacts/", contractFileName);
-        string memory json = vm.readFile(path);
-
-        // Extract bytecode from the compiled contract artifact.
-        // Foundry compiled artifact file uses JSON format.
-        // The bytecode is stored in a second-level key (".bytecode.object") in the json file.
-        bytes memory initCode = abi.decode(vm.parseJson(json, ".bytecode.object"), (bytes));
-
-        // Deploy contract using CREATE2 factory.
-        // Foundry's CREATE2 factory expects the deployment data to be encoded as follows:
-        // salt + contract bytecode + constructor arguments
-        bytes memory callData = abi.encodePacked(salt, initCode, args);
-        (bool success, bytes memory result) = CREATE2_FACTORY.call(callData);
-
-        if (!success) {
-            revert("Failed to deploy contract.");
-        }
-
-        require(address(bytes20(result)) == expectedAddress, "Deployed contract address does not match expected address");
+    ) internal {
+        deployAndMultiCall(factory, contractFileName, salt, args, new bytes[](0), expectedAddress);
     }
 }
