@@ -178,7 +178,7 @@ contract Burns is GatewayCommon, Balances, Delegation {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) =
             abi.decode(calldataBytes, (bytes[], bytes[], uint256[][]));
 
-        // Process the burn authorizationsπ
+        // Process the burn authorizations
         _gatewayBurn(authorizations, signatures, fees);
     }
 
