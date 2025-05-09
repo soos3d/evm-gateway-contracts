@@ -19,19 +19,52 @@ These are the contracts that support the Circle Gateway product. See the contrac
 
 Before deploying the contracts, ensure you have:
 
-1. Set up environment variables in `.env` file:
-   - `DEPLOYER_PRIVATE_KEY`: Private key of the deployer account
-   - `TEMP_GATEWAY_WALLET_PLACEHOLDER_OWNER_ADDRESS`: Temporary owner address for wallet placeholder
-   - `TEMP_GATEWAY_MINTER_PLACEHOLDER_OWNER_ADDRESS`: Temporary owner address for minter placeholder
+1. Create a `.env` file from `.env.example` and set up environment variables in `.env` file.
 
 2. Verified you have sufficient funds in the deployer account for the target network
 
-### Deploy Commands
+### Local Testing for Deployment
 
-Deploy the GatewayWallet and GatewayMinter proxy with placeholder implementation.
+#### Step 1: Start a local blockchain
+
+Start a local RPC node at http://127.0.0.1:8485 by running `anvil`.
+
+#### Step 2: Deploy test Create2Factory Contract
+
+This step is no need for testnet and mainnet deployment since Create2Factory is already deployed.
+
+Run the following command to deploy a test instance of the Create2Factory contract:
+
 ```bash
-forge script script/001_DeployUpgradeablePlaceholder.s.sol --rpc-url <RPC_URL> -vvvv --slow --broadcast --force
+forge create Create2Factory -r http://127.0.0.1:8545 --broadcast --private-key $DEPLOYER_PRIVATE_KEY --constructor-args $CREATE2FACTORY_OWNER
 ```
+* `DEPLOYER_PRIVATE_KEY`: Any key from anvil pre-funded addresses.
+* `CREATE2FACTORY_OWNER`: This address should match the $DEPLOYER_ADDRESS in `.env`
+
+Add the deployed Create2Factory contract address to your `.env` file under the variable `CREATE2_FACTORY_ADDRESS`.
+
+#### Step3: Generate Deployment Transactions for `GatewayWallet` and `GatewayMinter`.
+
+Run the following command to generate deployment transactions for `GatewayWallet` and `GatewayMinter`:
+
+```bash
+forge script script/001_DeployGatewayWallet.sol --rpc-url http://127.0.0.1:8545 -vvvv --slow --force
+forge script script/001_DeployGatewayMinter.sol --rpc-url http://127.0.0.1:8545 -vvvv --slow --force
+```
+
+The generated transaction data will be available in the `broadcast/` directory and can be used for signing.
+
+### Testnet and Mainnet Deployment
+
+Run the following command to generate deployment transactions for `GatewayWallet` and `GatewayMinter`:
+
+```bash
+forge script script/001_DeployGatewayWallet.sol --rpc-url $RPC_URL -vvvv --slow --force
+forge script script/001_DeployGatewayMinter.sol --rpc-url $RPC_URL -vvvv --slow --force
+```
+* `RPC_URL`: The rpc url for the targeted blockchain
+
+The generated transaction data will be available in the `broadcast/` directory and can be used for signing.
 
 ### How to Update Deployment Scripts
 
@@ -49,6 +82,12 @@ Run the following command to generate new artifacts for Gateway smart contracts.
 ```bash
 forge build src/UpgradeablePlaceholder.sol --force 
 cp out/UpgradeablePlaceholder.sol/UpgradeablePlaceholder.json script/compiled-contract-artifacts/UpgradeablePlaceholder.json
+
+forge build src/GatewayMinter.sol --force 
+cp out/GatewayMinter.sol/GatewayMinter.json script/compiled-contract-artifacts/GatewayMinter.json
+
+forge build src/GatewayWallet.sol --force 
+cp out/GatewayWallet.sol/UpgradeablePlaceholder.json script/compiled-contract-artifacts/GatewayWallet.json
 ```
 
 #### Update Contract Address
@@ -59,9 +98,11 @@ Set addresses in `script/000_ContractAddress.sol` to `address(0)` to trigger new
 
 Find salts that creates gas-efficient proxy addresses via:
 ```bash
-cast create2 --starts-with 00000000 --init-code-hash <PLACEHOLDER_IMPL_INITCODE_HASH>
+cast create2 --starts-with $ADDRESS_PREFIX --deployer $DEPLOYER> --init-code-hash $INIT_CODE_HASH
 ```
-`PLACEHOLDER_IMPL_INITCODE_HASH` is keccak256 hash of `UpgradeablePlaceholder.sol` initcode + abi-encoded constuctor argument.
+* `ADDRESS_PREFIX` is the prefix of the address we want to find. Usually set to `00000000` for a gas-efficient address.
+* `DEPLOYER` is the address of Create2Factory.
+* `INIT_CODE_HASH` is keccak256 hash of initcode + abi-encoded constuctor argument.
 
 ## Test
 
