@@ -199,7 +199,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         bytes memory burnerSignature = _signBurnAuthorizations(authorizations, signatures, fees, signerKey);
 
         // Call gatewayBurn with the arguments and signature
-        wallet.gatewayBurn(authorizations, signatures, fees, burnerSignature);
+        wallet.gatewayBurn(abi.encode(authorizations, signatures, fees), burnerSignature);
     }
 
     function _signAuthOrAuthSet(bytes memory authOrAuthSet, uint256 signerKey)
@@ -236,7 +236,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
-        wallet.gatewayBurn(authorizations, signatures, fees, new bytes(0));
+        wallet.gatewayBurn(abi.encode(authorizations, signatures, fees), new bytes(0));
     }
 
     // ===== BurnSigner Signature Tests =====
@@ -251,7 +251,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     function test_gatewayBurn_randomArgs_wrongSignatureLength() public {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
         vm.expectRevert(Burns.InvalidBurnSigner.selector);
-        wallet.gatewayBurn(authorizations, signatures, fees, bytes(hex"aaaa"));
+        wallet.gatewayBurn(abi.encode(authorizations, signatures, fees), bytes(hex"aaaa"));
     }
 
     // ===== Authorization Structural Validation Tests =====
@@ -259,7 +259,10 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     function test_gatewayBurn_revertIfNoAuthorizations() public {
         (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) = _emptyArgs();
         vm.expectRevert(Burns.MustHaveAtLeastOneBurnAuthorization.selector);
-        wallet.gatewayBurn(authorizations, signatures, fees, new bytes(0));
+        wallet.gatewayBurn(
+            abi.encode(authorizations, signatures, fees),
+            _signBurnAuthorizations(authorizations, signatures, fees, burnSignerKey)
+        );
     }
 
     function test_gatewayBurn_revertIfAuthSetIsEmpty() public {
@@ -293,8 +296,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
     }
 
     function test_gatewayBurn_revertIfInputLengthsMismatched() public {
+        bytes[] memory authorizations = new bytes[](2);
+        bytes[] memory signatures = new bytes[](1);
+        uint256[][] memory fees = new uint256[][](2);
+        bytes memory burnerSignature = _signBurnAuthorizations(authorizations, signatures, fees, burnSignerKey);
+
         vm.expectRevert(Burns.MismatchedBurn.selector);
-        wallet.gatewayBurn(new bytes[](2), new bytes[](1), new uint256[][](2), new bytes(0));
+        wallet.gatewayBurn(abi.encode(authorizations, signatures, fees), burnerSignature);
     }
 
     // ===== Authorization Content Validation Tests =====

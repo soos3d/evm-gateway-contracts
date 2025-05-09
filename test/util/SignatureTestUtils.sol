@@ -142,14 +142,8 @@ contract SignatureTestUtils is Test {
         // Generate a random address and key for the burn signer
         bytes memory encodedCalldata = abi.encode(authorizations, signatures, fees);
 
-        // Slice off the first 96 bytes (the three argument offsets)
-        bytes memory slicedCalldata = new bytes(encodedCalldata.length - 0x60);
-        for (uint256 i = 0; i < slicedCalldata.length; i++) {
-            slicedCalldata[i] = encodedCalldata[i + 0x60];
-        }
-
         // Sign the calldata hash as the burn signer
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, keccak256(slicedCalldata).toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, keccak256(encodedCalldata).toEthSignedMessageHash());
         burnerSignature = abi.encodePacked(r, s, v);
     }
 
