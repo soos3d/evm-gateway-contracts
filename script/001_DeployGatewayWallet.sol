@@ -84,23 +84,16 @@ contract DeployGatewayWallet is BaseBytecodeDeployScript {
 
         // Prepare UpgradeablePlaceholder constructor call data for initialization
         bytes memory constructorCallData = abi.encode(
-            EXPECTED_WALLET_PLACEHOLDER_IMPL_ADDRESS,
-            abi.encodeWithSignature("initialize(address)", factory)
+            EXPECTED_WALLET_PLACEHOLDER_IMPL_ADDRESS, abi.encodeWithSignature("initialize(address)", factory)
         );
 
         bytes[] memory proxyMultiCallData = new bytes[](2);
         // First call: Upgrade to actual implementation with initialization
-        proxyMultiCallData[0] = abi.encodeWithSignature(
-            "upgradeToAndCall(address,bytes)",
-            EXPECTED_WALLET_IMPL_ADDRESS,
-            prepareInitData()
-        );
+        proxyMultiCallData[0] =
+            abi.encodeWithSignature("upgradeToAndCall(address,bytes)", EXPECTED_WALLET_IMPL_ADDRESS, prepareInitData());
 
         // Second call: Transfer ownership to final owner
-        proxyMultiCallData[1] = abi.encodeWithSignature(
-            "transferOwnership(address)",
-            gatewayWalletOwner
-        );
+        proxyMultiCallData[1] = abi.encodeWithSignature("transferOwnership(address)", gatewayWalletOwner);
 
         // Step 4: Deploy and initialize proxy with prepared calls
         deployAndMultiCall(

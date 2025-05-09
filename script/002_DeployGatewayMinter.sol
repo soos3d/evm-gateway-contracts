@@ -44,7 +44,7 @@ contract DeployGatewayMinter is BaseBytecodeDeployScript {
         supportedTokens[0] = vm.envAddress("GATEWAYMINTER_SUPPORTED_TOKEN_1");
         uint32 domain = uint32(vm.envUint("GATEWAYMINTER_DOMAIN"));
         address mintAuthSigner = vm.envAddress("GATEWAYMINTER_AUTH_SIGNER");
-        
+
         address[] memory tokenAuthorities = new address[](1);
         tokenAuthorities[0] = vm.envAddress("GATEWAYMINTER_TOKEN_AUTH_1");
 
@@ -74,7 +74,9 @@ contract DeployGatewayMinter is BaseBytecodeDeployScript {
         vm.startBroadcast(deployer);
 
         // Step 1: Deploy placeholder implementation. Use a different salt to avoid collision with GatewayWallet
-        deploy(factory, "UpgradeablePlaceholder.json", bytes32(uint256(1)), hex"", EXPECTED_MINTER_PLACEHOLDER_IMPL_ADDRESS);
+        deploy(
+            factory, "UpgradeablePlaceholder.json", bytes32(uint256(1)), hex"", EXPECTED_MINTER_PLACEHOLDER_IMPL_ADDRESS
+        );
 
         // Step 2: Deploy actual GatewayMinter implementation
         deploy(factory, "GatewayMinter.json", bytes32(0), hex"", EXPECTED_MINTER_IMPL_ADDRESS);
@@ -83,23 +85,16 @@ contract DeployGatewayMinter is BaseBytecodeDeployScript {
 
         // Prepare UpgradeablePlaceholder constructor call data for initialization
         bytes memory constructorCallData = abi.encode(
-            EXPECTED_MINTER_PLACEHOLDER_IMPL_ADDRESS,
-            abi.encodeWithSignature("initialize(address)", factory)
+            EXPECTED_MINTER_PLACEHOLDER_IMPL_ADDRESS, abi.encodeWithSignature("initialize(address)", factory)
         );
 
         bytes[] memory proxyMultiCallData = new bytes[](2);
         // First call: Upgrade to actual implementation with initialization
-        proxyMultiCallData[0] = abi.encodeWithSignature(
-            "upgradeToAndCall(address,bytes)",
-            EXPECTED_MINTER_IMPL_ADDRESS,
-            prepareInitData()
-        );
+        proxyMultiCallData[0] =
+            abi.encodeWithSignature("upgradeToAndCall(address,bytes)", EXPECTED_MINTER_IMPL_ADDRESS, prepareInitData());
 
         // Second call: Transfer ownership to final owner
-        proxyMultiCallData[1] = abi.encodeWithSignature(
-            "transferOwnership(address)",
-            gatewayMinterOwner
-        );
+        proxyMultiCallData[1] = abi.encodeWithSignature("transferOwnership(address)", gatewayMinterOwner);
 
         // Step 4: Deploy and initialize proxy
         deployAndMultiCall(
