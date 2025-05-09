@@ -15,6 +15,18 @@ These are the contracts that support the Circle Gateway product. See the contrac
 
 ## Deployment
 
+### How it works
+The deployment steps are:
+1. Deploy the `UpgradablePlaceholder` implementation
+2. Deploy the actual implementation (e.g. `GatewayMinter`)
+3. Deploy the ERC1967Proxy and setup the proxy:
+    1. Deploy the ERC1967 Proxy, set the implementation to `UpgradablePlaceholder` and initialize the owner to Create2Factory address.
+    2. In the same transcation, upgrade the implementation to actual implementation and initialize the implementation properly.
+
+The reason of setting owner of `UpgradablePlaceholder` to Create2Factory address is that since the owner is part of the address computation, we want to use Create2Factory to avoid managing an extra EOA key.
+
+Since the owner of `UpgradablePlaceholder` is Create2Factory and only the owner can perform `upgradeToAndCall`, we decided to use `Create2Factory.deployAndMultiCall` to upgrade to actual implementation in the proxy deployment call.
+
 ### Prerequisites
 
 Before deploying the contracts, ensure you have:
