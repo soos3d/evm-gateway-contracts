@@ -29,11 +29,6 @@ contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepU
     /// Thrown if the owner address is the zero address
     error NullOwnerNotAllowed();
 
-    /// Thrown if the new owner address is a contract
-    ///
-    /// @param owner   The address of the owner
-    error ContractOwnerNotAllowed(address owner);
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -46,11 +41,6 @@ contract UpgradeablePlaceholder is Initializable, UUPSUpgradeable, Ownable2StepU
         // Ensure that the owner address is not the zero address
         if (newOwner == address(0)) {
             revert NullOwnerNotAllowed();
-        }
-
-        // Ensure that the owner address is not a contract
-        if (newOwner.code.length > 0) {
-            revert ContractOwnerNotAllowed(newOwner);
         }
 
         __UUPSUpgradeable_init();

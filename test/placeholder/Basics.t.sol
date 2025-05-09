@@ -46,15 +46,4 @@ contract UpgradeablePlaceholderBasicsTest is OwnershipTest, DeployUtils {
         vm.expectRevert(UpgradeablePlaceholder.NullOwnerNotAllowed.selector);
         placeholder.initialize(address(0));
     }
-
-    function test_initialize_revertIfOwnerIsContract() public {
-        placeholder = deployPlaceholderWithoutInitializing();
-
-        address contractAddress = makeAddr("fakeContract");
-        vm.etch(contractAddress, hex"100000");
-        vm.expectRevert(
-            abi.encodeWithSelector(UpgradeablePlaceholder.ContractOwnerNotAllowed.selector, contractAddress)
-        );
-        placeholder.initialize(contractAddress);
-    }
 }
