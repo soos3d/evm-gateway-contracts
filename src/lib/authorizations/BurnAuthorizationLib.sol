@@ -398,7 +398,7 @@ library BurnAuthorizationLib {
     ///
     /// @param auth     The encoded burn authorization or burn authorization set
     /// @return         The EIP-712 typed data hash
-    function getTypedDataHash(bytes memory auth) internal pure returns (bytes32) {
+    function getTypedDataHash(bytes memory auth) internal view returns (bytes32) {
         bytes29 ref = _asAuthOrSetView(auth);
         if (_isSet(ref)) {
             return _getburnAuthorizationSetTypedDataHash(ref);
@@ -411,9 +411,9 @@ library BurnAuthorizationLib {
     ///
     /// @param auth     A MemView reference to the encoded burn authorization
     /// @return         The EIP-712 typed data hash of the burn authorization
-    function _getburnAuthorizationTypedDataHash(bytes29 auth) private pure returns (bytes32) {
+    function _getburnAuthorizationTypedDataHash(bytes29 auth) private view returns (bytes32) {
         return keccak256(
-            abi.encode(
+            abi.encodePacked(
                 BURN_AUTHORIZATION_TYPEHASH,
                 getMaxBlockHeight(auth),
                 getMaxFee(auth),
@@ -426,7 +426,7 @@ library BurnAuthorizationLib {
     ///
     /// @param setView   A MemView reference to the encoded burn authorization set
     /// @return          The EIP-712 typed data hash of the burn authorization set
-    function _getburnAuthorizationSetTypedDataHash(bytes29 setView) private pure returns (bytes32) {
+    function _getburnAuthorizationSetTypedDataHash(bytes29 setView) private view returns (bytes32) {
         uint32 numAuths = getNumAuthorizations(setView);
         uint256 currentOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
         bytes32[] memory authHashes = new bytes32[](numAuths);
@@ -447,6 +447,6 @@ library BurnAuthorizationLib {
             currentOffset += currentAuthTotalLength;
         }
 
-        return keccak256(abi.encode(BURN_AUTHORIZATION_SET_TYPEHASH, keccak256(abi.encodePacked(authHashes))));
+        return keccak256(abi.encodePacked(BURN_AUTHORIZATION_SET_TYPEHASH, keccak256(abi.encodePacked(authHashes))));
     }
 }

@@ -8,7 +8,7 @@ auto_detect_remappings = false
 auto_detect_solc = false
 ignored_warnings_from = ["test/mock_fiattoken"]
 optimizer = true
-optimizer_runs = 150
+optimizer_runs = 20
 gas_reports = ["GatewayWallet", "GatewayMinter", "UpgradeablePlaceholder"]
 
 [rpc_endpoints]

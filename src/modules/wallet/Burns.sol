@@ -204,7 +204,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     ///
     /// @param authorization   The burn authorization to hash
     /// @return                The `keccak256` hash of the burn authorization
-    function getTypedDataHash(bytes memory authorization) external pure returns (bytes32) {
+    function getTypedDataHash(bytes memory authorization) external view returns (bytes32) {
         return BurnAuthorizationLib.getTypedDataHash(authorization);
     }
 

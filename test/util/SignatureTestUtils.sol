@@ -165,7 +165,7 @@ contract SignatureTestUtils is Test {
 
     function _signBurnAuths(BurnAuthorization[] memory auths, GatewayWallet wallet, uint256 signerKey)
         internal
-        pure
+        view
         returns (bytes memory encodedAuth, bytes memory signature)
     {
         encodedAuth =

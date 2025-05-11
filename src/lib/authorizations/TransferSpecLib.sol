@@ -472,34 +472,22 @@ library TransferSpecLib {
     ///
     /// @param spec The `TypedMemView` reference to the encoded `TransferSpec`
     /// @return The EIP-712 formatted hash of the TransferSpec for signing
-    function getTypedDataHash(bytes29 spec) internal pure returns (bytes32) {
+    function getTypedDataHash(bytes29 spec) internal view returns (bytes32) {
+        // Encode the header
         bytes memory encodedHeader;
         {
-            encodedHeader = abi.encode(
-                TRANSFER_SPEC_TYPEHASH,
-                getVersion(spec),
-                getSourceDomain(spec),
-                getDestinationDomain(spec),
-                getSourceContract(spec),
-                getDestinationContract(spec),
-                getSourceToken(spec),
-                getDestinationToken(spec)
-            );
+            encodedHeader =
+                abi.encode(TRANSFER_SPEC_TYPEHASH, getVersion(spec), getSourceDomain(spec), getDestinationDomain(spec));
         }
 
-        bytes memory encodedFooter;
-        {
-            encodedFooter = abi.encode(
-                getSourceDepositor(spec),
-                getDestinationRecipient(spec),
-                getSourceSigner(spec),
-                getDestinationCaller(spec),
-                getValue(spec),
-                getNonce(spec),
-                getMetadata(spec).keccak()
-            );
-        }
+        // Encode the footer by cloning the relevant bytes from memory
+        uint96 footerLen = uint96(BYTES32_BYTES) * 10; // 10 bytes32 fields after the initial 3
+        bytes memory encodedFooter = spec.slice(TRANSFER_SPEC_SOURCE_CONTRACT_OFFSET, footerLen, 0).clone();
 
-        return keccak256(bytes.concat(encodedHeader, encodedFooter));
+        // Encode the metadata hash
+        bytes memory metadataHash = abi.encodePacked(getMetadata(spec).keccak());
+
+        // Concatenate and hash the entire struct
+        return keccak256(bytes.concat(encodedHeader, encodedFooter, abi.encodePacked(metadataHash)));
     }
 }
