@@ -37,6 +37,7 @@ import {
     TRANSFER_SPEC_NONCE_OFFSET,
     TRANSFER_SPEC_METADATA_LENGTH_OFFSET,
     TRANSFER_SPEC_METADATA_OFFSET,
+    // solhint-disable-next-line no-unused-import
     TRANSFER_SPEC_TYPEHASH
 } from "./TransferSpec.sol";
 
@@ -470,24 +471,58 @@ library TransferSpecLib {
     ///      The resulting hash can be used with `eth_signTypedData` for secure message signing.
     ///      The hash includes all fields of the TransferSpec struct in a structured format.
     ///
-    /// @param spec The `TypedMemView` reference to the encoded `TransferSpec`
-    /// @return The EIP-712 formatted hash of the TransferSpec for signing
-    function getTypedDataHash(bytes29 spec) internal view returns (bytes32) {
-        // Encode the header
-        bytes memory encodedHeader;
-        {
-            encodedHeader =
-                abi.encode(TRANSFER_SPEC_TYPEHASH, getVersion(spec), getSourceDomain(spec), getDestinationDomain(spec));
+    /// @param spec         The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return structHash  The EIP-712 formatted hash of the TransferSpec for signing
+    function getTypedDataHash(bytes29 spec) internal view returns (bytes32 structHash) {
+        uint32 version = getVersion(spec);
+        uint32 sourceDomain = getSourceDomain(spec);
+        uint32 destinationDomain = getDestinationDomain(spec);
+        bytes32 metadataHash = getMetadata(spec).keccak();
+
+        uint96 footerStart = uint96(TRANSFER_SPEC_SOURCE_CONTRACT_OFFSET) + spec.loc();
+        uint96 footerLen = uint96(BYTES32_BYTES) * 10;
+
+        assembly {
+            // Get the free memory pointer
+            let ptr := mload(0x40)
+
+            // Store the type hash at 0x00 (first 32 bytes)
+            mstore(ptr, TRANSFER_SPEC_TYPEHASH)
+
+            // Store version at 0x20 (32-64 bytes)
+            mstore(add(ptr, 32), version)
+
+            // Store sourceDomain at 0x40 (64-96 bytes)
+            mstore(add(ptr, 64), sourceDomain)
+
+            // Store destinationDomain at 0x60 (96-128 bytes)
+            mstore(add(ptr, 96), destinationDomain)
+
+            // Copy 320 bytes (10 x 32) from footerStart to ptr+128
+            // This copies sourceContract through nonce in one operation
+            // Copy 320 bytes (10 x 32 bytes) from footerStart to ptr+128 using staticcall
+            // This efficiently copies the following TransferSpec fields in order:
+            // - sourceContract (32 bytes)      -> offset 128-160
+            // - destinationContract (32 bytes) -> offset 160-192
+            // - amount (32 bytes)             -> offset 192-224
+            // - detailsHash (32 bytes)        -> offset 224-256
+            // - tokenId (32 bytes)            -> offset 256-288
+            // - tokenAmount (32 bytes)        -> offset 288-320
+            // - sourceHolderId (32 bytes)     -> offset 320-352
+            // - destinationHolderId (32 bytes)-> offset 352-384
+            // - executionTime (32 bytes)      -> offset 384-416
+            // - nonce (32 bytes)              -> offset 416-448
+            //
+            // Uses staticcall to memory address 4 (identity precompile) which efficiently
+            // copies memory regions. This is more gas efficient than copying each field individually.
+            // The pop() removes the success boolean returned by staticcall since we don't need it.
+            pop(staticcall(gas(), 4, footerStart, footerLen, add(ptr, 128), footerLen))
+
+            // Store metadataHash at 0x1C0 (448-480 bytes)
+            mstore(add(ptr, 448), metadataHash)
+
+            // Compute keccak256 hash of the entire struct (480 bytes total)
+            structHash := keccak256(ptr, 480)
         }
-
-        // Encode the footer by cloning the relevant bytes from memory
-        uint96 footerLen = uint96(BYTES32_BYTES) * 10; // 10 bytes32 fields after the initial 3
-        bytes memory encodedFooter = spec.slice(TRANSFER_SPEC_SOURCE_CONTRACT_OFFSET, footerLen, 0).clone();
-
-        // Encode the metadata hash
-        bytes memory metadataHash = abi.encodePacked(getMetadata(spec).keccak());
-
-        // Concatenate and hash the entire struct
-        return keccak256(bytes.concat(encodedHeader, encodedFooter, abi.encodePacked(metadataHash)));
     }
 }

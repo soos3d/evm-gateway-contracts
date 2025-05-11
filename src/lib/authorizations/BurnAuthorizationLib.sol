@@ -31,6 +31,7 @@ import {
     BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
     BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET,
     BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET,
+    // solhint-disable-next-line no-unused-import
     BURN_AUTHORIZATION_TYPEHASH,
     BURN_AUTHORIZATION_SET_TYPEHASH
 } from "./BurnAuthorizations.sol";
@@ -409,17 +410,30 @@ library BurnAuthorizationLib {
 
     /// Computes the EIP-712 typed data hash for a single burn authorization
     ///
-    /// @param auth     A MemView reference to the encoded burn authorization
-    /// @return         The EIP-712 typed data hash of the burn authorization
-    function _getburnAuthorizationTypedDataHash(bytes29 auth) private view returns (bytes32) {
-        return keccak256(
-            abi.encodePacked(
-                BURN_AUTHORIZATION_TYPEHASH,
-                getMaxBlockHeight(auth),
-                getMaxFee(auth),
-                TransferSpecLib.getTypedDataHash(getTransferSpec(auth))
-            )
-        );
+    /// @param auth         A MemView reference to the encoded burn authorization
+    /// @return structHash  The EIP-712 typed data hash of the burn authorization
+    function _getburnAuthorizationTypedDataHash(bytes29 auth) private view returns (bytes32 structHash) {
+        uint256 maxBlockHeight = getMaxBlockHeight(auth);
+        uint256 maxFee = getMaxFee(auth);
+        bytes29 transferSpec = getTransferSpec(auth);
+        bytes32 transferSpecHash = TransferSpecLib.getTypedDataHash(transferSpec);
+
+        assembly {
+            // Get the free memory pointer
+            let ptr := mload(0x40)
+
+            // Store BURN_AUTHORIZATION_TYPEHASH at ptr
+            mstore(ptr, BURN_AUTHORIZATION_TYPEHASH)
+            // Store maxBlockHeight at ptr + 32
+            mstore(add(ptr, 32), maxBlockHeight)
+            // Store maxFee at ptr + 64
+            mstore(add(ptr, 64), maxFee)
+            // Get and store transferSpec hash at ptr + 96
+            mstore(add(ptr, 96), transferSpecHash)
+
+            // Hash the full data (128 bytes total)
+            structHash := keccak256(ptr, 128)
+        }
     }
 
     /// Computes the EIP-712 typed data hash for a burn authorization set
