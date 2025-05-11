@@ -30,7 +30,9 @@ import {
     BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET,
     BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
     BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET,
-    BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET
+    BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET,
+    BURN_AUTHORIZATION_TYPEHASH,
+    BURN_AUTHORIZATION_SET_TYPEHASH
 } from "./BurnAuthorizations.sol";
 import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
@@ -388,5 +390,63 @@ library BurnAuthorizationLib {
         }
 
         return result;
+    }
+
+    // --- Hashing -----------------------------------------------------------------------------------------------------
+
+    /// Computes the EIP-712 typed data hash for a burn authorization or burn authorization set
+    ///
+    /// @param auth     The encoded burn authorization or burn authorization set
+    /// @return         The EIP-712 typed data hash
+    function getTypedDataHash(bytes memory auth) internal pure returns (bytes32) {
+        bytes29 ref = _asAuthOrSetView(auth);
+        if (_isSet(ref)) {
+            return _getburnAuthorizationSetTypedDataHash(ref);
+        } else {
+            return _getburnAuthorizationTypedDataHash(ref);
+        }
+    }
+
+    /// Computes the EIP-712 typed data hash for a single burn authorization
+    ///
+    /// @param auth     A MemView reference to the encoded burn authorization
+    /// @return         The EIP-712 typed data hash of the burn authorization
+    function _getburnAuthorizationTypedDataHash(bytes29 auth) private pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                BURN_AUTHORIZATION_TYPEHASH,
+                getMaxBlockHeight(auth),
+                getMaxFee(auth),
+                TransferSpecLib.getTypedDataHash(getTransferSpec(auth))
+            )
+        );
+    }
+
+    /// Computes the EIP-712 typed data hash for a burn authorization set
+    ///
+    /// @param setView   A MemView reference to the encoded burn authorization set
+    /// @return          The EIP-712 typed data hash of the burn authorization set
+    function _getburnAuthorizationSetTypedDataHash(bytes29 setView) private pure returns (bytes32) {
+        uint32 numAuths = getNumAuthorizations(setView);
+        uint256 currentOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
+        bytes32[] memory authHashes = new bytes32[](numAuths);
+
+        // 3. Iterate and validate each element
+        for (uint32 i = 0; i < numAuths; i++) {
+            // Read spec length to determine current auth total length
+            uint32 specLength =
+                uint32(setView.indexUint(currentOffset + BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+            uint256 currentAuthTotalLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLength;
+
+            bytes29 authView = setView.slice(
+                currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_MAGIC)
+            );
+            authHashes[i] = _getburnAuthorizationTypedDataHash(authView);
+
+            // Update offset for the next iteration
+            currentOffset += currentAuthTotalLength;
+        }
+
+        return keccak256(abi.encode(BURN_AUTHORIZATION_SET_TYPEHASH, keccak256(abi.encodePacked(authHashes))));
     }
 }

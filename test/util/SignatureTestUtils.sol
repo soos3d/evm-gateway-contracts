@@ -21,6 +21,7 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Test} from "forge-std/Test.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
+import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
 import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
 import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/MintAuthorizations.sol";
@@ -169,7 +170,11 @@ contract SignatureTestUtils is Test {
     {
         encodedAuth =
             auths.length == 1 ? wallet.encodeBurnAuthorization(auths[0]) : wallet.encodeBurnAuthorizations(auths);
-        signature = _sign(signerKey, encodedAuth);
+        bytes32 domainSeparator = wallet.domainSeparator();
+        bytes32 digest =
+            MessageHashUtils.toTypedDataHash(domainSeparator, BurnAuthorizationLib.getTypedDataHash(encodedAuth));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, digest);
+        signature = abi.encodePacked(r, s, v);
     }
 
     function _signMintAuths(MintAuthorization[] memory auths, uint256 signerKey)

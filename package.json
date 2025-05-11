@@ -4,6 +4,7 @@
   "scripts": {
     "test": "forge test",
     "test:all": "./scripts/test_all_forks.sh",
+    "test:js": "mocha test/js/*.test.js",
     "test:gas": "FORGE_GAS_REPORT=true forge test",
     "format": "forge fmt --check",
     "format:fix": "forge fmt",
@@ -16,7 +17,10 @@
   "license": "Apache-2.0",
   "type": "module",
   "devDependencies": {
-    "solhint": "^5.0.5"
+    "ethers": "6.14.0",
+    "mocha": "11.2.2",
+    "path": "0.12.7",
+    "solhint": "5.0.5"
   },
   "packageManager": "yarn@4.7.0"
 }

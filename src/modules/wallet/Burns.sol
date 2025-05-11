@@ -28,13 +28,14 @@ import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.
 import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
 import {AddressLib} from "src/lib/util/AddressLib.sol";
+import {EIP712Domain} from "src/lib/util/EIP712Domain.sol";
 import {Balances} from "src/modules/wallet/Balances.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
 
 /// @title Burns
 ///
 /// @notice Manages burns for the `GatewayWallet` contract
-contract Burns is GatewayCommon, Balances, Delegation {
+contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     using TransferSpecLib for bytes29;
     using BurnAuthorizationLib for bytes29;
     using BurnAuthorizationLib for AuthorizationCursor;
@@ -199,6 +200,14 @@ contract Burns is GatewayCommon, Balances, Delegation {
         return BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
     }
 
+    /// Returns the `keccak256` hash of a burn authorization
+    ///
+    /// @param authorization   The burn authorization to hash
+    /// @return                The `keccak256` hash of the burn authorization
+    function getTypedDataHash(bytes memory authorization) external pure returns (bytes32) {
+        return BurnAuthorizationLib.getTypedDataHash(authorization);
+    }
+
     /// Allows anyone to validate whether a set of burn authorizations would be valid if it were signed by the specified
     /// signer (which must match `sourceSigner` in the `TransferSpec`).
     ///
@@ -353,7 +362,8 @@ contract Burns is GatewayCommon, Balances, Delegation {
         }
 
         // Recover the signer of the burn authorization(s) and process each one
-        address signer = ECDSA.recover(keccak256(authorization).toEthSignedMessageHash(), signature);
+        bytes32 digest = _hashTypedData(BurnAuthorizationLib.getTypedDataHash(authorization));
+        address signer = ECDSA.recover(digest, signature);
         _processAuthorizationsAndBurn(cursor, signer, fees);
     }
 

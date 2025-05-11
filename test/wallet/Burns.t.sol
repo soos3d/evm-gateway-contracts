@@ -204,10 +204,13 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
 
     function _signAuthOrAuthSet(bytes memory authOrAuthSet, uint256 signerKey)
         internal
-        pure
+        view
         returns (bytes memory signature)
     {
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, keccak256(authOrAuthSet).toEthSignedMessageHash());
+        bytes32 digest = MessageHashUtils.toTypedDataHash(
+            wallet.domainSeparator(), BurnAuthorizationLib.getTypedDataHash(authOrAuthSet)
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, digest);
         signature = abi.encodePacked(r, s, v);
     }
 
@@ -2262,5 +2265,67 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         // Should revert because the relevant auths are for different tokens
         vm.expectRevert(Burns.NotAllSameToken.selector);
         wallet.validateBurnAuthorizations(encodedAuthSet, depositor);
+    }
+
+    function test_getTypedDataHash_returnsExpectedBurnAuthorizationHash() public view {
+        BurnAuthorization memory auth = BurnAuthorization({
+            maxBlockHeight: 1,
+            maxFee: defaultMaxFee,
+            spec: TransferSpec({
+                version: TRANSFER_SPEC_VERSION,
+                sourceDomain: 0,
+                destinationDomain: 1, // A different destination domain
+                sourceContract: AddressLib._addressToBytes32(address(0x1)),
+                destinationContract: AddressLib._addressToBytes32(address(0x2)),
+                sourceToken: AddressLib._addressToBytes32(address(0x3)),
+                destinationToken: AddressLib._addressToBytes32(address(0x4)),
+                sourceDepositor: AddressLib._addressToBytes32(address(0x5)),
+                destinationRecipient: AddressLib._addressToBytes32(address(0x6)),
+                sourceSigner: AddressLib._addressToBytes32(address(0x7)),
+                destinationCaller: bytes32(0),
+                value: 100,
+                nonce: keccak256("nonce"),
+                metadata: METADATA
+            })
+        });
+
+        bytes memory walletEncoded = wallet.encodeBurnAuthorization(auth);
+        bytes32 expectedHash = 0xfe6eb9ec5096cda2872aa1f7cc63df0412239e353828acc5cf490bac23c25e44;
+
+        bytes32 walletEIP712Hash = wallet.getTypedDataHash(walletEncoded);
+
+        assertEq(walletEIP712Hash, expectedHash);
+    }
+
+    function test_getTypedDataHash_returnsExpectedBurnAuthorizationSetHash() public view {
+        BurnAuthorization memory auth = BurnAuthorization({
+            maxBlockHeight: 1,
+            maxFee: defaultMaxFee,
+            spec: TransferSpec({
+                version: TRANSFER_SPEC_VERSION,
+                sourceDomain: 0,
+                destinationDomain: 1, // A different destination domain
+                sourceContract: AddressLib._addressToBytes32(address(0x1)),
+                destinationContract: AddressLib._addressToBytes32(address(0x2)),
+                sourceToken: AddressLib._addressToBytes32(address(0x3)),
+                destinationToken: AddressLib._addressToBytes32(address(0x4)),
+                sourceDepositor: AddressLib._addressToBytes32(address(0x5)),
+                destinationRecipient: AddressLib._addressToBytes32(address(0x6)),
+                sourceSigner: AddressLib._addressToBytes32(address(0x7)),
+                destinationCaller: bytes32(0),
+                value: 100,
+                nonce: keccak256("nonce"),
+                metadata: METADATA
+            })
+        });
+
+        BurnAuthorization[] memory authArray = new BurnAuthorization[](1);
+        authArray[0] = auth;
+        bytes memory encodedAuthSet = wallet.encodeBurnAuthorizations(authArray);
+        bytes32 expectedHash = 0xe21fa80bfbaafdfb94029c361eebfa7a0d798e2cab2eb387abae034167f673bf;
+
+        bytes32 walletEIP712Hash = wallet.getTypedDataHash(encodedAuthSet);
+
+        assertEq(walletEIP712Hash, expectedHash);
     }
 }

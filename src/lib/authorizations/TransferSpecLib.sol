@@ -36,7 +36,8 @@ import {
     TRANSFER_SPEC_VALUE_OFFSET,
     TRANSFER_SPEC_NONCE_OFFSET,
     TRANSFER_SPEC_METADATA_LENGTH_OFFSET,
-    TRANSFER_SPEC_METADATA_OFFSET
+    TRANSFER_SPEC_METADATA_OFFSET,
+    TRANSFER_SPEC_TYPEHASH
 } from "./TransferSpec.sol";
 
 uint8 constant BYTES4_BYTES = 4;
@@ -461,5 +462,44 @@ library TransferSpecLib {
     /// @return      The `keccak256` hash of the encoded `TransferSpec` bytes
     function getHash(bytes29 ref) internal pure returns (bytes32) {
         return ref.keccak();
+    }
+
+    /// Calculate the `keccak256` hash of a `TransferSpec` view formatted for EIP-712 signing
+    ///
+    /// @dev This function formats the hash according to EIP-712 typed data signing standard.
+    ///      The resulting hash can be used with `eth_signTypedData` for secure message signing.
+    ///      The hash includes all fields of the TransferSpec struct in a structured format.
+    ///
+    /// @param spec The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return The EIP-712 formatted hash of the TransferSpec for signing
+    function getTypedDataHash(bytes29 spec) internal pure returns (bytes32) {
+        bytes memory encodedHeader;
+        {
+            encodedHeader = abi.encode(
+                TRANSFER_SPEC_TYPEHASH,
+                getVersion(spec),
+                getSourceDomain(spec),
+                getDestinationDomain(spec),
+                getSourceContract(spec),
+                getDestinationContract(spec),
+                getSourceToken(spec),
+                getDestinationToken(spec)
+            );
+        }
+
+        bytes memory encodedFooter;
+        {
+            encodedFooter = abi.encode(
+                getSourceDepositor(spec),
+                getDestinationRecipient(spec),
+                getSourceSigner(spec),
+                getDestinationCaller(spec),
+                getValue(spec),
+                getNonce(spec),
+                getMetadata(spec).keccak()
+            );
+        }
+
+        return keccak256(bytes.concat(encodedHeader, encodedFooter));
     }
 }
