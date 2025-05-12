@@ -445,7 +445,7 @@ library BurnAuthorizationLib {
         uint256 currentOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
         bytes32[] memory authHashes = new bytes32[](numAuths);
 
-        // 3. Iterate and validate each element
+        // Iterate through each authorization in the set and compute its hash
         for (uint32 i = 0; i < numAuths; i++) {
             // Read spec length to determine current auth total length
             uint32 specLength =

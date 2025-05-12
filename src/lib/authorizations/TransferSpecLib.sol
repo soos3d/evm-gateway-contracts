@@ -498,20 +498,18 @@ library TransferSpecLib {
             // Store destinationDomain at 0x60 (96-128 bytes)
             mstore(add(ptr, 96), destinationDomain)
 
-            // Copy 320 bytes (10 x 32) from footerStart to ptr+128
-            // This copies sourceContract through nonce in one operation
             // Copy 320 bytes (10 x 32 bytes) from footerStart to ptr+128 using staticcall
             // This efficiently copies the following TransferSpec fields in order:
-            // - sourceContract (32 bytes)      -> offset 128-160
+            // - sourceContract      (32 bytes) -> offset 128-160
             // - destinationContract (32 bytes) -> offset 160-192
-            // - amount (32 bytes)             -> offset 192-224
-            // - detailsHash (32 bytes)        -> offset 224-256
-            // - tokenId (32 bytes)            -> offset 256-288
-            // - tokenAmount (32 bytes)        -> offset 288-320
-            // - sourceHolderId (32 bytes)     -> offset 320-352
-            // - destinationHolderId (32 bytes)-> offset 352-384
-            // - executionTime (32 bytes)      -> offset 384-416
-            // - nonce (32 bytes)              -> offset 416-448
+            // - sourceToken         (32 bytes) -> offset 192-224
+            // - destinationToken    (32 bytes) -> offset 224-256
+            // - sourceDepositor     (32 bytes) -> offset 256-288
+            // - destinationRecipient(32 bytes) -> offset 288-320
+            // - sourceSigner        (32 bytes) -> offset 320-352
+            // - destinationCaller   (32 bytes) -> offset 352-384
+            // - value               (32 bytes) -> offset 384-416
+            // - nonce               (32 bytes) -> offset 416-448
             //
             // Uses staticcall to memory address 4 (identity precompile) which efficiently
             // copies memory regions. This is more gas efficient than copying each field individually.
