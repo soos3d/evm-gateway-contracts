@@ -18,8 +18,14 @@
 pragma solidity ^0.8.29;
 
 import {Test} from "forge-std/Test.sol";
-import {BURN_AUTHORIZATION_MAGIC, BURN_AUTHORIZATION_SET_MAGIC} from "src/lib/authorizations/BurnAuthorizations.sol";
+import {
+    BURN_AUTHORIZATION_MAGIC,
+    BURN_AUTHORIZATION_SET_MAGIC,
+    BURN_AUTHORIZATION_TYPEHASH,
+    BURN_AUTHORIZATION_SET_TYPEHASH
+} from "src/lib/authorizations/BurnAuthorizations.sol";
 import {MINT_AUTHORIZATION_MAGIC, MINT_AUTHORIZATION_SET_MAGIC} from "src/lib/authorizations/MintAuthorizations.sol";
+import {TRANSFER_SPEC_TYPEHASH} from "src/lib/authorizations/TransferSpec.sol";
 import {CounterpartStorage} from "src/modules/common/Counterpart.sol";
 import {DenylistStorage} from "src/modules/common/Denylist.sol";
 import {DomainStorage} from "src/modules/common/Domain.sol";
@@ -127,6 +133,39 @@ contract TestMagicValues is Test {
             WithdrawalDelayStorage.SLOT,
             keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.WithdrawalDelay"))) - 1))
                 & ~bytes32(uint256(0xff))
+        );
+    }
+
+    function test_TransferSpecTypeHash() external pure {
+        assertEq(
+            TRANSFER_SPEC_TYPEHASH,
+            keccak256(
+                bytes(
+                    "TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)"
+                )
+            )
+        );
+    }
+
+    function test_BurnAuthorizationTypeHash() external pure {
+        assertEq(
+            BURN_AUTHORIZATION_TYPEHASH,
+            keccak256(
+                bytes(
+                    "BurnAuthorization(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)"
+                )
+            )
+        );
+    }
+
+    function test_BurnAuthorizationSetTypeHash() external pure {
+        assertEq(
+            BURN_AUTHORIZATION_SET_TYPEHASH,
+            keccak256(
+                bytes(
+                    "BurnAuthorizationSet(BurnAuthorization[] authorizations)BurnAuthorization(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)"
+                )
+            )
         );
     }
 }

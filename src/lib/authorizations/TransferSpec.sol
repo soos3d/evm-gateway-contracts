@@ -81,3 +81,7 @@ struct TransferSpec {
     bytes32 nonce; //                  An arbitrary value chosen by the user to be unique
     bytes metadata; //                 Arbitrary bytes that may be used for onchain composition
 }
+
+// Type hash for the TransferSpec struct
+// keccak256("TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)");
+bytes32 constant TRANSFER_SPEC_TYPEHASH = 0x1680ef016ab4f25747b8a9f463783d23999acdcf480e486f896b577e4e05b21c;

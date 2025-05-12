@@ -56,6 +56,10 @@ struct BurnAuthorization {
     TransferSpec spec; //        A description of the transfer
 }
 
+// Type hash for the BurnAuthorization struct
+// keccak256("BurnAuthorization(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)");
+bytes32 constant BURN_AUTHORIZATION_TYPEHASH = 0x2a5e505e2d349189754a316be097c53a1adfcc7854a3c174c65261ef80e81752;
+
 /// @title BurnAuthorizationSet
 ///
 /// @notice Represents multiple `BurnAuthorization`s packed together, which allows a wallet to sign a single payload for
@@ -71,3 +75,7 @@ struct BurnAuthorization {
 struct BurnAuthorizationSet {
     BurnAuthorization[] authorizations;
 }
+
+// Type hash for the BurnAuthorizationSet struct
+// keccak256("BurnAuthorizationSet(BurnAuthorization[] authorizations)BurnAuthorization(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)")
+bytes32 constant BURN_AUTHORIZATION_SET_TYPEHASH = 0x8427c16d063c31591baca080350ea510c04656ef77c3931db6abd845a75be251;

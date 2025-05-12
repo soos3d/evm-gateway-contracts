@@ -30,7 +30,10 @@ import {
     BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET,
     BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
     BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET,
-    BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET
+    BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET,
+    // solhint-disable-next-line no-unused-import
+    BURN_AUTHORIZATION_TYPEHASH,
+    BURN_AUTHORIZATION_SET_TYPEHASH
 } from "./BurnAuthorizations.sol";
 import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
@@ -388,5 +391,76 @@ library BurnAuthorizationLib {
         }
 
         return result;
+    }
+
+    // --- Hashing -----------------------------------------------------------------------------------------------------
+
+    /// Computes the EIP-712 typed data hash for a burn authorization or burn authorization set
+    ///
+    /// @param auth     The encoded burn authorization or burn authorization set
+    /// @return         The EIP-712 typed data hash
+    function getTypedDataHash(bytes memory auth) internal view returns (bytes32) {
+        bytes29 ref = _asAuthOrSetView(auth);
+        if (_isSet(ref)) {
+            return _getburnAuthorizationSetTypedDataHash(ref);
+        } else {
+            return _getburnAuthorizationTypedDataHash(ref);
+        }
+    }
+
+    /// Computes the EIP-712 typed data hash for a single burn authorization
+    ///
+    /// @param auth         A MemView reference to the encoded burn authorization
+    /// @return structHash  The EIP-712 typed data hash of the burn authorization
+    function _getburnAuthorizationTypedDataHash(bytes29 auth) private view returns (bytes32 structHash) {
+        uint256 maxBlockHeight = getMaxBlockHeight(auth);
+        uint256 maxFee = getMaxFee(auth);
+        bytes29 transferSpec = getTransferSpec(auth);
+        bytes32 transferSpecHash = TransferSpecLib.getTypedDataHash(transferSpec);
+
+        assembly {
+            // Get the free memory pointer
+            let ptr := mload(0x40)
+
+            // Store BURN_AUTHORIZATION_TYPEHASH at ptr
+            mstore(ptr, BURN_AUTHORIZATION_TYPEHASH)
+            // Store maxBlockHeight at ptr + 32
+            mstore(add(ptr, 32), maxBlockHeight)
+            // Store maxFee at ptr + 64
+            mstore(add(ptr, 64), maxFee)
+            // Get and store transferSpec hash at ptr + 96
+            mstore(add(ptr, 96), transferSpecHash)
+
+            // Hash the full data (128 bytes total)
+            structHash := keccak256(ptr, 128)
+        }
+    }
+
+    /// Computes the EIP-712 typed data hash for a burn authorization set
+    ///
+    /// @param setView   A MemView reference to the encoded burn authorization set
+    /// @return          The EIP-712 typed data hash of the burn authorization set
+    function _getburnAuthorizationSetTypedDataHash(bytes29 setView) private view returns (bytes32) {
+        uint32 numAuths = getNumAuthorizations(setView);
+        uint256 currentOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
+        bytes32[] memory authHashes = new bytes32[](numAuths);
+
+        // Iterate through each authorization in the set and compute its hash
+        for (uint32 i = 0; i < numAuths; i++) {
+            // Read spec length to determine current auth total length
+            uint32 specLength =
+                uint32(setView.indexUint(currentOffset + BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+            uint256 currentAuthTotalLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLength;
+
+            bytes29 authView = setView.slice(
+                currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_MAGIC)
+            );
+            authHashes[i] = _getburnAuthorizationTypedDataHash(authView);
+
+            // Update offset for the next iteration
+            currentOffset += currentAuthTotalLength;
+        }
+
+        return keccak256(abi.encodePacked(BURN_AUTHORIZATION_SET_TYPEHASH, keccak256(abi.encodePacked(authHashes))));
     }
 }
