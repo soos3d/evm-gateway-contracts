@@ -76,8 +76,6 @@ The generated transaction data will be available in the `broadcast/` directory a
 
 ### How to Update Deployment Scripts
 
-After smart contract auditing is done, we need to update the deployment script and artifacts.
-
 #### Update Compiled Contract Artifacts
 
 Run the following command to generate new artifacts if `openzepplin-contracts` submodule is updated. Current commit hash is `acd4ff7`.
