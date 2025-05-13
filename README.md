@@ -66,9 +66,10 @@ Follow the instructions in evm-cctp-contracts-private README to deploy Create2Fa
 Run the following command to generate deployment transactions for `GatewayWallet` and `GatewayMinter`:
 
 ```bash
-forge script script/001_DeployGatewayWallet.sol --rpc-url $RPC_URL -vvvv --slow --force
-forge script script/001_DeployGatewayMinter.sol --rpc-url $RPC_URL -vvvv --slow --force
+ENV=$ENV forge script script/001_DeployGatewayWallet.sol --rpc-url $RPC_URL -vvvv --slow --force
+ENV=$ENV forge script script/001_DeployGatewayMinter.sol --rpc-url $RPC_URL -vvvv --slow --force
 ```
+* `ENV`: Use `SMOKEBOX` for local and SMOKEBOX deployment. Or choose from `SANDBOX` and `PROD`.
 * `RPC_URL`: The rpc url for the targeted blockchain. use `http://127.0.0.1:8485` for local deployment.
 
 The generated transaction data will be available in the `broadcast/` directory and can be used for signing.
