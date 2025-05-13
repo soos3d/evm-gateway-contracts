@@ -68,7 +68,7 @@ contract DeployGatewayMinter is BaseBytecodeDeployScript {
     ///      2. Deploy actual GatewayMinter implementation
     ///      3. Prepare proxy deployment data
     ///      4. Deploy and initialize proxy with prepared calls
-    function run() public {
+    function run() public returns (address placeholderAddress, address implAddress, address proxyAddress) {
         address gatewayMinterOwner = vm.envAddress("GATEWAYMINTER_OWNER_ADDRESS");
 
         // Get environment configuration
@@ -77,17 +77,17 @@ contract DeployGatewayMinter is BaseBytecodeDeployScript {
         // Use environment-specific values or fallback to .env variables
         address deployer = config.deployerAddress;
         address factory = config.factoryAddress;
-        bytes32 minterPlaceholderSalt = config.salt;
-        bytes32 minterImplSalt = config.salt;
+        bytes32 minterPlaceholderSalt = config.minterSalt;
+        bytes32 minterImplSalt = config.minterSalt;
         bytes32 minterProxySalt = config.minterProxySalt;
 
         vm.startBroadcast(deployer);
         // Step 1: Deploy placeholder implementation
-        address placeholderAddress = deploy(factory, "UpgradeablePlaceholder.json", minterPlaceholderSalt, hex"");
+        placeholderAddress = deploy(factory, "UpgradeablePlaceholder.json", minterPlaceholderSalt, hex"");
         console.log("GatewayMinter placeholder address", placeholderAddress);
 
         // Step 2: Deploy actual GatewayMinter implementation
-        address implAddress = deploy(factory, "GatewayMinter.json", minterImplSalt, hex"");
+        implAddress = deploy(factory, "GatewayMinter.json", minterImplSalt, hex"");
         console.log("GatewayMinter implementation address", implAddress);
 
         // Step 3: Prepare proxy deployment data
@@ -105,7 +105,7 @@ contract DeployGatewayMinter is BaseBytecodeDeployScript {
         proxyMultiCallData[1] = abi.encodeWithSignature("transferOwnership(address)", gatewayMinterOwner);
 
         // Step 4: Deploy and initialize proxy
-        address proxyAddress =
+        proxyAddress =
             deployAndMultiCall(factory, "ERC1967Proxy.json", minterProxySalt, constructorCallData, proxyMultiCallData);
         console.log("GatewayMinter proxy address", proxyAddress);
 

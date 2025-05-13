@@ -27,19 +27,22 @@ import {console} from "forge-std/console.sol";
  */
 library Constants {
     // Smokebox environment constants
-    bytes32 constant SMOKEBOX_SALT = bytes32(uint256(0));
+    bytes32 constant SMOKEBOX_WALLET_SALT = bytes32(uint256(0));
+    bytes32 constant SMOKEBOX_MINTER_SALT = bytes32(uint256(1));
     bytes32 constant SMOKEBOX_WALLET_PROXY_SALT = bytes32(uint256(0));
     bytes32 constant SMOKEBOX_MINTER_PROXY_SALT = bytes32(uint256(1));
 
     // Sandbox environment constants
-    bytes32 constant SANDBOX_SALT = bytes32(uint256(1));
+    bytes32 constant SANDBOX_WALLET_SALT = bytes32(uint256(0));
+    bytes32 constant SANDBOX_MINTER_SALT = bytes32(uint256(1));
     bytes32 constant SANDBOX_WALLET_PROXY_SALT = bytes32(uint256(0));
     bytes32 constant SANDBOX_MINTER_PROXY_SALT = bytes32(uint256(1));
     address constant SANDBOX_CREATE2FACTORY_ADDRESS = 0x643151056F7cCCD36030d6507a8C07Ed4a46E8D2;
     address constant SANDBOX_DEPLOYER_ADDRESS = 0xD1e4098de8667a491Eb2Bf5acf09ED7F67260BCA;
 
     // Production environment constants
-    bytes32 constant PROD_SALT = bytes32(uint256(2));
+    bytes32 constant PROD_WALLET_SALT = bytes32(uint256(0));
+    bytes32 constant PROD_MINTER_SALT = bytes32(uint256(1));
     bytes32 constant PROD_WALLET_PROXY_SALT = bytes32(uint256(0));
     bytes32 constant PROD_MINTER_PROXY_SALT = bytes32(uint256(1));
     address constant PROD_CREATE2FACTORY_ADDRESS = 0xe7b84D8846c96Bb83155Da5537625c75e42d6E42;
@@ -50,14 +53,16 @@ library Constants {
  * @title EnvConfig
  * @notice Configuration struct that holds all environment-specific parameters
  * @dev Used to pass environment configuration between contracts in a structured way
- * @param salt The base salt value used for non proxy contract deployment
+ * @param walletSalt The base salt value used for non proxy contract deployment
+ * @param minterSalt The base salt value used for non proxy contract deployment
  * @param walletProxySalt The salt value used for GatewayWallet proxy deployment
  * @param minterProxySalt The salt value used for GatewayMinter proxy deployment
  * @param factoryAddress The CREATE2 factory address for deterministic deployment
  * @param deployerAddress The address that will deploy the contracts
  */
 struct EnvConfig {
-    bytes32 salt;
+    bytes32 walletSalt;
+    bytes32 minterSalt;
     bytes32 walletProxySalt;
     bytes32 minterProxySalt;
     address factoryAddress;
@@ -103,7 +108,8 @@ contract EnvSelector is Script {
         address deployer = vm.envAddress("DEPLOYER_ADDRESS");
 
         return EnvConfig({
-            salt: Constants.SMOKEBOX_SALT,
+            walletSalt: Constants.SMOKEBOX_WALLET_SALT,
+            minterSalt: Constants.SMOKEBOX_MINTER_SALT,
             walletProxySalt: Constants.SMOKEBOX_WALLET_PROXY_SALT,
             minterProxySalt: Constants.SMOKEBOX_MINTER_PROXY_SALT,
             factoryAddress: create2Factory,
@@ -118,7 +124,8 @@ contract EnvSelector is Script {
      */
     function getSandboxConfig() public pure returns (EnvConfig memory) {
         return EnvConfig({
-            salt: Constants.SANDBOX_SALT,
+            walletSalt: Constants.SANDBOX_WALLET_SALT,
+            minterSalt: Constants.SANDBOX_MINTER_SALT,
             walletProxySalt: Constants.SANDBOX_WALLET_PROXY_SALT,
             minterProxySalt: Constants.SANDBOX_MINTER_PROXY_SALT,
             factoryAddress: Constants.SANDBOX_CREATE2FACTORY_ADDRESS,
@@ -133,7 +140,8 @@ contract EnvSelector is Script {
      */
     function getProdConfig() public pure returns (EnvConfig memory) {
         return EnvConfig({
-            salt: Constants.PROD_SALT,
+            walletSalt: Constants.PROD_WALLET_SALT,
+            minterSalt: Constants.PROD_MINTER_SALT,
             walletProxySalt: Constants.PROD_WALLET_PROXY_SALT,
             minterProxySalt: Constants.PROD_MINTER_PROXY_SALT,
             factoryAddress: Constants.PROD_CREATE2FACTORY_ADDRESS,

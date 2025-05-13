@@ -50,8 +50,10 @@ contract DeployGatewayWalletTest is Test {
     }
 
     function testDeployGatewayWallet() public {
-        // Execute the deployment script. Since the deployment script doesn't not actually deploy the contracts,
-        // we just test that the script runs without reverting
-        deployer.run();
+        // Execute the deployment script and verify the addresses.
+        (address placeholderAddress, address implAddress, address proxyAddress) = deployer.run();
+        assertEq(placeholderAddress, 0x704b433a9dA0cF5959857c77A6BE1A90844964Cf);
+        assertEq(implAddress, 0xBD44151F5594969e99c870206E1FBF788df1CA42);
+        assertEq(proxyAddress, 0xe0a3831610C2E2a0367adAcdb65a28dBafa5CA88);
     }
 }

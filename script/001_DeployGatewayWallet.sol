@@ -69,7 +69,7 @@ contract DeployGatewayWallet is BaseBytecodeDeployScript {
     ///      2. Deploy actual GatewayWallet implementation
     ///      3. Prepare proxy deployment data
     ///      4. Deploy and initialize proxy with prepared calls
-    function run() public {
+    function run() public returns (address placeholderAddress, address implAddress, address proxyAddress) {
         address gatewayWalletOwner = vm.envAddress("GATEWAYWALLET_OWNER_ADDRESS");
 
         // Get environment configuration
@@ -78,18 +78,18 @@ contract DeployGatewayWallet is BaseBytecodeDeployScript {
         // Use environment-specific values
         address deployer = config.deployerAddress;
         address factory = config.factoryAddress;
-        bytes32 walletPlaceholderSalt = config.salt;
-        bytes32 walletImplSalt = config.salt;
+        bytes32 walletPlaceholderSalt = config.walletSalt;
+        bytes32 walletImplSalt = config.walletSalt;
         bytes32 walletProxySalt = config.walletProxySalt;
 
         vm.startBroadcast(deployer);
 
         // Step 1: Deploy placeholder implementation (minimal implementation for proxy initialization)
-        address placeholderAddress = deploy(factory, "UpgradeablePlaceholder.json", walletPlaceholderSalt, hex"");
+        placeholderAddress = deploy(factory, "UpgradeablePlaceholder.json", walletPlaceholderSalt, hex"");
         console.log("GatewayWallet placeholder address", placeholderAddress);
 
         // Step 2: Deploy actual GatewayWallet implementation
-        address implAddress = deploy(factory, "GatewayWallet.json", walletImplSalt, hex"");
+        implAddress = deploy(factory, "GatewayWallet.json", walletImplSalt, hex"");
         console.log("GatewayWallet implementation address", implAddress);
 
         // Step 3: Prepare proxy deployment data
@@ -107,7 +107,7 @@ contract DeployGatewayWallet is BaseBytecodeDeployScript {
         proxyMultiCallData[1] = abi.encodeWithSignature("transferOwnership(address)", gatewayWalletOwner);
 
         // Step 4: Deploy and initialize proxy with prepared calls
-        address proxyAddress =
+        proxyAddress =
             deployAndMultiCall(factory, "ERC1967Proxy.json", walletProxySalt, constructorCallData, proxyMultiCallData);
         console.log("GatewayWallet proxy address", proxyAddress);
         vm.stopBroadcast();
