@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 pragma solidity ^0.8.29;
-pragma experimental ABIEncoderV2;
 
 /**
  * @title ICreate2Factory Interface

@@ -35,16 +35,19 @@ Before deploying the contracts, ensure you have:
 
 2. Verified you have sufficient funds in the deployer account for the target network
 
-### Local Testing for Deployment
+### Deploying Contracts
 
 #### Step 1: Start a local blockchain
 
+*Only needed for local deployment*
+
 Start a local RPC node at http://127.0.0.1:8485 by running `anvil`.
 
-#### Step 2: Deploy test Create2Factory Contract
+#### Step 2: Deploy Create2Factory Contract
 
-This step is no need for testnet and mainnet deployment since Create2Factory is already deployed.
+*Only needed for local and SMOKEBOX deployment*
 
+##### Local Deployment
 Run the following command to deploy a test instance of the Create2Factory contract:
 
 ```bash
@@ -55,18 +58,10 @@ forge create Create2Factory -r http://127.0.0.1:8545 --broadcast --private-key $
 
 Add the deployed Create2Factory contract address to your `.env` file under the variable `CREATE2_FACTORY_ADDRESS`.
 
+##### SMOKEBOX deployment
+Follow the instructions in evm-cctp-contracts-private README to deploy Create2Factory. Update `DEPLOYER_ADDRESS` and `CREATE2_FACTORY_ADDRESS` in `.env`.
+
 #### Step3: Generate Deployment Transactions for `GatewayWallet` and `GatewayMinter`.
-
-Run the following command to generate deployment transactions for `GatewayWallet` and `GatewayMinter`:
-
-```bash
-forge script script/001_DeployGatewayWallet.sol --rpc-url http://127.0.0.1:8545 -vvvv --slow --force
-forge script script/001_DeployGatewayMinter.sol --rpc-url http://127.0.0.1:8545 -vvvv --slow --force
-```
-
-The generated transaction data will be available in the `broadcast/` directory and can be used for signing.
-
-### Testnet and Mainnet Deployment
 
 Run the following command to generate deployment transactions for `GatewayWallet` and `GatewayMinter`:
 
@@ -74,7 +69,7 @@ Run the following command to generate deployment transactions for `GatewayWallet
 forge script script/001_DeployGatewayWallet.sol --rpc-url $RPC_URL -vvvv --slow --force
 forge script script/001_DeployGatewayMinter.sol --rpc-url $RPC_URL -vvvv --slow --force
 ```
-* `RPC_URL`: The rpc url for the targeted blockchain
+* `RPC_URL`: The rpc url for the targeted blockchain. use `http://127.0.0.1:8485` for local deployment.
 
 The generated transaction data will be available in the `broadcast/` directory and can be used for signing.
 
@@ -101,10 +96,6 @@ cp out/GatewayMinter.sol/GatewayMinter.json script/compiled-contract-artifacts/G
 forge build src/GatewayWallet.sol --force 
 cp out/GatewayWallet.sol/UpgradeablePlaceholder.json script/compiled-contract-artifacts/GatewayWallet.json
 ```
-
-#### Update Contract Address
-
-Set addresses in `script/000_ContractAddress.sol` to `address(0)` to trigger new deployment. Update this file after new addresses are created.
 
 #### Find New Salts
 

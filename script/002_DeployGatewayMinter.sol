@@ -19,7 +19,7 @@ pragma solidity ^0.8.29;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {MINTER_PLACEHOLDER_IMPL_ADDRESS, MINTER_IMPL_ADDRESS, MINTER_PROXY_ADDRESS} from "./000_ContractAddress.sol";
+import {EnvSelector, EnvConfig} from "./000_Constants.sol";
 import "./BaseBytecodeDeployScript.sol";
 
 /// @title DeployGatewayMinter
@@ -29,10 +29,12 @@ import "./BaseBytecodeDeployScript.sol";
 ///      2. GatewayMinter implementation (actual implementation)
 ///      3. ERC1967Proxy pointing to placeholder, then upgrades to actual implementation
 contract DeployGatewayMinter is BaseBytecodeDeployScript {
-    /// @dev Predefined addresses for deterministic deployment
-    address internal constant EXPECTED_MINTER_PLACEHOLDER_IMPL_ADDRESS = MINTER_PLACEHOLDER_IMPL_ADDRESS;
-    address internal constant EXPECTED_MINTER_IMPL_ADDRESS = MINTER_IMPL_ADDRESS;
-    address internal constant EXPECTED_MINTER_PROXY_ADDRESS = MINTER_PROXY_ADDRESS;
+    /// @dev Environment selector for multi-environment deployment
+    EnvSelector private envSelector;
+
+    constructor() {
+        envSelector = new EnvSelector();
+    }
 
     /// @dev Prepares initialization data for GatewayMinter
     /// @return Encoded initialization call data including all configuration parameters
@@ -67,44 +69,45 @@ contract DeployGatewayMinter is BaseBytecodeDeployScript {
     ///      3. Prepare proxy deployment data
     ///      4. Deploy and initialize proxy with prepared calls
     function run() public {
-        address deployer = vm.envAddress("DEPLOYER_ADDRESS");
-        address factory = vm.envAddress("CREATE2_FACTORY_ADDRESS");
         address gatewayMinterOwner = vm.envAddress("GATEWAYMINTER_OWNER_ADDRESS");
 
-        vm.startBroadcast(deployer);
+        // Get environment configuration
+        EnvConfig memory config = envSelector.getEnvironmentConfig();
 
-        // Step 1: Deploy placeholder implementation. Use a different salt to avoid collision with GatewayWallet
-        deploy(
-            factory, "UpgradeablePlaceholder.json", bytes32(uint256(1)), hex"", EXPECTED_MINTER_PLACEHOLDER_IMPL_ADDRESS
-        );
+        // Use environment-specific values or fallback to .env variables
+        address deployer = config.deployerAddress;
+        address factory = config.factoryAddress;
+        bytes32 minterPlaceholderSalt = config.salt;
+        bytes32 minterImplSalt = config.salt;
+        bytes32 minterProxySalt = config.minterProxySalt;
+
+        vm.startBroadcast(deployer);
+        // Step 1: Deploy placeholder implementation
+        address placeholderAddress = deploy(factory, "UpgradeablePlaceholder.json", minterPlaceholderSalt, hex"");
+        console.log("GatewayMinter placeholder address", placeholderAddress);
 
         // Step 2: Deploy actual GatewayMinter implementation
-        deploy(factory, "GatewayMinter.json", bytes32(0), hex"", EXPECTED_MINTER_IMPL_ADDRESS);
+        address implAddress = deploy(factory, "GatewayMinter.json", minterImplSalt, hex"");
+        console.log("GatewayMinter implementation address", implAddress);
 
         // Step 3: Prepare proxy deployment data
 
         // Prepare UpgradeablePlaceholder constructor call data for initialization
-        bytes memory constructorCallData = abi.encode(
-            EXPECTED_MINTER_PLACEHOLDER_IMPL_ADDRESS, abi.encodeWithSignature("initialize(address)", factory)
-        );
+        bytes memory constructorCallData =
+            abi.encode(placeholderAddress, abi.encodeWithSignature("initialize(address)", factory));
 
         bytes[] memory proxyMultiCallData = new bytes[](2);
         // First call: Upgrade to actual implementation with initialization
         proxyMultiCallData[0] =
-            abi.encodeWithSignature("upgradeToAndCall(address,bytes)", EXPECTED_MINTER_IMPL_ADDRESS, prepareInitData());
+            abi.encodeWithSignature("upgradeToAndCall(address,bytes)", implAddress, prepareInitData());
 
         // Second call: Transfer ownership to final owner
         proxyMultiCallData[1] = abi.encodeWithSignature("transferOwnership(address)", gatewayMinterOwner);
 
         // Step 4: Deploy and initialize proxy
-        deployAndMultiCall(
-            factory,
-            "ERC1967Proxy.json",
-            bytes32(0),
-            constructorCallData,
-            proxyMultiCallData,
-            EXPECTED_MINTER_PROXY_ADDRESS
-        );
+        address proxyAddress =
+            deployAndMultiCall(factory, "ERC1967Proxy.json", minterProxySalt, constructorCallData, proxyMultiCallData);
+        console.log("GatewayMinter proxy address", proxyAddress);
 
         vm.stopBroadcast();
     }

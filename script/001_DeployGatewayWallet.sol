@@ -19,7 +19,7 @@ pragma solidity ^0.8.29;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {WALLET_PLACEHOLDER_IMPL_ADDRESS, WALLET_IMPL_ADDRESS, WALLET_PROXY_ADDRESS} from "./000_ContractAddress.sol";
+import {EnvSelector, EnvConfig} from "./000_Constants.sol";
 import "./BaseBytecodeDeployScript.sol";
 
 /// @title DeployGatewayWallet
@@ -29,10 +29,12 @@ import "./BaseBytecodeDeployScript.sol";
 ///      2. GatewayWallet implementation (actual implementation)
 ///      3. ERC1967Proxy pointing to placeholder, then upgrades to actual implementation
 contract DeployGatewayWallet is BaseBytecodeDeployScript {
-    /// @dev Predefined addresses for deterministic deployment
-    address internal constant EXPECTED_WALLET_PLACEHOLDER_IMPL_ADDRESS = WALLET_PLACEHOLDER_IMPL_ADDRESS;
-    address internal constant EXPECTED_WALLET_IMPL_ADDRESS = WALLET_IMPL_ADDRESS;
-    address internal constant EXPECTED_WALLET_PROXY_ADDRESS = WALLET_PROXY_ADDRESS;
+    /// @dev Environment selector for multi-environment deployment
+    EnvSelector private envSelector;
+
+    constructor() {
+        envSelector = new EnvSelector();
+    }
 
     /// @dev Prepares initialization data for GatewayWallet
     /// @return Encoded initialization call data including all configuration parameters
@@ -68,43 +70,46 @@ contract DeployGatewayWallet is BaseBytecodeDeployScript {
     ///      3. Prepare proxy deployment data
     ///      4. Deploy and initialize proxy with prepared calls
     function run() public {
-        address deployer = vm.envAddress("DEPLOYER_ADDRESS");
-        address factory = vm.envAddress("CREATE2_FACTORY_ADDRESS");
         address gatewayWalletOwner = vm.envAddress("GATEWAYWALLET_OWNER_ADDRESS");
+
+        // Get environment configuration
+        EnvConfig memory config = envSelector.getEnvironmentConfig();
+
+        // Use environment-specific values
+        address deployer = config.deployerAddress;
+        address factory = config.factoryAddress;
+        bytes32 walletPlaceholderSalt = config.salt;
+        bytes32 walletImplSalt = config.salt;
+        bytes32 walletProxySalt = config.walletProxySalt;
 
         vm.startBroadcast(deployer);
 
         // Step 1: Deploy placeholder implementation (minimal implementation for proxy initialization)
-        deploy(factory, "UpgradeablePlaceholder.json", bytes32(0), hex"", EXPECTED_WALLET_PLACEHOLDER_IMPL_ADDRESS);
+        address placeholderAddress = deploy(factory, "UpgradeablePlaceholder.json", walletPlaceholderSalt, hex"");
+        console.log("GatewayWallet placeholder address", placeholderAddress);
 
         // Step 2: Deploy actual GatewayWallet implementation
-        deploy(factory, "GatewayWallet.json", bytes32(0), hex"", EXPECTED_WALLET_IMPL_ADDRESS);
+        address implAddress = deploy(factory, "GatewayWallet.json", walletImplSalt, hex"");
+        console.log("GatewayWallet implementation address", implAddress);
 
         // Step 3: Prepare proxy deployment data
 
         // Prepare UpgradeablePlaceholder constructor call data for initialization
-        bytes memory constructorCallData = abi.encode(
-            EXPECTED_WALLET_PLACEHOLDER_IMPL_ADDRESS, abi.encodeWithSignature("initialize(address)", factory)
-        );
+        bytes memory constructorCallData =
+            abi.encode(placeholderAddress, abi.encodeWithSignature("initialize(address)", factory));
 
         bytes[] memory proxyMultiCallData = new bytes[](2);
         // First call: Upgrade to actual implementation with initialization
         proxyMultiCallData[0] =
-            abi.encodeWithSignature("upgradeToAndCall(address,bytes)", EXPECTED_WALLET_IMPL_ADDRESS, prepareInitData());
+            abi.encodeWithSignature("upgradeToAndCall(address,bytes)", implAddress, prepareInitData());
 
         // Second call: Transfer ownership to final owner
         proxyMultiCallData[1] = abi.encodeWithSignature("transferOwnership(address)", gatewayWalletOwner);
 
         // Step 4: Deploy and initialize proxy with prepared calls
-        deployAndMultiCall(
-            factory,
-            "ERC1967Proxy.json",
-            bytes32(0),
-            constructorCallData,
-            proxyMultiCallData,
-            EXPECTED_WALLET_PROXY_ADDRESS
-        );
-
+        address proxyAddress =
+            deployAndMultiCall(factory, "ERC1967Proxy.json", walletProxySalt, constructorCallData, proxyMultiCallData);
+        console.log("GatewayWallet proxy address", proxyAddress);
         vm.stopBroadcast();
     }
 }
