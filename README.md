@@ -74,6 +74,16 @@ ENV=$ENV forge script script/001_DeployGatewayMinter.sol --rpc-url $RPC_URL -vvv
 
 The generated transaction data will be available in the `broadcast/` directory and can be used for signing.
 
+### Deployed contract validation
+
+Fill in the `Deployed Contract Validation` section in `.env` and run:
+
+```bash
+forge script script/003_DeployedContractValidation.s.sol --rpc-url $RPC_URL -vvvv --slow --force
+```
+
+This command validates deployed contract bytecode matches expected bytecode and contract state matches expected values.
+
 ### How to Update Deployment Scripts
 
 #### Update Compiled Contract Artifacts

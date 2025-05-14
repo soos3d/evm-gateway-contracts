@@ -17,53 +17,58 @@
  */
 pragma solidity ^0.8.29;
 
-import "forge-std/Script.sol";
+import {Script} from "forge-std/Script.sol";
 
 /// @title DeployedContractValidation
-/// @notice Script to verify deployed contract bytecode matches local compilation and contract state matches expected values
+/// @notice Script to verify deployed contract bytecode matches expected bytecode and contract state matches expected values
 contract DeployedContractValidation is Script {
-    
-    /// @notice Verifies bytecode of a deployed contract against local compilation
+    /// @notice Verifies bytecode of a deployed contract against expected bytecode
     /// @param deployedAddress Address of the deployed contract to verify
     /// @param contractName Name of the contract artifact in scripts/compiled-contract-artifacts/
     /// @return success True if the bytecode matches
-    function verifyContractBytecode(address deployedAddress, string memory contractName) public view returns (bool success) {
+    function verifyContractBytecode(address deployedAddress, string memory contractName)
+        public
+        view
+        returns (bool success)
+    {
         // Get the deployed bytecode
         bytes memory deployedCode = deployedAddress.code;
 
-        // replace the deployed address in the bytecode with all zeros
+        // When contract code has something like `address(this)`, Foundry compiled artifact uses `address(0)` while the actual bytecode uses the deployed address.
+        // This is a problem because the bytecode will not match.
+        // We need to manually replace the deployed address in the bytecode with all zeros.
         for (uint256 i = 0; i < deployedCode.length - 20; i++) {
             // Check if the next 20 bytes match the address pattern
             // We need to manually extract and compare the bytes instead of using slice notation
             bytes memory chunk = new bytes(20);
             for (uint256 k = 0; k < 20; k++) {
-                chunk[k] = deployedCode[i+k];
+                chunk[k] = deployedCode[i + k];
             }
-            
+
             if (keccak256(chunk) == keccak256(abi.encodePacked(deployedAddress))) {
                 // Zero out the address bytes to match the expected bytecode
                 for (uint256 j = 0; j < 20; j++) {
-                    deployedCode[i+j] = bytes1(0);
+                    deployedCode[i + j] = bytes1(0);
                 }
             }
         }
         bytes32 deployedCodeHash = keccak256(deployedCode);
-        
+
         // Get the expected bytecode from the compiled artifact
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/script/compiled-contract-artifacts/", contractName, ".json");
         string memory json = vm.readFile(path);
         bytes memory expectedBytecode = abi.decode(vm.parseJson(json, ".deployedBytecode.object"), (bytes));
-        
+
         bytes32 expectedCodeHash = keccak256(expectedBytecode);
-        
+
         // Check if bytecode matches
         if (expectedCodeHash != deployedCodeHash) {
             return false;
         }
         return true;
     }
-    
+
     /// @notice Verifies a uint256 value from a contract against expected value
     /// @param deployedAddress Address of the contract to query
     /// @param functionSignature Function signature to call (e.g., "domain()")
@@ -71,7 +76,7 @@ contract DeployedContractValidation is Script {
     /// @param expectedValue Expected return value
     /// @return success True if the value matches
     function verifyValue(
-        address deployedAddress, 
+        address deployedAddress,
         string memory functionSignature,
         bytes memory encodedFunctionParameter,
         bytes memory expectedValue
@@ -81,14 +86,14 @@ contract DeployedContractValidation is Script {
             abi.encodePacked(bytes4(keccak256(bytes(functionSignature))), encodedFunctionParameter)
         );
         require(callSuccess, string(abi.encodePacked("Function call failed: ", functionSignature)));
-        
+
         // Check if values match
         if (keccak256(expectedValue) != keccak256(returnData)) {
             return false;
         }
         return true;
     }
-    
+
     /// @notice Example verification for GatewayMinter
     /// @param minterProxyAddress Address of the deployed GatewayMinter contract
     /// @param minterImplAddress Address of the deployed GatewayMinter implementation contract
@@ -96,22 +101,41 @@ contract DeployedContractValidation is Script {
         // Verify bytecode
         bool bytecodeOk = verifyContractBytecode(minterProxyAddress, "ERC1967Proxy");
         require(bytecodeOk, "GatewayMinter proxy bytecode verification failed");
-        
+
         bytecodeOk = verifyContractBytecode(minterImplAddress, "GatewayMinter");
         require(bytecodeOk, "GatewayMinter implementation bytecode verification failed");
-        
+
         // Verify important state variables
-        bool ownerOk = verifyValue(minterProxyAddress, "owner()", "", abi.encode(vm.envAddress("GATEWAYMINTER_OWNER_ADDRESS")));
-        bool pauserOk = verifyValue(minterProxyAddress, "pauser()", "", abi.encode(vm.envAddress("GATEWAYMINTER_PAUSER_ADDRESS")));
-        bool denylisterOk = verifyValue(minterProxyAddress, "denylister()", "", abi.encode(vm.envAddress("GATEWAYMINTER_DENYLISTER_ADDRESS")));
-        bool supportedTokenOk = verifyValue(minterProxyAddress, "isTokenSupported(address)", abi.encode(vm.envAddress("GATEWAYMINTER_SUPPORTED_TOKEN_1")), abi.encode(true));
+        bool ownerOk =
+            verifyValue(minterProxyAddress, "owner()", "", abi.encode(vm.envAddress("GATEWAYMINTER_OWNER_ADDRESS")));
+        bool pauserOk =
+            verifyValue(minterProxyAddress, "pauser()", "", abi.encode(vm.envAddress("GATEWAYMINTER_PAUSER_ADDRESS")));
+        bool denylisterOk = verifyValue(
+            minterProxyAddress, "denylister()", "", abi.encode(vm.envAddress("GATEWAYMINTER_DENYLISTER_ADDRESS"))
+        );
+        bool supportedTokenOk = verifyValue(
+            minterProxyAddress,
+            "isTokenSupported(address)",
+            abi.encode(vm.envAddress("GATEWAYMINTER_SUPPORTED_TOKEN_1")),
+            abi.encode(true)
+        );
         bool domainOk = verifyValue(minterProxyAddress, "domain()", "", abi.encode(vm.envUint("GATEWAYMINTER_DOMAIN")));
-        bool authSignerOk = verifyValue(minterProxyAddress, "mintAuthorizationSigner()", "", abi.encode(vm.envAddress("GATEWAYMINTER_AUTH_SIGNER")));
-        bool tokenAuthOk = verifyValue(minterProxyAddress, "tokenMintAuthority(address)", abi.encode(vm.envAddress("GATEWAYMINTER_SUPPORTED_TOKEN_1")), abi.encode(vm.envAddress("GATEWAYMINTER_AUTH_SIGNER")));
-        
-        require(domainOk && ownerOk && pauserOk && denylisterOk && supportedTokenOk && authSignerOk && tokenAuthOk, "GatewayMinter state verification failed");
+        bool authSignerOk = verifyValue(
+            minterProxyAddress, "mintAuthorizationSigner()", "", abi.encode(vm.envAddress("GATEWAYMINTER_AUTH_SIGNER"))
+        );
+        bool tokenAuthOk = verifyValue(
+            minterProxyAddress,
+            "tokenMintAuthority(address)",
+            abi.encode(vm.envAddress("GATEWAYMINTER_SUPPORTED_TOKEN_1")),
+            abi.encode(vm.envAddress("GATEWAYMINTER_AUTH_SIGNER"))
+        );
+
+        require(
+            domainOk && ownerOk && pauserOk && denylisterOk && supportedTokenOk && authSignerOk && tokenAuthOk,
+            "GatewayMinter state verification failed"
+        );
     }
-    
+
     /// @notice Example verification for GatewayWallet
     /// @param walletProxyAddress Address of the deployed GatewayWallet contract
     /// @param walletImplAddress Address of the deployed GatewayWallet implementation contract
@@ -122,20 +146,39 @@ contract DeployedContractValidation is Script {
 
         bytecodeOk = verifyContractBytecode(walletImplAddress, "GatewayWallet");
         require(bytecodeOk, "GatewayWallet implementation bytecode verification failed");
-        
+
         // Verify important state variables
-        bool ownerOk = verifyValue(walletProxyAddress, "owner()", "", abi.encode(vm.envAddress("GATEWAYWALLET_OWNER_ADDRESS")));
-        bool pauserOk = verifyValue(walletProxyAddress, "pauser()", "", abi.encode(vm.envAddress("GATEWAYWALLET_PAUSER_ADDRESS")));
-        bool denylisterOk = verifyValue(walletProxyAddress, "denylister()", "", abi.encode(vm.envAddress("GATEWAYWALLET_DENYLISTER_ADDRESS")));
-        bool supportedTokenOk = verifyValue(walletProxyAddress, "isTokenSupported(address)", abi.encode(vm.envAddress("GATEWAYWALLET_SUPPORTED_TOKEN_1")), abi.encode(true));
+        bool ownerOk =
+            verifyValue(walletProxyAddress, "owner()", "", abi.encode(vm.envAddress("GATEWAYWALLET_OWNER_ADDRESS")));
+        bool pauserOk =
+            verifyValue(walletProxyAddress, "pauser()", "", abi.encode(vm.envAddress("GATEWAYWALLET_PAUSER_ADDRESS")));
+        bool denylisterOk = verifyValue(
+            walletProxyAddress, "denylister()", "", abi.encode(vm.envAddress("GATEWAYWALLET_DENYLISTER_ADDRESS"))
+        );
+        bool supportedTokenOk = verifyValue(
+            walletProxyAddress,
+            "isTokenSupported(address)",
+            abi.encode(vm.envAddress("GATEWAYWALLET_SUPPORTED_TOKEN_1")),
+            abi.encode(true)
+        );
         bool domainOk = verifyValue(walletProxyAddress, "domain()", "", abi.encode(vm.envUint("GATEWAYWALLET_DOMAIN")));
-        bool withdrawDelayOk = verifyValue(walletProxyAddress, "withdrawalDelay()", "", abi.encode(vm.envUint("GATEWAYWALLET_WITHDRAWAL_DELAY")));
-        bool burnSignerOk = verifyValue(walletProxyAddress, "burnSigner()", "", abi.encode(vm.envAddress("GATEWAYWALLET_BURNSIGNER_ADDRESS")));
-        bool feeRecipientOk = verifyValue(walletProxyAddress, "feeRecipient()", "", abi.encode(vm.envAddress("GATEWAYWALLET_FEERECIPIENT_ADDRESS")));
-        
-        require(ownerOk && pauserOk && denylisterOk && supportedTokenOk && domainOk && withdrawDelayOk && burnSignerOk && feeRecipientOk, "GatewayWallet state verification failed");
+        bool withdrawDelayOk = verifyValue(
+            walletProxyAddress, "withdrawalDelay()", "", abi.encode(vm.envUint("GATEWAYWALLET_WITHDRAWAL_DELAY"))
+        );
+        bool burnSignerOk = verifyValue(
+            walletProxyAddress, "burnSigner()", "", abi.encode(vm.envAddress("GATEWAYWALLET_BURNSIGNER_ADDRESS"))
+        );
+        bool feeRecipientOk = verifyValue(
+            walletProxyAddress, "feeRecipient()", "", abi.encode(vm.envAddress("GATEWAYWALLET_FEERECIPIENT_ADDRESS"))
+        );
+
+        require(
+            ownerOk && pauserOk && denylisterOk && supportedTokenOk && domainOk && withdrawDelayOk && burnSignerOk
+                && feeRecipientOk,
+            "GatewayWallet state verification failed"
+        );
     }
-    
+
     /// @notice Main run function for validation
     function run() public {
         // Load contract addresses from environment variables
@@ -143,7 +186,7 @@ contract DeployedContractValidation is Script {
         address walletProxyAddress = vm.envAddress("GATEWAYMINTER_WALLET_ADDRESS");
         address minterImplAddress = vm.envAddress("GATEWAYMINTER_IMPL_ADDRESS");
         address walletImplAddress = vm.envAddress("GATEWAYWALLET_IMPL_ADDRESS");
-        
+
         // Run all validations
         verifyGatewayMinter(minterProxyAddress, minterImplAddress);
         verifyGatewayWallet(walletProxyAddress, walletImplAddress);
