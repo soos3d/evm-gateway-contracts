@@ -18,8 +18,8 @@
 pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {TransferSpec, TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
-import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
+import {TransferSpec, TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
+import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
 
 contract TransferSpecTest is AuthorizationTestUtils {

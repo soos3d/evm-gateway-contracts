@@ -21,11 +21,11 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Test} from "forge-std/Test.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
-import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
-import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
-import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
-import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/MintAuthorizations.sol";
-import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
+import {BurnAuthorizationLib} from "src/lib/BurnAuthorizationLib.sol";
+import {BurnAuthorization} from "src/lib/BurnAuthorizations.sol";
+import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
+import {MintAuthorization, MintAuthorizationSet} from "src/lib/MintAuthorizations.sol";
+import {TransferSpec} from "src/lib/TransferSpec.sol";
 
 contract SignatureTestUtils is Test {
     using MessageHashUtils for bytes32;

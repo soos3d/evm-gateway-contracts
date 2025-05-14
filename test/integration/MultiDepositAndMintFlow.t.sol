@@ -17,8 +17,8 @@
  */
 pragma solidity ^0.8.29;
 
-import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
-import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
+import {BurnAuthorization} from "src/lib/BurnAuthorizations.sol";
+import {TransferSpec} from "src/lib/TransferSpec.sol";
 import {MultichainTestUtils} from "./../util/MultichainTestUtils.sol";
 
 contract MultiDepositAndMintFlowTest is MultichainTestUtils {

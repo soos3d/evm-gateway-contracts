@@ -20,7 +20,7 @@ pragma solidity ^0.8.29;
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Test} from "forge-std/Test.sol";
-import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
+import {TransferSpec} from "src/lib/TransferSpec.sol";
 import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 
 contract TransferSpecHashesHarness is TransferSpecHashes {

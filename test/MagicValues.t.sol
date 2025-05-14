@@ -23,9 +23,9 @@ import {
     BURN_AUTHORIZATION_SET_MAGIC,
     BURN_AUTHORIZATION_TYPEHASH,
     BURN_AUTHORIZATION_SET_TYPEHASH
-} from "src/lib/authorizations/BurnAuthorizations.sol";
-import {MINT_AUTHORIZATION_MAGIC, MINT_AUTHORIZATION_SET_MAGIC} from "src/lib/authorizations/MintAuthorizations.sol";
-import {TRANSFER_SPEC_TYPEHASH} from "src/lib/authorizations/TransferSpec.sol";
+} from "src/lib/BurnAuthorizations.sol";
+import {MINT_AUTHORIZATION_MAGIC, MINT_AUTHORIZATION_SET_MAGIC} from "src/lib/MintAuthorizations.sol";
+import {TRANSFER_SPEC_TYPEHASH} from "src/lib/TransferSpec.sol";
 import {CounterpartStorage} from "src/modules/common/Counterpart.sol";
 import {DenylistStorage} from "src/modules/common/Denylist.sol";
 import {DomainStorage} from "src/modules/common/Domain.sol";

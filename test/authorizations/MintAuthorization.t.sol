@@ -18,12 +18,12 @@
 pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
-import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
-import {MintAuthorization, MINT_AUTHORIZATION_MAGIC} from "src/lib/authorizations/MintAuthorizations.sol";
-import {TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
-import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
+import {AuthorizationCursor} from "src/lib/AuthorizationCursor.sol";
+import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
+import {MintAuthorization, MINT_AUTHORIZATION_MAGIC} from "src/lib/MintAuthorizations.sol";
+import {TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
+import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
+import {BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
 import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
 
 contract MintAuthorizationTest is AuthorizationTestUtils {

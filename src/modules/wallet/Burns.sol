@@ -23,12 +23,12 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {GatewayCommon} from "src/GatewayCommon.sol";
 import {IBurnToken} from "src/interfaces/IBurnToken.sol";
-import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
-import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
-import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
-import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {AddressLib} from "src/lib/util/AddressLib.sol";
-import {EIP712Domain} from "src/lib/util/EIP712Domain.sol";
+import {AuthorizationCursor} from "src/lib/AuthorizationCursor.sol";
+import {BurnAuthorizationLib} from "src/lib/BurnAuthorizationLib.sol";
+import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/BurnAuthorizations.sol";
+import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
+import {EIP712Domain} from "src/lib/EIP712Domain.sol";
 import {Balances} from "src/modules/wallet/Balances.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
 
@@ -167,7 +167,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// @dev `authorizations`, `signatures`, and `fees` encoded in the `calldataBytes` input must all be the same length.
     /// @dev For a set of burn authorizations, authorizations from other domains and those inadvertently submitted for
     ///      the same domain are ignored. The whole set is still needed to verify the signature.
-    /// @dev See `lib/authorizations/BurnAuthorizations.sol` for encoding details
+    /// @dev See `lib/BurnAuthorizations.sol` for encoding details
     ///
     /// @param calldataBytes     ABI-encoded (authorizations[], signatures[], fees[][]) arrays
     /// @param burnerSignature   Signature from `burnSigner` on `calldataBytes`

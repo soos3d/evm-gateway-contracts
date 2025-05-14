@@ -17,7 +17,7 @@
  */
 pragma solidity ^0.8.29;
 
-import {AddressLib} from "src/lib/util/AddressLib.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {Pausing} from "src/modules/common/Pausing.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";

@@ -19,12 +19,12 @@ pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {Test} from "forge-std/Test.sol";
-import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
-import {BurnAuthorization, BURN_AUTHORIZATION_MAGIC} from "src/lib/authorizations/BurnAuthorizations.sol";
-import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
-import {MintAuthorization, MINT_AUTHORIZATION_MAGIC} from "src/lib/authorizations/MintAuthorizations.sol";
-import {TransferSpec, TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
-import {TransferSpecLib, BYTES4_BYTES} from "src/lib/authorizations/TransferSpecLib.sol";
+import {BurnAuthorizationLib} from "src/lib/BurnAuthorizationLib.sol";
+import {BurnAuthorization, BURN_AUTHORIZATION_MAGIC} from "src/lib/BurnAuthorizations.sol";
+import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
+import {MintAuthorization, MINT_AUTHORIZATION_MAGIC} from "src/lib/MintAuthorizations.sol";
+import {TransferSpec, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
+import {TransferSpecLib, BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
 
 contract AuthorizationTestUtils is Test {
     using TypedMemView for bytes29; // For keccak/len on views

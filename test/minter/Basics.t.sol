@@ -21,7 +21,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {GatewayMinter} from "src/GatewayMinter.sol";
-import {AddressLib} from "src/lib/util/AddressLib.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Mints} from "src/modules/minter/Mints.sol";
 import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
