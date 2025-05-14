@@ -18,7 +18,7 @@
 pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {AuthorizationCursor} from "src/lib/AuthorizationCursor.sol";
+import {Cursor} from "src/lib/Cursor.sol";
 import {BurnAuthorizationLib} from "src/lib/BurnAuthorizationLib.sol";
 import {
     BurnAuthorization,
@@ -33,7 +33,7 @@ import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
 
 contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     using BurnAuthorizationLib for bytes29;
-    using BurnAuthorizationLib for AuthorizationCursor;
+    using BurnAuthorizationLib for Cursor;
 
     uint16 private constant BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
 
@@ -64,7 +64,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint32 numAuths = setRef.getNumAuthorizations();
         assertEq(numAuths, authSet.authorizations.length, "Eq Fail: numAuths");
 
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         uint32 i = 0;
         bytes29 authRef;
         while (!cursor.done) {
@@ -607,7 +607,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         BurnAuthorization[] memory authorizations = new BurnAuthorization[](0);
         BurnAuthorizationSet memory set = BurnAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(set);
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         assertEq(cursor.done, true);
     }
 
@@ -616,7 +616,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         BurnAuthorization[] memory authorizations = new BurnAuthorization[](0);
         BurnAuthorizationSet memory set = BurnAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(set);
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
         cursor.next();
     }
@@ -631,7 +631,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
         bytes29 setRef = BurnAuthorizationLib._asAuthOrSetView(encodedAuthSet);
 
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
 
         // Initial state
         assertEq(cursor.done, false);
@@ -662,7 +662,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         BurnAuthorizationSet memory set = BurnAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(set);
 
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         cursor.next();
         assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
@@ -676,7 +676,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
         bytes29 setRef = BurnAuthorizationLib._asAuthOrSetView(encodedAuthSet);
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
 
         // Initial state
         assertEq(cursor.done, false);
@@ -717,7 +717,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     ) public {
         BurnAuthorizationSet memory authSet = _createBurnAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = BurnAuthorizationLib.cursor(encodedAuthSet);
         cursor.next();
         cursor.next();
         assertEq(cursor.done, true);

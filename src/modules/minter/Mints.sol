@@ -21,7 +21,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {GatewayCommon} from "src/GatewayCommon.sol";
 import {IMintToken} from "src/interfaces/IMintToken.sol";
-import {AuthorizationCursor} from "src/lib/AuthorizationCursor.sol";
+import {Cursor} from "src/lib/Cursor.sol";
 import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {AddressLib} from "src/lib/AddressLib.sol";
@@ -32,7 +32,7 @@ import {AddressLib} from "src/lib/AddressLib.sol";
 contract Mints is GatewayCommon {
     using TransferSpecLib for bytes29;
     using MintAuthorizationLib for bytes29;
-    using MintAuthorizationLib for AuthorizationCursor;
+    using MintAuthorizationLib for Cursor;
     using MessageHashUtils for bytes32;
 
     /// Emitted when a mint authorization is used
@@ -168,7 +168,7 @@ contract Mints is GatewayCommon {
         _verifyMintAuthorizationSignature(authorization, signature);
 
         // Validate the mint authorization(s) and get an iteration cursor
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(authorization);
+        Cursor memory cursor = MintAuthorizationLib.cursor(authorization);
 
         // Ensure there is at least one mint authorization
         if (cursor.numAuths == 0) {

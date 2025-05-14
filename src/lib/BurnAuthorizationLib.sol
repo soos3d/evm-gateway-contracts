@@ -18,7 +18,7 @@
 pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {AuthorizationCursor} from "./AuthorizationCursor.sol";
+import {Cursor} from "./Cursor.sol";
 import {
     BurnAuthorization,
     BurnAuthorizationSet,
@@ -43,7 +43,7 @@ import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./Tran
 /// @notice Library for encoding, validating, and iterating over `BurnAuthorization` and `BurnAuthorizationSet` structs
 ///
 /// @dev Provides functions to handle single burn authorizations or sets of them, using `TypedMemView` for efficient
-///      memory operations and `AuthorizationCursor` for unified iteration
+///      memory operations and `Cursor` for unified iteration
 library BurnAuthorizationLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
@@ -229,8 +229,8 @@ library BurnAuthorizationLib {
     /// @dev Reverts with `AuthorizationDataTooShort` or `InvalidAuthorizationMagic` if casting fails
     ///
     /// @param data   The raw bytes representing either an encoded `BurnAuthorization` or `BurnAuthorizationSet`
-    /// @return c     An initialized `AuthorizationCursor` struct
-    function cursor(bytes memory data) internal pure returns (AuthorizationCursor memory c) {
+    /// @return c     An initialized `Cursor` struct
+    function cursor(bytes memory data) internal pure returns (Cursor memory c) {
         bytes29 ref = _validate(data);
         c.setOrAuthView = ref;
         c.index = 0;
@@ -253,9 +253,9 @@ library BurnAuthorizationLib {
     /// @dev Updates the cursor's internal state (`offset`, `index`, `done`). Reverts with `CursorOutOfBounds` if called
     ///      when no elements are remaining.
     ///
-    /// @param c      The `AuthorizationCursor` struct
+    /// @param c      The `Cursor` struct
     /// @return ref   The element the cursor was pointing at immediately before this function was called
-    function next(AuthorizationCursor memory c) internal pure returns (bytes29 ref) {
+    function next(Cursor memory c) internal pure returns (bytes29 ref) {
         if (c.done) {
             revert TransferSpecLib.CursorOutOfBounds();
         }

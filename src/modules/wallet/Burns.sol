@@ -23,7 +23,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {GatewayCommon} from "src/GatewayCommon.sol";
 import {IBurnToken} from "src/interfaces/IBurnToken.sol";
-import {AuthorizationCursor} from "src/lib/AuthorizationCursor.sol";
+import {Cursor} from "src/lib/Cursor.sol";
 import {BurnAuthorizationLib} from "src/lib/BurnAuthorizationLib.sol";
 import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/BurnAuthorizations.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
@@ -38,7 +38,7 @@ import {Delegation} from "src/modules/wallet/Delegation.sol";
 contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     using TransferSpecLib for bytes29;
     using BurnAuthorizationLib for bytes29;
-    using BurnAuthorizationLib for AuthorizationCursor;
+    using BurnAuthorizationLib for Cursor;
     using MessageHashUtils for bytes32;
     using SafeERC20 for IERC20;
 
@@ -219,7 +219,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     ///                        otherwise
     function validateBurnAuthorizations(bytes memory authorization, address signer) external view returns (bool) {
         // Validate the burn authorization(s) and get an iteration cursor
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(authorization);
+        Cursor memory cursor = BurnAuthorizationLib.cursor(authorization);
 
         // Ensure there is at least one burn authorization
         if (cursor.numAuths == 0) {
@@ -349,7 +349,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         uint256[] memory fees
     ) internal {
         // Validate the burn authorization(s) and get an iteration cursor
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(authorization);
+        Cursor memory cursor = BurnAuthorizationLib.cursor(authorization);
 
         // Ensure there is at least one burn authorization
         if (cursor.numAuths == 0) {
@@ -369,10 +369,10 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
 
     /// Iterates through a set of burn authorizations, validating and processing each relevant ones
     ///
-    /// @param cursor   An initialized `AuthorizationCursor` pointing to the start of the authorization set
+    /// @param cursor   An initialized `Cursor` pointing to the start of the authorization set
     /// @param signer   The address that signed the entire burn authorization payload
     /// @param fees     The fees to be charged, one for each individual burn authorization
-    function _processAuthorizationsAndBurn(AuthorizationCursor memory cursor, address signer, uint256[] memory fees)
+    function _processAuthorizationsAndBurn(Cursor memory cursor, address signer, uint256[] memory fees)
         internal
     {
         address token;

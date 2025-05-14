@@ -18,7 +18,7 @@
 pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {AuthorizationCursor} from "src/lib/AuthorizationCursor.sol";
+import {Cursor} from "src/lib/Cursor.sol";
 import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
 import {MintAuthorization, MINT_AUTHORIZATION_MAGIC} from "src/lib/MintAuthorizations.sol";
 import {TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
@@ -28,7 +28,7 @@ import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
 
 contract MintAuthorizationTest is AuthorizationTestUtils {
     using MintAuthorizationLib for bytes29;
-    using MintAuthorizationLib for AuthorizationCursor;
+    using MintAuthorizationLib for Cursor;
 
     // ===== Casting Tests =====
 
@@ -318,7 +318,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         bytes29 authView = MintAuthorizationLib._asAuthOrSetView(encodedAuth);
 
         // Initial state
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuth);
+        Cursor memory cursor = MintAuthorizationLib.cursor(encodedAuth);
         assertEq(cursor.setOrAuthView, authView);
         assertEq(cursor.offset, 0);
         assertEq(cursor.numAuths, 1);
@@ -341,7 +341,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
 
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuth);
+        Cursor memory cursor = MintAuthorizationLib.cursor(encodedAuth);
         cursor.next();
         assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));

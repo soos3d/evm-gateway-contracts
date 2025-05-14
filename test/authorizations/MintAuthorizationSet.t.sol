@@ -18,7 +18,7 @@
 pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {AuthorizationCursor} from "src/lib/AuthorizationCursor.sol";
+import {Cursor} from "src/lib/Cursor.sol";
 import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
 import {
     MintAuthorization,
@@ -33,7 +33,7 @@ import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
 
 contract MintAuthorizationSetTest is AuthorizationTestUtils {
     using MintAuthorizationLib for bytes29;
-    using MintAuthorizationLib for AuthorizationCursor;
+    using MintAuthorizationLib for Cursor;
 
     uint16 private constant MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
 
@@ -64,7 +64,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         uint32 numAuths = setRef.getNumAuthorizations();
         assertEq(numAuths, authSet.authorizations.length, "Eq Fail: numAuths");
 
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
         uint32 i = 0;
         bytes29 authRef;
         while (!cursor.done) {
@@ -609,7 +609,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         MintAuthorization[] memory authorizations = new MintAuthorization[](0);
         MintAuthorizationSet memory set = MintAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(set);
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
         assertEq(cursor.done, true);
     }
 
@@ -618,7 +618,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         MintAuthorization[] memory authorizations = new MintAuthorization[](0);
         MintAuthorizationSet memory set = MintAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(set);
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
         cursor.next();
     }
@@ -633,7 +633,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
         bytes29 setRef = MintAuthorizationLib._asAuthOrSetView(encodedAuthSet);
 
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
 
         // Initial state
         assertEq(cursor.done, false);
@@ -664,7 +664,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         MintAuthorizationSet memory set = MintAuthorizationSet({authorizations: authorizations});
         bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(set);
 
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
         cursor.next();
         assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
@@ -678,7 +678,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         MintAuthorizationSet memory authSet = _createMintAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
         bytes29 setRef = MintAuthorizationLib._asAuthOrSetView(encodedAuthSet);
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
 
         // Initial state
         assertEq(cursor.done, false);
@@ -719,7 +719,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
     ) public {
         MintAuthorizationSet memory authSet = _createMintAuthSet(auth1, auth2, LONG_METADATA);
         bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = MintAuthorizationLib.cursor(encodedAuthSet);
         cursor.next();
         cursor.next();
         assertEq(cursor.done, true);

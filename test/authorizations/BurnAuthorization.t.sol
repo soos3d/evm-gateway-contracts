@@ -18,7 +18,7 @@
 pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {AuthorizationCursor} from "src/lib/AuthorizationCursor.sol";
+import {Cursor} from "src/lib/Cursor.sol";
 import {BurnAuthorizationLib} from "src/lib/BurnAuthorizationLib.sol";
 import {BurnAuthorization, BURN_AUTHORIZATION_MAGIC} from "src/lib/BurnAuthorizations.sol";
 import {TRANSFER_SPEC_MAGIC, TRANSFER_SPEC_VERSION} from "src/lib/TransferSpec.sol";
@@ -28,7 +28,7 @@ import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
 
 contract BurnAuthorizationTest is AuthorizationTestUtils {
     using BurnAuthorizationLib for bytes29;
-    using BurnAuthorizationLib for AuthorizationCursor;
+    using BurnAuthorizationLib for Cursor;
 
     // ===== Casting Tests =====
 
@@ -319,7 +319,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         bytes29 authView = BurnAuthorizationLib._asAuthOrSetView(encodedAuth);
 
         // Initial state
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuth);
+        Cursor memory cursor = BurnAuthorizationLib.cursor(encodedAuth);
         assertEq(cursor.setOrAuthView, authView);
         assertEq(cursor.offset, 0);
         assertEq(cursor.numAuths, 1);
@@ -342,7 +342,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
 
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(encodedAuth);
+        Cursor memory cursor = BurnAuthorizationLib.cursor(encodedAuth);
         cursor.next();
         assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
