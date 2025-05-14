@@ -21,6 +21,7 @@ import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 /// @title DeployedContractValidation
 /// @notice Script to verify deployed contract bytecode matches expected bytecode and contract state matches expected values
+
 contract DeployedContractValidation is Script {
     /// @notice Verifies bytecode of a deployed contract against expected bytecode
     /// @param deployedAddress Address of the deployed contract to verify
@@ -108,8 +109,12 @@ contract DeployedContractValidation is Script {
         require(proxyImpl == minterImplAddress, "GatewayMinter proxy implementation address verification failed");
 
         // Verify important state variables
-        verifyContractStateValue(minterProxyAddress, "owner()", "", abi.encode(vm.envAddress("GATEWAYMINTER_OWNER_ADDRESS")));
-        verifyContractStateValue(minterProxyAddress, "pauser()", "", abi.encode(vm.envAddress("GATEWAYMINTER_PAUSER_ADDRESS")));
+        verifyContractStateValue(
+            minterProxyAddress, "owner()", "", abi.encode(vm.envAddress("GATEWAYMINTER_OWNER_ADDRESS"))
+        );
+        verifyContractStateValue(
+            minterProxyAddress, "pauser()", "", abi.encode(vm.envAddress("GATEWAYMINTER_PAUSER_ADDRESS"))
+        );
         verifyContractStateValue(
             minterProxyAddress, "denylister()", "", abi.encode(vm.envAddress("GATEWAYMINTER_DENYLISTER_ADDRESS"))
         );
@@ -148,8 +153,12 @@ contract DeployedContractValidation is Script {
         require(proxyImpl == walletImplAddress, "GatewayWallet proxy implementation address verification failed");
 
         // Verify important state variables
-        verifyContractStateValue(walletProxyAddress, "owner()", "", abi.encode(vm.envAddress("GATEWAYWALLET_OWNER_ADDRESS")));
-        verifyContractStateValue(walletProxyAddress, "pauser()", "", abi.encode(vm.envAddress("GATEWAYWALLET_PAUSER_ADDRESS")));
+        verifyContractStateValue(
+            walletProxyAddress, "owner()", "", abi.encode(vm.envAddress("GATEWAYWALLET_OWNER_ADDRESS"))
+        );
+        verifyContractStateValue(
+            walletProxyAddress, "pauser()", "", abi.encode(vm.envAddress("GATEWAYWALLET_PAUSER_ADDRESS"))
+        );
         verifyContractStateValue(
             walletProxyAddress, "denylister()", "", abi.encode(vm.envAddress("GATEWAYWALLET_DENYLISTER_ADDRESS"))
         );
