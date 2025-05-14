@@ -33,7 +33,7 @@ for chain in ${chains[@]}; do
   fi
 
   # Skip bytecode match test
-  forge_test_args+=(--no-match-path="test/BytecodeMatch.t.sol")
+  forge_test_args+=(--no-match-test="BytecodeMatch")
 
   echo "=== Running tests on chain: ${chain} ==="
   echo
