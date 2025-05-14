@@ -103,7 +103,7 @@ forge build src/GatewayMinter.sol --force
 cp out/GatewayMinter.sol/GatewayMinter.json script/compiled-contract-artifacts/GatewayMinter.json
 
 forge build src/GatewayWallet.sol --force 
-cp out/GatewayWallet.sol/UpgradeablePlaceholder.json script/compiled-contract-artifacts/GatewayWallet.json
+cp out/GatewayWallet.sol/GatewayWallet.json script/compiled-contract-artifacts/GatewayWallet.json
 ```
 
 #### Find New Salts

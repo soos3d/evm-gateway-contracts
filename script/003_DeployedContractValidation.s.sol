@@ -18,7 +18,7 @@
 pragma solidity ^0.8.29;
 
 import {Script} from "forge-std/Script.sol";
-
+import {console} from "forge-std/console.sol";
 /// @title DeployedContractValidation
 /// @notice Script to verify deployed contract bytecode matches expected bytecode and contract state matches expected values
 contract DeployedContractValidation is Script {
@@ -34,7 +34,8 @@ contract DeployedContractValidation is Script {
         // Get the deployed bytecode
         bytes memory deployedCode = deployedAddress.code;
 
-        // When contract code has something like `address(this)`, Foundry compiled artifact uses `address(0)` while the actual bytecode uses the deployed address.
+        // When a contract inherits from UUPSUpgradeable which sets address(this) to an immutable address field,
+        // Foundry compiled artifact uses `address(0)` while the actual bytecode uses the deployed address.
         // This is a problem because the bytecode will not match.
         // We need to manually replace the deployed address in the bytecode with all zeros.
         for (uint256 i = 0; i < deployedCode.length - 20; i++) {
@@ -69,12 +70,12 @@ contract DeployedContractValidation is Script {
         return true;
     }
 
-    /// @notice Verifies a uint256 value from a contract against expected value
+    /// @notice Verifies a contract state value from a contract against expected value
     /// @param deployedAddress Address of the contract to query
     /// @param functionSignature Function signature to call (e.g., "domain()")
     /// @param encodedFunctionParameter Encoded function parameter to pass (e.g., abi.encode(vm.envAddress("GATEWAYMINTER_SUPPORTED_TOKEN_1")))
     /// @param expectedValue Expected return value
-    function verifyValue(
+    function verifyContractStateValue(
         address deployedAddress,
         string memory functionSignature,
         bytes memory encodedFunctionParameter,
@@ -101,27 +102,32 @@ contract DeployedContractValidation is Script {
         bytecodeOk = verifyContractBytecode(minterImplAddress, "GatewayMinter");
         require(bytecodeOk, "GatewayMinter implementation bytecode verification failed");
 
+        // Verify proxy implementation address matches expected implementation address
+        bytes32 raw = vm.load(minterProxyAddress, bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1));
+        address proxyImpl = address(uint160(uint256(raw)));
+        require(proxyImpl == minterImplAddress, "GatewayMinter proxy implementation address verification failed");
+
         // Verify important state variables
-        verifyValue(minterProxyAddress, "owner()", "", abi.encode(vm.envAddress("GATEWAYMINTER_OWNER_ADDRESS")));
-        verifyValue(minterProxyAddress, "pauser()", "", abi.encode(vm.envAddress("GATEWAYMINTER_PAUSER_ADDRESS")));
-        verifyValue(
+        verifyContractStateValue(minterProxyAddress, "owner()", "", abi.encode(vm.envAddress("GATEWAYMINTER_OWNER_ADDRESS")));
+        verifyContractStateValue(minterProxyAddress, "pauser()", "", abi.encode(vm.envAddress("GATEWAYMINTER_PAUSER_ADDRESS")));
+        verifyContractStateValue(
             minterProxyAddress, "denylister()", "", abi.encode(vm.envAddress("GATEWAYMINTER_DENYLISTER_ADDRESS"))
         );
-        verifyValue(
+        verifyContractStateValue(
             minterProxyAddress,
             "isTokenSupported(address)",
             abi.encode(vm.envAddress("GATEWAYMINTER_SUPPORTED_TOKEN_1")),
             abi.encode(true)
         );
-        verifyValue(minterProxyAddress, "domain()", "", abi.encode(vm.envUint("GATEWAYMINTER_DOMAIN")));
-        verifyValue(
+        verifyContractStateValue(minterProxyAddress, "domain()", "", abi.encode(vm.envUint("GATEWAYMINTER_DOMAIN")));
+        verifyContractStateValue(
             minterProxyAddress, "mintAuthorizationSigner()", "", abi.encode(vm.envAddress("GATEWAYMINTER_AUTH_SIGNER"))
         );
-        verifyValue(
+        verifyContractStateValue(
             minterProxyAddress,
             "tokenMintAuthority(address)",
             abi.encode(vm.envAddress("GATEWAYMINTER_SUPPORTED_TOKEN_1")),
-            abi.encode(vm.envAddress("GATEWAYMINTER_AUTH_SIGNER"))
+            abi.encode(vm.envAddress("GATEWAYMINTER_TOKEN_AUTH_1"))
         );
     }
 
@@ -136,26 +142,31 @@ contract DeployedContractValidation is Script {
         bytecodeOk = verifyContractBytecode(walletImplAddress, "GatewayWallet");
         require(bytecodeOk, "GatewayWallet implementation bytecode verification failed");
 
+        // Verify proxy implementation address matches expected implementation address
+        bytes32 raw = vm.load(walletProxyAddress, bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1));
+        address proxyImpl = address(uint160(uint256(raw)));
+        require(proxyImpl == walletImplAddress, "GatewayWallet proxy implementation address verification failed");
+
         // Verify important state variables
-        verifyValue(walletProxyAddress, "owner()", "", abi.encode(vm.envAddress("GATEWAYWALLET_OWNER_ADDRESS")));
-        verifyValue(walletProxyAddress, "pauser()", "", abi.encode(vm.envAddress("GATEWAYWALLET_PAUSER_ADDRESS")));
-        verifyValue(
+        verifyContractStateValue(walletProxyAddress, "owner()", "", abi.encode(vm.envAddress("GATEWAYWALLET_OWNER_ADDRESS")));
+        verifyContractStateValue(walletProxyAddress, "pauser()", "", abi.encode(vm.envAddress("GATEWAYWALLET_PAUSER_ADDRESS")));
+        verifyContractStateValue(
             walletProxyAddress, "denylister()", "", abi.encode(vm.envAddress("GATEWAYWALLET_DENYLISTER_ADDRESS"))
         );
-        verifyValue(
+        verifyContractStateValue(
             walletProxyAddress,
             "isTokenSupported(address)",
             abi.encode(vm.envAddress("GATEWAYWALLET_SUPPORTED_TOKEN_1")),
             abi.encode(true)
         );
-        verifyValue(walletProxyAddress, "domain()", "", abi.encode(vm.envUint("GATEWAYWALLET_DOMAIN")));
-        verifyValue(
+        verifyContractStateValue(walletProxyAddress, "domain()", "", abi.encode(vm.envUint("GATEWAYWALLET_DOMAIN")));
+        verifyContractStateValue(
             walletProxyAddress, "withdrawalDelay()", "", abi.encode(vm.envUint("GATEWAYWALLET_WITHDRAWAL_DELAY"))
         );
-        verifyValue(
+        verifyContractStateValue(
             walletProxyAddress, "burnSigner()", "", abi.encode(vm.envAddress("GATEWAYWALLET_BURNSIGNER_ADDRESS"))
         );
-        verifyValue(
+        verifyContractStateValue(
             walletProxyAddress, "feeRecipient()", "", abi.encode(vm.envAddress("GATEWAYWALLET_FEERECIPIENT_ADDRESS"))
         );
     }
