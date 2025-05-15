@@ -78,7 +78,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
     // ===== Casting Tests =====
 
     function test_asAuthOrSetView_successBurnAuthSet() public pure {
-        (bytes memory data, uint40 expectedType) = _magic("circle.gateway.BurnAuthorizationSet");
+        (bytes memory data, uint40 expectedType) = _magic("circle.gateway.BurnIntentSet");
         bytes29 ref = BurnAuthorizationLib._asAuthOrSetView(data);
         assertEq(TypedMemView.typeOf(ref), expectedType);
         assertEq(bytes4(uint32(expectedType)), BURN_AUTHORIZATION_SET_MAGIC);
@@ -349,7 +349,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
 
         // Corrupt the magic of the first authorization (at offset 8)
-        encodedAuthSet[BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET] = hex"FF";
+        encodedAuthSet[BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET] = hex"00";
 
         uint32 elementIndex = 0;
         bytes4 corruptedMagic;
@@ -385,7 +385,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         uint256 secondAuthOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length;
 
         // Corrupt the magic of the second authorization
-        encodedAuthSet[secondAuthOffset] = hex"FF";
+        encodedAuthSet[secondAuthOffset] = hex"00";
 
         uint32 elementIndex = 1;
         bytes4 corruptedMagic;
@@ -496,7 +496,7 @@ contract BurnAuthorizationSetTest is AuthorizationTestUtils {
         // Corrupt the inner TransferSpec magic within the first authorization
         uint256 innerSpecMagicOffset =
             BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET;
-        encodedAuthSet[innerSpecMagicOffset] = hex"FF";
+        encodedAuthSet[innerSpecMagicOffset] = hex"00";
 
         bytes4 corruptedMagic;
         uint256 offset = innerSpecMagicOffset;

@@ -33,7 +33,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
     // ===== Casting Tests =====
 
     function test_asAuthOrSetView_successMintAuth() public pure {
-        (bytes memory data, uint40 magicType) = _magic("circle.gateway.MintAuthorization");
+        (bytes memory data, uint40 magicType) = _magic("circle.gateway.Attestation");
         bytes29 ref = MintAuthorizationLib._asAuthOrSetView(data);
         assertEq(TypedMemView.typeOf(ref), magicType);
         assertEq(bytes4(uint32(magicType)), MINT_AUTHORIZATION_MAGIC);
@@ -211,7 +211,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
 
-        encodedAuth[MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET] = hex"FF";
+        encodedAuth[MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET] = hex"00";
 
         bytes4 corruptedMagic;
         uint256 offset = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET;

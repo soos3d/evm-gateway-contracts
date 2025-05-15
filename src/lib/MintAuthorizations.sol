@@ -20,31 +20,31 @@ pragma solidity ^0.8.29;
 import {TransferSpec} from "./TransferSpec.sol";
 
 // Magic values for marking byte encodings
-bytes4 constant MINT_AUTHORIZATION_MAGIC = 0x23ba354a; // `bytes4(keccak256("circle.gateway.MintAuthorization"))`
-bytes4 constant MINT_AUTHORIZATION_SET_MAGIC = 0x95f860bd; // `bytes4(keccak256("circle.gateway.MintAuthorizationSet"))`
+bytes4 constant MINT_AUTHORIZATION_MAGIC = 0xff6fb334; // `bytes4(keccak256("circle.gateway.Attestation"))`
+bytes4 constant MINT_AUTHORIZATION_SET_MAGIC = 0x1e12db71; // `bytes4(keccak256("circle.gateway.AttestationSet"))`
 
-// `MintAuthorization` field offsets
+// `Attestation` field offsets
 uint16 constant MINT_AUTHORIZATION_MAGIC_OFFSET = 0;
 uint16 constant MINT_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET = 4;
 uint16 constant MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 36;
 uint16 constant MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 40;
 
-// `MintAuthorizationSet` field offsets
+// `AttestationSet` field offsets
 uint16 constant MINT_AUTHORIZATION_SET_MAGIC_OFFSET = 0;
 uint16 constant MINT_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
 uint16 constant MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
 
-/// @title MintAuthorization
+/// @title Attestation
 ///
 /// @notice Passed to the `GatewayMinter` contract on the destination domain by the user or a relayer
 ///
-/// @dev Magic: `bytes4(keccak256("circle.gateway.MintAuthorization"))`
+/// @dev Magic: `bytes4(keccak256("circle.gateway.Attestation"))`
 /// @dev The `keccak256` hash of the encoded `TransferSpec` is used as a cross-chain identifier, for both linkability
 ///      and replay protection. See `TransferSpecHashes.sol` for more details.
 ///
 /// @dev Byte encoding (big-endian):
 ///     FIELD                      OFFSET   BYTES   NOTES
-///     magic                           0       4   Always 0x23ba354a
+///     magic                           0       4   Always 0xff6fb334
 ///     max block height                4      32
 ///     transfer spec length           36       4   In bytes, may vary based on metadata length
 ///     encoded transfer spec          40       ?   Must be the length indicated above
@@ -53,15 +53,15 @@ struct MintAuthorization {
     TransferSpec spec; //        A description of the transfer
 }
 
-/// @title MintAuthorizationSet
+/// @title AttestationSet
 ///
-/// @notice Represents multiple `MintAuthorizations` packed together, for transferring from multiple domains
+/// @notice Represents multiple `Attestation`s packed together, for transferring from multiple domains
 ///
-/// @dev Magic: bytes4(keccak256("circle.gateway.MintAuthorizationSet"))
+/// @dev Magic: bytes4(keccak256("circle.gateway.AttestationSet"))
 ///
 /// @dev Byte encoding (big-endian):
 ///     FIELD                      OFFSET   BYTES   NOTES
-///     magic                           0       4   Always 0x95f860bd
+///     magic                           0       4   Always 0x1e12db71
 ///     number of authorizations        4       4
 ///     authorizations                  8       ?   Concatenated one after another
 struct MintAuthorizationSet {

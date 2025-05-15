@@ -2290,7 +2290,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         });
 
         bytes memory walletEncoded = wallet.encodeBurnAuthorization(auth);
-        bytes32 expectedHash = 0xfe6eb9ec5096cda2872aa1f7cc63df0412239e353828acc5cf490bac23c25e44;
+        bytes32 expectedHash = 0xb89a83bf6004ff37fc7cd497b2297e02a4642fd9891993e90a95d4d54820ab76;
 
         bytes32 walletEIP712Hash = wallet.getTypedDataHash(walletEncoded);
 
@@ -2322,7 +2322,7 @@ contract TestBurns is SignatureTestUtils, DeployUtils {
         BurnAuthorization[] memory authArray = new BurnAuthorization[](1);
         authArray[0] = auth;
         bytes memory encodedAuthSet = wallet.encodeBurnAuthorizations(authArray);
-        bytes32 expectedHash = 0xe21fa80bfbaafdfb94029c361eebfa7a0d798e2cab2eb387abae034167f673bf;
+        bytes32 expectedHash = 0x40b578aecb0ad0f3b6a672e10ba4b2f03e30ad38f4daf69cf5afc8e406d7da3b;
 
         bytes32 walletEIP712Hash = wallet.getTypedDataHash(encodedAuthSet);
 

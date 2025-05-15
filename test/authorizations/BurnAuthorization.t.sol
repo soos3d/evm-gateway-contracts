@@ -33,7 +33,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
     // ===== Casting Tests =====
 
     function test_asAuthOrSetView_successBurnAuth() public pure {
-        (bytes memory data, uint40 expectedType) = _magic("circle.gateway.BurnAuthorization"); // Use helper
+        (bytes memory data, uint40 expectedType) = _magic("circle.gateway.BurnIntent"); // Use helper
         bytes29 ref = BurnAuthorizationLib._asAuthOrSetView(data);
         assertEq(TypedMemView.typeOf(ref), expectedType);
         assertEq(bytes4(uint32(expectedType)), BURN_AUTHORIZATION_MAGIC);
@@ -211,7 +211,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
 
-        encodedAuth[BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET] = hex"FF";
+        encodedAuth[BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET] = hex"00";
 
         bytes4 corruptedMagic;
         uint256 offset = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET;

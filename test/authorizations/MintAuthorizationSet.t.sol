@@ -78,7 +78,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
     // ===== Casting Tests =====
 
     function test_asAuthOrSetView_successMintAuthSet() public pure {
-        (bytes memory data, uint40 expectedType) = _magic("circle.gateway.MintAuthorizationSet");
+        (bytes memory data, uint40 expectedType) = _magic("circle.gateway.AttestationSet");
         bytes29 ref = MintAuthorizationLib._asAuthOrSetView(data);
         assertEq(TypedMemView.typeOf(ref), expectedType);
         assertEq(bytes4(uint32(expectedType)), MINT_AUTHORIZATION_SET_MAGIC);
@@ -349,7 +349,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
 
         // Corrupt the magic of the first authorization (at offset 8)
-        encodedAuthSet[MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET] = hex"FF";
+        encodedAuthSet[MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET] = hex"00";
 
         uint32 elementIndex = 0;
         bytes4 corruptedMagic;
@@ -385,7 +385,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         uint256 secondAuthOffset = MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length;
 
         // Corrupt the magic of the second authorization
-        encodedAuthSet[secondAuthOffset] = hex"FF";
+        encodedAuthSet[secondAuthOffset] = hex"00";
 
         uint32 elementIndex = 1;
         bytes4 corruptedMagic;
@@ -496,7 +496,7 @@ contract MintAuthorizationSetTest is AuthorizationTestUtils {
         // Corrupt the inner TransferSpec magic within the first authorization
         uint256 innerSpecMagicOffset =
             MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET + MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET;
-        encodedAuthSet[innerSpecMagicOffset] = hex"FF";
+        encodedAuthSet[innerSpecMagicOffset] = hex"00";
 
         bytes4 corruptedMagic;
         uint256 offset = innerSpecMagicOffset;

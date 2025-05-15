@@ -220,7 +220,7 @@ contract TestMints is Test, DeployUtils {
     function test_gatewayMint_revertIfInvalidMagic() public {
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
         // Corrupt magic
-        encodedAuth[0] = hex"FF";
+        encodedAuth[0] = hex"00";
 
         bytes memory tempBytes = new bytes(BYTES4_BYTES);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
