@@ -93,6 +93,12 @@ library TransferSpecLib {
     /// @param maxLength      The maximum encodable length of the metadata
     error TransferSpecMetadataFieldTooLarge(uint256 actualLength, uint256 maxLength);
 
+    /// Thrown when the metadata view matches the NULL value from `TypedMemView`
+    ///
+    /// @param expectedMetadataLength   The expected metadata length declared in the metadata length field
+    /// @param transferSpecLength       The length of the transfer spec
+    error TransferSpecInvalidMetadata(uint256 expectedMetadataLength, uint256 transferSpecLength);
+
     // --- Common Authorization errors ---------------------------------------------------------------------------------
 
     /// Thrown when casting data as an authorization or authorization set and the input is shorter than the expected
@@ -330,12 +336,22 @@ library TransferSpecLib {
     /// @return      The metadata as a `TypedMemView` reference
     function getMetadata(bytes29 ref) internal pure returns (bytes29) {
         uint32 metadataLength = getMetadataLength(ref);
+        bytes29 metadataView;
         if (metadataLength > 0) {
-            return ref.slice(TRANSFER_SPEC_METADATA_OFFSET, metadataLength, 0);
+            metadataView = ref.slice(TRANSFER_SPEC_METADATA_OFFSET, metadataLength, 0);
+        } else {
+            // Return an empty slice
+            metadataView = ref.slice(TRANSFER_SPEC_METADATA_OFFSET, 0, 0);
         }
 
-        // Return an empty slice
-        return ref.slice(TRANSFER_SPEC_METADATA_OFFSET, 0, 0);
+        // Sanity check that the metadata view is valid. A NULL view would indicate that the
+        // actual metadata length differs from the declared length in the metadata length field.
+        // This should be unreachable due to prior validation, but is included for completeness.
+        if (metadataView == TypedMemView.NULL) {
+            revert TransferSpecInvalidMetadata(metadataLength, ref.len());
+        }
+
+        return metadataView;
     }
 
     // --- Encoding ----------------------------------------------------------------------------------------------------
