@@ -187,7 +187,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     ///
     /// @param authorization   The burn authorization to encode
     /// @return                The byte-encoded burn authorization
-    function encodeBurnAuthorization(BurnAuthorization memory authorization) external pure returns (bytes memory) {
+    function encodeBurnAuthorization(BurnAuthorization calldata authorization) external pure returns (bytes memory) {
         return BurnAuthorizationLib.encodeBurnAuthorization(authorization);
     }
 
@@ -195,16 +195,19 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     ///
     /// @param authorizations   The burn authorizations to encode
     /// @return                 The byte-encoded burn authorization set
-    function encodeBurnAuthorizations(BurnAuthorization[] memory authorizations) external pure returns (bytes memory) {
-        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: authorizations});
-        return BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+    function encodeBurnAuthorizations(BurnAuthorization[] calldata authorizations)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return BurnAuthorizationLib.encodeBurnAuthorizationSet(BurnAuthorizationSet({authorizations: authorizations}));
     }
 
     /// Returns the `keccak256` hash of a burn authorization
     ///
     /// @param authorization   The burn authorization to hash
     /// @return                The `keccak256` hash of the burn authorization
-    function getTypedDataHash(bytes memory authorization) external view returns (bytes32) {
+    function getTypedDataHash(bytes calldata authorization) external view returns (bytes32) {
         return BurnAuthorizationLib.getTypedDataHash(authorization);
     }
 
@@ -217,7 +220,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// @param signer          The address that will sign the burn authorization(s)
     /// @return                `true` if the burn authorization(s) would be valid with the given signer, `false`
     ///                        otherwise
-    function validateBurnAuthorizations(bytes memory authorization, address signer) external view returns (bool) {
+    function validateBurnAuthorizations(bytes calldata authorization, address signer) external view returns (bool) {
         // Validate the burn authorization(s) and get an iteration cursor
         AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(authorization);
 
