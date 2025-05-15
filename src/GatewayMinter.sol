@@ -28,6 +28,9 @@ import {Mints} from "src/modules/minter/Mints.sol";
 /// the `mintAuthorizationSigner` configured in the contract. See the documentation for the `GatewayWallet` contract for
 /// more details.
 contract GatewayMinter is GatewayCommon, Mints {
+    /// Thrown when the length of `supportedTokens_` and `tokenMintAuthorities_` do not match
+    error MismatchedLengthTokenAndTokenMintAuthorities();
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         // Ensure that the implementation contract cannot be initialized, only the proxy
@@ -55,6 +58,10 @@ contract GatewayMinter is GatewayCommon, Mints {
         address mintAuthorizationSigner_,
         address[] calldata tokenMintAuthorities_
     ) external reinitializer(2) {
+        if (supportedTokens_.length != tokenMintAuthorities_.length) {
+            revert MismatchedLengthTokenAndTokenMintAuthorities();
+        }
+
         __GatewayCommon_init(pauser_, denylister_, wallet_, supportedTokens_, domain_);
         __Mints_init(mintAuthorizationSigner_, supportedTokens_, tokenMintAuthorities_);
     }
