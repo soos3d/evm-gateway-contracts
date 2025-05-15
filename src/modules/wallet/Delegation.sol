@@ -31,7 +31,7 @@ enum AuthorizationStatus {
     /// The delegate is currently authorized to act on behalf of the depositor for the token
     Authorized,
     /// The delegate was previously authorized, but the authorization has been revoked. This state is distinct from
-    /// `Unauthorized` to handle specific scenarios like signed burn authorizations.
+    /// `Unauthorized` to handle specific scenarios like signed burn intents.
     Revoked
 }
 
@@ -98,7 +98,7 @@ contract Delegation is Pausing, Denylist, TokenSupport {
     }
 
     /// Stop allowing `delegate` to withdraw or transfer the caller's `token` balance. This revocation is not respected
-    /// for burn authorizations that have been signed, so that burns cannot be prevented by removing the delegate.
+    /// for burn intents that have been signed, so that burns cannot be prevented by removing the delegate.
     ///
     /// @param token      The token the delegate should no longer be authorized for
     /// @param delegate   The address that should no longer be authorized

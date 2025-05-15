@@ -40,7 +40,7 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
         // On Ethereum: Deposit USDC
         _depositToChain(ethereum, depositor, DEPOSIT_AMOUNT);
 
-        // Offchain: Generate burn authorization and validate
+        // Offchain: Generate burn intent and validate
         TransferSpec memory transferSpec =
             _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
@@ -48,7 +48,7 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
         bool isValidBurnAuth = ethereum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuth);
 
-        // Offchain: Generate mint authorization given valid burn authorization
+        // Offchain: Generate mint authorization given valid burn intent
         vm.selectFork(arbitrum.forkId);
         (bytes memory encodedMintAuth, bytes memory mintSignature) =
             _signMintAuthWithTransferSpec(transferSpec, arbitrum.minterMintSignerKey);
@@ -87,7 +87,7 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
         assertEq(ethereum.usdc.balanceOf(address(ethereum.wallet)), DEPOSIT_AMOUNT);
         assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
 
-        // Offchain: Generate burn authorization and validate
+        // Offchain: Generate burn intent and validate
         TransferSpec memory transferSpec =
             _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, delegate, destinationCaller);
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
@@ -95,7 +95,7 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
         bool isValidBurnAuth = ethereum.wallet.validateBurnIntents(encodedBurnAuth, delegate);
         assertTrue(isValidBurnAuth);
 
-        // Offchain: Generate mint authorization given valid burn authorization
+        // Offchain: Generate mint authorization given valid burn intent
         vm.selectFork(arbitrum.forkId);
         (bytes memory encodedMintAuth, bytes memory mintSignature) =
             _signMintAuthWithTransferSpec(transferSpec, arbitrum.minterMintSignerKey);
@@ -140,7 +140,7 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
         assertEq(ethereum.usdc.balanceOf(address(ethereum.wallet)), DEPOSIT_AMOUNT);
         assertEq(ethereum.wallet.availableBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
 
-        // Offchain: Generate burn authorization and validate
+        // Offchain: Generate burn intent and validate
         TransferSpec memory transferSpec =
             _createTransferSpec(ethereum, ethereum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
@@ -148,7 +148,7 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
         bool isValidBurnAuth = ethereum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuth);
 
-        // Offchain: Generate mint authorization given valid burn authorization
+        // Offchain: Generate mint authorization given valid burn intent
         (bytes memory encodedMintAuth, bytes memory mintSignature) =
             _signMintAuthWithTransferSpec(transferSpec, ethereum.minterMintSignerKey);
 

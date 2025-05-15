@@ -26,7 +26,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 ///
 /// @dev Adapted from OpenZeppelin's EIP712 implementation (https://github.com/OpenZeppelin/openzeppelin-contracts/blob/acd4ff7/contracts/utils/cryptography/EIP712.sol)
 /// @dev This implementation intentionally deviates from the standard by omitting `chainId` and `verifyingContract`
-/// fields from the domain separator. This modification ensures burn authorizations can be verified across different
+/// fields from the domain separator. This modification ensures burn intents can be verified across different
 /// chains and contract deployments.
 contract EIP712Domain is IERC5267 {
     /// keccak256("EIP712Domain(string name,string version)");

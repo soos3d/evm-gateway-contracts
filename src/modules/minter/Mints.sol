@@ -39,7 +39,7 @@ contract Mints is GatewayCommon {
     ///
     /// @param token              The token that was minted
     /// @param recipient          The recipient of the funds
-    /// @param transferSpecHash   The `keccak256` hash of the `TransferSpec`, shared with the burn authorization
+    /// @param transferSpecHash   The `keccak256` hash of the `TransferSpec`, shared with the burn intent
     /// @param sourceDomain       The domain the funds came from
     /// @param sourceDepositor    The depositor on the source domain
     /// @param sourceSigner       The signer that authorized the transfer

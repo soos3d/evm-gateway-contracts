@@ -42,7 +42,7 @@ import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./Tran
 ///
 /// @notice Library for encoding, validating, and iterating over `BurnIntent` and `BurnIntentSet` structs
 ///
-/// @dev Provides functions to handle single burn authorizations or sets of them, using `TypedMemView` for efficient
+/// @dev Provides functions to handle single burn intents or sets of them, using `TypedMemView` for efficient
 ///      memory operations and `Cursor` for unified iteration
 library BurnIntentLib {
     using TypedMemView for bytes;
@@ -221,7 +221,7 @@ library BurnIntentLib {
 
     // --- Iteration ---------------------------------------------------------------------------------------------------
 
-    /// Validates `data` and returns a cursor that can uniformly iterate over any burn authorizations it contains
+    /// Validates `data` and returns a cursor that can uniformly iterate over any burn intents it contains
     ///
     /// @dev For a single `BurnIntent`, the cursor will yield that single element. For a `BurnIntentSet`,
     ///      it iterates through each contained `BurnIntent`. Sets the 'done' flag immediately if the set
@@ -395,9 +395,9 @@ library BurnIntentLib {
 
     // --- Hashing -----------------------------------------------------------------------------------------------------
 
-    /// Computes the EIP-712 typed data hash for a burn authorization or burn authorization set
+    /// Computes the EIP-712 typed data hash for a burn intent or burn intent set
     ///
-    /// @param auth     The encoded burn authorization or burn authorization set
+    /// @param auth     The encoded burn intent or burn intent set
     /// @return         The EIP-712 typed data hash
     function getTypedDataHash(bytes memory auth) internal view returns (bytes32) {
         bytes29 ref = _asAuthOrSetView(auth);
@@ -408,10 +408,10 @@ library BurnIntentLib {
         }
     }
 
-    /// Computes the EIP-712 typed data hash for a single burn authorization
+    /// Computes the EIP-712 typed data hash for a single burn intent
     ///
-    /// @param auth         A MemView reference to the encoded burn authorization
-    /// @return structHash  The EIP-712 typed data hash of the burn authorization
+    /// @param auth         A MemView reference to the encoded burn intent
+    /// @return structHash  The EIP-712 typed data hash of the burn intent
     function _getburnAuthorizationTypedDataHash(bytes29 auth) private view returns (bytes32 structHash) {
         uint256 maxBlockHeight = getMaxBlockHeight(auth);
         uint256 maxFee = getMaxFee(auth);
@@ -436,10 +436,10 @@ library BurnIntentLib {
         }
     }
 
-    /// Computes the EIP-712 typed data hash for a burn authorization set
+    /// Computes the EIP-712 typed data hash for a burn intent set
     ///
-    /// @param setView   A MemView reference to the encoded burn authorization set
-    /// @return          The EIP-712 typed data hash of the burn authorization set
+    /// @param setView   A MemView reference to the encoded burn intent set
+    /// @return          The EIP-712 typed data hash of the burn intent set
     function _getburnAuthorizationSetTypedDataHash(bytes29 setView) private view returns (bytes32) {
         uint32 numAuths = getNumAuthorizations(setView);
         uint256 currentOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET;

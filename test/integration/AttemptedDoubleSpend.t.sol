@@ -45,7 +45,7 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
         assertEq(ethereum.wallet.withdrawingBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
         assertEq(ethereum.wallet.withdrawableBalance(address(ethereum.usdc), depositor), 0);
 
-        // Offchain: Generate burn authorization and validate
+        // Offchain: Generate burn intent and validate
         TransferSpec memory transferSpec =
             _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
@@ -53,7 +53,7 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
         bool isValidBurnAuth = ethereum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuth);
 
-        // Offchain: Generate mint authorization given valid burn authorization
+        // Offchain: Generate mint authorization given valid burn intent
         vm.selectFork(arbitrum.forkId);
         (bytes memory encodedMintAuth, bytes memory mintSignature) =
             _signMintAuthWithTransferSpec(transferSpec, arbitrum.minterMintSignerKey);

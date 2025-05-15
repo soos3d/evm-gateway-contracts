@@ -208,7 +208,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         uint256 depositorTotalBalanceBefore = chain.wallet.totalBalance(address(chain.usdc), depositor);
         uint256 feeRecipientBalanceBefore = chain.usdc.balanceOf(chain.wallet.feeRecipient());
 
-        // Prepare burn authorization parameters
+        // Prepare burn intent parameters
         uint256[][] memory fees = _createFees(encodedBurnAuths, FEE_AMOUNT);
 
         // Get burn signer signature and execute burn
