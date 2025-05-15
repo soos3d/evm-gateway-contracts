@@ -67,8 +67,8 @@ contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
 
         address oldBurnSigner = wallet.burnSigner();
 
-        vm.expectEmit(false, false, false, true);
-        emit Burns.BurnSignerUpdated(oldBurnSigner, newBurnSigner);
+        vm.expectEmit(true, true, false, false);
+        emit Burns.BurnSignerChanged(oldBurnSigner, newBurnSigner);
 
         vm.prank(owner);
         wallet.updateBurnSigner(newBurnSigner);
@@ -82,8 +82,8 @@ contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
         wallet.updateBurnSigner(newBurnSigner); // first update
         assertEq(wallet.burnSigner(), newBurnSigner);
 
-        vm.expectEmit(false, false, false, true);
-        emit Burns.BurnSignerUpdated(newBurnSigner, newBurnSigner);
+        vm.expectEmit(true, true, false, false);
+        emit Burns.BurnSignerChanged(newBurnSigner, newBurnSigner);
         wallet.updateBurnSigner(newBurnSigner); // second update
 
         assertEq(wallet.burnSigner(), newBurnSigner);
@@ -109,8 +109,8 @@ contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
 
         address oldFeeRecipient = wallet.feeRecipient();
 
-        vm.expectEmit(false, false, false, true);
-        emit Burns.FeeRecipientUpdated(oldFeeRecipient, newFeeRecipient);
+        vm.expectEmit(true, true, false, false);
+        emit Burns.FeeRecipientChanged(oldFeeRecipient, newFeeRecipient);
 
         vm.prank(owner);
         wallet.updateFeeRecipient(newFeeRecipient);
@@ -124,8 +124,8 @@ contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
         wallet.updateFeeRecipient(newFeeRecipient); // first update
         assertEq(wallet.feeRecipient(), newFeeRecipient);
 
-        vm.expectEmit(false, false, false, true);
-        emit Burns.FeeRecipientUpdated(newFeeRecipient, newFeeRecipient);
+        vm.expectEmit(true, true, false, false);
+        emit Burns.FeeRecipientChanged(newFeeRecipient, newFeeRecipient);
         wallet.updateFeeRecipient(newFeeRecipient); // second update
 
         assertEq(wallet.feeRecipient(), newFeeRecipient);

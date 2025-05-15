@@ -25,8 +25,9 @@ import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/acces
 contract WithdrawalDelay is Ownable2StepUpgradeable {
     /// Emitted when the withdrawal delay is updated
     ///
+    /// @param oldDelay   The old value of the delay, in blocks
     /// @param newDelay   The new value of the delay, in blocks
-    event WithdrawalDelayUpdated(uint256 newDelay);
+    event WithdrawalDelayChanged(uint256 indexed oldDelay, uint256 indexed newDelay);
 
     /// Thrown when the required withdrawal delay has not yet passed since the most recent withdrawal was initiated
     error WithdrawalNotYetAvailable();
@@ -63,8 +64,9 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
     ///
     /// @param newDelay   The new value of the delay, in blocks
     function updateWithdrawalDelay(uint256 newDelay) public onlyOwner {
+        uint256 oldDelay = WithdrawalDelayStorage.get().withdrawalDelay;
         WithdrawalDelayStorage.get().withdrawalDelay = newDelay;
-        emit WithdrawalDelayUpdated(newDelay);
+        emit WithdrawalDelayChanged(oldDelay, newDelay);
     }
 
     /// Reverts if the given depositor may not yet withdraw the given token

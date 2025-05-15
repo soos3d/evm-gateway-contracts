@@ -27,8 +27,9 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 contract Counterpart is Initializable, Ownable2StepUpgradeable {
     /// Emitted when the counterpart is updated
     ///
+    /// @param oldCounterpart   The old counterpart address
     /// @param newCounterpart   The new counterpart address
-    event CounterpartUpdated(address newCounterpart);
+    event CounterpartChanged(address indexed oldCounterpart, address indexed newCounterpart);
 
     /// Initializes the `counterpart` contract address
     ///
@@ -55,8 +56,9 @@ contract Counterpart is Initializable, Ownable2StepUpgradeable {
     ///
     /// @param newCounterpart   The new counterpart contract address
     function _setCounterpart(address newCounterpart) private {
+        address oldCounterpart = CounterpartStorage.get().counterpart;
         CounterpartStorage.get().counterpart = newCounterpart;
-        emit CounterpartUpdated(newCounterpart);
+        emit CounterpartChanged(oldCounterpart, newCounterpart);
     }
 }
 

@@ -67,8 +67,8 @@ contract PausingTest is Test {
     function testInitialization_success() public {
         assertEq(pausing.pauser(), address(0), "Pauser should be zero address before initialization");
 
-        vm.expectEmit(false, false, false, true);
-        emit Pausing.PauserUpdated(pauser);
+        vm.expectEmit(true, true, false, false);
+        emit Pausing.PauserChanged(address(0), pauser);
 
         pausing.initialize(owner, pauser);
 
@@ -76,13 +76,12 @@ contract PausingTest is Test {
     }
 
     function testUpdatePauser_success() public {
-        vm.expectEmit(false, false, false, true);
-        emit Pausing.PauserUpdated(pauser);
-
+        vm.expectEmit(true, true, false, false);
+        emit Pausing.PauserChanged(address(0), pauser);
         pausing.initialize(owner, pauser);
 
-        vm.expectEmit(false, false, false, true);
-        emit Pausing.PauserUpdated(otherPauser);
+        vm.expectEmit(true, true, false, false);
+        emit Pausing.PauserChanged(pauser, otherPauser);
 
         vm.startPrank(owner);
         pausing.updatePauser(otherPauser);
