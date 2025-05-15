@@ -24,8 +24,8 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {Test} from "forge-std/Test.sol";
 import {GatewayMinter} from "src/GatewayMinter.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
-import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
-import {MintAuthorization, MintAuthorizationSet} from "src/lib/MintAuthorizations.sol";
+import {AttestationLib} from "src/lib/AttestationLib.sol";
+import {Attestation, AttestationSet} from "src/lib/Attestations.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
 import {AddressLib} from "src/lib/AddressLib.sol";
@@ -68,8 +68,8 @@ contract TestMints is Test, DeployUtils {
     FiatTokenV2_2 private usdc;
     MockMintableToken private mockToken;
 
-    MintAuthorization private crossChainBaseAuth;
-    MintAuthorization private sameChainBaseAuth;
+    Attestation private crossChainBaseAuth;
+    Attestation private sameChainBaseAuth;
 
     GatewayMinter private minter;
     GatewayWallet private wallet;
@@ -86,7 +86,7 @@ contract TestMints is Test, DeployUtils {
             minter.addSupportedToken(address(usdc));
             minter.addSupportedToken(address(mockToken));
             minter.updateDenylister(owner);
-            minter.updateMintAuthorizationSigner(mintAuthorizationSigner);
+            minter.updateAttestationSigner(mintAuthorizationSigner);
             minter.updateMintAuthority(address(usdc), address(usdc));
         }
         vm.stopPrank();
@@ -110,7 +110,7 @@ contract TestMints is Test, DeployUtils {
             vm.stopPrank();
         }
 
-        crossChainBaseAuth = MintAuthorization({
+        crossChainBaseAuth = Attestation({
             maxBlockHeight: block.number + defaultMaxBlockHeightOffset,
             spec: TransferSpec({
                 version: TRANSFER_SPEC_VERSION,
@@ -130,7 +130,7 @@ contract TestMints is Test, DeployUtils {
             })
         });
 
-        sameChainBaseAuth = MintAuthorization({
+        sameChainBaseAuth = Attestation({
             maxBlockHeight: block.number + defaultMaxBlockHeightOffset,
             spec: TransferSpec({
                 version: TRANSFER_SPEC_VERSION,
@@ -165,7 +165,7 @@ contract TestMints is Test, DeployUtils {
         minter.pause();
         vm.stopPrank();
 
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
         _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
@@ -175,7 +175,7 @@ contract TestMints is Test, DeployUtils {
         minter.denylist(address(this));
         vm.stopPrank();
 
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
         vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, address(this)));
         _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
@@ -189,15 +189,15 @@ contract TestMints is Test, DeployUtils {
 
     function test_gatewayMint_emptyAuth_wrongSigner() public {
         (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
-        vm.expectRevert(Mints.InvalidMintAuthorizationSigner.selector);
+        vm.expectRevert(Mints.InvalidAttestationSigner.selector);
         _callGatewayMintSignedBy(new bytes(0), wrongSignerKey);
     }
 
-    function test_gatewayMint_validAuth_wrongSigner(MintAuthorization memory authorization) public {
+    function test_gatewayMint_validAuth_wrongSigner(Attestation memory authorization) public {
         authorization.spec.metadata = METADATA;
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(authorization);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(authorization);
         (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
-        vm.expectRevert(Mints.InvalidMintAuthorizationSigner.selector);
+        vm.expectRevert(Mints.InvalidAttestationSigner.selector);
         _callGatewayMintSignedBy(encodedAuth, wrongSignerKey);
     }
 
@@ -209,16 +209,16 @@ contract TestMints is Test, DeployUtils {
     // ===== Authorization Structural Validation Tests =====
 
     function test_gatewayMint_revertIfNoAuthsProvided() public {
-        MintAuthorization[] memory authorizations = new MintAuthorization[](0);
-        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+        Attestation[] memory authorizations = new Attestation[](0);
+        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
-        vm.expectRevert(Mints.MustHaveAtLeastOneMintAuthorization.selector);
+        vm.expectRevert(Mints.MustHaveAtLeastOneAttestation.selector);
         _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
     }
 
     function test_gatewayMint_revertIfInvalidMagic() public {
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
         // Corrupt magic
         encodedAuth[0] = hex"00";
 
@@ -235,7 +235,7 @@ contract TestMints is Test, DeployUtils {
 
     function test_gatewayMint_revertIfExpiredAuth() public {
         crossChainBaseAuth.maxBlockHeight = block.number - 1;
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
         vm.expectRevert(
             abi.encodeWithSelector(
                 Mints.AuthorizationExpiredAtIndex.selector, 0, crossChainBaseAuth.maxBlockHeight, block.number
@@ -245,15 +245,15 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_revertIfExpiredAuthSet() public {
-        MintAuthorization memory expiredAuth = crossChainBaseAuth; // storage -> memory creates a copy
+        Attestation memory expiredAuth = crossChainBaseAuth; // storage -> memory creates a copy
         expiredAuth.maxBlockHeight = block.number - 1;
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = crossChainBaseAuth;
         authorizations[1] = expiredAuth;
 
-        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -265,21 +265,21 @@ contract TestMints is Test, DeployUtils {
 
     function test_gatewayMint_revertIfZeroValue() public {
         crossChainBaseAuth.spec.value = 0;
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
         vm.expectRevert(abi.encodeWithSelector(Mints.AuthorizationValueMustBePositiveAtIndex.selector, 0));
         _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
     function test_gatewayMint_revertIfZeroValueAuthSet() public {
-        MintAuthorization memory zeroValueAuth = crossChainBaseAuth; // storage -> memory creates a copy
+        Attestation memory zeroValueAuth = crossChainBaseAuth; // storage -> memory creates a copy
         zeroValueAuth.spec.value = 0;
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = crossChainBaseAuth;
         authorizations[1] = zeroValueAuth;
 
-        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
         vm.expectRevert(abi.encodeWithSelector(Mints.AuthorizationValueMustBePositiveAtIndex.selector, 1));
         _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
@@ -290,13 +290,13 @@ contract TestMints is Test, DeployUtils {
         minter.denylist(recipient);
         vm.stopPrank();
 
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
         vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, recipient));
         _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
     function test_gatewayMint_revertIfDestinationRecipientDenylistedAuthSet() public {
-        MintAuthorization memory denylistedRecipientAuth = crossChainBaseAuth; // storage -> memory creates a copy
+        Attestation memory denylistedRecipientAuth = crossChainBaseAuth; // storage -> memory creates a copy
         address denylistedRecipient = makeAddr("denylistedRecipient");
         denylistedRecipientAuth.spec.destinationRecipient = AddressLib._addressToBytes32(denylistedRecipient);
 
@@ -304,12 +304,12 @@ contract TestMints is Test, DeployUtils {
         minter.denylist(denylistedRecipient);
         vm.stopPrank();
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = crossChainBaseAuth;
         authorizations[1] = denylistedRecipientAuth;
 
-        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
         vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedRecipient));
         _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
@@ -318,7 +318,7 @@ contract TestMints is Test, DeployUtils {
     function test_gatewayMint_revertIfNonZeroAndInvalidDestinationCaller() public {
         address destinationCaller = makeAddr("destinationCallerOtherThanThis");
         crossChainBaseAuth.spec.destinationCaller = AddressLib._addressToBytes32(destinationCaller);
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -329,16 +329,16 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_revertIfNonZeroAndInvalidDestinationCallerAuthSet() public {
-        MintAuthorization memory invalidDestinationCallerAuth = crossChainBaseAuth; // storage -> memory creates a copy
+        Attestation memory invalidDestinationCallerAuth = crossChainBaseAuth; // storage -> memory creates a copy
         address destinationCaller = makeAddr("destinationCallerOtherThanThis");
         invalidDestinationCallerAuth.spec.destinationCaller = AddressLib._addressToBytes32(destinationCaller);
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = crossChainBaseAuth;
         authorizations[1] = invalidDestinationCallerAuth;
 
-        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -350,7 +350,7 @@ contract TestMints is Test, DeployUtils {
 
     function test_gatewayMint_revertIfInvalidDestinationDomainAuth() public {
         crossChainBaseAuth.spec.destinationDomain = domain + 1;
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
         vm.expectRevert(
             abi.encodeWithSelector(
                 Mints.InvalidAuthorizationDestinationDomainAtIndex.selector,
@@ -363,15 +363,15 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_revertIfInvalidDestinationDomainAuthSet() public {
-        MintAuthorization memory invalidDomainAuth = crossChainBaseAuth; // storage -> memory creates a copy
+        Attestation memory invalidDomainAuth = crossChainBaseAuth; // storage -> memory creates a copy
         invalidDomainAuth.spec.destinationDomain = domain + 1;
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = crossChainBaseAuth;
         authorizations[1] = invalidDomainAuth;
 
-        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -387,7 +387,7 @@ contract TestMints is Test, DeployUtils {
     function test_gatewayMint_revertIfInvalidDestinationContract() public {
         address invalidDestinationContract = makeAddr("invalidDestinationContract");
         crossChainBaseAuth.spec.destinationContract = AddressLib._addressToBytes32(invalidDestinationContract);
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -401,16 +401,16 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_revertIfInvalidDestinationContractAuthSet() public {
-        MintAuthorization memory invalidContractAuth = crossChainBaseAuth; // storage -> memory creates a copy
+        Attestation memory invalidContractAuth = crossChainBaseAuth; // storage -> memory creates a copy
         address invalidDestinationContract = makeAddr("invalidDestinationContract");
         invalidContractAuth.spec.destinationContract = AddressLib._addressToBytes32(invalidDestinationContract);
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = crossChainBaseAuth;
         authorizations[1] = invalidContractAuth;
 
-        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -424,36 +424,36 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_revertIfUnsupportedDestinationToken() public {
-        MintAuthorization memory unsupportedDestinationTokenAuth = crossChainBaseAuth;
+        Attestation memory unsupportedDestinationTokenAuth = crossChainBaseAuth;
         address unsupportedToken = makeAddr("unsupportedToken");
         unsupportedDestinationTokenAuth.spec.destinationToken = AddressLib._addressToBytes32(unsupportedToken);
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(unsupportedDestinationTokenAuth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(unsupportedDestinationTokenAuth);
 
         vm.expectRevert(abi.encodeWithSelector(Mints.UnsupportedTokenAtIndex.selector, 0, unsupportedToken));
         _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 
     function test_gatewayMint_revertIfUnsupportedDestinationTokenAuthSet() public {
-        MintAuthorization memory unsupportedDestinationTokenAuth = crossChainBaseAuth;
+        Attestation memory unsupportedDestinationTokenAuth = crossChainBaseAuth;
         address unsupportedToken = makeAddr("unsupportedToken");
         unsupportedDestinationTokenAuth.spec.destinationToken = AddressLib._addressToBytes32(unsupportedToken);
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = crossChainBaseAuth;
         authorizations[1] = unsupportedDestinationTokenAuth;
 
-        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
         vm.expectRevert(abi.encodeWithSelector(Mints.UnsupportedTokenAtIndex.selector, 1, unsupportedToken));
         _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
     }
 
     function test_gatewayMint_revertIfSameChainInvalidSourceContract() public {
-        MintAuthorization memory auth = sameChainBaseAuth;
+        Attestation memory auth = sameChainBaseAuth;
         address invalidSourceContract = makeAddr("invalidSourceContract");
         auth.spec.sourceContract = AddressLib._addressToBytes32(invalidSourceContract); // Set wrong source contract
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -464,16 +464,16 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_revertIfSameChainInvalidSourceContractAuthSet() public {
-        MintAuthorization memory invalidSourceAuth = sameChainBaseAuth;
+        Attestation memory invalidSourceAuth = sameChainBaseAuth;
         address invalidSourceContract = makeAddr("invalidSourceContract");
         invalidSourceAuth.spec.sourceContract = AddressLib._addressToBytes32(invalidSourceContract); // Set wrong source contract
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = sameChainBaseAuth;
         authorizations[1] = invalidSourceAuth;
 
-        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -484,10 +484,10 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_revertIfSameChainInvalidToken() public {
-        MintAuthorization memory auth = sameChainBaseAuth;
+        Attestation memory auth = sameChainBaseAuth;
         address differentSourceToken = makeAddr("differentSourceToken");
         auth.spec.sourceToken = AddressLib._addressToBytes32(differentSourceToken); // Set different source token
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -498,16 +498,16 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_revertIfSameChainInvalidTokenAuthSet() public {
-        MintAuthorization memory invalidTokenAuth = sameChainBaseAuth;
+        Attestation memory invalidTokenAuth = sameChainBaseAuth;
         address differentSourceToken = makeAddr("differentSourceToken");
         invalidTokenAuth.spec.sourceToken = AddressLib._addressToBytes32(differentSourceToken); // Set different source token
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = sameChainBaseAuth;
         authorizations[1] = invalidTokenAuth;
 
-        MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: authorizations});
-        bytes memory encodedAuthorizations = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
+        bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -521,7 +521,7 @@ contract TestMints is Test, DeployUtils {
 
     function test_gatewayMint_revertIfTransferSpecHashAlreadyUsed() public {
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(crossChainBaseAuth.spec));
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(crossChainBaseAuth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
         _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecHashes.TransferSpecHashUsed.selector, specHash));
         _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -530,16 +530,16 @@ contract TestMints is Test, DeployUtils {
     // ===== Cross-chain Tests =====
 
     function test_gatewayMint_crossChain_successValidAuthAndMintAuthority() public {
-        MintAuthorization memory authorization = crossChainBaseAuth;
+        Attestation memory authorization = crossChainBaseAuth;
         authorization.spec.value = mintValue;
 
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(authorization);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(authorization);
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(authorization.spec));
 
         assertEq(usdc.balanceOf(recipient), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient,
             specHash,
@@ -554,18 +554,18 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_crossChain_customDestinationCaller_successValidAuthAndMintAuthority() public {
-        MintAuthorization memory auth = crossChainBaseAuth;
+        Attestation memory auth = crossChainBaseAuth;
         address destinationCaller = makeAddr("destinationCaller");
         auth.spec.destinationCaller = AddressLib._addressToBytes32(destinationCaller);
         auth.spec.value = mintValue;
 
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
 
         assertEq(usdc.balanceOf(recipient), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient,
             specHash,
@@ -583,17 +583,17 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_crossChain_successValidAuthAndNoMintAuthority() public {
-        MintAuthorization memory auth = crossChainBaseAuth;
+        Attestation memory auth = crossChainBaseAuth;
         auth.spec.value = mintValue;
         auth.spec.destinationToken = AddressLib._addressToBytes32(address(mockToken));
 
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
 
         assertEq(mockToken.balanceOf(recipient), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(mockToken),
             recipient,
             specHash,
@@ -608,23 +608,23 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_crossChain_sameRecipient_sameToken_successValidAuthSetAndMintAuthority() public {
-        MintAuthorization memory auth1 = crossChainBaseAuth;
+        Attestation memory auth1 = crossChainBaseAuth;
         auth1.spec.value = mintValue;
-        MintAuthorization memory auth2 = crossChainBaseAuth;
+        Attestation memory auth2 = crossChainBaseAuth;
         auth2.spec.value = mintValue + 1;
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = auth1;
         authorizations[1] = auth2;
         bytes memory encodedAuth =
-            MintAuthorizationLib.encodeMintAuthorizationSet(MintAuthorizationSet({authorizations: authorizations}));
+            AttestationLib.encodeAttestationSet(AttestationSet({authorizations: authorizations}));
         bytes32 specHash1 = keccak256(TransferSpecLib.encodeTransferSpec(auth1.spec));
         bytes32 specHash2 = keccak256(TransferSpecLib.encodeTransferSpec(auth2.spec));
 
         assertEq(usdc.balanceOf(recipient), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient,
             specHash1,
@@ -634,7 +634,7 @@ contract TestMints is Test, DeployUtils {
             auth1.spec.value
         );
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient,
             specHash2,
@@ -649,21 +649,21 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_crossChain_sameRecipient_differentTokens_successValidAuthSet() public {
-        MintAuthorization memory auth1 = crossChainBaseAuth;
+        Attestation memory auth1 = crossChainBaseAuth;
         auth1.spec.value = mintValue;
         auth1.spec.destinationToken = AddressLib._addressToBytes32(address(usdc));
         auth1.spec.destinationRecipient = AddressLib._addressToBytes32(recipient);
 
-        MintAuthorization memory auth2 = crossChainBaseAuth;
+        Attestation memory auth2 = crossChainBaseAuth;
         auth2.spec.value = mintValue / 2;
         auth2.spec.destinationToken = AddressLib._addressToBytes32(address(mockToken));
         auth2.spec.destinationRecipient = AddressLib._addressToBytes32(recipient);
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = auth1;
         authorizations[1] = auth2;
         bytes memory encodedAuth =
-            MintAuthorizationLib.encodeMintAuthorizationSet(MintAuthorizationSet({authorizations: authorizations}));
+            AttestationLib.encodeAttestationSet(AttestationSet({authorizations: authorizations}));
         bytes32 specHash1 = keccak256(TransferSpecLib.encodeTransferSpec(auth1.spec));
         bytes32 specHash2 = keccak256(TransferSpecLib.encodeTransferSpec(auth2.spec));
 
@@ -671,7 +671,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(mockToken.balanceOf(recipient), 0, "Initial MockToken balance recipient");
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient,
             specHash1,
@@ -682,7 +682,7 @@ contract TestMints is Test, DeployUtils {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(mockToken),
             recipient,
             specHash2,
@@ -699,20 +699,20 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_crossChain_differentRecipients_sameToken_successValidAuthSetAndMintAuthority() public {
-        MintAuthorization memory auth1 = crossChainBaseAuth;
+        Attestation memory auth1 = crossChainBaseAuth;
         auth1.spec.value = mintValue;
         address recipient1 = makeAddr("recipient1");
         auth1.spec.destinationRecipient = AddressLib._addressToBytes32(recipient1);
-        MintAuthorization memory auth2 = crossChainBaseAuth;
+        Attestation memory auth2 = crossChainBaseAuth;
         auth2.spec.value = mintValue / 2;
         address recipient2 = makeAddr("recipient2");
         auth2.spec.destinationRecipient = AddressLib._addressToBytes32(recipient2);
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = auth1;
         authorizations[1] = auth2;
         bytes memory encodedAuth =
-            MintAuthorizationLib.encodeMintAuthorizationSet(MintAuthorizationSet({authorizations: authorizations}));
+            AttestationLib.encodeAttestationSet(AttestationSet({authorizations: authorizations}));
         bytes32 specHash1 = keccak256(TransferSpecLib.encodeTransferSpec(auth1.spec));
         bytes32 specHash2 = keccak256(TransferSpecLib.encodeTransferSpec(auth2.spec));
 
@@ -720,7 +720,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(usdc.balanceOf(recipient2), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient1,
             specHash1,
@@ -730,7 +730,7 @@ contract TestMints is Test, DeployUtils {
             auth1.spec.value
         );
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient2,
             specHash2,
@@ -748,22 +748,22 @@ contract TestMints is Test, DeployUtils {
     function test_gatewayMint_crossChain_differentRecipients_differentTokens_successValidAuthSetAndMintAuthority()
         public
     {
-        MintAuthorization memory auth1 = crossChainBaseAuth;
+        Attestation memory auth1 = crossChainBaseAuth;
         auth1.spec.value = mintValue;
         address recipient1 = makeAddr("recipient1");
         auth1.spec.destinationRecipient = AddressLib._addressToBytes32(recipient1);
 
-        MintAuthorization memory auth2 = crossChainBaseAuth;
+        Attestation memory auth2 = crossChainBaseAuth;
         auth2.spec.value = mintValue / 2;
         address recipient2 = makeAddr("recipient2");
         auth2.spec.destinationRecipient = AddressLib._addressToBytes32(recipient2);
         auth2.spec.destinationToken = AddressLib._addressToBytes32(address(mockToken));
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = auth1;
         authorizations[1] = auth2;
         bytes memory encodedAuth =
-            MintAuthorizationLib.encodeMintAuthorizationSet(MintAuthorizationSet({authorizations: authorizations}));
+            AttestationLib.encodeAttestationSet(AttestationSet({authorizations: authorizations}));
         bytes32 specHash1 = keccak256(TransferSpecLib.encodeTransferSpec(auth1.spec));
         bytes32 specHash2 = keccak256(TransferSpecLib.encodeTransferSpec(auth2.spec));
 
@@ -771,7 +771,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(mockToken.balanceOf(recipient2), 0, "Initial MockToken balance recipient2");
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient1,
             specHash1,
@@ -782,7 +782,7 @@ contract TestMints is Test, DeployUtils {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(mockToken),
             recipient2,
             specHash2,
@@ -803,9 +803,9 @@ contract TestMints is Test, DeployUtils {
         minter.updateMintAuthority(address(usdc), makeAddr("invalidMintAuthority"));
         vm.stopPrank();
 
-        MintAuthorization memory auth = crossChainBaseAuth;
+        Attestation memory auth = crossChainBaseAuth;
         auth.spec.value = mintValue;
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
 
         // Expect a generic revert because the (mis)configured mint authority is an EOA
         vm.expectRevert();
@@ -827,9 +827,9 @@ contract TestMints is Test, DeployUtils {
             vm.stopPrank();
         }
 
-        MintAuthorization memory auth = crossChainBaseAuth;
+        Attestation memory auth = crossChainBaseAuth;
         auth.spec.value = mintValue;
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
 
         vm.expectRevert("FiatToken: caller is not a minter");
         _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
@@ -838,14 +838,14 @@ contract TestMints is Test, DeployUtils {
     // ===== Same-chain Tests =====
 
     function test_gatewayMint_sameChain_successValidAuth() public {
-        MintAuthorization memory auth = sameChainBaseAuth;
+        Attestation memory auth = sameChainBaseAuth;
         auth.spec.value = mintValue;
-        bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
+        bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(auth.spec));
         assertEq(usdc.balanceOf(recipient), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient,
             specHash,
@@ -860,23 +860,23 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_sameChain_sameRecipient_sameToken_successValidAuthSet() public {
-        MintAuthorization memory auth1 = sameChainBaseAuth;
+        Attestation memory auth1 = sameChainBaseAuth;
         auth1.spec.value = mintValue;
-        MintAuthorization memory auth2 = sameChainBaseAuth;
+        Attestation memory auth2 = sameChainBaseAuth;
         auth2.spec.value = mintValue + 1;
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = auth1;
         authorizations[1] = auth2;
         bytes memory encodedAuth =
-            MintAuthorizationLib.encodeMintAuthorizationSet(MintAuthorizationSet({authorizations: authorizations}));
+            AttestationLib.encodeAttestationSet(AttestationSet({authorizations: authorizations}));
         bytes32 specHash1 = keccak256(TransferSpecLib.encodeTransferSpec(auth1.spec));
         bytes32 specHash2 = keccak256(TransferSpecLib.encodeTransferSpec(auth2.spec));
 
         assertEq(usdc.balanceOf(recipient), 0);
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient,
             specHash1,
@@ -886,7 +886,7 @@ contract TestMints is Test, DeployUtils {
             auth1.spec.value
         );
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient,
             specHash2,
@@ -901,20 +901,20 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_sameChain_sameRecipient_differentTokens_successValidAuthSet() public {
-        MintAuthorization memory auth1 = sameChainBaseAuth;
+        Attestation memory auth1 = sameChainBaseAuth;
         auth1.spec.value = mintValue;
 
-        MintAuthorization memory auth2 = sameChainBaseAuth;
+        Attestation memory auth2 = sameChainBaseAuth;
         auth2.spec.value = mintValue / 2;
         auth2.spec.sourceToken = AddressLib._addressToBytes32(address(mockToken));
         auth2.spec.destinationToken = AddressLib._addressToBytes32(address(mockToken));
         auth2.spec.destinationRecipient = AddressLib._addressToBytes32(recipient);
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = auth1;
         authorizations[1] = auth2;
         bytes memory encodedAuth =
-            MintAuthorizationLib.encodeMintAuthorizationSet(MintAuthorizationSet({authorizations: authorizations}));
+            AttestationLib.encodeAttestationSet(AttestationSet({authorizations: authorizations}));
         bytes32 specHash1 = keccak256(TransferSpecLib.encodeTransferSpec(auth1.spec));
         bytes32 specHash2 = keccak256(TransferSpecLib.encodeTransferSpec(auth2.spec));
 
@@ -922,7 +922,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(mockToken.balanceOf(recipient), 0, "Initial MockToken balance recipient");
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient,
             specHash1,
@@ -933,7 +933,7 @@ contract TestMints is Test, DeployUtils {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(mockToken),
             recipient,
             specHash2,
@@ -950,21 +950,21 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_sameChain_differentRecipients_sameToken_successValidAuthSet() public {
-        MintAuthorization memory auth1 = sameChainBaseAuth;
+        Attestation memory auth1 = sameChainBaseAuth;
         auth1.spec.value = mintValue;
         address recipient1 = makeAddr("recipient1");
         auth1.spec.destinationRecipient = AddressLib._addressToBytes32(recipient1);
 
-        MintAuthorization memory auth2 = sameChainBaseAuth;
+        Attestation memory auth2 = sameChainBaseAuth;
         auth2.spec.value = mintValue / 2;
         address recipient2 = makeAddr("recipient2");
         auth2.spec.destinationRecipient = AddressLib._addressToBytes32(recipient2);
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = auth1;
         authorizations[1] = auth2;
         bytes memory encodedAuth =
-            MintAuthorizationLib.encodeMintAuthorizationSet(MintAuthorizationSet({authorizations: authorizations}));
+            AttestationLib.encodeAttestationSet(AttestationSet({authorizations: authorizations}));
         bytes32 specHash1 = keccak256(TransferSpecLib.encodeTransferSpec(auth1.spec));
         bytes32 specHash2 = keccak256(TransferSpecLib.encodeTransferSpec(auth2.spec));
 
@@ -972,7 +972,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(usdc.balanceOf(recipient2), 0, "Initial USDC balance recipient2");
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient1,
             specHash1,
@@ -982,7 +982,7 @@ contract TestMints is Test, DeployUtils {
             auth1.spec.value
         );
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient2,
             specHash2,
@@ -998,23 +998,23 @@ contract TestMints is Test, DeployUtils {
     }
 
     function test_gatewayMint_sameChain_differentRecipients_differentTokens_successValidAuthSet() public {
-        MintAuthorization memory auth1 = sameChainBaseAuth;
+        Attestation memory auth1 = sameChainBaseAuth;
         auth1.spec.value = mintValue;
         address recipient1 = makeAddr("recipient1");
         auth1.spec.destinationRecipient = AddressLib._addressToBytes32(recipient1);
 
-        MintAuthorization memory auth2 = sameChainBaseAuth;
+        Attestation memory auth2 = sameChainBaseAuth;
         auth2.spec.value = mintValue / 2;
         address recipient2 = makeAddr("recipient2");
         auth2.spec.destinationRecipient = AddressLib._addressToBytes32(recipient2);
         auth2.spec.sourceToken = AddressLib._addressToBytes32(address(mockToken));
         auth2.spec.destinationToken = AddressLib._addressToBytes32(address(mockToken));
 
-        MintAuthorization[] memory authorizations = new MintAuthorization[](2);
+        Attestation[] memory authorizations = new Attestation[](2);
         authorizations[0] = auth1;
         authorizations[1] = auth2;
         bytes memory encodedAuth =
-            MintAuthorizationLib.encodeMintAuthorizationSet(MintAuthorizationSet({authorizations: authorizations}));
+            AttestationLib.encodeAttestationSet(AttestationSet({authorizations: authorizations}));
         bytes32 specHash1 = keccak256(TransferSpecLib.encodeTransferSpec(auth1.spec));
         bytes32 specHash2 = keccak256(TransferSpecLib.encodeTransferSpec(auth2.spec));
 
@@ -1022,7 +1022,7 @@ contract TestMints is Test, DeployUtils {
         assertEq(mockToken.balanceOf(recipient2), 0, "Initial MockToken balance recipient2");
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(usdc),
             recipient1,
             specHash1,
@@ -1033,7 +1033,7 @@ contract TestMints is Test, DeployUtils {
         );
 
         vm.expectEmit(true, true, true, true);
-        emit Mints.MintAuthorizationUsed(
+        emit Mints.AttestationUsed(
             address(mockToken),
             recipient2,
             specHash2,

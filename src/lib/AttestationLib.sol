@@ -20,8 +20,8 @@ pragma solidity ^0.8.29;
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {Cursor} from "./Cursor.sol";
 import {
-    MintAuthorization,
-    MintAuthorizationSet,
+    Attestation,
+    AttestationSet,
     ATTESTATION_MAGIC,
     ATTESTATION_SET_MAGIC,
     ATTESTATION_MAGIC_OFFSET,
@@ -30,33 +30,33 @@ import {
     ATTESTATION_TRANSFER_SPEC_OFFSET,
     ATTESTATION_SET_NUM_AUTHORIZATIONS_OFFSET,
     ATTESTATION_SET_AUTHORIZATIONS_OFFSET
-} from "./MintAuthorizations.sol";
+} from "./Attestations.sol";
 import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
 
-/// @title MintAuthorizationLib
+/// @title AttestationLib
 ///
-/// @notice Library for encoding, validating, and iterating over `MintAuthorization` and `MintAuthorizationSet` structs
+/// @notice Library for encoding, validating, and iterating over `Attestation` and `AttestationSet` structs
 ///
 /// @dev Provides functions to handle single mint authorizations or sets of them, using `TypedMemView` for efficient
 ///      memory operations and `Cursor` for unified iteration
-library MintAuthorizationLib {
+library AttestationLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
 
-    /// Checks whether the provided `bytes29` reference is a `MintAuthorizationSet`
+    /// Checks whether the provided `bytes29` reference is a `AttestationSet`
     ///
-    /// @param ref   The `TypedMemView` reference to the encoded `MintAuthorization` or `MintAuthorizationSet`
-    /// @return      `true` if the provided `bytes29` reference is a `MintAuthorizationSet`, `false` otherwise
+    /// @param ref   The `TypedMemView` reference to the encoded `Attestation` or `AttestationSet`
+    /// @return      `true` if the provided `bytes29` reference is a `AttestationSet`, `false` otherwise
     function _isSet(bytes29 ref) private pure returns (bool) {
         return ref.index(0, BYTES4_BYTES) == ATTESTATION_SET_MAGIC;
     }
 
     // --- Casting -----------------------------------------------------------------------------------------------------
 
-    /// Creates a typed memory view for a `MintAuthorization` or `MintAuthorizationSet`
+    /// Creates a typed memory view for a `Attestation` or `AttestationSet`
     ///
-    /// @dev Checks for either `MintAuthorization` or `MintAuthorizationSet` magic
+    /// @dev Checks for either `Attestation` or `AttestationSet` magic
     /// @dev Reverts with `InvalidAuthorizationMagic` if neither known magic number is present
     /// @dev Reverts if data length is less than 4
     ///
@@ -81,18 +81,18 @@ library MintAuthorizationLib {
 
     // --- Validation --------------------------------------------------------------------------------------------------
 
-    /// Validates the structural integrity of an encoded `MintAuthorization` memory view
+    /// Validates the structural integrity of an encoded `Attestation` memory view
     ///
     /// @notice Validation steps:
     ///   1. Minimum header length check
     ///   2. Total length consistency check (using declared `TransferSpec` length)
     ///
-    /// @dev Performs structural validation on a `MintAuthorization` view, *excluding* recursive validation of the
+    /// @dev Performs structural validation on a `Attestation` view, *excluding* recursive validation of the
     ///      nested `TransferSpec` and its magic number. Reverts on failure. Assumes outer magic number check has passed
     ///      (via casting).
     ///
-    /// @param authView   The `TypedMemView` reference to the encoded `MintAuthorization` to validate
-    function _validateMintAuthorizationOuterStructure(bytes29 authView) private pure {
+    /// @param authView   The `TypedMemView` reference to the encoded `Attestation` to validate
+    function _validateAttestationOuterStructure(bytes29 authView) private pure {
         // 1. Minimum header length check
         if (authView.len() < ATTESTATION_TRANSFER_SPEC_OFFSET) {
             revert TransferSpecLib.AuthorizationHeaderTooShort(ATTESTATION_TRANSFER_SPEC_OFFSET, authView.len());
@@ -106,27 +106,27 @@ library MintAuthorizationLib {
         }
     }
 
-    /// Validates the full structural integrity of a `MintAuthorization` view, including the nested `TransferSpec`
+    /// Validates the full structural integrity of a `Attestation` view, including the nested `TransferSpec`
     ///
     /// @notice Validation includes:
     ///   1. Wrapper structure validation (header length, total length consistency).
     ///   2. Full recursive validation of the nested `TransferSpec` structure.
     ///
-    /// @dev Performs structural validation on a `MintAuthorization` view. Reverts on failure. Assumes the view has the
-    ///      correct `MintAuthorization` magic number (e.g., validated by `_asAuthOrSetView`).
+    /// @dev Performs structural validation on a `Attestation` view. Reverts on failure. Assumes the view has the
+    ///      correct `Attestation` magic number (e.g., validated by `_asAuthOrSetView`).
     /// @dev Reverts with specific errors (e.g., `AuthorizationHeaderTooShort`, `AuthorizationOverallLengthMismatch`,
     ///      `InvalidTransferSpecMagic`, `TransferSpecHeaderTooShort`, `TransferSpecOverallLengthMismatch`) if the
     ///      structure is invalid
     ///
-    /// @param authView   The `TypedMemView` reference to the encoded `MintAuthorization` to validate
-    function _validateMintAuthorization(bytes29 authView) internal pure {
-        _validateMintAuthorizationOuterStructure(authView);
+    /// @param authView   The `TypedMemView` reference to the encoded `Attestation` to validate
+    function _validateAttestation(bytes29 authView) internal pure {
+        _validateAttestationOuterStructure(authView);
 
         bytes29 specView = getTransferSpec(authView);
         TransferSpecLib._validateTransferSpecStructure(specView);
     }
 
-    /// Validates the full structural integrity of an encoded `MintAuthorizationSet` memory view
+    /// Validates the full structural integrity of an encoded `AttestationSet` memory view
     ///
     /// @notice Validation includes:
     ///   1. Minimum header length check.
@@ -134,16 +134,16 @@ library MintAuthorizationLib {
     ///   3. Iterating through declared authorizations:
     ///      a. Checking bounds based on previously declared lengths.
     ///      b. Checking the magic number of each authorization.
-    ///      c. Performing full recursive validation on each authorization using `_validateMintAuthorization`.
+    ///      c. Performing full recursive validation on each authorization using `_validateAttestation`.
     ///   4. Final total length consistency check.
     ///
-    /// @dev Performs structural validation on a `MintAuthorizationSet` view. Reverts on failure. Assumes the view has
-    ///      the correct `MintAuthorizationSet` magic number (e.g., checked via `_as...Set`).
+    /// @dev Performs structural validation on a `AttestationSet` view. Reverts on failure. Assumes the view has
+    ///      the correct `AttestationSet` magic number (e.g., checked via `_as...Set`).
     /// @dev Reverts with errors relating to set/element structure, bounds, magic numbers, and nested validation
-    ///      (see `_validateMintAuthorization`)
+    ///      (see `_validateAttestation`)
     ///
-    /// @param setView   The `TypedMemView` reference to the encoded `MintAuthorizationSet` to validate
-    function _validateMintAuthorizationSet(bytes29 setView) internal pure {
+    /// @param setView   The `TypedMemView` reference to the encoded `AttestationSet` to validate
+    function _validateAttestationSet(bytes29 setView) internal pure {
         // 1. Minimum header length check
         if (setView.len() < ATTESTATION_SET_AUTHORIZATIONS_OFFSET) {
             revert TransferSpecLib.AuthorizationSetHeaderTooShort(
@@ -185,7 +185,7 @@ library MintAuthorizationLib {
             bytes29 authView = setView.slice(
                 currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(ATTESTATION_MAGIC)
             );
-            _validateMintAuthorization(authView);
+            _validateAttestation(authView);
 
             // Update offset for the next iteration
             currentOffset += currentAuthTotalLength;
@@ -197,21 +197,21 @@ library MintAuthorizationLib {
         }
     }
 
-    /// Validates the structural integrity of either a `MintAuthorization` or a `MintAuthorizationSet`
+    /// Validates the structural integrity of either a `Attestation` or a `AttestationSet`
     ///
     /// @dev First casts the data using `_asAuthOrSetView`, then calls the appropriate specific validation function
-    ///      (`_validateMintAuthorization` or `_validateMintAuthorizationSet`). Reverts with specific errors if casting
+    ///      (`_validateAttestation` or `_validateAttestationSet`). Reverts with specific errors if casting
     ///      or validation fails.
     ///
-    /// @param data   The raw bytes representing either an encoded `MintAuthorization` or `MintAuthorizationSet`
+    /// @param data   The raw bytes representing either an encoded `Attestation` or `AttestationSet`
     /// @return ref   A `TypedMemView` reference to `data`, typed according to the magic number found
     function _validate(bytes memory data) internal pure returns (bytes29 ref) {
         ref = _asAuthOrSetView(data);
 
         if (_isSet(ref)) {
-            _validateMintAuthorizationSet(ref);
+            _validateAttestationSet(ref);
         } else {
-            _validateMintAuthorization(ref);
+            _validateAttestation(ref);
         }
     }
 
@@ -219,12 +219,12 @@ library MintAuthorizationLib {
 
     /// Validates `data` and returns a cursor that can uniformly iterate over any mint authorizations it contains
     ///
-    /// @dev For a single `MintAuthorization`, the cursor will yield that single element. For a `MintAuthorizationSet`,
-    ///      it iterates through each contained `MintAuthorization`. Sets the 'done' flag immediately if the set
+    /// @dev For a single `Attestation`, the cursor will yield that single element. For a `AttestationSet`,
+    ///      it iterates through each contained `Attestation`. Sets the 'done' flag immediately if the set
     ///      contains zero authorizations.
     /// @dev Reverts with `AuthorizationDataTooShort` or `InvalidAuthorizationMagic` if casting fails
     ///
-    /// @param data   The raw bytes representing either an encoded `MintAuthorization` or `MintAuthorizationSet`
+    /// @param data   The raw bytes representing either an encoded `Attestation` or `AttestationSet`
     /// @return c     An initialized `Cursor` struct
     function cursor(bytes memory data) internal pure returns (Cursor memory c) {
         bytes29 ref = _validate(data);
@@ -276,25 +276,25 @@ library MintAuthorizationLib {
 
     // --- Field accessors ---------------------------------------------------------------------------------------------
 
-    /// Extract the max block height from an encoded `MintAuthorization`
+    /// Extract the max block height from an encoded `Attestation`
     ///
-    /// @param ref   The `TypedMemView` reference to the encoded `MintAuthorization`
+    /// @param ref   The `TypedMemView` reference to the encoded `Attestation`
     /// @return      The `maxBlockHeight` field
     function getMaxBlockHeight(bytes29 ref) internal pure returns (uint256) {
         return ref.indexUint(ATTESTATION_MAX_BLOCK_HEIGHT_OFFSET, UINT256_BYTES);
     }
 
-    /// Extract the transfer spec length from an encoded `MintAuthorization`
+    /// Extract the transfer spec length from an encoded `Attestation`
     ///
-    /// @param ref   The `TypedMemView` reference to the encoded `MintAuthorization`
+    /// @param ref   The `TypedMemView` reference to the encoded `Attestation`
     /// @return      The transfer spec length
     function getTransferSpecLength(bytes29 ref) internal pure returns (uint32) {
         return uint32(ref.indexUint(ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
     }
 
-    /// Extract the transfer spec from an encoded `MintAuthorization`
+    /// Extract the transfer spec from an encoded `Attestation`
     ///
-    /// @param ref   The `TypedMemView` reference to the encoded `MintAuthorization`
+    /// @param ref   The `TypedMemView` reference to the encoded `Attestation`
     /// @return      A `TypedMemView` reference to the `TransferSpec` portion
     function getTransferSpec(bytes29 ref) internal pure returns (bytes29) {
         uint32 specLength = getTransferSpecLength(ref);
@@ -311,9 +311,9 @@ library MintAuthorizationLib {
         return specRef;
     }
 
-    /// Extract the number of authorizations from an encoded `MintAuthorizationSet`
+    /// Extract the number of authorizations from an encoded `AttestationSet`
     ///
-    /// @param ref   The `TypedMemView` reference to the encoded `MintAuthorizationSet`
+    /// @param ref   The `TypedMemView` reference to the encoded `AttestationSet`
     /// @return      The number of authorizations in the set
     function getNumAuthorizations(bytes29 ref) internal pure returns (uint32) {
         return uint32(ref.indexUint(ATTESTATION_SET_NUM_AUTHORIZATIONS_OFFSET, UINT32_BYTES));
@@ -321,11 +321,11 @@ library MintAuthorizationLib {
 
     // --- Encoding ----------------------------------------------------------------------------------------------------
 
-    /// Encode a `MintAuthorization` struct into bytes
+    /// Encode a `Attestation` struct into bytes
     ///
-    /// @param auth   The `MintAuthorization` to encode
+    /// @param auth   The `Attestation` to encode
     /// @return       The encoded bytes
-    function encodeMintAuthorization(MintAuthorization memory auth) internal pure returns (bytes memory) {
+    function encodeAttestation(Attestation memory auth) internal pure returns (bytes memory) {
         bytes memory specBytes = TransferSpecLib.encodeTransferSpec(auth.spec);
 
         return abi.encodePacked(
@@ -336,11 +336,11 @@ library MintAuthorizationLib {
         );
     }
 
-    /// Encode a `MintAuthorizationSet` struct into bytes
+    /// Encode a `AttestationSet` struct into bytes
     ///
-    /// @param authSet   The `MintAuthorizationSet` to encode
+    /// @param authSet   The `AttestationSet` to encode
     /// @return          The encoded bytes
-    function encodeMintAuthorizationSet(MintAuthorizationSet memory authSet) internal pure returns (bytes memory) {
+    function encodeAttestationSet(AttestationSet memory authSet) internal pure returns (bytes memory) {
         uint256 numAuths = authSet.authorizations.length;
 
         if (numAuths > type(uint32).max) {
@@ -351,7 +351,7 @@ library MintAuthorizationLib {
         uint256 totalSize = 0;
         bytes[] memory encodedAuths = new bytes[](numAuths);
         for (uint256 i = 0; i < numAuths; i++) {
-            encodedAuths[i] = encodeMintAuthorization(authSet.authorizations[i]);
+            encodedAuths[i] = encodeAttestation(authSet.authorizations[i]);
             totalSize += encodedAuths[i].length;
         }
 

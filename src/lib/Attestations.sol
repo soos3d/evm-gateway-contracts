@@ -48,7 +48,7 @@ uint16 constant ATTESTATION_SET_AUTHORIZATIONS_OFFSET = 8;
 ///     max block height                4      32
 ///     transfer spec length           36       4   In bytes, may vary based on metadata length
 ///     encoded transfer spec          40       ?   Must be the length indicated above
-struct MintAuthorization {
+struct Attestation {
     uint256 maxBlockHeight; //   Valid until this block height
     TransferSpec spec; //        A description of the transfer
 }
@@ -64,6 +64,6 @@ struct MintAuthorization {
 ///     magic                           0       4   Always 0x1e12db71
 ///     number of authorizations        4       4
 ///     authorizations                  8       ?   Concatenated one after another
-struct MintAuthorizationSet {
-    MintAuthorization[] authorizations;
+struct AttestationSet {
+    Attestation[] authorizations;
 }

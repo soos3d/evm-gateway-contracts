@@ -23,8 +23,8 @@ import {Test} from "forge-std/Test.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
 import {BurnIntent} from "src/lib/BurnIntents.sol";
-import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
-import {MintAuthorization, MintAuthorizationSet} from "src/lib/MintAuthorizations.sol";
+import {AttestationLib} from "src/lib/AttestationLib.sol";
+import {Attestation, AttestationSet} from "src/lib/Attestations.sol";
 import {TransferSpec} from "src/lib/TransferSpec.sol";
 
 contract SignatureTestUtils is Test {
@@ -117,7 +117,7 @@ contract SignatureTestUtils is Test {
         view
         returns (bytes memory encodedAuth, bytes memory signature)
     {
-        MintAuthorization[] memory auths = new MintAuthorization[](1);
+        Attestation[] memory auths = new Attestation[](1);
         auths[0] = _createMintAuth(transferSpec);
         return _signMintAuths(auths, signerKey);
     }
@@ -127,7 +127,7 @@ contract SignatureTestUtils is Test {
         view
         returns (bytes memory encodedAuth, bytes memory signature)
     {
-        MintAuthorization[] memory auths = new MintAuthorization[](transferSpecs.length);
+        Attestation[] memory auths = new Attestation[](transferSpecs.length);
         for (uint256 i = 0; i < transferSpecs.length; i++) {
             auths[i] = _createMintAuth(transferSpecs[i]);
         }
@@ -156,8 +156,8 @@ contract SignatureTestUtils is Test {
         });
     }
 
-    function _createMintAuth(TransferSpec memory spec) private view returns (MintAuthorization memory) {
-        return MintAuthorization({
+    function _createMintAuth(TransferSpec memory spec) private view returns (Attestation memory) {
+        return Attestation({
             maxBlockHeight: block.number + 5, // ~1 minute expiry
             spec: spec
         });
@@ -177,16 +177,16 @@ contract SignatureTestUtils is Test {
         signature = abi.encodePacked(r, s, v);
     }
 
-    function _signMintAuths(MintAuthorization[] memory auths, uint256 signerKey)
+    function _signMintAuths(Attestation[] memory auths, uint256 signerKey)
         private
         pure
         returns (bytes memory encodedAuth, bytes memory signature)
     {
         if (auths.length == 1) {
-            encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auths[0]);
+            encodedAuth = AttestationLib.encodeAttestation(auths[0]);
         } else {
-            MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: auths});
-            encodedAuth = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+            AttestationSet memory authSet = AttestationSet({authorizations: auths});
+            encodedAuth = AttestationLib.encodeAttestationSet(authSet);
         }
         signature = _sign(signerKey, encodedAuth);
     }

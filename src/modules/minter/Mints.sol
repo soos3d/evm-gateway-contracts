@@ -22,7 +22,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {GatewayCommon} from "src/GatewayCommon.sol";
 import {IMintToken} from "src/interfaces/IMintToken.sol";
 import {Cursor} from "src/lib/Cursor.sol";
-import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
+import {AttestationLib} from "src/lib/AttestationLib.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {AddressLib} from "src/lib/AddressLib.sol";
 
@@ -31,8 +31,8 @@ import {AddressLib} from "src/lib/AddressLib.sol";
 /// @notice Manages mints for the `GatewayMinter` contract
 contract Mints is GatewayCommon {
     using TransferSpecLib for bytes29;
-    using MintAuthorizationLib for bytes29;
-    using MintAuthorizationLib for Cursor;
+    using AttestationLib for bytes29;
+    using AttestationLib for Cursor;
     using MessageHashUtils for bytes32;
 
     /// Emitted when a mint authorization is used
@@ -44,7 +44,7 @@ contract Mints is GatewayCommon {
     /// @param sourceDepositor    The depositor on the source domain
     /// @param sourceSigner       The signer that authorized the transfer
     /// @param value              The amount that was minted
-    event MintAuthorizationUsed(
+    event AttestationUsed(
         address indexed token,
         address indexed recipient,
         bytes32 indexed transferSpecHash,
@@ -63,15 +63,15 @@ contract Mints is GatewayCommon {
 
     /// Emitted when the `mintAuthorizationSigner` role is updated
     ///
-    /// @param oldMintAuthorizationSigner   The previous mint authorization signer address
-    /// @param newMintAuthorizationSigner   The new mint authorization signer address
-    event MintAuthorizationSignerUpdated(address oldMintAuthorizationSigner, address newMintAuthorizationSigner);
+    /// @param oldAttestationSigner   The previous mint authorization signer address
+    /// @param newAttestationSigner   The new mint authorization signer address
+    event AttestationSignerUpdated(address oldAttestationSigner, address newAttestationSigner);
 
     /// Thrown when a mint authorization set is empty
-    error MustHaveAtLeastOneMintAuthorization();
+    error MustHaveAtLeastOneAttestation();
 
     /// Thrown when a mint authorization was not signed by the right address
-    error InvalidMintAuthorizationSigner();
+    error InvalidAttestationSigner();
 
     /// Thrown when a mint authorization is expired
     ///
@@ -138,7 +138,7 @@ contract Mints is GatewayCommon {
         address[] calldata tokens_,
         address[] calldata tokenMintAuthorities_
     ) internal onlyInitializing {
-        updateMintAuthorizationSigner(mintAuthorizationSigner_);
+        updateAttestationSigner(mintAuthorizationSigner_);
 
         for (uint256 i = 0; i < tokenMintAuthorities_.length; i++) {
             address mintAuthority = tokenMintAuthorities_[i];
@@ -149,12 +149,12 @@ contract Mints is GatewayCommon {
         }
     }
 
-    /// Mint funds via a signed mint authorization. Accepts either a single encoded `MintAuthorization` or several in
-    /// an encoded `MintAuthorizationSet`. Emits an event containing the `keccak256` hash of the encoded
+    /// Mint funds via a signed mint authorization. Accepts either a single encoded `Attestation` or several in
+    /// an encoded `AttestationSet`. Emits an event containing the `keccak256` hash of the encoded
     /// `TransferSpec` (which is the same for the corresponding burn that will happen on the source domain), to be
     /// used as a cross-chain identifier and for replay protection.
     ///
-    /// @dev See `MintAuthorizations.sol` for encoding details
+    /// @dev See `Attestations.sol` for encoding details
     ///
     /// @param authorization   The byte-encoded mint authorization(s)
     /// @param signature       The signature of the `mintAuthorizationSigner` on the `authorization`
@@ -165,21 +165,21 @@ contract Mints is GatewayCommon {
         notDenylisted(msg.sender)
     {
         // Verify that the payload was signed by the expected signer
-        _verifyMintAuthorizationSignature(authorization, signature);
+        _verifyAttestationSignature(authorization, signature);
 
         // Validate the mint authorization(s) and get an iteration cursor
-        Cursor memory cursor = MintAuthorizationLib.cursor(authorization);
+        Cursor memory cursor = AttestationLib.cursor(authorization);
 
         // Ensure there is at least one mint authorization
         if (cursor.numAuths == 0) {
-            revert MustHaveAtLeastOneMintAuthorization();
+            revert MustHaveAtLeastOneAttestation();
         }
 
         // Iterate over the mint authorizations, validating and processing each one
         bytes29 auth;
         while (!cursor.done) {
             auth = cursor.next();
-            _validateMintAuthorization(auth, cursor.index - 1);
+            _validateAttestation(auth, cursor.index - 1);
             _mint(auth.getTransferSpec());
         }
     }
@@ -218,14 +218,14 @@ contract Mints is GatewayCommon {
     ///
     /// @dev May only be called by the `owner` role
     ///
-    /// @param newMintAuthorizationSigner   The new mint authorization signer address
-    function updateMintAuthorizationSigner(address newMintAuthorizationSigner) public onlyOwner {
-        AddressLib._checkNotZeroAddress(newMintAuthorizationSigner);
+    /// @param newAttestationSigner   The new mint authorization signer address
+    function updateAttestationSigner(address newAttestationSigner) public onlyOwner {
+        AddressLib._checkNotZeroAddress(newAttestationSigner);
 
         MintsStorage.Data storage $ = MintsStorage.get();
-        address oldMintAuthorizationSigner = $.mintAuthorizationSigner;
-        $.mintAuthorizationSigner = newMintAuthorizationSigner;
-        emit MintAuthorizationSignerUpdated(oldMintAuthorizationSigner, newMintAuthorizationSigner);
+        address oldAttestationSigner = $.mintAuthorizationSigner;
+        $.mintAuthorizationSigner = newAttestationSigner;
+        emit AttestationSignerUpdated(oldAttestationSigner, newAttestationSigner);
     }
 
     /// Verifies the signature for a (set of) mint authorization(s)
@@ -234,10 +234,10 @@ contract Mints is GatewayCommon {
     ///
     /// @param authorization   The byte-encoded mint authorization(s)
     /// @param signature       The signature on the `authorization` to verify
-    function _verifyMintAuthorizationSignature(bytes memory authorization, bytes memory signature) internal view {
+    function _verifyAttestationSignature(bytes memory authorization, bytes memory signature) internal view {
         address recoveredSigner = ECDSA.recover(keccak256(authorization).toEthSignedMessageHash(), signature);
         if (recoveredSigner != mintAuthorizationSigner()) {
-            revert InvalidMintAuthorizationSigner();
+            revert InvalidAttestationSigner();
         }
     }
 
@@ -248,7 +248,7 @@ contract Mints is GatewayCommon {
     ///
     /// @param auth    A `TypedMemView` reference to the byte-encoded mint authorization
     /// @param index   The index of the mint authorization within the batch (used for error reporting)
-    function _validateMintAuthorization(bytes29 auth, uint32 index) internal view {
+    function _validateAttestation(bytes29 auth, uint32 index) internal view {
         // Ensure the mint authorization is not expired
         uint256 maxBlockHeight = auth.getMaxBlockHeight();
         if (maxBlockHeight < block.number) {
@@ -332,7 +332,7 @@ contract Mints is GatewayCommon {
         IMintToken(minter).mint(recipient, value);
 
         // Emit an event with the mint authorization details
-        emit MintAuthorizationUsed(token, recipient, specHash, sourceDomain, depositorBytes, signerBytes, value);
+        emit AttestationUsed(token, recipient, specHash, sourceDomain, depositorBytes, signerBytes, value);
     }
 }
 

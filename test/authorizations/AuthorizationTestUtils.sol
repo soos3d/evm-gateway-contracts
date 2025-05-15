@@ -21,8 +21,8 @@ import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {Test} from "forge-std/Test.sol";
 import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
 import {BurnIntent, BURN_INTENT_MAGIC} from "src/lib/BurnIntents.sol";
-import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
-import {MintAuthorization, ATTESTATION_MAGIC} from "src/lib/MintAuthorizations.sol";
+import {AttestationLib} from "src/lib/AttestationLib.sol";
+import {Attestation, ATTESTATION_MAGIC} from "src/lib/Attestations.sol";
 import {TransferSpec, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
 
@@ -91,11 +91,11 @@ contract AuthorizationTestUtils is Test {
         _verifyTransferSpecFieldsFromView(specRef, auth.spec);
     }
 
-    // Verifies all fields read from a MintAuthorization view match the original struct
-    function _verifyMintAuthorizationFieldsFromView(bytes29 ref, MintAuthorization memory auth) internal pure {
+    // Verifies all fields read from a Attestation view match the original struct
+    function _verifyAttestationFieldsFromView(bytes29 ref, Attestation memory auth) internal pure {
         ref.assertType(TransferSpecLib._toMemViewType(ATTESTATION_MAGIC));
-        assertEq(MintAuthorizationLib.getMaxBlockHeight(ref), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
-        bytes29 specRef = MintAuthorizationLib.getTransferSpec(ref);
+        assertEq(AttestationLib.getMaxBlockHeight(ref), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
+        bytes29 specRef = AttestationLib.getTransferSpec(ref);
         _verifyTransferSpecFieldsFromView(specRef, auth.spec);
     }
 
