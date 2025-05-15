@@ -78,7 +78,7 @@ contract TransferSpecHashesTest is Test {
         bytes32 transferSpecHash = _hashTransferSpec(spec);
 
         transferSpecHashes.markTransferSpecHashAsUsed(transferSpecHash);
-        assertTrue(transferSpecHashes.transferSpecHashUsed(transferSpecHash));
+        assertTrue(transferSpecHashes.isTransferSpecHashUsed(transferSpecHash));
     }
 
     function test_transferSpecHashes_ensureTransferSpecHashNotUsedSucceedsIfNewTransferSpecHashFuzz(uint256 seed)
