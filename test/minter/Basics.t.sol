@@ -17,17 +17,17 @@
  */
 pragma solidity ^0.8.29;
 
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {GatewayMinter} from "src/GatewayMinter.sol";
-import {AddressLib} from "src/lib/util/AddressLib.sol";
-import {TokenSupport} from "src/modules/common/TokenSupport.sol";
-import {Mints} from "src/modules/minter/Mints.sol";
-import {DeployUtils} from "test/util/DeployUtils.sol";
-import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
-import {OwnershipTest} from "test/util/OwnershipTest.sol";
-import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { GatewayMinter } from "src/GatewayMinter.sol";
+import { AddressLib } from "src/lib/util/AddressLib.sol";
+import { TokenSupport } from "src/modules/common/TokenSupport.sol";
+import { Mints } from "src/modules/minter/Mints.sol";
+import { UpgradeablePlaceholder } from "src/UpgradeablePlaceholder.sol";
+import { DeployUtils } from "test/util/DeployUtils.sol";
+import { ForkTestUtils } from "test/util/ForkTestUtils.sol";
+import { OwnershipTest } from "test/util/OwnershipTest.sol";
 
 /// Tests ownership and initialization functionality of GatewayMinter
 contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
