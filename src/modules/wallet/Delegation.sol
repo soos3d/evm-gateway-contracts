@@ -168,7 +168,7 @@ contract Delegation is Pausing, Denylist, TokenSupport {
 ///
 /// @notice Implements the EIP-7201 storage pattern for the `Delegation` module
 library DelegationStorage {
-    /// @custom:storage-location 7201:circle.gateway.Delegation
+    /// @custom:storage-location erc7201:circle.gateway.Delegation
     struct Data {
         /// The addresses that are authorized to withdraw and transfer the balances of other depositors for a given token
         mapping(address token => mapping(address depositor => mapping(address delegate => AuthorizationStatus status)))

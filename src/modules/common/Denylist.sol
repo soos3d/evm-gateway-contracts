@@ -148,7 +148,7 @@ contract Denylist is Initializable, Ownable2StepUpgradeable {
 ///
 /// @notice Implements the EIP-7201 storage pattern for the `Denylist` module
 library DenylistStorage {
-    /// @custom:storage-location 7201:circle.gateway.Denylist
+    /// @custom:storage-location erc7201:circle.gateway.Denylist
     struct Data {
         /// Mapping of addresses to their denylist status
         mapping(address addr => bool denylisted) denylistMapping;

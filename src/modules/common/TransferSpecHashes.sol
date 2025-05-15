@@ -65,7 +65,7 @@ contract TransferSpecHashes {
 ///
 /// @notice Implements the EIP-7201 storage pattern for the `TransferSpecHashes` module
 library TransferSpecHashesStorage {
-    /// @custom:storage-location 7201:circle.gateway.TransferSpecHashes
+    /// @custom:storage-location erc7201:circle.gateway.TransferSpecHashes
     struct Data {
         /// Whether or not a given transfer spec hash has been used
         mapping(bytes32 transferSpecHash => bool used) usedHashes;
