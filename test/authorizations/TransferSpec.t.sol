@@ -25,31 +25,8 @@ import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
 contract TransferSpecTest is AuthorizationTestUtils {
     using TransferSpecLib for bytes;
     using TransferSpecLib for bytes29;
-
-    // ===== Casting Tests =====
-
-    function test_asTransferSpec_correctMagic() external pure {
-        (bytes memory data, uint40 magicType) = _magic("circle.gateway.TransferSpec");
-        bytes29 ref = data._asTransferSpec();
-        assertEq(TypedMemView.typeOf(ref), magicType);
-        assertEq(bytes4(uint32(magicType)), TRANSFER_SPEC_MAGIC);
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function test_asTransferSpec_incorrectMagic() external {
-        (bytes memory data,) = _magic("something else");
-        // The first 4 bytes of data will be the incorrect magic.
-        bytes4 incorrectMagic = bytes4(data);
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecMagic.selector, incorrectMagic));
-        data._asTransferSpec();
-    }
-
-    /// forge-config: default.allow_internal_expect_revert = true
-    function test_asTransferSpec_tooShortMagic() external {
-        bytes memory data = new bytes(0);
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.TransferSpecDataTooShort.selector, 4, 0));
-        data._asTransferSpec();
-    }
+    using TypedMemView for bytes;
+    using TypedMemView for bytes29;
 
     // ===== Field Accessor Tests =====
 
@@ -57,7 +34,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = new bytes(0);
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
-        bytes29 ref = encodedSpec._asTransferSpec();
+        bytes29 ref = encodedSpec.ref(uint40(uint32(TRANSFER_SPEC_MAGIC)));
         _verifyTransferSpecFieldsFromView(ref, spec);
     }
 
@@ -65,7 +42,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = SHORT_METADATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
-        bytes29 ref = encodedSpec._asTransferSpec();
+        bytes29 ref = encodedSpec.ref(uint40(uint32(TRANSFER_SPEC_MAGIC)));
         _verifyTransferSpecFieldsFromView(ref, spec);
     }
 
@@ -73,8 +50,26 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = LONG_METADATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
-        bytes29 ref = encodedSpec._asTransferSpec();
+        bytes29 ref = encodedSpec.ref(uint40(uint32(TRANSFER_SPEC_MAGIC)));
         _verifyTransferSpecFieldsFromView(ref, spec);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_transferSpec_readMetadata_revertsOnInvalidMetadataFuzz(TransferSpec memory spec) public {
+        spec.version = TRANSFER_SPEC_VERSION;
+        spec.metadata = LONG_METADATA;
+        bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
+
+        (bytes memory corruptedData, uint32 corruptedMetadataLength) =
+            _getCorruptedInnerSpecMetadataLengthData(encodedSpec, 0, uint32(LONG_METADATA.length), true);
+        bytes29 corruptedRef = corruptedData.ref(uint40(uint32(TRANSFER_SPEC_MAGIC)));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TransferSpecLib.TransferSpecInvalidMetadata.selector, corruptedMetadataLength, corruptedRef.len()
+            )
+        );
+        TransferSpecLib.getMetadata(corruptedRef);
     }
 
     // ===== Hash Utility Tests =====
@@ -83,7 +78,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
         spec.version = TRANSFER_SPEC_VERSION;
         spec.metadata = SHORT_METADATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
-        bytes29 ref = encodedSpec._asTransferSpec();
+        bytes29 ref = encodedSpec.ref(uint40(uint32(TRANSFER_SPEC_MAGIC)));
 
         bytes32 expectedHash = keccak256(encodedSpec);
         bytes32 libHash = TransferSpecLib.getHash(ref);

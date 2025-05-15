@@ -32,7 +32,7 @@ contract TransferSpecHashes {
     ///
     /// @param transferSpecHash   The transfer spec hash to check
     /// @return                   `true` if the transfer spec hash has been used, `false` otherwise
-    function transferSpecHashUsed(bytes32 transferSpecHash) public view returns (bool) {
+    function isTransferSpecHashUsed(bytes32 transferSpecHash) public view returns (bool) {
         return TransferSpecHashesStorage.get().usedHashes[transferSpecHash];
     }
 
@@ -48,7 +48,7 @@ contract TransferSpecHashes {
     ///
     /// @param transferSpecHash   The transfer spec hash to check
     function _ensureTransferSpecHashNotUsed(bytes32 transferSpecHash) internal view {
-        if (transferSpecHashUsed(transferSpecHash)) {
+        if (isTransferSpecHashUsed(transferSpecHash)) {
             revert TransferSpecHashUsed(transferSpecHash);
         }
     }

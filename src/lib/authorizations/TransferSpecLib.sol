@@ -93,6 +93,12 @@ library TransferSpecLib {
     /// @param maxLength      The maximum encodable length of the metadata
     error TransferSpecMetadataFieldTooLarge(uint256 actualLength, uint256 maxLength);
 
+    /// Thrown when the metadata view matches the NULL value from `TypedMemView`
+    ///
+    /// @param expectedMetadataLength   The expected metadata length declared in the metadata length field
+    /// @param transferSpecLength       The length of the transfer spec
+    error TransferSpecInvalidMetadata(uint256 expectedMetadataLength, uint256 transferSpecLength);
+
     // --- Common Authorization errors ---------------------------------------------------------------------------------
 
     /// Thrown when casting data as an authorization or authorization set and the input is shorter than the expected
@@ -174,28 +180,6 @@ library TransferSpecLib {
     /// @return        The `TypedMemView` type for the magic value
     function _toMemViewType(bytes4 magic) internal pure returns (uint40) {
         return uint40(uint32(magic));
-    }
-
-    // --- Casting -----------------------------------------------------------------------------------------------------
-
-    /// Creates a typed memory view for a `TransferSpec`
-    ///
-    /// @dev Creates a typed view with the proper type encoding and validates the magic number. Does not perform full
-    ///      structural validation (use `_validateTransferSpecStructure` for that).
-    ///
-    /// @param data   The raw bytes to create a view into. Must contain at least 4 bytes.
-    /// @return ref   A `TypedMemView` reference to `data`, typed as a transfer spec
-    function _asTransferSpec(bytes memory data) internal pure returns (bytes29 ref) {
-        if (data.length < BYTES4_BYTES) {
-            revert TransferSpecDataTooShort(BYTES4_BYTES, data.length);
-        }
-
-        ref = data.ref(_toMemViewType(TRANSFER_SPEC_MAGIC));
-        bytes4 magic = bytes4(ref.index(0, BYTES4_BYTES));
-
-        if (magic != TRANSFER_SPEC_MAGIC) {
-            revert InvalidTransferSpecMagic(bytes4(ref.index(0, BYTES4_BYTES)));
-        }
     }
 
     // --- Validation --------------------------------------------------------------------------------------------------
@@ -352,12 +336,23 @@ library TransferSpecLib {
     /// @return      The metadata as a `TypedMemView` reference
     function getMetadata(bytes29 ref) internal pure returns (bytes29) {
         uint32 metadataLength = getMetadataLength(ref);
+        bytes29 metadataView;
         if (metadataLength > 0) {
-            return ref.slice(TRANSFER_SPEC_METADATA_OFFSET, metadataLength, 0);
+            metadataView = ref.slice(TRANSFER_SPEC_METADATA_OFFSET, metadataLength, 0);
+        } else {
+            // Return an empty slice
+            metadataView = ref.slice(TRANSFER_SPEC_METADATA_OFFSET, 0, 0);
         }
 
-        // Return an empty slice
-        return ref.slice(TRANSFER_SPEC_METADATA_OFFSET, 0, 0);
+        // Verify metadata view is valid. A NULL view means the actual metadata length
+        // differs from the declared length in the metadata length field. This check should
+        // be unreachable since validation of transfer spec structure happens before
+        // calling this function, but included for completeness.
+        if (metadataView == TypedMemView.NULL) {
+            revert TransferSpecInvalidMetadata(metadataLength, ref.len());
+        }
+
+        return metadataView;
     }
 
     // --- Encoding ----------------------------------------------------------------------------------------------------
