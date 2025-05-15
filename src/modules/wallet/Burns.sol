@@ -579,7 +579,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
 ///
 /// @notice Implements the EIP-7201 storage pattern for the `Burns` module
 library BurnsStorage {
-    /// @custom:storage-location 7201:circle.gateway.Burns
+    /// @custom:storage-location erc7201:circle.gateway.Burns
     struct Data {
         /// The address that may sign the calldata for burning tokens that have been minted on another chain
         address burnSigner;
