@@ -176,8 +176,6 @@ library TransferSpecLib {
         return uint40(uint32(magic));
     }
 
-    // --- Casting -----------------------------------------------------------------------------------------------------
-
     // --- Validation --------------------------------------------------------------------------------------------------
 
     /// Validates the structural integrity of an encoded `TransferSpec` memory view

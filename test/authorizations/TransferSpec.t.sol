@@ -27,8 +27,6 @@ contract TransferSpecTest is AuthorizationTestUtils {
     using TransferSpecLib for bytes29;
     using TypedMemView for bytes;
 
-    // ===== Casting Tests =====
-
     // ===== Field Accessor Tests =====
 
     function test_transferSpec_readAllFieldsEmptyMetadataFuzz(TransferSpec memory spec) public pure {
