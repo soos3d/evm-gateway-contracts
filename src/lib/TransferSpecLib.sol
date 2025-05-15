@@ -52,6 +52,8 @@ uint8 constant BYTES32_BYTES = 32;
 ///
 /// @dev Provides low-level access and manipulation functions for byte-encoded `TransferSpec` data, using `TypedMemView`
 ///      for efficient memory operations
+/// @dev The term "transfer payload" within this library refers to encoded `BurnIntent`s and `Attestation`s, which both
+///      contain a `TransferSpec`
 library TransferSpecLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
@@ -99,76 +101,77 @@ library TransferSpecLib {
     /// @param transferSpecLength       The length of the transfer spec
     error TransferSpecInvalidMetadata(uint256 expectedMetadataLength, uint256 transferSpecLength);
 
-    // --- Common Authorization errors ---------------------------------------------------------------------------------
+    // --- Common transfer payload errors ------------------------------------------------------------------------------
 
-    /// Thrown when casting data as an authorization or authorization set and the input is shorter than the expected
-    /// magic length
+    /// Thrown when casting data as a transfer payload or transfer payload set and the input is shorter than the
+    /// expected magic length
     ///
     /// @param expectedMinimumLength   The expected minimum length of the data
     /// @param actualLength            The actual length of the data
-    error AuthorizationDataTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+    error TransferPayloadDataTooShort(uint256 expectedMinimumLength, uint256 actualLength);
 
-    /// Thrown when casting data as an authorization or authorization set and the magic value is not an expected value
+    /// Thrown when casting data as a transfer payload or transfer payload set and the magic value is not an expected
+    /// value
     ///
     /// @param actualMagic   The magic value found in the data
-    error InvalidAuthorizationMagic(bytes4 actualMagic);
+    error InvalidTransferPayloadMagic(bytes4 actualMagic);
 
-    /// Thrown when validating an encoded authorization and the header is shorter than expected
+    /// Thrown when validating an encoded transfer payload and the header is shorter than expected
     ///
     /// @param expectedMinimumLength   The expected minimum length of the header
     /// @param actualLength            The actual length of the header
-    error AuthorizationHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+    error TransferPayloadHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
 
-    /// Thrown when validating an encoded authorization and the length of the data is different than what is implied by
-    /// the embedded `TransferSpec`
+    /// Thrown when validating an encoded transfer payload and the length of the data is different than what is implied
+    /// by the embedded `TransferSpec`
     ///
     /// @param expectedTotalLength   The expected length of the data
     /// @param actualTotalLength     The actual length of the data
-    error AuthorizationOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
+    error TransferPayloadOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
 
-    // --- Common AuthorizationSet errors ------------------------------------------------------------------------------
+    // --- Common transfer payload set errors --------------------------------------------------------------------------
 
-    /// Thrown when validating an encoded authorization set and the set header is shorter than expected
+    /// Thrown when validating an encoded transfer payload set and the set header is shorter than expected
     ///
     /// @param expectedMinimumLength   The expected minimum length of the header
     /// @param actualLength            The actual length of the header
-    error AuthorizationSetHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+    error TransferPayloadSetHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
 
-    /// Thrown when validating an encoded authorization set and one of the elements' header is shorter than expected
+    /// Thrown when validating an encoded transfer payload set and one of the elements' header is shorter than expected
     ///
     /// @param index             The index of the element with the issue
     /// @param actualSetLength   The actual length of the encoded set
     /// @param requiredOffset    The expected offset of the element header
-    error AuthorizationSetElementHeaderTooShort(uint32 index, uint256 actualSetLength, uint256 requiredOffset);
+    error TransferPayloadSetElementHeaderTooShort(uint32 index, uint256 actualSetLength, uint256 requiredOffset);
 
-    /// Thrown when validating an encoded authorization set and one of the elements is shorter than expected
+    /// Thrown when validating an encoded transfer payload set and one of the elements is shorter than expected
     ///
     /// @param index             The index of the element with the issue
     /// @param actualSetLength   The actual length of the encoded set
     /// @param requiredOffset    The expected offset of the element header
-    error AuthorizationSetElementTooShort(uint32 index, uint256 actualSetLength, uint256 requiredOffset);
+    error TransferPayloadSetElementTooShort(uint32 index, uint256 actualSetLength, uint256 requiredOffset);
 
-    /// Thrown when validating an encoded authorization set and one of the elements has an unexpected magic value
+    /// Thrown when validating an encoded transfer payload set and one of the elements has an unexpected magic value
     ///
     /// @param index         The index of the element with the issue
     /// @param actualMagic   The magic value found in the element
-    error AuthorizationSetInvalidElementMagic(uint32 index, bytes4 actualMagic);
+    error TransferPayloadSetInvalidElementMagic(uint32 index, bytes4 actualMagic);
 
-    /// Thrown when validating an encoded authorization set and the length of the data is different than what is implied
-    /// by the authorizations themselves
+    /// Thrown when validating an encoded transfer payload set and the length of the data is different than what is
+    /// implied by the transfer payloads themselves
     ///
     /// @param expectedTotalLength   The expected length of the data
     /// @param actualTotalLength     The actual length of the data
-    error AuthorizationSetOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
+    error TransferPayloadSetOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
 
-    /// Thrown when encoding an authorization set and the number of elements exceeds the maximum encodable value
+    /// Thrown when encoding a transfer payload set and the number of elements exceeds the maximum encodable value
     ///
     /// @param maxElements   The maximum number of elements that is possible to encode
-    error AuthorizationSetTooManyElements(uint32 maxElements);
+    error TransferPayloadSetTooManyElements(uint32 maxElements);
 
     // --- Common iteration errors -------------------------------------------------------------------------------------
 
-    /// Thrown when iterating over an authorization or authorization set and `next()` is called on a cursor that is
+    /// Thrown when iterating over a transfer payload or transfer payload set and `next()` is called on a cursor that is
     /// already `done`
     error CursorOutOfBounds();
 

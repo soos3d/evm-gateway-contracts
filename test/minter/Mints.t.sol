@@ -183,7 +183,7 @@ contract TestMints is Test, DeployUtils {
     // ===== Signature Tests =====
 
     function test_gatewayMint_emptyAuth_revertsOnCorrectSigner() public {
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.AuthorizationDataTooShort.selector, BYTES4_BYTES, 0));
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.TransferPayloadDataTooShort.selector, BYTES4_BYTES, 0));
         _callGatewayMintSignedBy(new bytes(0), mintAuthorizationSignerKey);
     }
 
@@ -227,7 +227,7 @@ contract TestMints is Test, DeployUtils {
             tempBytes[i] = encodedAuth[i];
         }
         bytes4 corruptedMagic = bytes4(tempBytes);
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidAuthorizationMagic.selector, corruptedMagic));
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferPayloadMagic.selector, corruptedMagic));
         _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
     }
 

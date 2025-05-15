@@ -43,7 +43,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
     function test_asAuthOrSetView_revertsOnShortData() public {
         bytes memory shortData = hex"1122";
         vm.expectRevert(
-            abi.encodeWithSelector(TransferSpecLib.AuthorizationDataTooShort.selector, BYTES4_BYTES, shortData.length)
+            abi.encodeWithSelector(TransferSpecLib.TransferPayloadDataTooShort.selector, BYTES4_BYTES, shortData.length)
         );
         BurnIntentLib._asAuthOrSetView(shortData);
     }
@@ -52,7 +52,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
     function test_asAuthOrSetView_revertsOnInvalidMagic4Bytes() public {
         (bytes memory invalidMagicData,) = _magic("not a valid magic");
         bytes4 incorrectMagic = bytes4(invalidMagicData);
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidAuthorizationMagic.selector, incorrectMagic));
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferPayloadMagic.selector, incorrectMagic));
         BurnIntentLib._asAuthOrSetView(invalidMagicData);
     }
 
@@ -61,7 +61,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
         (bytes memory invalidMagicData,) = _magic("not a valid magic");
         bytes memory longerInvalidMagic = bytes.concat(invalidMagicData, hex"01020304");
         bytes4 incorrectMagic = bytes4(longerInvalidMagic);
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidAuthorizationMagic.selector, incorrectMagic));
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferPayloadMagic.selector, incorrectMagic));
         BurnIntentLib._asAuthOrSetView(longerInvalidMagic);
     }
 
@@ -87,7 +87,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
             shortData[i] = validEncodedBurnAuth[i];
         }
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationHeaderTooShort.selector,
+            TransferSpecLib.TransferPayloadHeaderTooShort.selector,
             BURN_INTENT_TRANSFER_SPEC_OFFSET,
             shortData.length
         );
@@ -113,7 +113,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
 
         uint256 expectedAuthLengthBasedOnCorruption = BURN_INTENT_TRANSFER_SPEC_OFFSET + invalidSpecLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationOverallLengthMismatch.selector,
+            TransferSpecLib.TransferPayloadOverallLengthMismatch.selector,
             expectedAuthLengthBasedOnCorruption,
             originalAuthLength
         );
@@ -139,7 +139,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
 
         uint256 expectedAuthLengthBasedOnCorruption = BURN_INTENT_TRANSFER_SPEC_OFFSET + invalidSpecLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationOverallLengthMismatch.selector,
+            TransferSpecLib.TransferPayloadOverallLengthMismatch.selector,
             expectedAuthLengthBasedOnCorruption,
             originalAuthLength
         );
@@ -160,7 +160,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
             truncatedData[i] = encodedAuth[i];
         }
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationOverallLengthMismatch.selector, expectedLength, truncatedData.length
+            TransferSpecLib.TransferPayloadOverallLengthMismatch.selector, expectedLength, truncatedData.length
         );
 
         vm.expectRevert(expectedRevertData);
@@ -176,7 +176,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
 
         bytes memory corruptedData = bytes.concat(encodedAuth, hex"FFFF");
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationOverallLengthMismatch.selector, originalAuthLength, corruptedData.length
+            TransferSpecLib.TransferPayloadOverallLengthMismatch.selector, originalAuthLength, corruptedData.length
         );
 
         vm.expectRevert(expectedRevertData);

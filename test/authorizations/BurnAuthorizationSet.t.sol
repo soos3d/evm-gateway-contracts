@@ -110,7 +110,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         }
 
         // Expect it to revert since the array is too long
-        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.AuthorizationSetTooManyElements.selector, maxSize));
+        vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.TransferPayloadSetTooManyElements.selector, maxSize));
         BurnIntentLib.encodeBurnIntentSet(authSet);
     }
 
@@ -119,7 +119,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         // Length is > magic (4) but < header (8)
         bytes memory shortData = abi.encodePacked(BURN_INTENT_SET_MAGIC, hex"112233"); // 7 bytes
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationSetHeaderTooShort.selector,
+            TransferSpecLib.TransferPayloadSetHeaderTooShort.selector,
             BURN_INTENT_SET_AUTHORIZATIONS_OFFSET,
             shortData.length
         );
@@ -138,7 +138,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
 
         uint256 expectedLength = encodedSetHeader.length;
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationSetOverallLengthMismatch.selector, expectedLength, trailingBytesData.length
+            TransferSpecLib.TransferPayloadSetOverallLengthMismatch.selector, expectedLength, trailingBytesData.length
         );
         vm.expectRevert(expectedRevertData);
         BurnIntentLib._validate(trailingBytesData);
@@ -154,7 +154,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         uint32 elementIndex = 0;
         uint256 requiredOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationSetElementHeaderTooShort.selector,
+            TransferSpecLib.TransferPayloadSetElementHeaderTooShort.selector,
             elementIndex,
             encodedSetHeaderOnly.length,
             requiredOffset
@@ -190,7 +190,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         uint32 elementIndex = 0;
         uint256 requiredOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationSetElementHeaderTooShort.selector,
+            TransferSpecLib.TransferPayloadSetElementHeaderTooShort.selector,
             elementIndex,
             truncatedData.length,
             requiredOffset
@@ -225,7 +225,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         uint32 elementIndex = 0;
         uint256 requiredOffset = encodedSetHeader.length + encodedAuth1.length;
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationSetElementTooShort.selector, elementIndex, truncatedData.length, requiredOffset
+            TransferSpecLib.TransferPayloadSetElementTooShort.selector, elementIndex, truncatedData.length, requiredOffset
         );
 
         vm.expectRevert(expectedRevertData);
@@ -264,7 +264,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         uint256 requiredOffset =
             BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length + BURN_INTENT_TRANSFER_SPEC_OFFSET;
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationSetElementHeaderTooShort.selector,
+            TransferSpecLib.TransferPayloadSetElementHeaderTooShort.selector,
             elementIndex,
             truncatedData.length,
             requiredOffset
@@ -304,7 +304,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         uint32 elementIndex = 1;
         uint256 requiredOffset = encodedSetHeader.length + encodedAuth1.length + encodedAuth2.length;
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationSetElementTooShort.selector, elementIndex, truncatedData.length, requiredOffset
+            TransferSpecLib.TransferPayloadSetElementTooShort.selector, elementIndex, truncatedData.length, requiredOffset
         );
 
         vm.expectRevert(expectedRevertData);
@@ -328,7 +328,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
 
         uint256 expectedLength = encodedAuthSet.length;
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationSetOverallLengthMismatch.selector, expectedLength, trailingBytesData.length
+            TransferSpecLib.TransferPayloadSetOverallLengthMismatch.selector, expectedLength, trailingBytesData.length
         );
         vm.expectRevert(expectedRevertData);
         BurnIntentLib._validate(trailingBytesData);
@@ -361,7 +361,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         corruptedMagic = bytes4(tempBytes);
 
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationSetInvalidElementMagic.selector, elementIndex, corruptedMagic
+            TransferSpecLib.TransferPayloadSetInvalidElementMagic.selector, elementIndex, corruptedMagic
         );
 
         vm.expectRevert(expectedRevertData);
@@ -397,7 +397,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         corruptedMagic = bytes4(tempBytes);
 
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationSetInvalidElementMagic.selector, elementIndex, corruptedMagic
+            TransferSpecLib.TransferPayloadSetInvalidElementMagic.selector, elementIndex, corruptedMagic
         );
 
         vm.expectRevert(expectedRevertData);
@@ -473,7 +473,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         uint256 requiredOffset =
             BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET + invalidSpecLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.AuthorizationSetElementTooShort.selector,
+            TransferSpecLib.TransferPayloadSetElementTooShort.selector,
             elementIndex,
             encodedAuthSet.length,
             requiredOffset

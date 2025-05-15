@@ -61,14 +61,14 @@ library BurnIntentLib {
     /// Creates a typed memory view for a `BurnIntent` or `BurnIntentSet`
     ///
     /// @dev Checks for either `BurnIntent` or `BurnIntentSet` magic
-    /// @dev Reverts with `InvalidAuthorizationMagic` if neither known magic number is present
+    /// @dev Reverts with `InvalidTransferPayloadMagic` if neither known magic number is present
     /// @dev Reverts if data length is less than 4
     ///
     /// @param data   The raw bytes to create a view into. Must contain at least 4 bytes.
     /// @return ref   A `TypedMemView` reference to `data`, typed according to the magic number found
     function _asAuthOrSetView(bytes memory data) internal pure returns (bytes29 ref) {
         if (data.length < BYTES4_BYTES) {
-            revert TransferSpecLib.AuthorizationDataTooShort(BYTES4_BYTES, data.length);
+            revert TransferSpecLib.TransferPayloadDataTooShort(BYTES4_BYTES, data.length);
         }
 
         bytes29 initialView = data.ref(0);
@@ -79,7 +79,7 @@ library BurnIntentLib {
         } else if (magic == BURN_INTENT_SET_MAGIC) {
             ref = initialView.castTo(TransferSpecLib._toMemViewType(BURN_INTENT_SET_MAGIC));
         } else {
-            revert TransferSpecLib.InvalidAuthorizationMagic(magic);
+            revert TransferSpecLib.InvalidTransferPayloadMagic(magic);
         }
     }
 
@@ -99,14 +99,14 @@ library BurnIntentLib {
     function _validateBurnIntentOuterStructure(bytes29 authView) private pure {
         // 1. Minimum header length check
         if (authView.len() < BURN_INTENT_TRANSFER_SPEC_OFFSET) {
-            revert TransferSpecLib.AuthorizationHeaderTooShort(BURN_INTENT_TRANSFER_SPEC_OFFSET, authView.len());
+            revert TransferSpecLib.TransferPayloadHeaderTooShort(BURN_INTENT_TRANSFER_SPEC_OFFSET, authView.len());
         }
 
         // 2. Total length consistency check
         uint32 specLengthDeclaredInAuth = getTransferSpecLength(authView);
         uint256 expectedAuthLength = BURN_INTENT_TRANSFER_SPEC_OFFSET + specLengthDeclaredInAuth;
         if (authView.len() != expectedAuthLength) {
-            revert TransferSpecLib.AuthorizationOverallLengthMismatch(expectedAuthLength, authView.len());
+            revert TransferSpecLib.TransferPayloadOverallLengthMismatch(expectedAuthLength, authView.len());
         }
     }
 
@@ -118,7 +118,7 @@ library BurnIntentLib {
     ///
     /// @dev Performs structural validation on a `BurnIntent` view. Reverts on failure. Assumes the view has the
     ///      correct `BurnIntent` magic number (e.g., validated by `_asAuthOrSetView`).
-    /// @dev Reverts with specific errors (e.g., `AuthorizationHeaderTooShort`, `AuthorizationOverallLengthMismatch`,
+    /// @dev Reverts with specific errors (e.g., `TransferPayloadHeaderTooShort`, `TransferPayloadOverallLengthMismatch`,
     ///      `InvalidTransferSpecMagic`, `TransferSpecHeaderTooShort`, `TransferSpecOverallLengthMismatch`) if the
     ///      structure is invalid
     ///
@@ -150,7 +150,7 @@ library BurnIntentLib {
     function _validateBurnIntentSet(bytes29 setView) internal pure {
         // 1. Minimum header length check
         if (setView.len() < BURN_INTENT_SET_AUTHORIZATIONS_OFFSET) {
-            revert TransferSpecLib.AuthorizationSetHeaderTooShort(
+            revert TransferSpecLib.TransferPayloadSetHeaderTooShort(
                 BURN_INTENT_SET_AUTHORIZATIONS_OFFSET, setView.len()
             );
         }
@@ -165,7 +165,7 @@ library BurnIntentLib {
 
             // 3a. Check bounds for header read
             if (setView.len() < requiredOffsetForHeader) {
-                revert TransferSpecLib.AuthorizationSetElementHeaderTooShort(i, setView.len(), requiredOffsetForHeader);
+                revert TransferSpecLib.TransferPayloadSetElementHeaderTooShort(i, setView.len(), requiredOffsetForHeader);
             }
 
             // Read spec length to determine current auth total length
@@ -176,13 +176,13 @@ library BurnIntentLib {
 
             // Check bounds for full auth read
             if (setView.len() < requiredOffsetForElement) {
-                revert TransferSpecLib.AuthorizationSetElementTooShort(i, setView.len(), requiredOffsetForElement);
+                revert TransferSpecLib.TransferPayloadSetElementTooShort(i, setView.len(), requiredOffsetForElement);
             }
 
             // 3b. Check magic number of the current element slice
             bytes4 elementMagic = bytes4(setView.index(currentOffset + BURN_INTENT_MAGIC_OFFSET, BYTES4_BYTES));
             if (elementMagic != BURN_INTENT_MAGIC) {
-                revert TransferSpecLib.AuthorizationSetInvalidElementMagic(i, elementMagic);
+                revert TransferSpecLib.TransferPayloadSetInvalidElementMagic(i, elementMagic);
             }
 
             // 3c. Create view and perform full recursive validation on the element
@@ -197,7 +197,7 @@ library BurnIntentLib {
 
         // 4. Final total length consistency check
         if (currentOffset != setView.len()) {
-            revert TransferSpecLib.AuthorizationSetOverallLengthMismatch(currentOffset, setView.len());
+            revert TransferSpecLib.TransferPayloadSetOverallLengthMismatch(currentOffset, setView.len());
         }
     }
 
@@ -226,7 +226,7 @@ library BurnIntentLib {
     /// @dev For a single `BurnIntent`, the cursor will yield that single element. For a `BurnIntentSet`,
     ///      it iterates through each contained `BurnIntent`. Sets the 'done' flag immediately if the set
     ///      contains zero authorizations.
-    /// @dev Reverts with `AuthorizationDataTooShort` or `InvalidAuthorizationMagic` if casting fails
+    /// @dev Reverts with `TransferPayloadDataTooShort` or `InvalidTransferPayloadMagic` if casting fails
     ///
     /// @param data   The raw bytes representing either an encoded `BurnIntent` or `BurnIntentSet`
     /// @return c     An initialized `Cursor` struct
@@ -355,7 +355,7 @@ library BurnIntentLib {
         uint256 numAuths = authSet.authorizations.length;
 
         if (numAuths > type(uint32).max) {
-            revert TransferSpecLib.AuthorizationSetTooManyElements(type(uint32).max);
+            revert TransferSpecLib.TransferPayloadSetTooManyElements(type(uint32).max);
         }
 
         // Calculate total size of all encoded authorizations
