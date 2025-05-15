@@ -19,10 +19,12 @@ pragma solidity ^0.8.29;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {GatewayMinter} from "src/GatewayMinter.sol";
 import {AddressLib} from "src/lib/util/AddressLib.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Mints} from "src/modules/minter/Mints.sol";
+import {UpgradeablePlaceholder} from "src/UpgradeablePlaceholder.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {OwnershipTest} from "test/util/OwnershipTest.sol";
@@ -46,6 +48,34 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
         minter.initialize(address(0), address(0), address(0), new address[](0), uint32(0), address(0), new address[](0));
+    }
+
+    function test_initialize_revertWhenTokenAndAuthorityLengthMismatch() public {
+        // Deploy a new GatewayMinter implementation
+        GatewayMinter minterImpl = new GatewayMinter();
+
+        // Deploy a placeholder and then a proxy for it
+        UpgradeablePlaceholder placeholder = new UpgradeablePlaceholder();
+        ERC1967Proxy proxy =
+            new ERC1967Proxy(address(placeholder), abi.encodeCall(UpgradeablePlaceholder.initialize, owner));
+
+        address[] memory supportedTokens = new address[](1);
+        supportedTokens[0] = makeAddr("token1");
+
+        address[] memory tokenMintAuthorities = new address[](2);
+        tokenMintAuthorities[0] = makeAddr("authority1");
+        tokenMintAuthorities[1] = makeAddr("authority2");
+
+        // Prepare the calldata for the initialize function
+        // Using 'owner' for the various addresses, since they don't matter for this test
+        bytes memory initializeCalldata = abi.encodeCall(
+            GatewayMinter.initialize, (owner, owner, owner, supportedTokens, domain, owner, tokenMintAuthorities)
+        );
+
+        vm.startPrank(owner);
+        vm.expectRevert(GatewayMinter.MismatchedLengthTokenAndTokenMintAuthorities.selector);
+        UpgradeablePlaceholder(address(proxy)).upgradeToAndCall(address(minterImpl), initializeCalldata);
+        vm.stopPrank();
     }
 
     function test_updateMintAuthority_revertWhenNotOwner() public {
