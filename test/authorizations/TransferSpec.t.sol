@@ -26,6 +26,7 @@ contract TransferSpecTest is AuthorizationTestUtils {
     using TransferSpecLib for bytes;
     using TransferSpecLib for bytes29;
     using TypedMemView for bytes;
+    using TypedMemView for bytes29;
 
     // ===== Field Accessor Tests =====
 
@@ -51,6 +52,24 @@ contract TransferSpecTest is AuthorizationTestUtils {
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
         bytes29 ref = encodedSpec.ref(uint40(uint32(TRANSFER_SPEC_MAGIC)));
         _verifyTransferSpecFieldsFromView(ref, spec);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_transferSpec_readMetadata_revertsOnInvalidMetadataFuzz(TransferSpec memory spec) public {
+        spec.version = TRANSFER_SPEC_VERSION;
+        spec.metadata = LONG_METADATA;
+        bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
+
+        (bytes memory corruptedData, uint32 corruptedMetadataLength) =
+            _getCorruptedInnerSpecMetadataLengthData(encodedSpec, 0, uint32(LONG_METADATA.length), true);
+        bytes29 corruptedRef = corruptedData.ref(uint40(uint32(TRANSFER_SPEC_MAGIC)));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TransferSpecLib.TransferSpecInvalidMetadata.selector, corruptedMetadataLength, corruptedRef.len()
+            )
+        );
+        TransferSpecLib.getMetadata(corruptedRef);
     }
 
     // ===== Hash Utility Tests =====
