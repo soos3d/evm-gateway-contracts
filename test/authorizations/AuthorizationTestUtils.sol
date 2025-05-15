@@ -20,9 +20,9 @@ pragma solidity ^0.8.29;
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {Test} from "forge-std/Test.sol";
 import {BurnAuthorizationLib} from "src/lib/BurnAuthorizationLib.sol";
-import {BurnAuthorization, BURN_AUTHORIZATION_MAGIC} from "src/lib/BurnAuthorizations.sol";
+import {BurnAuthorization, BURN_INTENT_MAGIC} from "src/lib/BurnAuthorizations.sol";
 import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
-import {MintAuthorization, MINT_AUTHORIZATION_MAGIC} from "src/lib/MintAuthorizations.sol";
+import {MintAuthorization, ATTESTATION_MAGIC} from "src/lib/MintAuthorizations.sol";
 import {TransferSpec, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
 
@@ -31,10 +31,10 @@ contract AuthorizationTestUtils is Test {
 
     uint16 internal constant TRANSFER_SPEC_METADATA_LENGTH_OFFSET = 336;
     uint16 internal constant TRANSFER_SPEC_METADATA_OFFSET = 340;
-    uint16 internal constant BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 68;
-    uint16 internal constant BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 72;
-    uint16 internal constant MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 36;
-    uint16 internal constant MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 40;
+    uint16 internal constant BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET = 68;
+    uint16 internal constant BURN_INTENT_TRANSFER_SPEC_OFFSET = 72;
+    uint16 internal constant ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET = 36;
+    uint16 internal constant ATTESTATION_TRANSFER_SPEC_OFFSET = 40;
 
     bytes internal constant SHORT_METADATA = "Test metadata";
     bytes internal constant LONG_METADATA = "This is a longer metadata string to test larger metadata payloads";
@@ -84,7 +84,7 @@ contract AuthorizationTestUtils is Test {
 
     // Verifies all fields read from a BurnAuthorization view match the original struct
     function _verifyBurnAuthorizationFieldsFromView(bytes29 ref, BurnAuthorization memory auth) internal pure {
-        ref.assertType(TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_MAGIC));
+        ref.assertType(TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC));
         assertEq(BurnAuthorizationLib.getMaxBlockHeight(ref), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
         assertEq(BurnAuthorizationLib.getMaxFee(ref), auth.maxFee, "Eq Fail: maxFee");
         bytes29 specRef = BurnAuthorizationLib.getTransferSpec(ref);
@@ -93,7 +93,7 @@ contract AuthorizationTestUtils is Test {
 
     // Verifies all fields read from a MintAuthorization view match the original struct
     function _verifyMintAuthorizationFieldsFromView(bytes29 ref, MintAuthorization memory auth) internal pure {
-        ref.assertType(TransferSpecLib._toMemViewType(MINT_AUTHORIZATION_MAGIC));
+        ref.assertType(TransferSpecLib._toMemViewType(ATTESTATION_MAGIC));
         assertEq(MintAuthorizationLib.getMaxBlockHeight(ref), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
         bytes29 specRef = MintAuthorizationLib.getTransferSpec(ref);
         _verifyTransferSpecFieldsFromView(specRef, auth.spec);

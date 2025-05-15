@@ -19,12 +19,12 @@ pragma solidity ^0.8.29;
 
 import {Test} from "forge-std/Test.sol";
 import {
-    BURN_AUTHORIZATION_MAGIC,
-    BURN_AUTHORIZATION_SET_MAGIC,
-    BURN_AUTHORIZATION_TYPEHASH,
-    BURN_AUTHORIZATION_SET_TYPEHASH
+    BURN_INTENT_MAGIC,
+    BURN_INTENT_SET_MAGIC,
+    BURN_INTENT_TYPEHASH,
+    BURN_INTENT_SET_TYPEHASH
 } from "src/lib/BurnAuthorizations.sol";
-import {MINT_AUTHORIZATION_MAGIC, MINT_AUTHORIZATION_SET_MAGIC} from "src/lib/MintAuthorizations.sol";
+import {ATTESTATION_MAGIC, ATTESTATION_SET_MAGIC} from "src/lib/MintAuthorizations.sol";
 import {TRANSFER_SPEC_TYPEHASH} from "src/lib/TransferSpec.sol";
 import {CounterpartStorage} from "src/modules/common/Counterpart.sol";
 import {DenylistStorage} from "src/modules/common/Denylist.sol";
@@ -41,19 +41,19 @@ import {WithdrawalDelayStorage} from "src/modules/wallet/WithdrawalDelay.sol";
 /// Ensures the magic values used throughout the codebase are correct
 contract TestMagicValues is Test {
     function test_burn_authorization() external pure {
-        assertEq(BURN_AUTHORIZATION_MAGIC, bytes4(keccak256("circle.gateway.BurnIntent")));
+        assertEq(BURN_INTENT_MAGIC, bytes4(keccak256("circle.gateway.BurnIntent")));
     }
 
     function test_burn_authorization_set() external pure {
-        assertEq(BURN_AUTHORIZATION_SET_MAGIC, bytes4(keccak256("circle.gateway.BurnIntentSet")));
+        assertEq(BURN_INTENT_SET_MAGIC, bytes4(keccak256("circle.gateway.BurnIntentSet")));
     }
 
     function test_mint_authorization() external pure {
-        assertEq(MINT_AUTHORIZATION_MAGIC, bytes4(keccak256("circle.gateway.Attestation")));
+        assertEq(ATTESTATION_MAGIC, bytes4(keccak256("circle.gateway.Attestation")));
     }
 
     function test_mint_authorization_set() external pure {
-        assertEq(MINT_AUTHORIZATION_SET_MAGIC, bytes4(keccak256("circle.gateway.AttestationSet")));
+        assertEq(ATTESTATION_SET_MAGIC, bytes4(keccak256("circle.gateway.AttestationSet")));
     }
 
     function test_CounterpartStorage_slot() external pure {
@@ -149,7 +149,7 @@ contract TestMagicValues is Test {
 
     function test_BurnIntentTypeHash() external pure {
         assertEq(
-            BURN_AUTHORIZATION_TYPEHASH,
+            BURN_INTENT_TYPEHASH,
             keccak256(
                 bytes(
                     "BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)"
@@ -160,7 +160,7 @@ contract TestMagicValues is Test {
 
     function test_BurnIntentSetTypeHash() external pure {
         assertEq(
-            BURN_AUTHORIZATION_SET_TYPEHASH,
+            BURN_INTENT_SET_TYPEHASH,
             keccak256(
                 bytes(
                     "BurnIntentSet(BurnIntent[] authorizations)BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)"

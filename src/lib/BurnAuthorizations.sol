@@ -20,20 +20,20 @@ pragma solidity ^0.8.29;
 import {TransferSpec} from "./TransferSpec.sol";
 
 // Magic values for marking byte encodings
-bytes4 constant BURN_AUTHORIZATION_MAGIC = 0x070afbc2; // `bytes4(keccak256("circle.gateway.BurnIntent"))`
-bytes4 constant BURN_AUTHORIZATION_SET_MAGIC = 0xe999239b; // `bytes4(keccak256("circle.gateway.BurnIntentSet"))`
+bytes4 constant BURN_INTENT_MAGIC = 0x070afbc2; // `bytes4(keccak256("circle.gateway.BurnIntent"))`
+bytes4 constant BURN_INTENT_SET_MAGIC = 0xe999239b; // `bytes4(keccak256("circle.gateway.BurnIntentSet"))`
 
 // `BurnIntent` field offsets
-uint16 constant BURN_AUTHORIZATION_MAGIC_OFFSET = 0;
-uint16 constant BURN_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET = 4;
-uint16 constant BURN_AUTHORIZATION_MAX_FEE_OFFSET = 36;
-uint16 constant BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 68;
-uint16 constant BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 72;
+uint16 constant BURN_INTENT_MAGIC_OFFSET = 0;
+uint16 constant BURN_INTENT_MAX_BLOCK_HEIGHT_OFFSET = 4;
+uint16 constant BURN_INTENT_MAX_FEE_OFFSET = 36;
+uint16 constant BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET = 68;
+uint16 constant BURN_INTENT_TRANSFER_SPEC_OFFSET = 72;
 
 // `BurnIntentSet` field offsets
-uint16 constant BURN_AUTHORIZATION_SET_MAGIC_OFFSET = 0;
-uint16 constant BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
-uint16 constant BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
+uint16 constant BURN_INTENT_SET_MAGIC_OFFSET = 0;
+uint16 constant BURN_INTENT_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
+uint16 constant BURN_INTENT_SET_AUTHORIZATIONS_OFFSET = 8;
 
 /// @title BurnIntent
 ///
@@ -58,7 +58,7 @@ struct BurnAuthorization {
 
 // Type hash for the BurnIntent struct
 // keccak256("BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)");
-bytes32 constant BURN_AUTHORIZATION_TYPEHASH = 0xa3f9ead15bb3694b6a68c381d79edde07b7b14311754c8e10fb254225b837425;
+bytes32 constant BURN_INTENT_TYPEHASH = 0xa3f9ead15bb3694b6a68c381d79edde07b7b14311754c8e10fb254225b837425;
 
 /// @title BurnIntentSet
 ///
@@ -78,4 +78,4 @@ struct BurnAuthorizationSet {
 
 // Type hash for the BurnIntentSet struct
 // keccak256("BurnIntentSet(BurnIntent[] authorizations)BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)")
-bytes32 constant BURN_AUTHORIZATION_SET_TYPEHASH = 0x81dea1ea78c068b21ff5bc63925a1a3f1780e98661cad9e40167e919e0e74650;
+bytes32 constant BURN_INTENT_SET_TYPEHASH = 0x81dea1ea78c068b21ff5bc63925a1a3f1780e98661cad9e40167e919e0e74650;

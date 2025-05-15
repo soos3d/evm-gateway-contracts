@@ -20,7 +20,7 @@ pragma solidity ^0.8.29;
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {Cursor} from "src/lib/Cursor.sol";
 import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
-import {MintAuthorization, MINT_AUTHORIZATION_MAGIC} from "src/lib/MintAuthorizations.sol";
+import {MintAuthorization, ATTESTATION_MAGIC} from "src/lib/MintAuthorizations.sol";
 import {TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
@@ -36,7 +36,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         (bytes memory data, uint40 magicType) = _magic("circle.gateway.Attestation");
         bytes29 ref = MintAuthorizationLib._asAuthOrSetView(data);
         assertEq(TypedMemView.typeOf(ref), magicType);
-        assertEq(bytes4(uint32(magicType)), MINT_AUTHORIZATION_MAGIC);
+        assertEq(bytes4(uint32(magicType)), ATTESTATION_MAGIC);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -81,14 +81,14 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         bytes memory validEncodedMintAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
 
-        uint16 truncatedLength = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET - 1;
+        uint16 truncatedLength = ATTESTATION_TRANSFER_SPEC_OFFSET - 1;
         bytes memory shortData = new bytes(truncatedLength);
         for (uint16 i = 0; i < truncatedLength; i++) {
             shortData[i] = validEncodedMintAuth[i];
         }
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.AuthorizationHeaderTooShort.selector,
-            MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
+            ATTESTATION_TRANSFER_SPEC_OFFSET,
             shortData.length
         );
 
@@ -102,16 +102,16 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
         uint256 originalAuthLength = encodedAuth.length;
-        uint32 originalSpecLength = uint32(originalAuthLength - MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET);
+        uint32 originalSpecLength = uint32(originalAuthLength - ATTESTATION_TRANSFER_SPEC_OFFSET);
 
         uint32 invalidSpecLength = originalSpecLength + 1;
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         bytes memory corruptedData = cloneBytes(encodedAuth);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
-            corruptedData[MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET + i] = encodedInvalidLength[i];
+            corruptedData[ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET + i] = encodedInvalidLength[i];
         }
 
-        uint256 expectedAuthLengthBasedOnCorruption = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + invalidSpecLength;
+        uint256 expectedAuthLengthBasedOnCorruption = ATTESTATION_TRANSFER_SPEC_OFFSET + invalidSpecLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.AuthorizationOverallLengthMismatch.selector,
             expectedAuthLengthBasedOnCorruption,
@@ -128,16 +128,16 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
         uint256 originalAuthLength = encodedAuth.length;
-        uint32 originalSpecLength = uint32(originalAuthLength - MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET);
+        uint32 originalSpecLength = uint32(originalAuthLength - ATTESTATION_TRANSFER_SPEC_OFFSET);
 
         uint32 invalidSpecLength = originalSpecLength - 1;
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         bytes memory corruptedData = cloneBytes(encodedAuth);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
-            corruptedData[MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET + i] = encodedInvalidLength[i];
+            corruptedData[ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET + i] = encodedInvalidLength[i];
         }
 
-        uint256 expectedAuthLengthBasedOnCorruption = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET + invalidSpecLength;
+        uint256 expectedAuthLengthBasedOnCorruption = ATTESTATION_TRANSFER_SPEC_OFFSET + invalidSpecLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.AuthorizationOverallLengthMismatch.selector,
             expectedAuthLengthBasedOnCorruption,
@@ -191,7 +191,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         uint32 incorrectSpecLength = 2;
 
         bytes memory corruptedData =
-            abi.encodePacked(MINT_AUTHORIZATION_MAGIC, fixedMaxBlockHeight, incorrectSpecLength, hex"0000");
+            abi.encodePacked(ATTESTATION_MAGIC, fixedMaxBlockHeight, incorrectSpecLength, hex"0000");
 
         bytes memory expectedRevertData = bytes(
             string.concat(
@@ -211,10 +211,10 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
 
-        encodedAuth[MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET] = hex"00";
+        encodedAuth[ATTESTATION_TRANSFER_SPEC_OFFSET] = hex"00";
 
         bytes4 corruptedMagic;
-        uint256 offset = MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET;
+        uint256 offset = ATTESTATION_TRANSFER_SPEC_OFFSET;
         bytes memory tempBytes = new bytes(BYTES4_BYTES);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
             tempBytes[i] = encodedAuth[offset + i];
@@ -234,7 +234,7 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         bytes memory dummySpecData =
             abi.encodePacked(TRANSFER_SPEC_MAGIC, new bytes(incorrectSpecLength - BYTES4_BYTES));
         bytes memory corruptedData =
-            abi.encodePacked(MINT_AUTHORIZATION_MAGIC, auth.maxBlockHeight, incorrectSpecLength, dummySpecData);
+            abi.encodePacked(ATTESTATION_MAGIC, auth.maxBlockHeight, incorrectSpecLength, dummySpecData);
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferSpecHeaderTooShort.selector, TRANSFER_SPEC_METADATA_OFFSET, incorrectSpecLength
         );
@@ -261,11 +261,11 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
         uint32 originalMetadataLength = uint32(auth.spec.metadata.length);
-        uint32 originalInnerSpecLength = uint32(encodedAuth.length - MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET);
+        uint32 originalInnerSpecLength = uint32(encodedAuth.length - ATTESTATION_TRANSFER_SPEC_OFFSET);
 
         (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
             encodedAuth,
-            MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within MintAuth
+            ATTESTATION_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within MintAuth
             originalMetadataLength, // Original metadata length
             true // Inflate the metadata length field
         );
@@ -289,11 +289,11 @@ contract MintAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auth);
         uint32 originalMetadataLength = uint32(auth.spec.metadata.length);
-        uint32 originalInnerSpecLength = uint32(encodedAuth.length - MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET);
+        uint32 originalInnerSpecLength = uint32(encodedAuth.length - ATTESTATION_TRANSFER_SPEC_OFFSET);
 
         (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
             encodedAuth,
-            MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within MintAuth
+            ATTESTATION_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within MintAuth
             originalMetadataLength, // Original metadata length
             false // Make the metadata length field smaller
         );

@@ -22,18 +22,18 @@ import {Cursor} from "./Cursor.sol";
 import {
     BurnAuthorization,
     BurnAuthorizationSet,
-    BURN_AUTHORIZATION_MAGIC,
-    BURN_AUTHORIZATION_SET_MAGIC,
-    BURN_AUTHORIZATION_MAGIC_OFFSET,
-    BURN_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET,
-    BURN_AUTHORIZATION_MAX_FEE_OFFSET,
-    BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET,
-    BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
-    BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET,
-    BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET,
+    BURN_INTENT_MAGIC,
+    BURN_INTENT_SET_MAGIC,
+    BURN_INTENT_MAGIC_OFFSET,
+    BURN_INTENT_MAX_BLOCK_HEIGHT_OFFSET,
+    BURN_INTENT_MAX_FEE_OFFSET,
+    BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET,
+    BURN_INTENT_TRANSFER_SPEC_OFFSET,
+    BURN_INTENT_SET_NUM_AUTHORIZATIONS_OFFSET,
+    BURN_INTENT_SET_AUTHORIZATIONS_OFFSET,
     // solhint-disable-next-line no-unused-import
-    BURN_AUTHORIZATION_TYPEHASH,
-    BURN_AUTHORIZATION_SET_TYPEHASH
+    BURN_INTENT_TYPEHASH,
+    BURN_INTENT_SET_TYPEHASH
 } from "./BurnAuthorizations.sol";
 import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
@@ -53,7 +53,7 @@ library BurnAuthorizationLib {
     /// @param ref   The `TypedMemView` reference to the encoded `BurnAuthorization` or `BurnAuthorizationSet`
     /// @return      `true` if the provided `bytes29` reference is a `BurnAuthorizationSet`, `false` otherwise
     function _isSet(bytes29 ref) private pure returns (bool) {
-        return ref.index(0, BYTES4_BYTES) == BURN_AUTHORIZATION_SET_MAGIC;
+        return ref.index(0, BYTES4_BYTES) == BURN_INTENT_SET_MAGIC;
     }
 
     // --- Casting -----------------------------------------------------------------------------------------------------
@@ -74,10 +74,10 @@ library BurnAuthorizationLib {
         bytes29 initialView = data.ref(0);
         bytes4 magic = bytes4(initialView.index(0, BYTES4_BYTES));
 
-        if (magic == BURN_AUTHORIZATION_MAGIC) {
-            ref = initialView.castTo(TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_MAGIC));
-        } else if (magic == BURN_AUTHORIZATION_SET_MAGIC) {
-            ref = initialView.castTo(TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_SET_MAGIC));
+        if (magic == BURN_INTENT_MAGIC) {
+            ref = initialView.castTo(TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC));
+        } else if (magic == BURN_INTENT_SET_MAGIC) {
+            ref = initialView.castTo(TransferSpecLib._toMemViewType(BURN_INTENT_SET_MAGIC));
         } else {
             revert TransferSpecLib.InvalidAuthorizationMagic(magic);
         }
@@ -98,13 +98,13 @@ library BurnAuthorizationLib {
     /// @param authView   The `TypedMemView` reference to the encoded `BurnAuthorization` to validate
     function _validateBurnAuthorizationOuterStructure(bytes29 authView) private pure {
         // 1. Minimum header length check
-        if (authView.len() < BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET) {
-            revert TransferSpecLib.AuthorizationHeaderTooShort(BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET, authView.len());
+        if (authView.len() < BURN_INTENT_TRANSFER_SPEC_OFFSET) {
+            revert TransferSpecLib.AuthorizationHeaderTooShort(BURN_INTENT_TRANSFER_SPEC_OFFSET, authView.len());
         }
 
         // 2. Total length consistency check
         uint32 specLengthDeclaredInAuth = getTransferSpecLength(authView);
-        uint256 expectedAuthLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLengthDeclaredInAuth;
+        uint256 expectedAuthLength = BURN_INTENT_TRANSFER_SPEC_OFFSET + specLengthDeclaredInAuth;
         if (authView.len() != expectedAuthLength) {
             revert TransferSpecLib.AuthorizationOverallLengthMismatch(expectedAuthLength, authView.len());
         }
@@ -149,19 +149,19 @@ library BurnAuthorizationLib {
     /// @param setView   The `TypedMemView` reference to the encoded `BurnAuthorizationSet` to validate
     function _validateBurnAuthorizationSet(bytes29 setView) internal pure {
         // 1. Minimum header length check
-        if (setView.len() < BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET) {
+        if (setView.len() < BURN_INTENT_SET_AUTHORIZATIONS_OFFSET) {
             revert TransferSpecLib.AuthorizationSetHeaderTooShort(
-                BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET, setView.len()
+                BURN_INTENT_SET_AUTHORIZATIONS_OFFSET, setView.len()
             );
         }
 
         // 2. Read declared count
         uint32 numAuths = getNumAuthorizations(setView);
-        uint256 currentOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
+        uint256 currentOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET;
 
         // 3. Iterate and validate each element
         for (uint32 i = 0; i < numAuths; i++) {
-            uint256 requiredOffsetForHeader = currentOffset + BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET;
+            uint256 requiredOffsetForHeader = currentOffset + BURN_INTENT_TRANSFER_SPEC_OFFSET;
 
             // 3a. Check bounds for header read
             if (setView.len() < requiredOffsetForHeader) {
@@ -170,8 +170,8 @@ library BurnAuthorizationLib {
 
             // Read spec length to determine current auth total length
             uint32 specLength =
-                uint32(setView.indexUint(currentOffset + BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
-            uint256 currentAuthTotalLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLength;
+                uint32(setView.indexUint(currentOffset + BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+            uint256 currentAuthTotalLength = BURN_INTENT_TRANSFER_SPEC_OFFSET + specLength;
             uint256 requiredOffsetForElement = currentOffset + currentAuthTotalLength;
 
             // Check bounds for full auth read
@@ -180,14 +180,14 @@ library BurnAuthorizationLib {
             }
 
             // 3b. Check magic number of the current element slice
-            bytes4 elementMagic = bytes4(setView.index(currentOffset + BURN_AUTHORIZATION_MAGIC_OFFSET, BYTES4_BYTES));
-            if (elementMagic != BURN_AUTHORIZATION_MAGIC) {
+            bytes4 elementMagic = bytes4(setView.index(currentOffset + BURN_INTENT_MAGIC_OFFSET, BYTES4_BYTES));
+            if (elementMagic != BURN_INTENT_MAGIC) {
                 revert TransferSpecLib.AuthorizationSetInvalidElementMagic(i, elementMagic);
             }
 
             // 3c. Create view and perform full recursive validation on the element
             bytes29 authView = setView.slice(
-                currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_MAGIC)
+                currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC)
             );
             _validateBurnAuthorization(authView);
 
@@ -243,7 +243,7 @@ library BurnAuthorizationLib {
         }
 
         uint32 numAuths = getNumAuthorizations(ref);
-        c.offset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
+        c.offset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET;
         c.numAuths = numAuths;
         c.done = (numAuths == 0); // If the set is empty, the cursor is immediately done
     }
@@ -261,11 +261,11 @@ library BurnAuthorizationLib {
         }
 
         uint32 currentSpecLength =
-            uint32(c.setOrAuthView.indexUint(c.offset + BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
-        uint256 currentAuthTotalLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + currentSpecLength;
+            uint32(c.setOrAuthView.indexUint(c.offset + BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+        uint256 currentAuthTotalLength = BURN_INTENT_TRANSFER_SPEC_OFFSET + currentSpecLength;
 
         ref = c.setOrAuthView.slice(
-            c.offset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_MAGIC)
+            c.offset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC)
         );
 
         c.offset += currentAuthTotalLength;
@@ -283,7 +283,7 @@ library BurnAuthorizationLib {
     /// @param ref   The `TypedMemView` reference to the encoded `BurnAuthorization`
     /// @return      The `maxBlockHeight` field
     function getMaxBlockHeight(bytes29 ref) internal pure returns (uint256) {
-        return ref.indexUint(BURN_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET, UINT256_BYTES);
+        return ref.indexUint(BURN_INTENT_MAX_BLOCK_HEIGHT_OFFSET, UINT256_BYTES);
     }
 
     /// Extract the max fee from an encoded BurnAuthorization
@@ -291,7 +291,7 @@ library BurnAuthorizationLib {
     /// @param ref   The `TypedMemView` reference to the encoded `BurnAuthorization`
     /// @return      The `maxFee` field
     function getMaxFee(bytes29 ref) internal pure returns (uint256) {
-        return ref.indexUint(BURN_AUTHORIZATION_MAX_FEE_OFFSET, UINT256_BYTES);
+        return ref.indexUint(BURN_INTENT_MAX_FEE_OFFSET, UINT256_BYTES);
     }
 
     /// Extract the transfer spec length from an encoded `BurnAuthorization`
@@ -299,7 +299,7 @@ library BurnAuthorizationLib {
     /// @param ref   The `TypedMemView` reference to the encoded `BurnAuthorization`
     /// @return      The transfer spec length
     function getTransferSpecLength(bytes29 ref) internal pure returns (uint32) {
-        return uint32(ref.indexUint(BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+        return uint32(ref.indexUint(BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
     }
 
     /// Extract the transfer spec from an encoded `BurnAuthorization`
@@ -309,7 +309,7 @@ library BurnAuthorizationLib {
     function getTransferSpec(bytes29 ref) internal pure returns (bytes29) {
         uint32 specLength = getTransferSpecLength(ref);
         bytes29 specRef = ref.slice(
-            BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET, specLength, TransferSpecLib._toMemViewType(TRANSFER_SPEC_MAGIC)
+            BURN_INTENT_TRANSFER_SPEC_OFFSET, specLength, TransferSpecLib._toMemViewType(TRANSFER_SPEC_MAGIC)
         );
 
         // Validate that the slice contains a valid TransferSpec
@@ -326,7 +326,7 @@ library BurnAuthorizationLib {
     /// @param ref   The `TypedMemView` reference to the encoded `BurnAuthorizationSet`
     /// @return      The number of authorizations in the set
     function getNumAuthorizations(bytes29 ref) internal pure returns (uint32) {
-        return uint32(ref.indexUint(BURN_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET, UINT32_BYTES));
+        return uint32(ref.indexUint(BURN_INTENT_SET_NUM_AUTHORIZATIONS_OFFSET, UINT32_BYTES));
     }
 
     // --- Encoding ----------------------------------------------------------------------------------------------------
@@ -339,7 +339,7 @@ library BurnAuthorizationLib {
         bytes memory specBytes = TransferSpecLib.encodeTransferSpec(auth.spec);
 
         return abi.encodePacked(
-            BURN_AUTHORIZATION_MAGIC,
+            BURN_INTENT_MAGIC,
             auth.maxBlockHeight,
             auth.maxFee,
             uint32(specBytes.length), // 4 bytes
@@ -368,7 +368,7 @@ library BurnAuthorizationLib {
 
         // Create header with magic and authorization count
         bytes memory header = abi.encodePacked(
-            BURN_AUTHORIZATION_SET_MAGIC,
+            BURN_INTENT_SET_MAGIC,
             uint32(numAuths) // 4 bytes
         );
 
@@ -422,8 +422,8 @@ library BurnAuthorizationLib {
             // Get the free memory pointer
             let ptr := mload(0x40)
 
-            // Store BURN_AUTHORIZATION_TYPEHASH at ptr
-            mstore(ptr, BURN_AUTHORIZATION_TYPEHASH)
+            // Store BURN_INTENT_TYPEHASH at ptr
+            mstore(ptr, BURN_INTENT_TYPEHASH)
             // Store maxBlockHeight at ptr + 32
             mstore(add(ptr, 32), maxBlockHeight)
             // Store maxFee at ptr + 64
@@ -442,18 +442,18 @@ library BurnAuthorizationLib {
     /// @return          The EIP-712 typed data hash of the burn authorization set
     function _getburnAuthorizationSetTypedDataHash(bytes29 setView) private view returns (bytes32) {
         uint32 numAuths = getNumAuthorizations(setView);
-        uint256 currentOffset = BURN_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET;
+        uint256 currentOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET;
         bytes32[] memory authHashes = new bytes32[](numAuths);
 
         // Iterate through each authorization in the set and compute its hash
         for (uint32 i = 0; i < numAuths; i++) {
             // Read spec length to determine current auth total length
             uint32 specLength =
-                uint32(setView.indexUint(currentOffset + BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
-            uint256 currentAuthTotalLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + specLength;
+                uint32(setView.indexUint(currentOffset + BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+            uint256 currentAuthTotalLength = BURN_INTENT_TRANSFER_SPEC_OFFSET + specLength;
 
             bytes29 authView = setView.slice(
-                currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_AUTHORIZATION_MAGIC)
+                currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC)
             );
             authHashes[i] = _getburnAuthorizationTypedDataHash(authView);
 
@@ -461,6 +461,6 @@ library BurnAuthorizationLib {
             currentOffset += currentAuthTotalLength;
         }
 
-        return keccak256(abi.encodePacked(BURN_AUTHORIZATION_SET_TYPEHASH, keccak256(abi.encodePacked(authHashes))));
+        return keccak256(abi.encodePacked(BURN_INTENT_SET_TYPEHASH, keccak256(abi.encodePacked(authHashes))));
     }
 }

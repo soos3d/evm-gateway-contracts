@@ -20,7 +20,7 @@ pragma solidity ^0.8.29;
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {Cursor} from "src/lib/Cursor.sol";
 import {BurnAuthorizationLib} from "src/lib/BurnAuthorizationLib.sol";
-import {BurnAuthorization, BURN_AUTHORIZATION_MAGIC} from "src/lib/BurnAuthorizations.sol";
+import {BurnAuthorization, BURN_INTENT_MAGIC} from "src/lib/BurnAuthorizations.sol";
 import {TRANSFER_SPEC_MAGIC, TRANSFER_SPEC_VERSION} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
@@ -36,7 +36,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         (bytes memory data, uint40 expectedType) = _magic("circle.gateway.BurnIntent"); // Use helper
         bytes29 ref = BurnAuthorizationLib._asAuthOrSetView(data);
         assertEq(TypedMemView.typeOf(ref), expectedType);
-        assertEq(bytes4(uint32(expectedType)), BURN_AUTHORIZATION_MAGIC);
+        assertEq(bytes4(uint32(expectedType)), BURN_INTENT_MAGIC);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -81,14 +81,14 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         bytes memory validEncodedBurnAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
 
-        uint16 truncatedLength = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET - 1;
+        uint16 truncatedLength = BURN_INTENT_TRANSFER_SPEC_OFFSET - 1;
         bytes memory shortData = new bytes(truncatedLength);
         for (uint16 i = 0; i < truncatedLength; i++) {
             shortData[i] = validEncodedBurnAuth[i];
         }
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.AuthorizationHeaderTooShort.selector,
-            BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET,
+            BURN_INTENT_TRANSFER_SPEC_OFFSET,
             shortData.length
         );
 
@@ -102,16 +102,16 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
         uint256 originalAuthLength = encodedAuth.length;
-        uint32 originalSpecLength = uint32(originalAuthLength - BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET);
+        uint32 originalSpecLength = uint32(originalAuthLength - BURN_INTENT_TRANSFER_SPEC_OFFSET);
 
         uint32 invalidSpecLength = originalSpecLength + 1;
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         bytes memory corruptedData = cloneBytes(encodedAuth);
         for (uint8 i = 0; i < 4; i++) {
-            corruptedData[BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET + i] = encodedInvalidLength[i];
+            corruptedData[BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET + i] = encodedInvalidLength[i];
         }
 
-        uint256 expectedAuthLengthBasedOnCorruption = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + invalidSpecLength;
+        uint256 expectedAuthLengthBasedOnCorruption = BURN_INTENT_TRANSFER_SPEC_OFFSET + invalidSpecLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.AuthorizationOverallLengthMismatch.selector,
             expectedAuthLengthBasedOnCorruption,
@@ -128,16 +128,16 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
         uint256 originalAuthLength = encodedAuth.length;
-        uint32 originalSpecLength = uint32(originalAuthLength - BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET);
+        uint32 originalSpecLength = uint32(originalAuthLength - BURN_INTENT_TRANSFER_SPEC_OFFSET);
 
         uint32 invalidSpecLength = originalSpecLength - 1;
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         bytes memory corruptedData = cloneBytes(encodedAuth);
         for (uint8 i = 0; i < 4; i++) {
-            corruptedData[BURN_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET + i] = encodedInvalidLength[i];
+            corruptedData[BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET + i] = encodedInvalidLength[i];
         }
 
-        uint256 expectedAuthLengthBasedOnCorruption = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET + invalidSpecLength;
+        uint256 expectedAuthLengthBasedOnCorruption = BURN_INTENT_TRANSFER_SPEC_OFFSET + invalidSpecLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.AuthorizationOverallLengthMismatch.selector,
             expectedAuthLengthBasedOnCorruption,
@@ -191,7 +191,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         uint256 fixedMaxFee = 1;
         uint32 incorrectSpecLength = 2;
         bytes memory corruptedData =
-            abi.encodePacked(BURN_AUTHORIZATION_MAGIC, fixedMaxBlockHeight, fixedMaxFee, incorrectSpecLength, hex"0000");
+            abi.encodePacked(BURN_INTENT_MAGIC, fixedMaxBlockHeight, fixedMaxFee, incorrectSpecLength, hex"0000");
 
         bytes memory expectedRevertData = bytes(
             string.concat(
@@ -211,10 +211,10 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
 
-        encodedAuth[BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET] = hex"00";
+        encodedAuth[BURN_INTENT_TRANSFER_SPEC_OFFSET] = hex"00";
 
         bytes4 corruptedMagic;
-        uint256 offset = BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET;
+        uint256 offset = BURN_INTENT_TRANSFER_SPEC_OFFSET;
         bytes memory tempBytes = new bytes(BYTES4_BYTES);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
             tempBytes[i] = encodedAuth[offset + i];
@@ -234,7 +234,7 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         bytes memory dummySpecData =
             abi.encodePacked(TRANSFER_SPEC_MAGIC, new bytes(incorrectSpecLength - BYTES4_BYTES));
         bytes memory corruptedData = abi.encodePacked(
-            BURN_AUTHORIZATION_MAGIC, auth.maxBlockHeight, auth.maxFee, incorrectSpecLength, dummySpecData
+            BURN_INTENT_MAGIC, auth.maxBlockHeight, auth.maxFee, incorrectSpecLength, dummySpecData
         );
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferSpecHeaderTooShort.selector, TRANSFER_SPEC_METADATA_OFFSET, incorrectSpecLength
@@ -262,11 +262,11 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
         uint32 originalMetadataLength = uint32(auth.spec.metadata.length);
-        uint32 originalInnerSpecLength = uint32(encodedAuth.length - BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET);
+        uint32 originalInnerSpecLength = uint32(encodedAuth.length - BURN_INTENT_TRANSFER_SPEC_OFFSET);
 
         (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
             encodedAuth,
-            BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within BurnAuth
+            BURN_INTENT_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within BurnAuth
             originalMetadataLength, // Original metadata length
             true // Inflate the metadata length field
         );
@@ -290,11 +290,11 @@ contract BurnAuthorizationTest is AuthorizationTestUtils {
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = BurnAuthorizationLib.encodeBurnAuthorization(auth);
         uint32 originalMetadataLength = uint32(auth.spec.metadata.length);
-        uint32 originalInnerSpecLength = uint32(encodedAuth.length - BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET);
+        uint32 originalInnerSpecLength = uint32(encodedAuth.length - BURN_INTENT_TRANSFER_SPEC_OFFSET);
 
         (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
             encodedAuth,
-            BURN_AUTHORIZATION_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within BurnAuth
+            BURN_INTENT_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within BurnAuth
             originalMetadataLength, // Original metadata length
             false // Make the metadata length field smaller
         );

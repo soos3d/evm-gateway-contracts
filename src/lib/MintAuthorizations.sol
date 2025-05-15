@@ -20,19 +20,19 @@ pragma solidity ^0.8.29;
 import {TransferSpec} from "./TransferSpec.sol";
 
 // Magic values for marking byte encodings
-bytes4 constant MINT_AUTHORIZATION_MAGIC = 0xff6fb334; // `bytes4(keccak256("circle.gateway.Attestation"))`
-bytes4 constant MINT_AUTHORIZATION_SET_MAGIC = 0x1e12db71; // `bytes4(keccak256("circle.gateway.AttestationSet"))`
+bytes4 constant ATTESTATION_MAGIC = 0xff6fb334; // `bytes4(keccak256("circle.gateway.Attestation"))`
+bytes4 constant ATTESTATION_SET_MAGIC = 0x1e12db71; // `bytes4(keccak256("circle.gateway.AttestationSet"))`
 
 // `Attestation` field offsets
-uint16 constant MINT_AUTHORIZATION_MAGIC_OFFSET = 0;
-uint16 constant MINT_AUTHORIZATION_MAX_BLOCK_HEIGHT_OFFSET = 4;
-uint16 constant MINT_AUTHORIZATION_TRANSFER_SPEC_LENGTH_OFFSET = 36;
-uint16 constant MINT_AUTHORIZATION_TRANSFER_SPEC_OFFSET = 40;
+uint16 constant ATTESTATION_MAGIC_OFFSET = 0;
+uint16 constant ATTESTATION_MAX_BLOCK_HEIGHT_OFFSET = 4;
+uint16 constant ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET = 36;
+uint16 constant ATTESTATION_TRANSFER_SPEC_OFFSET = 40;
 
 // `AttestationSet` field offsets
-uint16 constant MINT_AUTHORIZATION_SET_MAGIC_OFFSET = 0;
-uint16 constant MINT_AUTHORIZATION_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
-uint16 constant MINT_AUTHORIZATION_SET_AUTHORIZATIONS_OFFSET = 8;
+uint16 constant ATTESTATION_SET_MAGIC_OFFSET = 0;
+uint16 constant ATTESTATION_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
+uint16 constant ATTESTATION_SET_AUTHORIZATIONS_OFFSET = 8;
 
 /// @title Attestation
 ///
