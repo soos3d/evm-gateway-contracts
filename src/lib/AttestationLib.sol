@@ -38,7 +38,7 @@ import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./Tran
 ///
 /// @notice Library for encoding, validating, and iterating over `Attestation` and `AttestationSet` structs
 ///
-/// @dev Provides functions to handle single mint authorizations or sets of them, using `TypedMemView` for efficient
+/// @dev Provides functions to handle single attestations or sets of them, using `TypedMemView` for efficient
 ///      memory operations and `Cursor` for unified iteration
 library AttestationLib {
     using TypedMemView for bytes;
@@ -217,7 +217,7 @@ library AttestationLib {
 
     // --- Iteration ---------------------------------------------------------------------------------------------------
 
-    /// Validates `data` and returns a cursor that can uniformly iterate over any mint authorizations it contains
+    /// Validates `data` and returns a cursor that can uniformly iterate over any attestations it contains
     ///
     /// @dev For a single `Attestation`, the cursor will yield that single element. For a `AttestationSet`,
     ///      it iterates through each contained `Attestation`. Sets the 'done' flag immediately if the set

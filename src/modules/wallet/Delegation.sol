@@ -121,7 +121,7 @@ contract Delegation is Pausing, Denylist, TokenSupport {
         }
 
         // Otherwise, mark the authorization as revoked and emit an event. The API will treat this the same as
-        // `Unauthorized` for the purpose of issuing mint authorizations, but the wallet contract will allow burn
+        // `Unauthorized` for the purpose of issuing attestations, but the wallet contract will allow burn
         // authorizations signed by revoked delegates in order to prevent a front-running attack where an authorization
         // is revoked before the burn has a chance to happen.
         $.authorizedDelegates[token][msg.sender][delegate] = AuthorizationStatus.Revoked;

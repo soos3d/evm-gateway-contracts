@@ -27,7 +27,7 @@ import {Delegation} from "src/modules/wallet/Delegation.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-/// Tests mint authorization functionality
+/// Tests attestation functionality
 contract AttestationTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private usdc = makeAddr("usdc");

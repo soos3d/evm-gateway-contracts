@@ -47,7 +47,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// @param token                  The token that was burned
     /// @param depositor              The depositor who owned the balance
     /// @param transferSpecHash       The `keccak256` hash of the `TransferSpec`
-    /// @param destinationDomain      The domain the corresponding mint authorization was used on
+    /// @param destinationDomain      The domain the corresponding attestation was used on
     /// @param destinationRecipient   The recipient of the funds at the destination
     /// @param signer                 The address that authorized the transfer
     /// @param value                  The value that was burned

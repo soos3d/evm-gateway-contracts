@@ -114,7 +114,7 @@ abstract contract DeployUtils is CommonBase {
                 wallet, // wallet contract
                 _initiallySupportedTokens(), // supported tokens
                 domain, // domain
-                owner, // mint authorization signer
+                owner, // attestation signer
                 _initialTokenMintAuthorities() // token mint authorities
             )
         );

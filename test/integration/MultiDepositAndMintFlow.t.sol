@@ -71,11 +71,11 @@ contract MultiDepositAndMintFlowTest is MultichainTestUtils {
         bool isValidBurnAuthBase = base.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuthEthereum && isValidBurnAuthArbitrum && isValidBurnAuthBase);
 
-        // Offchain: Generate mint authorization given valid burn intent
+        // Offchain: Generate attestation given valid burn intent
         (bytes memory encodedMintAuth, bytes memory mintSignature) =
             _signMintAuthSetWithTransferSpec(transferSpecs, ethereum.minterMintSignerKey);
 
-        // On Ethereum: Mint using mint authorization
+        // On Ethereum: Mint using attestation
         _mintFromChain(ethereum, encodedMintAuth, mintSignature, MINT_AMOUNT * 3 /* expected total minted amount */ );
 
         // On each fork: Burn used amount
@@ -106,7 +106,7 @@ contract MultiDepositAndMintFlowTest is MultichainTestUtils {
         // On Ethereum: Deposit USDC
         _depositToChain(ethereum, depositor, DEPOSIT_AMOUNT);
 
-        // Offchain: Generate multiple mint authorizations
+        // Offchain: Generate multiple attestations
         vm.selectFork(ethereum.forkId);
         TransferSpec[] memory transferSpecs = new TransferSpec[](3);
         transferSpecs[0] =
@@ -126,7 +126,7 @@ contract MultiDepositAndMintFlowTest is MultichainTestUtils {
         bool isValidBurnAuthEthereum = ethereum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuthEthereum && isValidBurnAuthArbitrum && isValidBurnAuthBase);
 
-        // Offchain: Generate mint authorization given valid burn intent
+        // Offchain: Generate attestation given valid burn intent
         vm.selectFork(arbitrum.forkId);
         (bytes memory encodedMintAuth0, bytes memory mintSignature0) =
             _signMintAuthWithTransferSpec(transferSpecs[0], arbitrum.minterMintSignerKey);
@@ -137,7 +137,7 @@ contract MultiDepositAndMintFlowTest is MultichainTestUtils {
         (bytes memory encodedMintAuth2, bytes memory mintSignature2) =
             _signMintAuthWithTransferSpec(transferSpecs[2], ethereum.minterMintSignerKey);
 
-        // On each fork: Use mint authorization
+        // On each fork: Use attestation
         _mintFromChain(arbitrum, encodedMintAuth0, mintSignature0, MINT_AMOUNT /* expected total minted amount */ );
         _mintFromChain(base, encodedMintAuth1, mintSignature1, MINT_AMOUNT /* expected total minted amount */ );
         _mintFromChain( // same chain transfer

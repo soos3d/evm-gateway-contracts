@@ -48,12 +48,12 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
         bool isValidBurnAuth = ethereum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuth);
 
-        // Offchain: Generate mint authorization given valid burn intent
+        // Offchain: Generate attestation given valid burn intent
         vm.selectFork(arbitrum.forkId);
         (bytes memory encodedMintAuth, bytes memory mintSignature) =
             _signMintAuthWithTransferSpec(transferSpec, arbitrum.minterMintSignerKey);
 
-        // On Arbitrum: Mint using mint authorization
+        // On Arbitrum: Mint using attestation
         _mintFromChain(arbitrum, encodedMintAuth, mintSignature, MINT_AMOUNT /* expected minted amount */ );
 
         // On Ethereum: Burn used amount
@@ -95,12 +95,12 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
         bool isValidBurnAuth = ethereum.wallet.validateBurnIntents(encodedBurnAuth, delegate);
         assertTrue(isValidBurnAuth);
 
-        // Offchain: Generate mint authorization given valid burn intent
+        // Offchain: Generate attestation given valid burn intent
         vm.selectFork(arbitrum.forkId);
         (bytes memory encodedMintAuth, bytes memory mintSignature) =
             _signMintAuthWithTransferSpec(transferSpec, arbitrum.minterMintSignerKey);
 
-        // On Arbitrum: Mint using mint authorization
+        // On Arbitrum: Mint using attestation
         _mintFromChain(arbitrum, encodedMintAuth, mintSignature, MINT_AMOUNT /* expected minted amount */ );
 
         // On Ethereum: Burn used amount
@@ -148,11 +148,11 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
         bool isValidBurnAuth = ethereum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuth);
 
-        // Offchain: Generate mint authorization given valid burn intent
+        // Offchain: Generate attestation given valid burn intent
         (bytes memory encodedMintAuth, bytes memory mintSignature) =
             _signMintAuthWithTransferSpec(transferSpec, ethereum.minterMintSignerKey);
 
-        // On Ethereum: mint on the same chain using mint authorization
+        // On Ethereum: mint on the same chain using attestation
         _mintFromChain( // same chain transfer
         ethereum, encodedMintAuth, mintSignature, MINT_AMOUNT /* expected minted amount */ );
 
