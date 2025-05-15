@@ -50,7 +50,7 @@ uint16 constant BURN_INTENT_SET_AUTHORIZATIONS_OFFSET = 8;
 ///     max fee                        36      32   Denominated in the token
 ///     transfer spec length           68       4   In bytes, may vary based on metadata length
 ///     encoded transfer spec          72       ?   Must be the length indicated above
-struct BurnAuthorization {
+struct BurnIntent {
     uint256 maxBlockHeight; //   Valid until this block height on the source domain
     uint256 maxFee; //           The maximum fee that may be collected by the operator
     TransferSpec spec; //        A description of the transfer
@@ -72,8 +72,8 @@ bytes32 constant BURN_INTENT_TYPEHASH = 0xa3f9ead15bb3694b6a68c381d79edde07b7b14
 ///     magic                           0       4   Always 0xe999239b
 ///     number of authorizations        4       4
 ///     authorizations                  8       ?   Concatenated one after another
-struct BurnAuthorizationSet {
-    BurnAuthorization[] authorizations;
+struct BurnIntentSet {
+    BurnIntent[] authorizations;
 }
 
 // Type hash for the BurnIntentSet struct

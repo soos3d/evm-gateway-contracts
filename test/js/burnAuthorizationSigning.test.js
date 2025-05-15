@@ -84,7 +84,7 @@ describe("GatewayWallet Contract", function () {
       );
 
       // Get signature from direct signing
-      const encodedBurnIntent = await gatewayWallet.encodeBurnAuthorization(burnIntent1);
+      const encodedBurnIntent = await gatewayWallet.encodeBurnIntent(burnIntent1);
       const structHashFromGatewayWallet = await gatewayWallet.getTypedDataHash(encodedBurnIntent);
       const digest = calculateDigest(domainSeparator, structHashFromGatewayWallet);
 
@@ -105,7 +105,7 @@ describe("GatewayWallet Contract", function () {
       );
 
       // Get signature from direct signing
-      const encodedBurnIntentSet = await gatewayWallet.encodeBurnAuthorizations([
+      const encodedBurnIntentSet = await gatewayWallet.encodeBurnIntents([
         burnIntent1,
         burnIntent2
       ]);

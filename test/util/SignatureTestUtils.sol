@@ -21,8 +21,8 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Test} from "forge-std/Test.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
-import {BurnAuthorizationLib} from "src/lib/BurnAuthorizationLib.sol";
-import {BurnAuthorization} from "src/lib/BurnAuthorizations.sol";
+import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
+import {BurnIntent} from "src/lib/BurnIntents.sol";
 import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
 import {MintAuthorization, MintAuthorizationSet} from "src/lib/MintAuthorizations.sol";
 import {TransferSpec} from "src/lib/TransferSpec.sol";
@@ -95,7 +95,7 @@ contract SignatureTestUtils is Test {
         view
         returns (bytes memory encodedAuth, bytes memory signature)
     {
-        BurnAuthorization[] memory auths = new BurnAuthorization[](1);
+        BurnIntent[] memory auths = new BurnIntent[](1);
         auths[0] = _createBurnAuth(transferSpec);
         return _signBurnAuths(auths, wallet, signerKey);
     }
@@ -105,7 +105,7 @@ contract SignatureTestUtils is Test {
         GatewayWallet wallet,
         uint256 signerKey
     ) internal view returns (bytes memory encodedAuth, bytes memory signature) {
-        BurnAuthorization[] memory auths = new BurnAuthorization[](transferSpecs.length);
+        BurnIntent[] memory auths = new BurnIntent[](transferSpecs.length);
         for (uint256 i = 0; i < transferSpecs.length; i++) {
             auths[i] = _createBurnAuth(transferSpecs[i]);
         }
@@ -134,7 +134,7 @@ contract SignatureTestUtils is Test {
         return _signMintAuths(auths, signerKey);
     }
 
-    function _signBurnAuthorizations(
+    function _signBurnIntents(
         bytes[] memory authorizations,
         bytes[] memory signatures,
         uint256[][] memory fees,
@@ -148,8 +148,8 @@ contract SignatureTestUtils is Test {
         burnerSignature = abi.encodePacked(r, s, v);
     }
 
-    function _createBurnAuth(TransferSpec memory spec) internal view returns (BurnAuthorization memory) {
-        return BurnAuthorization({
+    function _createBurnAuth(TransferSpec memory spec) internal view returns (BurnIntent memory) {
+        return BurnIntent({
             maxBlockHeight: block.number + 5, // ~1 minute expiry
             maxFee: 1e6, // 1 USDC max fee
             spec: spec
@@ -163,16 +163,16 @@ contract SignatureTestUtils is Test {
         });
     }
 
-    function _signBurnAuths(BurnAuthorization[] memory auths, GatewayWallet wallet, uint256 signerKey)
+    function _signBurnAuths(BurnIntent[] memory auths, GatewayWallet wallet, uint256 signerKey)
         internal
         view
         returns (bytes memory encodedAuth, bytes memory signature)
     {
         encodedAuth =
-            auths.length == 1 ? wallet.encodeBurnAuthorization(auths[0]) : wallet.encodeBurnAuthorizations(auths);
+            auths.length == 1 ? wallet.encodeBurnIntent(auths[0]) : wallet.encodeBurnIntents(auths);
         bytes32 domainSeparator = wallet.domainSeparator();
         bytes32 digest =
-            MessageHashUtils.toTypedDataHash(domainSeparator, BurnAuthorizationLib.getTypedDataHash(encodedAuth));
+            MessageHashUtils.toTypedDataHash(domainSeparator, BurnIntentLib.getTypedDataHash(encodedAuth));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, digest);
         signature = abi.encodePacked(r, s, v);
     }

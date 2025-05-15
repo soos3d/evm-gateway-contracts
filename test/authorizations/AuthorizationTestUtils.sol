@@ -19,8 +19,8 @@ pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {Test} from "forge-std/Test.sol";
-import {BurnAuthorizationLib} from "src/lib/BurnAuthorizationLib.sol";
-import {BurnAuthorization, BURN_INTENT_MAGIC} from "src/lib/BurnAuthorizations.sol";
+import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
+import {BurnIntent, BURN_INTENT_MAGIC} from "src/lib/BurnIntents.sol";
 import {MintAuthorizationLib} from "src/lib/MintAuthorizationLib.sol";
 import {MintAuthorization, ATTESTATION_MAGIC} from "src/lib/MintAuthorizations.sol";
 import {TransferSpec, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
@@ -82,12 +82,12 @@ contract AuthorizationTestUtils is Test {
         }
     }
 
-    // Verifies all fields read from a BurnAuthorization view match the original struct
-    function _verifyBurnAuthorizationFieldsFromView(bytes29 ref, BurnAuthorization memory auth) internal pure {
+    // Verifies all fields read from a BurnIntent view match the original struct
+    function _verifyBurnIntentFieldsFromView(bytes29 ref, BurnIntent memory auth) internal pure {
         ref.assertType(TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC));
-        assertEq(BurnAuthorizationLib.getMaxBlockHeight(ref), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
-        assertEq(BurnAuthorizationLib.getMaxFee(ref), auth.maxFee, "Eq Fail: maxFee");
-        bytes29 specRef = BurnAuthorizationLib.getTransferSpec(ref);
+        assertEq(BurnIntentLib.getMaxBlockHeight(ref), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
+        assertEq(BurnIntentLib.getMaxFee(ref), auth.maxFee, "Eq Fail: maxFee");
+        bytes29 specRef = BurnIntentLib.getTransferSpec(ref);
         _verifyTransferSpecFieldsFromView(specRef, auth.spec);
     }
 

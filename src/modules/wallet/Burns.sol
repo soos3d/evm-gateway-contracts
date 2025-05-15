@@ -24,8 +24,8 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {GatewayCommon} from "src/GatewayCommon.sol";
 import {IBurnToken} from "src/interfaces/IBurnToken.sol";
 import {Cursor} from "src/lib/Cursor.sol";
-import {BurnAuthorizationLib} from "src/lib/BurnAuthorizationLib.sol";
-import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/BurnAuthorizations.sol";
+import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
+import {BurnIntent, BurnIntentSet} from "src/lib/BurnIntents.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {AddressLib} from "src/lib/AddressLib.sol";
 import {EIP712Domain} from "src/lib/EIP712Domain.sol";
@@ -37,8 +37,8 @@ import {Delegation} from "src/modules/wallet/Delegation.sol";
 /// @notice Manages burns for the `GatewayWallet` contract
 contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     using TransferSpecLib for bytes29;
-    using BurnAuthorizationLib for bytes29;
-    using BurnAuthorizationLib for Cursor;
+    using BurnIntentLib for bytes29;
+    using BurnIntentLib for Cursor;
     using MessageHashUtils for bytes32;
     using SafeERC20 for IERC20;
 
@@ -96,7 +96,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     event FeeRecipientUpdated(address oldFeeRecipient, address newFeeRecipient);
 
     /// Thrown when a burn authorization set or batch is empty
-    error MustHaveAtLeastOneBurnAuthorization();
+    error MustHaveAtLeastOneBurnIntent();
 
     /// Thrown when there is a mismatch between burn authorizations, signatures, or fees
     error MismatchedBurn();
@@ -108,7 +108,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     error InvalidBurnSigner();
 
     /// Thrown when there are no burn authorizations that are relevant to the current domain
-    error NoRelevantBurnAuthorizations();
+    error NoRelevantBurnIntents();
 
     /// Thrown when a burn authorization's value is zero
     ///
@@ -167,7 +167,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// @dev `authorizations`, `signatures`, and `fees` encoded in the `calldataBytes` input must all be the same length.
     /// @dev For a set of burn authorizations, authorizations from other domains and those inadvertently submitted for
     ///      the same domain are ignored. The whole set is still needed to verify the signature.
-    /// @dev See `lib/BurnAuthorizations.sol` for encoding details
+    /// @dev See `lib/BurnIntents.sol` for encoding details
     ///
     /// @param calldataBytes     ABI-encoded (authorizations[], signatures[], fees[][]) arrays
     /// @param burnerSignature   Signature from `burnSigner` on `calldataBytes`
@@ -187,17 +187,17 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     ///
     /// @param authorization   The burn authorization to encode
     /// @return                The byte-encoded burn authorization
-    function encodeBurnAuthorization(BurnAuthorization memory authorization) external pure returns (bytes memory) {
-        return BurnAuthorizationLib.encodeBurnAuthorization(authorization);
+    function encodeBurnIntent(BurnIntent memory authorization) external pure returns (bytes memory) {
+        return BurnIntentLib.encodeBurnIntent(authorization);
     }
 
     /// Returns the byte encoding of a set of burn authorizations
     ///
     /// @param authorizations   The burn authorizations to encode
     /// @return                 The byte-encoded burn authorization set
-    function encodeBurnAuthorizations(BurnAuthorization[] memory authorizations) external pure returns (bytes memory) {
-        BurnAuthorizationSet memory authSet = BurnAuthorizationSet({authorizations: authorizations});
-        return BurnAuthorizationLib.encodeBurnAuthorizationSet(authSet);
+    function encodeBurnIntents(BurnIntent[] memory authorizations) external pure returns (bytes memory) {
+        BurnIntentSet memory authSet = BurnIntentSet({authorizations: authorizations});
+        return BurnIntentLib.encodeBurnIntentSet(authSet);
     }
 
     /// Returns the `keccak256` hash of a burn authorization
@@ -205,25 +205,25 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// @param authorization   The burn authorization to hash
     /// @return                The `keccak256` hash of the burn authorization
     function getTypedDataHash(bytes memory authorization) external view returns (bytes32) {
-        return BurnAuthorizationLib.getTypedDataHash(authorization);
+        return BurnIntentLib.getTypedDataHash(authorization);
     }
 
     /// Allows anyone to validate whether a set of burn authorizations would be valid if it were signed by the specified
     /// signer (which must match `sourceSigner` in the `TransferSpec`).
     ///
-    /// @dev See `BurnAuthorizations.sol` for encoding details
+    /// @dev See `BurnIntents.sol` for encoding details
     ///
     /// @param authorization   A byte-encoded (set of) burn authorization(s)
     /// @param signer          The address that will sign the burn authorization(s)
     /// @return                `true` if the burn authorization(s) would be valid with the given signer, `false`
     ///                        otherwise
-    function validateBurnAuthorizations(bytes memory authorization, address signer) external view returns (bool) {
+    function validateBurnIntents(bytes memory authorization, address signer) external view returns (bool) {
         // Validate the burn authorization(s) and get an iteration cursor
-        Cursor memory cursor = BurnAuthorizationLib.cursor(authorization);
+        Cursor memory cursor = BurnIntentLib.cursor(authorization);
 
         // Ensure there is at least one burn authorization
         if (cursor.numAuths == 0) {
-            revert MustHaveAtLeastOneBurnAuthorization();
+            revert MustHaveAtLeastOneBurnIntent();
         }
 
         // Iterate over the burn authorizations, validating each one
@@ -234,7 +234,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
             auth = cursor.next();
 
             // Validate that everything about the burn authorization is as expected, and skip if it's not for this domain
-            bool relevant = _validateBurnAuthorization(auth, signer, 0, cursor.index - 1);
+            bool relevant = _validateBurnIntent(auth, signer, 0, cursor.index - 1);
             if (!relevant) {
                 continue;
             }
@@ -324,7 +324,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     function _gatewayBurn(bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) internal {
         // Ensure there is at least one burn authorization
         if (authorizations.length == 0) {
-            revert MustHaveAtLeastOneBurnAuthorization();
+            revert MustHaveAtLeastOneBurnIntent();
         }
 
         // Ensure the top-level arrays are all of the same length. The nested arrays of fees will be checked later on.
@@ -349,11 +349,11 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         uint256[] memory fees
     ) internal {
         // Validate the burn authorization(s) and get an iteration cursor
-        Cursor memory cursor = BurnAuthorizationLib.cursor(authorization);
+        Cursor memory cursor = BurnIntentLib.cursor(authorization);
 
         // Ensure there is at least one burn authorization
         if (cursor.numAuths == 0) {
-            revert MustHaveAtLeastOneBurnAuthorization();
+            revert MustHaveAtLeastOneBurnIntent();
         }
 
         // Ensure there are the same number of fees as burn authorizations
@@ -362,7 +362,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         }
 
         // Recover the signer of the burn authorization(s) and process each one
-        bytes32 digest = _hashTypedData(BurnAuthorizationLib.getTypedDataHash(authorization));
+        bytes32 digest = _hashTypedData(BurnIntentLib.getTypedDataHash(authorization));
         address signer = ECDSA.recover(digest, signature);
         _processAuthorizationsAndBurn(cursor, signer, fees);
     }
@@ -389,7 +389,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
             bytes29 spec = auth.getTransferSpec();
 
             // Validate that everything about the burn authorization is as expected, skipping if it's not for this domain
-            bool relevant = _validateBurnAuthorization(auth, signer, fees[index], index);
+            bool relevant = _validateBurnIntent(auth, signer, fees[index], index);
             if (!relevant) {
                 continue;
             }
@@ -406,14 +406,14 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
 
             // Reduce the balance of the depositor(s) and add to the total fee and burn amount
             (uint256 deductedAmount, uint256 actualFeeCharged) =
-                _processSingleBurnAuthorization(spec, signer, fees[index]);
+                _processSingleBurnIntent(spec, signer, fees[index]);
             totalDeductedAmount += deductedAmount;
             totalFee += actualFeeCharged;
         }
 
         // If there were no balance changes, it means none of the burn authorizations were relevant for this domain
         if (totalDeductedAmount == 0) {
-            revert NoRelevantBurnAuthorizations();
+            revert NoRelevantBurnIntents();
         }
 
         // Collect the fee
@@ -433,7 +433,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// @param fee         The fee proposed for this burn authorization
     /// @param index       The index of this burn authorization within the original set (used for error messages)
     /// @return relevant   `true` if the burn authorization is for the current domain, `false` otherwise
-    function _validateBurnAuthorization(bytes29 auth, address signer, uint256 fee, uint32 index)
+    function _validateBurnIntent(bytes29 auth, address signer, uint256 fee, uint32 index)
         internal
         view
         returns (bool relevant)
@@ -512,7 +512,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     ///                            the depositor had an insufficient balance to cover both.
     /// @return actualFeeCharged   The fee to be collected. May be less than `fee` if the depositor had an insufficient
     ///                            balance to cover both the full value and the fee.
-    function _processSingleBurnAuthorization(bytes29 spec, address signer, uint256 fee)
+    function _processSingleBurnIntent(bytes29 spec, address signer, uint256 fee)
         internal
         returns (uint256 deductedAmount, uint256 actualFeeCharged)
     {

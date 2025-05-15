@@ -20,7 +20,7 @@ pragma solidity ^0.8.29;
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {GatewayMinter} from "src/GatewayMinter.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
-import {BurnAuthorizationLib} from "src/lib/BurnAuthorizationLib.sol";
+import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
 import {TransferSpec} from "src/lib/TransferSpec.sol";
 import {AddressLib} from "src/lib/AddressLib.sol";
 import {MasterMinter} from "./../mock_fiattoken/contracts/minting/MasterMinter.sol";
@@ -132,7 +132,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
 
         fees = new uint256[][](n);
         for (uint256 i = 0; i < n; i++) {
-            uint256 m = BurnAuthorizationLib.cursor(encodedBurnAuths[i]).numAuths;
+            uint256 m = BurnIntentLib.cursor(encodedBurnAuths[i]).numAuths;
             fees[i] = new uint256[](m);
             for (uint256 j = 0; j < m; j++) {
                 fees[i][j] = feeAmount;
@@ -213,7 +213,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
 
         // Get burn signer signature and execute burn
         bytes memory burnSignerSignature =
-            _signBurnAuthorizations(encodedBurnAuths, burnSignatures, fees, chain.walletBurnSignerKey);
+            _signBurnIntents(encodedBurnAuths, burnSignatures, fees, chain.walletBurnSignerKey);
         chain.wallet.gatewayBurn(abi.encode(encodedBurnAuths, burnSignatures, fees), burnSignerSignature);
 
         // Verify state after burn

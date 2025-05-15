@@ -17,7 +17,7 @@
  */
 pragma solidity ^0.8.29;
 
-import {BurnAuthorization} from "src/lib/BurnAuthorizations.sol";
+import {BurnIntent} from "src/lib/BurnIntents.sol";
 import {TransferSpec} from "src/lib/TransferSpec.sol";
 import {MultichainTestUtils} from "./../util/MultichainTestUtils.sol";
 
@@ -51,7 +51,7 @@ contract MultiDepositAndMintFlowTest is MultichainTestUtils {
         transferSpecs[2] =
             _createTransferSpec(ethereum, ethereum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
 
-        BurnAuthorization[] memory burnAuths = new BurnAuthorization[](3);
+        BurnIntent[] memory burnAuths = new BurnIntent[](3);
         vm.selectFork(arbitrum.forkId);
         burnAuths[0] = _createBurnAuth(transferSpecs[0]);
         vm.selectFork(base.forkId);
@@ -64,11 +64,11 @@ contract MultiDepositAndMintFlowTest is MultichainTestUtils {
 
         // On each fork, validate burn authorization
         vm.selectFork(ethereum.forkId);
-        bool isValidBurnAuthEthereum = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
+        bool isValidBurnAuthEthereum = ethereum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         vm.selectFork(arbitrum.forkId);
-        bool isValidBurnAuthArbitrum = arbitrum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
+        bool isValidBurnAuthArbitrum = arbitrum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         vm.selectFork(base.forkId);
-        bool isValidBurnAuthBase = base.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
+        bool isValidBurnAuthBase = base.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuthEthereum && isValidBurnAuthArbitrum && isValidBurnAuthBase);
 
         // Offchain: Generate mint authorization given valid burn authorization
@@ -119,11 +119,11 @@ contract MultiDepositAndMintFlowTest is MultichainTestUtils {
 
         // On each fork, validate burn authorization
         vm.selectFork(arbitrum.forkId);
-        bool isValidBurnAuthArbitrum = arbitrum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
+        bool isValidBurnAuthArbitrum = arbitrum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         vm.selectFork(base.forkId);
-        bool isValidBurnAuthBase = base.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
+        bool isValidBurnAuthBase = base.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         vm.selectFork(ethereum.forkId);
-        bool isValidBurnAuthEthereum = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
+        bool isValidBurnAuthEthereum = ethereum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuthEthereum && isValidBurnAuthArbitrum && isValidBurnAuthBase);
 
         // Offchain: Generate mint authorization given valid burn authorization

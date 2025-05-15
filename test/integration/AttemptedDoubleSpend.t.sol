@@ -50,7 +50,7 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
             _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
             _signBurnAuthWithTransferSpec(transferSpec, ethereum.wallet, depositorPrivateKey);
-        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
+        bool isValidBurnAuth = ethereum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuth);
 
         // Offchain: Generate mint authorization given valid burn authorization

@@ -23,7 +23,7 @@ import {
     BURN_INTENT_SET_MAGIC,
     BURN_INTENT_TYPEHASH,
     BURN_INTENT_SET_TYPEHASH
-} from "src/lib/BurnAuthorizations.sol";
+} from "src/lib/BurnIntents.sol";
 import {ATTESTATION_MAGIC, ATTESTATION_SET_MAGIC} from "src/lib/MintAuthorizations.sol";
 import {TRANSFER_SPEC_TYPEHASH} from "src/lib/TransferSpec.sol";
 import {CounterpartStorage} from "src/modules/common/Counterpart.sol";

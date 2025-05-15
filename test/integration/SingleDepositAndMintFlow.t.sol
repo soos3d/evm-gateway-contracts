@@ -45,7 +45,7 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
             _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
             _signBurnAuthWithTransferSpec(transferSpec, ethereum.wallet, depositorPrivateKey);
-        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
+        bool isValidBurnAuth = ethereum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuth);
 
         // Offchain: Generate mint authorization given valid burn authorization
@@ -92,7 +92,7 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
             _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, delegate, destinationCaller);
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
             _signBurnAuthWithTransferSpec(transferSpec, ethereum.wallet, delegatePrivateKey);
-        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, delegate);
+        bool isValidBurnAuth = ethereum.wallet.validateBurnIntents(encodedBurnAuth, delegate);
         assertTrue(isValidBurnAuth);
 
         // Offchain: Generate mint authorization given valid burn authorization
@@ -145,7 +145,7 @@ contract SingleDepositAndMintFlowTest is MultichainTestUtils {
             _createTransferSpec(ethereum, ethereum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         (bytes memory encodedBurnAuth, bytes memory burnSignature) =
             _signBurnAuthWithTransferSpec(transferSpec, ethereum.wallet, depositorPrivateKey);
-        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
+        bool isValidBurnAuth = ethereum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
         assertTrue(isValidBurnAuth);
 
         // Offchain: Generate mint authorization given valid burn authorization

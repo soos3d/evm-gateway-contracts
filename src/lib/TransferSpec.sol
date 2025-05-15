@@ -41,7 +41,7 @@ uint16 constant TRANSFER_SPEC_NONCE_OFFSET = 304;
 uint16 constant TRANSFER_SPEC_METADATA_LENGTH_OFFSET = 336;
 uint16 constant TRANSFER_SPEC_METADATA_OFFSET = 340;
 
-/// Describes a transfer between domains. Embedded in both a `BurnAuthorization` and a `MintAuthorization`.
+/// Describes a transfer between domains. Embedded in both a `BurnIntent` and a `MintAuthorization`.
 ///
 /// @dev Magic: `bytes4(keccak256("circle.gateway.TransferSpec"))`
 /// @dev The `keccak256` hash of the encoded `TransferSpec` is used as a cross-chain identifier, for both linkability

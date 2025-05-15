@@ -20,8 +20,8 @@ pragma solidity ^0.8.29;
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {Cursor} from "./Cursor.sol";
 import {
-    BurnAuthorization,
-    BurnAuthorizationSet,
+    BurnIntent,
+    BurnIntentSet,
     BURN_INTENT_MAGIC,
     BURN_INTENT_SET_MAGIC,
     BURN_INTENT_MAGIC_OFFSET,
@@ -34,33 +34,33 @@ import {
     // solhint-disable-next-line no-unused-import
     BURN_INTENT_TYPEHASH,
     BURN_INTENT_SET_TYPEHASH
-} from "./BurnAuthorizations.sol";
+} from "./BurnIntents.sol";
 import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
 
-/// @title BurnAuthorizationLib
+/// @title BurnIntentLib
 ///
-/// @notice Library for encoding, validating, and iterating over `BurnAuthorization` and `BurnAuthorizationSet` structs
+/// @notice Library for encoding, validating, and iterating over `BurnIntent` and `BurnIntentSet` structs
 ///
 /// @dev Provides functions to handle single burn authorizations or sets of them, using `TypedMemView` for efficient
 ///      memory operations and `Cursor` for unified iteration
-library BurnAuthorizationLib {
+library BurnIntentLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
 
-    /// Checks whether the provided `bytes29` reference is a `BurnAuthorizationSet`
+    /// Checks whether the provided `bytes29` reference is a `BurnIntentSet`
     ///
-    /// @param ref   The `TypedMemView` reference to the encoded `BurnAuthorization` or `BurnAuthorizationSet`
-    /// @return      `true` if the provided `bytes29` reference is a `BurnAuthorizationSet`, `false` otherwise
+    /// @param ref   The `TypedMemView` reference to the encoded `BurnIntent` or `BurnIntentSet`
+    /// @return      `true` if the provided `bytes29` reference is a `BurnIntentSet`, `false` otherwise
     function _isSet(bytes29 ref) private pure returns (bool) {
         return ref.index(0, BYTES4_BYTES) == BURN_INTENT_SET_MAGIC;
     }
 
     // --- Casting -----------------------------------------------------------------------------------------------------
 
-    /// Creates a typed memory view for a `BurnAuthorization` or `BurnAuthorizationSet`
+    /// Creates a typed memory view for a `BurnIntent` or `BurnIntentSet`
     ///
-    /// @dev Checks for either `BurnAuthorization` or `BurnAuthorizationSet` magic
+    /// @dev Checks for either `BurnIntent` or `BurnIntentSet` magic
     /// @dev Reverts with `InvalidAuthorizationMagic` if neither known magic number is present
     /// @dev Reverts if data length is less than 4
     ///
@@ -85,18 +85,18 @@ library BurnAuthorizationLib {
 
     // --- Validation --------------------------------------------------------------------------------------------------
 
-    /// Validates the structural integrity of an encoded `BurnAuthorization` memory view
+    /// Validates the structural integrity of an encoded `BurnIntent` memory view
     ///
     /// @notice Validation steps:
     ///   1. Minimum header length check
     ///   2. Total length consistency check (using declared `TransferSpec` length)
     ///
-    /// @dev Performs structural validation on a `BurnAuthorization` view, *excluding* recursive validation of the
+    /// @dev Performs structural validation on a `BurnIntent` view, *excluding* recursive validation of the
     ///      nested `TransferSpec` and its magic number. Reverts on failure. Assumes outer magic number check has passed
     ///      (via casting).
     ///
-    /// @param authView   The `TypedMemView` reference to the encoded `BurnAuthorization` to validate
-    function _validateBurnAuthorizationOuterStructure(bytes29 authView) private pure {
+    /// @param authView   The `TypedMemView` reference to the encoded `BurnIntent` to validate
+    function _validateBurnIntentOuterStructure(bytes29 authView) private pure {
         // 1. Minimum header length check
         if (authView.len() < BURN_INTENT_TRANSFER_SPEC_OFFSET) {
             revert TransferSpecLib.AuthorizationHeaderTooShort(BURN_INTENT_TRANSFER_SPEC_OFFSET, authView.len());
@@ -110,27 +110,27 @@ library BurnAuthorizationLib {
         }
     }
 
-    /// Validates the full structural integrity of a `BurnAuthorization` view, including the nested `TransferSpec`
+    /// Validates the full structural integrity of a `BurnIntent` view, including the nested `TransferSpec`
     ///
     /// @notice Validation includes:
     ///   1. Wrapper structure validation (header length, total length consistency).
     ///   2. Full recursive validation of the nested `TransferSpec` structure.
     ///
-    /// @dev Performs structural validation on a `BurnAuthorization` view. Reverts on failure. Assumes the view has the
-    ///      correct `BurnAuthorization` magic number (e.g., validated by `_asAuthOrSetView`).
+    /// @dev Performs structural validation on a `BurnIntent` view. Reverts on failure. Assumes the view has the
+    ///      correct `BurnIntent` magic number (e.g., validated by `_asAuthOrSetView`).
     /// @dev Reverts with specific errors (e.g., `AuthorizationHeaderTooShort`, `AuthorizationOverallLengthMismatch`,
     ///      `InvalidTransferSpecMagic`, `TransferSpecHeaderTooShort`, `TransferSpecOverallLengthMismatch`) if the
     ///      structure is invalid
     ///
-    /// @param authView   The `TypedMemView` reference to the encoded `BurnAuthorization` to validate
-    function _validateBurnAuthorization(bytes29 authView) internal pure {
-        _validateBurnAuthorizationOuterStructure(authView);
+    /// @param authView   The `TypedMemView` reference to the encoded `BurnIntent` to validate
+    function _validateBurnIntent(bytes29 authView) internal pure {
+        _validateBurnIntentOuterStructure(authView);
 
         bytes29 specView = getTransferSpec(authView);
         TransferSpecLib._validateTransferSpecStructure(specView);
     }
 
-    /// Validates the full structural integrity of an encoded `BurnAuthorizationSet` memory view
+    /// Validates the full structural integrity of an encoded `BurnIntentSet` memory view
     ///
     /// @notice Validation includes:
     ///   1. Minimum header length check.
@@ -138,16 +138,16 @@ library BurnAuthorizationLib {
     ///   3. Iterating through declared authorizations:
     ///      a. Checking bounds based on previously declared lengths.
     ///      b. Checking the magic number of each authorization.
-    ///      c. Performing full recursive validation on each authorization using `_validateBurnAuthorization`.
+    ///      c. Performing full recursive validation on each authorization using `_validateBurnIntent`.
     ///   4. Final total length consistency check.
     ///
-    /// @dev Performs structural validation on a `BurnAuthorizationSet` view. Reverts on failure. Assumes the view has
-    ///      the correct `BurnAuthorizationSet` magic number (e.g., checked via `_as...Set`).
+    /// @dev Performs structural validation on a `BurnIntentSet` view. Reverts on failure. Assumes the view has
+    ///      the correct `BurnIntentSet` magic number (e.g., checked via `_as...Set`).
     /// @dev Reverts with errors relating to set/element structure, bounds, magic numbers, and nested validation
-    ///      (see `_validateBurnAuthorization`)
+    ///      (see `_validateBurnIntent`)
     ///
-    /// @param setView   The `TypedMemView` reference to the encoded `BurnAuthorizationSet` to validate
-    function _validateBurnAuthorizationSet(bytes29 setView) internal pure {
+    /// @param setView   The `TypedMemView` reference to the encoded `BurnIntentSet` to validate
+    function _validateBurnIntentSet(bytes29 setView) internal pure {
         // 1. Minimum header length check
         if (setView.len() < BURN_INTENT_SET_AUTHORIZATIONS_OFFSET) {
             revert TransferSpecLib.AuthorizationSetHeaderTooShort(
@@ -189,7 +189,7 @@ library BurnAuthorizationLib {
             bytes29 authView = setView.slice(
                 currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC)
             );
-            _validateBurnAuthorization(authView);
+            _validateBurnIntent(authView);
 
             // Update offset for the next iteration
             currentOffset += currentAuthTotalLength;
@@ -201,21 +201,21 @@ library BurnAuthorizationLib {
         }
     }
 
-    /// Validates the structural integrity of either a `BurnAuthorization` or a `BurnAuthorizationSet`
+    /// Validates the structural integrity of either a `BurnIntent` or a `BurnIntentSet`
     ///
     /// @dev First casts the data using `_asAuthOrSetView`, then calls the appropriate specific validation function
-    ///      (`_validateBurnAuthorization` or `_validateBurnAuthorizationSet`). Reverts with specific errors if casting
+    ///      (`_validateBurnIntent` or `_validateBurnIntentSet`). Reverts with specific errors if casting
     ///      or validation fails.
     ///
-    /// @param data   The raw bytes representing either an encoded `BurnAuthorization` or `BurnAuthorizationSet`
+    /// @param data   The raw bytes representing either an encoded `BurnIntent` or `BurnIntentSet`
     /// @return ref   A `TypedMemView` reference to `data`, typed according to the magic number found
     function _validate(bytes memory data) internal pure returns (bytes29 ref) {
         ref = _asAuthOrSetView(data);
 
         if (_isSet(ref)) {
-            _validateBurnAuthorizationSet(ref);
+            _validateBurnIntentSet(ref);
         } else {
-            _validateBurnAuthorization(ref);
+            _validateBurnIntent(ref);
         }
     }
 
@@ -223,12 +223,12 @@ library BurnAuthorizationLib {
 
     /// Validates `data` and returns a cursor that can uniformly iterate over any burn authorizations it contains
     ///
-    /// @dev For a single `BurnAuthorization`, the cursor will yield that single element. For a `BurnAuthorizationSet`,
-    ///      it iterates through each contained `BurnAuthorization`. Sets the 'done' flag immediately if the set
+    /// @dev For a single `BurnIntent`, the cursor will yield that single element. For a `BurnIntentSet`,
+    ///      it iterates through each contained `BurnIntent`. Sets the 'done' flag immediately if the set
     ///      contains zero authorizations.
     /// @dev Reverts with `AuthorizationDataTooShort` or `InvalidAuthorizationMagic` if casting fails
     ///
-    /// @param data   The raw bytes representing either an encoded `BurnAuthorization` or `BurnAuthorizationSet`
+    /// @param data   The raw bytes representing either an encoded `BurnIntent` or `BurnIntentSet`
     /// @return c     An initialized `Cursor` struct
     function cursor(bytes memory data) internal pure returns (Cursor memory c) {
         bytes29 ref = _validate(data);
@@ -278,33 +278,33 @@ library BurnAuthorizationLib {
 
     // --- Field accessors ---------------------------------------------------------------------------------------------
 
-    /// Extract the max block height from an encoded `BurnAuthorization`
+    /// Extract the max block height from an encoded `BurnIntent`
     ///
-    /// @param ref   The `TypedMemView` reference to the encoded `BurnAuthorization`
+    /// @param ref   The `TypedMemView` reference to the encoded `BurnIntent`
     /// @return      The `maxBlockHeight` field
     function getMaxBlockHeight(bytes29 ref) internal pure returns (uint256) {
         return ref.indexUint(BURN_INTENT_MAX_BLOCK_HEIGHT_OFFSET, UINT256_BYTES);
     }
 
-    /// Extract the max fee from an encoded BurnAuthorization
+    /// Extract the max fee from an encoded BurnIntent
     ///
-    /// @param ref   The `TypedMemView` reference to the encoded `BurnAuthorization`
+    /// @param ref   The `TypedMemView` reference to the encoded `BurnIntent`
     /// @return      The `maxFee` field
     function getMaxFee(bytes29 ref) internal pure returns (uint256) {
         return ref.indexUint(BURN_INTENT_MAX_FEE_OFFSET, UINT256_BYTES);
     }
 
-    /// Extract the transfer spec length from an encoded `BurnAuthorization`
+    /// Extract the transfer spec length from an encoded `BurnIntent`
     ///
-    /// @param ref   The `TypedMemView` reference to the encoded `BurnAuthorization`
+    /// @param ref   The `TypedMemView` reference to the encoded `BurnIntent`
     /// @return      The transfer spec length
     function getTransferSpecLength(bytes29 ref) internal pure returns (uint32) {
         return uint32(ref.indexUint(BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
     }
 
-    /// Extract the transfer spec from an encoded `BurnAuthorization`
+    /// Extract the transfer spec from an encoded `BurnIntent`
     ///
-    /// @param ref   The `TypedMemView` reference to the encoded `BurnAuthorization`
+    /// @param ref   The `TypedMemView` reference to the encoded `BurnIntent`
     /// @return      A `TypedMemView` reference to the `TransferSpec` portion
     function getTransferSpec(bytes29 ref) internal pure returns (bytes29) {
         uint32 specLength = getTransferSpecLength(ref);
@@ -321,9 +321,9 @@ library BurnAuthorizationLib {
         return specRef;
     }
 
-    /// Extract the number of authorizations from an encoded `BurnAuthorizationSet`
+    /// Extract the number of authorizations from an encoded `BurnIntentSet`
     ///
-    /// @param ref   The `TypedMemView` reference to the encoded `BurnAuthorizationSet`
+    /// @param ref   The `TypedMemView` reference to the encoded `BurnIntentSet`
     /// @return      The number of authorizations in the set
     function getNumAuthorizations(bytes29 ref) internal pure returns (uint32) {
         return uint32(ref.indexUint(BURN_INTENT_SET_NUM_AUTHORIZATIONS_OFFSET, UINT32_BYTES));
@@ -331,11 +331,11 @@ library BurnAuthorizationLib {
 
     // --- Encoding ----------------------------------------------------------------------------------------------------
 
-    /// Encode a `BurnAuthorization` struct into bytes
+    /// Encode a `BurnIntent` struct into bytes
     ///
-    /// @param auth   The `BurnAuthorization` to encode
+    /// @param auth   The `BurnIntent` to encode
     /// @return       The encoded bytes
-    function encodeBurnAuthorization(BurnAuthorization memory auth) internal pure returns (bytes memory) {
+    function encodeBurnIntent(BurnIntent memory auth) internal pure returns (bytes memory) {
         bytes memory specBytes = TransferSpecLib.encodeTransferSpec(auth.spec);
 
         return abi.encodePacked(
@@ -347,11 +347,11 @@ library BurnAuthorizationLib {
         );
     }
 
-    /// Encode a `BurnAuthorizationSet` struct into bytes
+    /// Encode a `BurnIntentSet` struct into bytes
     ///
-    /// @param authSet   The `BurnAuthorizationSet` to encode
+    /// @param authSet   The `BurnIntentSet` to encode
     /// @return          The encoded bytes
-    function encodeBurnAuthorizationSet(BurnAuthorizationSet memory authSet) internal pure returns (bytes memory) {
+    function encodeBurnIntentSet(BurnIntentSet memory authSet) internal pure returns (bytes memory) {
         uint256 numAuths = authSet.authorizations.length;
 
         if (numAuths > type(uint32).max) {
@@ -362,7 +362,7 @@ library BurnAuthorizationLib {
         uint256 totalSize = 0;
         bytes[] memory encodedAuths = new bytes[](numAuths);
         for (uint256 i = 0; i < numAuths; i++) {
-            encodedAuths[i] = encodeBurnAuthorization(authSet.authorizations[i]);
+            encodedAuths[i] = encodeBurnIntent(authSet.authorizations[i]);
             totalSize += encodedAuths[i].length;
         }
 
