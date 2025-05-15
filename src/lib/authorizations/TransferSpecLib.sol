@@ -178,26 +178,6 @@ library TransferSpecLib {
 
     // --- Casting -----------------------------------------------------------------------------------------------------
 
-    /// Creates a typed memory view for a `TransferSpec`
-    ///
-    /// @dev Creates a typed view with the proper type encoding and validates the magic number. Does not perform full
-    ///      structural validation (use `_validateTransferSpecStructure` for that).
-    ///
-    /// @param data   The raw bytes to create a view into. Must contain at least 4 bytes.
-    /// @return ref   A `TypedMemView` reference to `data`, typed as a transfer spec
-    function _asTransferSpec(bytes memory data) internal pure returns (bytes29 ref) {
-        if (data.length < BYTES4_BYTES) {
-            revert TransferSpecDataTooShort(BYTES4_BYTES, data.length);
-        }
-
-        ref = data.ref(_toMemViewType(TRANSFER_SPEC_MAGIC));
-        bytes4 magic = bytes4(ref.index(0, BYTES4_BYTES));
-
-        if (magic != TRANSFER_SPEC_MAGIC) {
-            revert InvalidTransferSpecMagic(bytes4(ref.index(0, BYTES4_BYTES)));
-        }
-    }
-
     // --- Validation --------------------------------------------------------------------------------------------------
 
     /// Validates the structural integrity of an encoded `TransferSpec` memory view
