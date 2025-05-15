@@ -42,14 +42,14 @@ const TransferSpec = [
   { name: "metadata", type: "bytes" },
 ];
 
-const BurnAuthorization = [
+const BurnIntent = [
   { name: "maxBlockHeight", type: "uint256" },
   { name: "maxFee", type: "uint256" },
   { name: "spec", type: "TransferSpec" },
 ];
 
-const BurnAuthorizationSet = [
-  { name: "authorizations", type: "BurnAuthorization[]" },
+const BurnIntentSet = [
+  { name: "authorizations", type: "BurnIntent[]" },
 ];
 
 
@@ -93,18 +93,18 @@ export const domain = {
 };
 export const transferSpec1 = generateTransferSpec();
 export const transferSpec2 = generateTransferSpec();
-export const burnAuthorization1 = {
+export const burnIntent1 = {
   spec: transferSpec1,
   maxBlockHeight: 1000000,
   maxFee: 1000000,
 };
-export const burnAuthorization2 = {
+export const burnIntent2 = {
   spec: transferSpec2,
   maxBlockHeight: 1000001,
   maxFee: 1000001,
 };
-export const burnAuthorizationSet = {
-  authorizations: [burnAuthorization1, burnAuthorization2],
+export const burnIntentSet = {
+  authorizations: [burnIntent1, burnIntent2],
 };
 
 
@@ -112,25 +112,25 @@ export const burnAuthorizationSet = {
  * Assembled test data with types for signing
  */
 
-export const burnAuthorizationTypedData = {
+export const burnIntentTypedData = {
   types: {
     EIP712Domain,
     TransferSpec,
-    BurnAuthorization,
+    BurnIntent,
   },
   domain,
-  primaryType: "BurnAuthorization",
-  message: burnAuthorization1,
+  primaryType: "BurnIntent",
+  message: burnIntent1,
 };
 
-export const burnAuthorizationSetTypedData = {
+export const burnIntentSetTypedData = {
   types: {
     EIP712Domain,
     TransferSpec,
-    BurnAuthorization,
-    BurnAuthorizationSet,
+    BurnIntent,
+    BurnIntentSet,
   },
   domain,
-  primaryType: "BurnAuthorizationSet",
-  message: burnAuthorizationSet,
+  primaryType: "BurnIntentSet",
+  message: burnIntentSet,
 };
