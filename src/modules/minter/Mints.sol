@@ -61,7 +61,7 @@ contract Mints is GatewayCommon {
     /// @param newMintAuthority   The new mint authority address
     event MintAuthorityUpdated(address token, address oldMintAuthority, address newMintAuthority);
 
-    /// Emitted when the `mintAuthorizationSigner` role is updated
+    /// Emitted when the `attestationSigner` role is updated
     ///
     /// @param oldAttestationSigner   The previous attestation signer address
     /// @param newAttestationSigner   The new attestation signer address
@@ -128,17 +128,17 @@ contract Mints is GatewayCommon {
     /// @param destinationToken   The destination token
     error InvalidAuthorizationTokenAtIndex(uint32 index, address sourceToken, address destinationToken);
 
-    /// Initializes the `mintAuthorizationSigner` role and any initial token mint authorities
+    /// Initializes the `attestationSigner` role and any initial token mint authorities
     ///
-    /// @param mintAuthorizationSigner_   The address to initialize the `mintAuthorizationSigner` role
+    /// @param attestationSigner_   The address to initialize the `attestationSigner` role
     /// @param tokens_                    The list of tokens to support initially
     /// @param tokenMintAuthorities_      The list of initial token mint authorities (use the zero address for none)
     function __Mints_init(
-        address mintAuthorizationSigner_,
+        address attestationSigner_,
         address[] calldata tokens_,
         address[] calldata tokenMintAuthorities_
     ) internal onlyInitializing {
-        updateAttestationSigner(mintAuthorizationSigner_);
+        updateAttestationSigner(attestationSigner_);
 
         for (uint256 i = 0; i < tokenMintAuthorities_.length; i++) {
             address mintAuthority = tokenMintAuthorities_[i];
@@ -157,7 +157,7 @@ contract Mints is GatewayCommon {
     /// @dev See `Attestations.sol` for encoding details
     ///
     /// @param authorization   The byte-encoded attestation(s)
-    /// @param signature       The signature of the `mintAuthorizationSigner` on the `authorization`
+    /// @param signature       The signature of the `attestationSigner` on the `authorization`
 
     function gatewayMint(bytes memory authorization, bytes memory signature)
         external
@@ -187,8 +187,8 @@ contract Mints is GatewayCommon {
     /// The attestation signer that is recognized by the contract
     ///
     /// @return   The attestation signer address
-    function mintAuthorizationSigner() public view returns (address) {
-        return MintsStorage.get().mintAuthorizationSigner;
+    function attestationSigner() public view returns (address) {
+        return MintsStorage.get().attestationSigner;
     }
 
     /// The mint authority for a token
@@ -223,20 +223,20 @@ contract Mints is GatewayCommon {
         AddressLib._checkNotZeroAddress(newAttestationSigner);
 
         MintsStorage.Data storage $ = MintsStorage.get();
-        address oldAttestationSigner = $.mintAuthorizationSigner;
-        $.mintAuthorizationSigner = newAttestationSigner;
+        address oldAttestationSigner = $.attestationSigner;
+        $.attestationSigner = newAttestationSigner;
         emit AttestationSignerUpdated(oldAttestationSigner, newAttestationSigner);
     }
 
     /// Verifies the signature for a (set of) attestation(s)
     ///
-    /// @dev Recovers the signer from the signature and compares it to the `mintAuthorizationSigner`
+    /// @dev Recovers the signer from the signature and compares it to the `attestationSigner`
     ///
     /// @param authorization   The byte-encoded attestation(s)
     /// @param signature       The signature on the `authorization` to verify
     function _verifyAttestationSignature(bytes memory authorization, bytes memory signature) internal view {
         address recoveredSigner = ECDSA.recover(keccak256(authorization).toEthSignedMessageHash(), signature);
-        if (recoveredSigner != mintAuthorizationSigner()) {
+        if (recoveredSigner != attestationSigner()) {
             revert InvalidAttestationSigner();
         }
     }
@@ -347,7 +347,7 @@ library MintsStorage {
         /// the minter contract.
         mapping(address token => address tokenMintAuthority) tokenMintAuthorities;
         /// The address of the operator that can sign attestations
-        address mintAuthorizationSigner;
+        address attestationSigner;
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Mints"))) - 1)) & ~bytes32(uint256(0xff))`

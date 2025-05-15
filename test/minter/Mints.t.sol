@@ -53,8 +53,8 @@ contract TestMints is Test, DeployUtils {
 
     uint32 private domain;
     address private owner = makeAddr("owner");
-    address private mintAuthorizationSigner;
-    uint256 private mintAuthorizationSignerKey;
+    address private attestationSigner;
+    uint256 private attestationSignerKey;
     address private sourceSigner = makeAddr("sourceSigner");
     address private sourceContract = makeAddr("sourceContract");
     address private sourceToken = makeAddr("sourceToken");
@@ -80,13 +80,13 @@ contract TestMints is Test, DeployUtils {
         (wallet, minter) = deploy(owner, domain);
         mockToken = new MockMintableToken();
 
-        (mintAuthorizationSigner, mintAuthorizationSignerKey) = makeAddrAndKey("mintAuthorizationSigner");
+        (attestationSigner, attestationSignerKey) = makeAddrAndKey("attestationSigner");
         vm.startPrank(owner);
         {
             minter.addSupportedToken(address(usdc));
             minter.addSupportedToken(address(mockToken));
             minter.updateDenylister(owner);
-            minter.updateAttestationSigner(mintAuthorizationSigner);
+            minter.updateAttestationSigner(attestationSigner);
             minter.updateMintAuthority(address(usdc), address(usdc));
         }
         vm.stopPrank();
@@ -167,7 +167,7 @@ contract TestMints is Test, DeployUtils {
 
         bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
         vm.expectRevert(PausableUpgradeable.EnforcedPause.selector);
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfCallerDenylisted() public {
@@ -177,14 +177,14 @@ contract TestMints is Test, DeployUtils {
 
         bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
         vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, address(this)));
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     // ===== Signature Tests =====
 
     function test_gatewayMint_emptyAuth_revertsOnCorrectSigner() public {
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.TransferPayloadDataTooShort.selector, BYTES4_BYTES, 0));
-        _callGatewayMintSignedBy(new bytes(0), mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(new bytes(0), attestationSignerKey);
     }
 
     function test_gatewayMint_emptyAuth_wrongSigner() public {
@@ -214,7 +214,7 @@ contract TestMints is Test, DeployUtils {
         bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
         vm.expectRevert(Mints.MustHaveAtLeastOneAttestation.selector);
-        _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuthorizations, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfInvalidMagic() public {
@@ -228,7 +228,7 @@ contract TestMints is Test, DeployUtils {
         }
         bytes4 corruptedMagic = bytes4(tempBytes);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferPayloadMagic.selector, corruptedMagic));
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     // ===== Authorization Content Validation Tests =====
@@ -241,7 +241,7 @@ contract TestMints is Test, DeployUtils {
                 Mints.AuthorizationExpiredAtIndex.selector, 0, crossChainBaseAuth.maxBlockHeight, block.number
             )
         );
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfExpiredAuthSet() public {
@@ -260,14 +260,14 @@ contract TestMints is Test, DeployUtils {
                 Mints.AuthorizationExpiredAtIndex.selector, 1, expiredAuth.maxBlockHeight, block.number
             )
         );
-        _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuthorizations, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfZeroValue() public {
         crossChainBaseAuth.spec.value = 0;
         bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
         vm.expectRevert(abi.encodeWithSelector(Mints.AuthorizationValueMustBePositiveAtIndex.selector, 0));
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfZeroValueAuthSet() public {
@@ -282,7 +282,7 @@ contract TestMints is Test, DeployUtils {
         bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
         vm.expectRevert(abi.encodeWithSelector(Mints.AuthorizationValueMustBePositiveAtIndex.selector, 1));
-        _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuthorizations, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfDestinationRecipientDenylisted() public {
@@ -292,7 +292,7 @@ contract TestMints is Test, DeployUtils {
 
         bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
         vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, recipient));
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfDestinationRecipientDenylistedAuthSet() public {
@@ -312,7 +312,7 @@ contract TestMints is Test, DeployUtils {
         bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
         vm.expectRevert(abi.encodeWithSelector(Denylist.AccountDenylisted.selector, denylistedRecipient));
-        _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuthorizations, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfNonZeroAndInvalidDestinationCaller() public {
@@ -325,7 +325,7 @@ contract TestMints is Test, DeployUtils {
                 Mints.InvalidAuthorizationDestinationCallerAtIndex.selector, 0, destinationCaller, address(this)
             )
         );
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfNonZeroAndInvalidDestinationCallerAuthSet() public {
@@ -345,7 +345,7 @@ contract TestMints is Test, DeployUtils {
                 Mints.InvalidAuthorizationDestinationCallerAtIndex.selector, 1, destinationCaller, address(this)
             )
         );
-        _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuthorizations, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfInvalidDestinationDomainAuth() public {
@@ -359,7 +359,7 @@ contract TestMints is Test, DeployUtils {
                 domain
             )
         );
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfInvalidDestinationDomainAuthSet() public {
@@ -381,7 +381,7 @@ contract TestMints is Test, DeployUtils {
                 domain
             )
         );
-        _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuthorizations, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfInvalidDestinationContract() public {
@@ -397,7 +397,7 @@ contract TestMints is Test, DeployUtils {
                 address(minter)
             )
         );
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfInvalidDestinationContractAuthSet() public {
@@ -420,7 +420,7 @@ contract TestMints is Test, DeployUtils {
                 address(minter)
             )
         );
-        _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuthorizations, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfUnsupportedDestinationToken() public {
@@ -430,7 +430,7 @@ contract TestMints is Test, DeployUtils {
         bytes memory encodedAuth = AttestationLib.encodeAttestation(unsupportedDestinationTokenAuth);
 
         vm.expectRevert(abi.encodeWithSelector(Mints.UnsupportedTokenAtIndex.selector, 0, unsupportedToken));
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfUnsupportedDestinationTokenAuthSet() public {
@@ -446,7 +446,7 @@ contract TestMints is Test, DeployUtils {
         bytes memory encodedAuthorizations = AttestationLib.encodeAttestationSet(authSet);
 
         vm.expectRevert(abi.encodeWithSelector(Mints.UnsupportedTokenAtIndex.selector, 1, unsupportedToken));
-        _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuthorizations, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfSameChainInvalidSourceContract() public {
@@ -460,7 +460,7 @@ contract TestMints is Test, DeployUtils {
                 Mints.InvalidAuthorizationSourceContractAtIndex.selector, 0, invalidSourceContract, address(wallet)
             )
         );
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfSameChainInvalidSourceContractAuthSet() public {
@@ -480,7 +480,7 @@ contract TestMints is Test, DeployUtils {
                 Mints.InvalidAuthorizationSourceContractAtIndex.selector, 1, invalidSourceContract, address(wallet)
             )
         );
-        _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuthorizations, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfSameChainInvalidToken() public {
@@ -494,7 +494,7 @@ contract TestMints is Test, DeployUtils {
                 Mints.InvalidAuthorizationTokenAtIndex.selector, 0, differentSourceToken, address(usdc)
             )
         );
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     function test_gatewayMint_revertIfSameChainInvalidTokenAuthSet() public {
@@ -514,7 +514,7 @@ contract TestMints is Test, DeployUtils {
                 Mints.InvalidAuthorizationTokenAtIndex.selector, 1, differentSourceToken, address(usdc)
             )
         );
-        _callGatewayMintSignedBy(encodedAuthorizations, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuthorizations, attestationSignerKey);
     }
 
     // ===== Replay Protection Tests =====
@@ -522,9 +522,9 @@ contract TestMints is Test, DeployUtils {
     function test_gatewayMint_revertIfTransferSpecHashAlreadyUsed() public {
         bytes32 specHash = keccak256(TransferSpecLib.encodeTransferSpec(crossChainBaseAuth.spec));
         bytes memory encodedAuth = AttestationLib.encodeAttestation(crossChainBaseAuth);
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecHashes.TransferSpecHashUsed.selector, specHash));
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     // ===== Cross-chain Tests =====
@@ -548,7 +548,7 @@ contract TestMints is Test, DeployUtils {
             AddressLib._addressToBytes32(sourceSigner),
             mintValue
         );
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
 
         assertEq(usdc.balanceOf(recipient), mintValue);
     }
@@ -576,7 +576,7 @@ contract TestMints is Test, DeployUtils {
         );
 
         vm.startPrank(destinationCaller);
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
         vm.stopPrank();
 
         assertEq(usdc.balanceOf(recipient), mintValue);
@@ -602,7 +602,7 @@ contract TestMints is Test, DeployUtils {
             AddressLib._addressToBytes32(sourceSigner),
             mintValue
         );
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
 
         assertEq(mockToken.balanceOf(recipient), mintValue);
     }
@@ -643,7 +643,7 @@ contract TestMints is Test, DeployUtils {
             AddressLib._addressToBytes32(sourceSigner),
             auth2.spec.value
         );
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
 
         assertEq(usdc.balanceOf(recipient), auth1.spec.value + auth2.spec.value);
     }
@@ -692,7 +692,7 @@ contract TestMints is Test, DeployUtils {
             auth2.spec.value
         );
 
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
 
         assertEq(usdc.balanceOf(recipient), auth1.spec.value, "Final USDC balance recipient");
         assertEq(mockToken.balanceOf(recipient), auth2.spec.value, "Final MockToken balance recipient");
@@ -739,7 +739,7 @@ contract TestMints is Test, DeployUtils {
             AddressLib._addressToBytes32(sourceSigner),
             auth2.spec.value
         );
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
 
         assertEq(usdc.balanceOf(recipient1), auth1.spec.value);
         assertEq(usdc.balanceOf(recipient2), auth2.spec.value);
@@ -792,7 +792,7 @@ contract TestMints is Test, DeployUtils {
             auth2.spec.value
         );
 
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
 
         assertEq(usdc.balanceOf(recipient1), auth1.spec.value, "Final USDC balance recipient1");
         assertEq(mockToken.balanceOf(recipient2), auth2.spec.value, "Final MockToken balance recipient2");
@@ -809,7 +809,7 @@ contract TestMints is Test, DeployUtils {
 
         // Expect a generic revert because the (mis)configured mint authority is an EOA
         vm.expectRevert();
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     function test_gatewayMint_crossChain_revertIfNotConfiguredAsMinter() public {
@@ -832,7 +832,7 @@ contract TestMints is Test, DeployUtils {
         bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
 
         vm.expectRevert("FiatToken: caller is not a minter");
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
     }
 
     // ===== Same-chain Tests =====
@@ -854,7 +854,7 @@ contract TestMints is Test, DeployUtils {
             AddressLib._addressToBytes32(sourceSigner),
             auth.spec.value
         );
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
 
         assertEq(usdc.balanceOf(recipient), mintValue);
     }
@@ -895,7 +895,7 @@ contract TestMints is Test, DeployUtils {
             AddressLib._addressToBytes32(sourceSigner),
             auth2.spec.value
         );
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
 
         assertEq(usdc.balanceOf(recipient), auth1.spec.value + auth2.spec.value);
     }
@@ -943,7 +943,7 @@ contract TestMints is Test, DeployUtils {
             auth2.spec.value
         );
 
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
 
         assertEq(usdc.balanceOf(recipient), auth1.spec.value);
         assertEq(mockToken.balanceOf(recipient), auth2.spec.value);
@@ -991,7 +991,7 @@ contract TestMints is Test, DeployUtils {
             AddressLib._addressToBytes32(sourceSigner),
             auth2.spec.value
         );
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
 
         assertEq(usdc.balanceOf(recipient1), auth1.spec.value);
         assertEq(usdc.balanceOf(recipient2), auth2.spec.value);
@@ -1043,7 +1043,7 @@ contract TestMints is Test, DeployUtils {
             auth2.spec.value
         );
 
-        _callGatewayMintSignedBy(encodedAuth, mintAuthorizationSignerKey);
+        _callGatewayMintSignedBy(encodedAuth, attestationSignerKey);
 
         assertEq(usdc.balanceOf(recipient1), auth1.spec.value);
         assertEq(mockToken.balanceOf(recipient2), auth2.spec.value);

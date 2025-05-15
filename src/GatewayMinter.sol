@@ -25,7 +25,7 @@ import {Mints} from "src/modules/minter/Mints.sol";
 ///
 /// @notice This contract allows the minting of funds deposited in the GatewayWallet contract, either on
 /// the same chain or on a different chain. Either operation requires a signed authorization from
-/// the `mintAuthorizationSigner` configured in the contract. See the documentation for the `GatewayWallet` contract for
+/// the `attestationSigner` configured in the contract. See the documentation for the `GatewayWallet` contract for
 /// more details.
 contract GatewayMinter is GatewayCommon, Mints {
     /// Thrown when the length of `supportedTokens_` and `tokenMintAuthorities_` do not match
@@ -47,7 +47,7 @@ contract GatewayMinter is GatewayCommon, Mints {
     /// @param wallet_                    The address of the `GatewayWallet` contract for this domain
     /// @param supportedTokens_           The list of tokens to support initially
     /// @param domain_                    The operator-issued identifier for this chain
-    /// @param mintAuthorizationSigner_   The address to initialize the `mintAuthorizationSigner` role
+    /// @param attestationSigner_   The address to initialize the `attestationSigner` role
     /// @param tokenMintAuthorities_      The list of initial token mint authorities (use the zero address for none)
     function initialize(
         address pauser_,
@@ -55,7 +55,7 @@ contract GatewayMinter is GatewayCommon, Mints {
         address wallet_,
         address[] calldata supportedTokens_,
         uint32 domain_,
-        address mintAuthorizationSigner_,
+        address attestationSigner_,
         address[] calldata tokenMintAuthorities_
     ) external reinitializer(2) {
         if (supportedTokens_.length != tokenMintAuthorities_.length) {
@@ -63,7 +63,7 @@ contract GatewayMinter is GatewayCommon, Mints {
         }
 
         __GatewayCommon_init(pauser_, denylister_, wallet_, supportedTokens_, domain_);
-        __Mints_init(mintAuthorizationSigner_, supportedTokens_, tokenMintAuthorities_);
+        __Mints_init(attestationSigner_, supportedTokens_, tokenMintAuthorities_);
     }
 
     /// The address of the corresponding wallet contract on the same domain

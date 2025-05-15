@@ -160,7 +160,7 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
     function test_updateAttestationSigner_success(address newAttestationSigner) public {
         vm.assume(newAttestationSigner != address(0));
 
-        address oldAttestationSigner = minter.mintAuthorizationSigner();
+        address oldAttestationSigner = minter.attestationSigner();
 
         vm.expectEmit(false, false, false, true);
         emit Mints.AttestationSignerUpdated(oldAttestationSigner, newAttestationSigner);
@@ -169,20 +169,20 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         minter.updateAttestationSigner(newAttestationSigner);
         vm.stopPrank();
 
-        assertEq(minter.mintAuthorizationSigner(), newAttestationSigner);
+        assertEq(minter.attestationSigner(), newAttestationSigner);
     }
 
     function test_updateAttestationSigner_idempotent() public {
         address newAttestationSigner = makeAddr("newAttestationSigner");
         vm.startPrank(owner);
         minter.updateAttestationSigner(newAttestationSigner); // first update
-        assertEq(minter.mintAuthorizationSigner(), newAttestationSigner);
+        assertEq(minter.attestationSigner(), newAttestationSigner);
 
         vm.expectEmit(false, false, false, true);
         emit Mints.AttestationSignerUpdated(newAttestationSigner, newAttestationSigner);
         minter.updateAttestationSigner(newAttestationSigner); // second update
         vm.stopPrank();
 
-        assertEq(minter.mintAuthorizationSigner(), newAttestationSigner);
+        assertEq(minter.attestationSigner(), newAttestationSigner);
     }
 }
