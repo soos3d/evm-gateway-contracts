@@ -179,8 +179,15 @@ contract Mints is GatewayCommon {
         bytes29 auth;
         while (!cursor.done) {
             auth = cursor.next();
-            _validateMintAuthorization(auth, cursor.index - 1);
-            _mint(auth.getTransferSpec());
+
+            // Ensure the mint authorization is not expired
+            uint32 index = cursor.index - 1;
+            _validateMintAuthorizationNotExpired(auth, index);
+
+            // Extract the `TransferSpec`
+            bytes29 spec = auth.getTransferSpec();
+            _validateMintAuthorizationTransferSpec(spec, index);
+            _mint(spec);
         }
     }
 
@@ -241,23 +248,28 @@ contract Mints is GatewayCommon {
         }
     }
 
-    /// Validates a single mint authorization
+    /// Validates that a mint authorization is not expired
     ///
-    /// @dev Checks expiration, value, recipient denylist status, destination caller, destination domain, destination
-    ///      contract, and (when the domains match) source contract and token consistency
+    /// @dev Reverts if the mint authorization is expired
     ///
     /// @param auth    A `TypedMemView` reference to the byte-encoded mint authorization
     /// @param index   The index of the mint authorization within the batch (used for error reporting)
-    function _validateMintAuthorization(bytes29 auth, uint32 index) internal view {
+    function _validateMintAuthorizationNotExpired(bytes29 auth, uint32 index) internal view {
         // Ensure the mint authorization is not expired
         uint256 maxBlockHeight = auth.getMaxBlockHeight();
         if (maxBlockHeight < block.number) {
             revert AuthorizationExpiredAtIndex(index, maxBlockHeight, block.number);
         }
+    }
 
-        // Extract the `TransferSpec`
-        bytes29 spec = auth.getTransferSpec();
-
+    /// Validates a single mint authorization's transfer spec
+    ///
+    /// @dev Checks value, recipient denylist status, destination caller, destination domain, destination
+    ///      contract, and (when the domains match) source contract and token consistency
+    ///
+    /// @param spec    A `TypedMemView` reference to the transfer spec portion of the mint authorization
+    /// @param index   The index of the mint authorization within the batch (used for error reporting)
+    function _validateMintAuthorizationTransferSpec(bytes29 spec, uint32 index) internal view {
         // Ensure the value is nonzero
         uint256 value = spec.getValue();
         if (value == 0) {

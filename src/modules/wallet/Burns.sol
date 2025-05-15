@@ -234,13 +234,16 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
             auth = cursor.next();
 
             // Validate that everything about the burn authorization is as expected, and skip if it's not for this domain
-            bool relevant = _validateBurnAuthorization(auth, signer, 0, cursor.index - 1);
+            bytes29 spec = auth.getTransferSpec();
+            bool relevant = _validateBurnAuthorizationTransferSpec(spec, signer, cursor.index - 1);
             if (!relevant) {
                 continue;
             }
 
+            // If relevant, validate the block height and fee of the burn authorization
+            _validateBurnAuthorizationBlockHeightAndFee(auth, 0, cursor.index - 1);
+
             // Ensure that each one we've seen so far is for the same token
-            bytes29 spec = auth.getTransferSpec();
             address _token = AddressLib._bytes32ToAddress(spec.getSourceToken());
             if (token == address(0)) {
                 token = _token;
@@ -389,10 +392,13 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
             bytes29 spec = auth.getTransferSpec();
 
             // Validate that everything about the burn authorization is as expected, skipping if it's not for this domain
-            bool relevant = _validateBurnAuthorization(auth, signer, fees[index], index);
+            bool relevant = _validateBurnAuthorizationTransferSpec(spec, signer, index);
             if (!relevant) {
                 continue;
             }
+
+            // If relevant, validate the block height and fee of the burn authorization
+            _validateBurnAuthorizationBlockHeightAndFee(auth, fees[index], index);
 
             // Ensure that each one we've seen so far is for the same token
             address _token = AddressLib._bytes32ToAddress(spec.getSourceToken());
@@ -423,24 +429,41 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         IBurnToken(token).burn(totalDeductedAmount - totalFee);
     }
 
-    /// Validates the contents of a single burn authorization and its proposed fee
+    /// Validates the block height and fee of a burn authorization do not exceed limits
     ///
-    /// @dev Checks include: non-zero value, source domain match, expiry block, fee limit, source contract address,
-    ///      token support, and signer delegation
+    /// @dev Checks include: block height is within `maxBlockHeight` and fee is within `maxFee`.
     ///
     /// @param auth        The `TypedMemView` reference to the encoded burn authorization to validate
-    /// @param signer      The address that signed the entire burn authorization payload
     /// @param fee         The fee proposed for this burn authorization
     /// @param index       The index of this burn authorization within the original set (used for error messages)
+    function _validateBurnAuthorizationBlockHeightAndFee(bytes29 auth, uint256 fee, uint32 index) internal view {
+        // Ensure that the burn authorization is not expired
+        uint256 maxBlockHeight = auth.getMaxBlockHeight();
+        if (maxBlockHeight < block.number) {
+            revert AuthorizationExpiredAtIndex(index, maxBlockHeight, block.number);
+        }
+
+        // Ensure that the fee is within the allowed range
+        uint256 maxFee = auth.getMaxFee();
+        if (maxFee < fee) {
+            revert BurnFeeTooHighAtIndex(index, maxFee, fee);
+        }
+    }
+
+    /// Validates the contents of a single burn authorization's transfer spec
+    ///
+    /// @dev Checks include: non-zero value, source domain match, source contract address,
+    ///      token support, and signer delegation
+    ///
+    /// @param spec        The `TypedMemView` reference to the encoded transfer spec to validate
+    /// @param signer      The address that signed the entire burn authorization payload
+    /// @param index       The index of this burn authorization within the original set (used for error messages)
     /// @return relevant   `true` if the burn authorization is for the current domain, `false` otherwise
-    function _validateBurnAuthorization(bytes29 auth, address signer, uint256 fee, uint32 index)
+    function _validateBurnAuthorizationTransferSpec(bytes29 spec, address signer, uint32 index)
         internal
         view
         returns (bool relevant)
     {
-        // Extract the `TransferSpec` from the burn authorization
-        bytes29 spec = auth.getTransferSpec();
-
         // If any burn authorizations are zero (even if they are for a different domain), refuse to continue so that
         // they all fail together across all source domains
         uint256 value = spec.getValue();
@@ -453,18 +476,6 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         uint32 domain = spec.getSourceDomain();
         if (!_isCurrentDomain(domain)) {
             return false;
-        }
-
-        // Ensure that the burn authorization is not expired
-        uint256 maxBlockHeight = auth.getMaxBlockHeight();
-        if (maxBlockHeight < block.number) {
-            revert AuthorizationExpiredAtIndex(index, maxBlockHeight, block.number);
-        }
-
-        // Ensure that the fee is within the allowed range
-        uint256 maxFee = auth.getMaxFee();
-        if (maxFee < fee) {
-            revert BurnFeeTooHighAtIndex(index, maxFee, fee);
         }
 
         // Ensure that this is the correct source contract
