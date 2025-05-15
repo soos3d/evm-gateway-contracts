@@ -29,8 +29,8 @@ import {
     BURN_INTENT_MAX_FEE_OFFSET,
     BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET,
     BURN_INTENT_TRANSFER_SPEC_OFFSET,
-    BURN_INTENT_SET_NUM_AUTHORIZATIONS_OFFSET,
-    BURN_INTENT_SET_AUTHORIZATIONS_OFFSET,
+    BURN_INTENT_SET_NUM_INTENTS_OFFSET,
+    BURN_INTENT_SET_INTENTS_OFFSET,
     // solhint-disable-next-line no-unused-import
     BURN_INTENT_TYPEHASH,
     BURN_INTENT_SET_TYPEHASH
@@ -149,15 +149,15 @@ library BurnIntentLib {
     /// @param setView   The `TypedMemView` reference to the encoded `BurnIntentSet` to validate
     function _validateBurnIntentSet(bytes29 setView) internal pure {
         // 1. Minimum header length check
-        if (setView.len() < BURN_INTENT_SET_AUTHORIZATIONS_OFFSET) {
+        if (setView.len() < BURN_INTENT_SET_INTENTS_OFFSET) {
             revert TransferSpecLib.TransferPayloadSetHeaderTooShort(
-                BURN_INTENT_SET_AUTHORIZATIONS_OFFSET, setView.len()
+                BURN_INTENT_SET_INTENTS_OFFSET, setView.len()
             );
         }
 
         // 2. Read declared count
         uint32 numAuths = getNumAuthorizations(setView);
-        uint256 currentOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET;
+        uint256 currentOffset = BURN_INTENT_SET_INTENTS_OFFSET;
 
         // 3. Iterate and validate each element
         for (uint32 i = 0; i < numAuths; i++) {
@@ -243,7 +243,7 @@ library BurnIntentLib {
         }
 
         uint32 numAuths = getNumAuthorizations(ref);
-        c.offset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET;
+        c.offset = BURN_INTENT_SET_INTENTS_OFFSET;
         c.numAuths = numAuths;
         c.done = (numAuths == 0); // If the set is empty, the cursor is immediately done
     }
@@ -326,7 +326,7 @@ library BurnIntentLib {
     /// @param ref   The `TypedMemView` reference to the encoded `BurnIntentSet`
     /// @return      The number of authorizations in the set
     function getNumAuthorizations(bytes29 ref) internal pure returns (uint32) {
-        return uint32(ref.indexUint(BURN_INTENT_SET_NUM_AUTHORIZATIONS_OFFSET, UINT32_BYTES));
+        return uint32(ref.indexUint(BURN_INTENT_SET_NUM_INTENTS_OFFSET, UINT32_BYTES));
     }
 
     // --- Encoding ----------------------------------------------------------------------------------------------------
@@ -442,7 +442,7 @@ library BurnIntentLib {
     /// @return          The EIP-712 typed data hash of the burn intent set
     function _getburnAuthorizationSetTypedDataHash(bytes29 setView) private view returns (bytes32) {
         uint32 numAuths = getNumAuthorizations(setView);
-        uint256 currentOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET;
+        uint256 currentOffset = BURN_INTENT_SET_INTENTS_OFFSET;
         bytes32[] memory authHashes = new bytes32[](numAuths);
 
         // Iterate through each authorization in the set and compute its hash

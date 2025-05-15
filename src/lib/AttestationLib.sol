@@ -28,8 +28,8 @@ import {
     ATTESTATION_MAX_BLOCK_HEIGHT_OFFSET,
     ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET,
     ATTESTATION_TRANSFER_SPEC_OFFSET,
-    ATTESTATION_SET_NUM_AUTHORIZATIONS_OFFSET,
-    ATTESTATION_SET_AUTHORIZATIONS_OFFSET
+    ATTESTATION_SET_NUM_ATTESTATIONS_OFFSET,
+    ATTESTATION_SET_ATTESTATIONS_OFFSET
 } from "./Attestations.sol";
 import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
@@ -145,15 +145,15 @@ library AttestationLib {
     /// @param setView   The `TypedMemView` reference to the encoded `AttestationSet` to validate
     function _validateAttestationSet(bytes29 setView) internal pure {
         // 1. Minimum header length check
-        if (setView.len() < ATTESTATION_SET_AUTHORIZATIONS_OFFSET) {
+        if (setView.len() < ATTESTATION_SET_ATTESTATIONS_OFFSET) {
             revert TransferSpecLib.TransferPayloadSetHeaderTooShort(
-                ATTESTATION_SET_AUTHORIZATIONS_OFFSET, setView.len()
+                ATTESTATION_SET_ATTESTATIONS_OFFSET, setView.len()
             );
         }
 
         // 2. Read declared count
         uint32 numAuths = getNumAuthorizations(setView);
-        uint256 currentOffset = ATTESTATION_SET_AUTHORIZATIONS_OFFSET;
+        uint256 currentOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET;
 
         // 3. Iterate and validate each element
         for (uint32 i = 0; i < numAuths; i++) {
@@ -239,7 +239,7 @@ library AttestationLib {
         }
 
         uint32 numAuths = getNumAuthorizations(ref);
-        c.offset = ATTESTATION_SET_AUTHORIZATIONS_OFFSET;
+        c.offset = ATTESTATION_SET_ATTESTATIONS_OFFSET;
         c.numAuths = numAuths;
         c.done = (numAuths == 0); // If the set is empty, the cursor is immediately done
     }
@@ -316,7 +316,7 @@ library AttestationLib {
     /// @param ref   The `TypedMemView` reference to the encoded `AttestationSet`
     /// @return      The number of authorizations in the set
     function getNumAuthorizations(bytes29 ref) internal pure returns (uint32) {
-        return uint32(ref.indexUint(ATTESTATION_SET_NUM_AUTHORIZATIONS_OFFSET, UINT32_BYTES));
+        return uint32(ref.indexUint(ATTESTATION_SET_NUM_ATTESTATIONS_OFFSET, UINT32_BYTES));
     }
 
     // --- Encoding ----------------------------------------------------------------------------------------------------

@@ -35,7 +35,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
     using BurnIntentLib for bytes29;
     using BurnIntentLib for Cursor;
 
-    uint16 private constant BURN_INTENT_SET_AUTHORIZATIONS_OFFSET = 8;
+    uint16 private constant BURN_INTENT_SET_INTENTS_OFFSET = 8;
 
     /// @notice Helper to create a BurnIntentSet with two authorizations and specified metadata.
     function _createBurnAuthSet(BurnIntent memory auth1, BurnIntent memory auth2, bytes memory metadata)
@@ -120,7 +120,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         bytes memory shortData = abi.encodePacked(BURN_INTENT_SET_MAGIC, hex"112233"); // 7 bytes
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferPayloadSetHeaderTooShort.selector,
-            BURN_INTENT_SET_AUTHORIZATIONS_OFFSET,
+            BURN_INTENT_SET_INTENTS_OFFSET,
             shortData.length
         );
 
@@ -152,7 +152,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
             uint32(1) // numAuthorizations = 1
         ); // 8 bytes total
         uint32 elementIndex = 0;
-        uint256 requiredOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
+        uint256 requiredOffset = BURN_INTENT_SET_INTENTS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferPayloadSetElementHeaderTooShort.selector,
             elementIndex,
@@ -188,7 +188,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         bytes memory truncatedData = bytes.concat(encodedSetHeader, partialAuthData);
 
         uint32 elementIndex = 0;
-        uint256 requiredOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
+        uint256 requiredOffset = BURN_INTENT_SET_INTENTS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferPayloadSetElementHeaderTooShort.selector,
             elementIndex,
@@ -262,7 +262,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
 
         uint32 elementIndex = 1;
         uint256 requiredOffset =
-            BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length + BURN_INTENT_TRANSFER_SPEC_OFFSET;
+            BURN_INTENT_SET_INTENTS_OFFSET + encodedAuth1.length + BURN_INTENT_TRANSFER_SPEC_OFFSET;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferPayloadSetElementHeaderTooShort.selector,
             elementIndex,
@@ -349,11 +349,11 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = BurnIntentLib.encodeBurnIntentSet(authSet);
 
         // Corrupt the magic of the first authorization (at offset 8)
-        encodedAuthSet[BURN_INTENT_SET_AUTHORIZATIONS_OFFSET] = hex"00";
+        encodedAuthSet[BURN_INTENT_SET_INTENTS_OFFSET] = hex"00";
 
         uint32 elementIndex = 0;
         bytes4 corruptedMagic;
-        uint256 offset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + BURN_INTENT_MAGIC_OFFSET;
+        uint256 offset = BURN_INTENT_SET_INTENTS_OFFSET + BURN_INTENT_MAGIC_OFFSET;
         bytes memory tempBytes = new bytes(BYTES4_BYTES);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
             tempBytes[i] = encodedAuthSet[offset + i];
@@ -382,7 +382,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
 
         // Calculate offset of second authorization's magic
         bytes memory encodedAuth1 = BurnIntentLib.encodeBurnIntent(authSet.authorizations[0]);
-        uint256 secondAuthOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length;
+        uint256 secondAuthOffset = BURN_INTENT_SET_INTENTS_OFFSET + encodedAuth1.length;
 
         // Corrupt the magic of the second authorization
         encodedAuthSet[secondAuthOffset] = hex"00";
@@ -423,7 +423,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
 
         // Corrupt the outer BurnIntent's declared spec length (make it smaller)
         uint256 outerSpecLengthOffset =
-            BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET;
+            BURN_INTENT_SET_INTENTS_OFFSET + BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET;
         uint32 invalidSpecLength = originalSpecLength - 1;
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         for (uint8 i = 0; i < 4; i++) {
@@ -460,7 +460,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
 
         // Corrupt the outer BurnIntent's declared spec length (make it larger)
         uint256 outerSpecLengthOffset =
-            BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET;
+            BURN_INTENT_SET_INTENTS_OFFSET + BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET;
         uint32 invalidSpecLength = originalSpecLength + 1; // Make it larger than actual
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         for (uint8 i = 0; i < 4; i++) {
@@ -471,7 +471,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         // is long enough to contain the authorization based on its inflated declared length.
         uint32 elementIndex = 0;
         uint256 requiredOffset =
-            BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET + invalidSpecLength;
+            BURN_INTENT_SET_INTENTS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET + invalidSpecLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferPayloadSetElementTooShort.selector,
             elementIndex,
@@ -495,7 +495,7 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
 
         // Corrupt the inner TransferSpec magic within the first authorization
         uint256 innerSpecMagicOffset =
-            BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
+            BURN_INTENT_SET_INTENTS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
         encodedAuthSet[innerSpecMagicOffset] = hex"00";
 
         bytes4 corruptedMagic;
@@ -548,10 +548,10 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = BurnIntentLib.encodeBurnIntentSet(authSet);
 
         uint32 originalMetadataLength = uint32(auth1.spec.metadata.length);
-        uint256 encodedAuth1Length = encodedAuthSet.length - BURN_INTENT_SET_AUTHORIZATIONS_OFFSET;
+        uint256 encodedAuth1Length = encodedAuthSet.length - BURN_INTENT_SET_INTENTS_OFFSET;
         uint32 actualInnerSpecLength = uint32(encodedAuth1Length - BURN_INTENT_TRANSFER_SPEC_OFFSET);
 
-        uint32 specOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
+        uint32 specOffset = BURN_INTENT_SET_INTENTS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
         (bytes memory corruptedEncodedAuthSet, uint32 invalidMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
             encodedAuthSet,
             specOffset,
@@ -581,10 +581,10 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = BurnIntentLib.encodeBurnIntentSet(authSet);
 
         uint32 originalMetadataLength = uint32(auth1.spec.metadata.length);
-        uint256 encodedAuth1Length = encodedAuthSet.length - BURN_INTENT_SET_AUTHORIZATIONS_OFFSET;
+        uint256 encodedAuth1Length = encodedAuthSet.length - BURN_INTENT_SET_INTENTS_OFFSET;
         uint32 actualInnerSpecLength = uint32(encodedAuth1Length - BURN_INTENT_TRANSFER_SPEC_OFFSET);
 
-        uint32 specOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
+        uint32 specOffset = BURN_INTENT_SET_INTENTS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
         (bytes memory corruptedEncodedAuthSet, uint32 invalidMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
             encodedAuthSet,
             specOffset,
@@ -636,12 +636,12 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         // Initial state
         assertEq(cursor.done, false);
         assertEq(cursor.setOrAuthView, setRef);
-        assertEq(cursor.offset, BURN_INTENT_SET_AUTHORIZATIONS_OFFSET);
+        assertEq(cursor.offset, BURN_INTENT_SET_INTENTS_OFFSET);
         assertEq(cursor.numAuths, 1);
         assertEq(cursor.index, 0);
 
         bytes memory encodedAuth = BurnIntentLib.encodeBurnIntent(auth);
-        uint256 expectedOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + encodedAuth.length;
+        uint256 expectedOffset = BURN_INTENT_SET_INTENTS_OFFSET + encodedAuth.length;
 
         // Advance cursor and verify first auth
         bytes29 currentAuth = cursor.next();
@@ -681,12 +681,12 @@ contract BurnIntentSetTest is AuthorizationTestUtils {
         // Initial state
         assertEq(cursor.done, false);
         assertEq(cursor.setOrAuthView, setRef);
-        assertEq(cursor.offset, BURN_INTENT_SET_AUTHORIZATIONS_OFFSET);
+        assertEq(cursor.offset, BURN_INTENT_SET_INTENTS_OFFSET);
         assertEq(cursor.numAuths, 2);
         assertEq(cursor.index, 0);
 
         bytes memory encodedAuth1 = BurnIntentLib.encodeBurnIntent(auth1);
-        uint256 expectedOffset = BURN_INTENT_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length;
+        uint256 expectedOffset = BURN_INTENT_SET_INTENTS_OFFSET + encodedAuth1.length;
 
         // Advance cursor and verify first auth
         bytes29 currentAuth = cursor.next();

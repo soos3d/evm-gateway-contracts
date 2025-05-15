@@ -35,7 +35,7 @@ contract AttestationSetTest is AuthorizationTestUtils {
     using AttestationLib for bytes29;
     using AttestationLib for Cursor;
 
-    uint16 private constant ATTESTATION_SET_AUTHORIZATIONS_OFFSET = 8;
+    uint16 private constant ATTESTATION_SET_ATTESTATIONS_OFFSET = 8;
 
     /// @notice Helper to create a AttestationSet with two authorizations and specified metadata.
     function _createMintAuthSet(Attestation memory auth1, Attestation memory auth2, bytes memory metadata)
@@ -120,7 +120,7 @@ contract AttestationSetTest is AuthorizationTestUtils {
         bytes memory shortData = abi.encodePacked(ATTESTATION_SET_MAGIC, hex"112233"); // 7 bytes
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferPayloadSetHeaderTooShort.selector,
-            ATTESTATION_SET_AUTHORIZATIONS_OFFSET,
+            ATTESTATION_SET_ATTESTATIONS_OFFSET,
             shortData.length
         );
 
@@ -152,7 +152,7 @@ contract AttestationSetTest is AuthorizationTestUtils {
             uint32(1) // numAuthorizations = 1
         ); // 8 bytes total
         uint32 elementIndex = 0;
-        uint256 requiredOffset = ATTESTATION_SET_AUTHORIZATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
+        uint256 requiredOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferPayloadSetElementHeaderTooShort.selector,
             elementIndex,
@@ -188,7 +188,7 @@ contract AttestationSetTest is AuthorizationTestUtils {
         bytes memory truncatedData = bytes.concat(encodedSetHeader, partialAuthData);
 
         uint32 elementIndex = 0;
-        uint256 requiredOffset = ATTESTATION_SET_AUTHORIZATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
+        uint256 requiredOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferPayloadSetElementHeaderTooShort.selector,
             elementIndex,
@@ -262,7 +262,7 @@ contract AttestationSetTest is AuthorizationTestUtils {
 
         uint32 elementIndex = 1;
         uint256 requiredOffset =
-            ATTESTATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length + ATTESTATION_TRANSFER_SPEC_OFFSET;
+            ATTESTATION_SET_ATTESTATIONS_OFFSET + encodedAuth1.length + ATTESTATION_TRANSFER_SPEC_OFFSET;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferPayloadSetElementHeaderTooShort.selector,
             elementIndex,
@@ -349,11 +349,11 @@ contract AttestationSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
 
         // Corrupt the magic of the first authorization (at offset 8)
-        encodedAuthSet[ATTESTATION_SET_AUTHORIZATIONS_OFFSET] = hex"00";
+        encodedAuthSet[ATTESTATION_SET_ATTESTATIONS_OFFSET] = hex"00";
 
         uint32 elementIndex = 0;
         bytes4 corruptedMagic;
-        uint256 offset = ATTESTATION_SET_AUTHORIZATIONS_OFFSET + ATTESTATION_MAGIC_OFFSET;
+        uint256 offset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_MAGIC_OFFSET;
         bytes memory tempBytes = new bytes(BYTES4_BYTES);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
             tempBytes[i] = encodedAuthSet[offset + i];
@@ -382,7 +382,7 @@ contract AttestationSetTest is AuthorizationTestUtils {
 
         // Calculate offset of second authorization's magic
         bytes memory encodedAuth1 = AttestationLib.encodeAttestation(authSet.authorizations[0]);
-        uint256 secondAuthOffset = ATTESTATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length;
+        uint256 secondAuthOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + encodedAuth1.length;
 
         // Corrupt the magic of the second authorization
         encodedAuthSet[secondAuthOffset] = hex"00";
@@ -423,7 +423,7 @@ contract AttestationSetTest is AuthorizationTestUtils {
 
         // Corrupt the outer Attestation's declared spec length (make it smaller)
         uint256 outerSpecLengthOffset =
-            ATTESTATION_SET_AUTHORIZATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET;
+            ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET;
         uint32 invalidSpecLength = originalSpecLength - 1;
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
@@ -460,7 +460,7 @@ contract AttestationSetTest is AuthorizationTestUtils {
 
         // Corrupt the outer Attestation's declared spec length (make it larger)
         uint256 outerSpecLengthOffset =
-            ATTESTATION_SET_AUTHORIZATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET;
+            ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET;
         uint32 invalidSpecLength = originalSpecLength + 1; // Make it larger than actual
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
@@ -471,7 +471,7 @@ contract AttestationSetTest is AuthorizationTestUtils {
         // is long enough to contain the authorization based on its inflated declared length.
         uint32 elementIndex = 0;
         uint256 requiredOffset =
-            ATTESTATION_SET_AUTHORIZATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET + invalidSpecLength;
+            ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET + invalidSpecLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferPayloadSetElementTooShort.selector,
             elementIndex,
@@ -495,7 +495,7 @@ contract AttestationSetTest is AuthorizationTestUtils {
 
         // Corrupt the inner TransferSpec magic within the first authorization
         uint256 innerSpecMagicOffset =
-            ATTESTATION_SET_AUTHORIZATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
+            ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
         encodedAuthSet[innerSpecMagicOffset] = hex"00";
 
         bytes4 corruptedMagic;
@@ -548,10 +548,10 @@ contract AttestationSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
 
         uint32 originalMetadataLength = uint32(auth1.spec.metadata.length);
-        uint256 encodedAuth1Length = encodedAuthSet.length - ATTESTATION_SET_AUTHORIZATIONS_OFFSET;
+        uint256 encodedAuth1Length = encodedAuthSet.length - ATTESTATION_SET_ATTESTATIONS_OFFSET;
         uint32 actualInnerSpecLength = uint32(encodedAuth1Length - ATTESTATION_TRANSFER_SPEC_OFFSET);
 
-        uint32 specOffset = ATTESTATION_SET_AUTHORIZATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
+        uint32 specOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
         (bytes memory corruptedEncodedAuthSet, uint32 invalidMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
             encodedAuthSet,
             specOffset,
@@ -582,10 +582,10 @@ contract AttestationSetTest is AuthorizationTestUtils {
         bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
 
         uint32 originalMetadataLength = uint32(auth1.spec.metadata.length);
-        uint256 encodedAuth1Length = encodedAuthSet.length - ATTESTATION_SET_AUTHORIZATIONS_OFFSET;
+        uint256 encodedAuth1Length = encodedAuthSet.length - ATTESTATION_SET_ATTESTATIONS_OFFSET;
         uint32 actualInnerSpecLength = uint32(encodedAuth1Length - ATTESTATION_TRANSFER_SPEC_OFFSET);
 
-        uint32 specOffset = ATTESTATION_SET_AUTHORIZATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
+        uint32 specOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
         (bytes memory corruptedEncodedAuthSet, uint32 invalidMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
             encodedAuthSet,
             specOffset,
@@ -638,12 +638,12 @@ contract AttestationSetTest is AuthorizationTestUtils {
         // Initial state
         assertEq(cursor.done, false);
         assertEq(cursor.setOrAuthView, setRef);
-        assertEq(cursor.offset, ATTESTATION_SET_AUTHORIZATIONS_OFFSET);
+        assertEq(cursor.offset, ATTESTATION_SET_ATTESTATIONS_OFFSET);
         assertEq(cursor.numAuths, 1);
         assertEq(cursor.index, 0);
 
         bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
-        uint256 expectedOffset = ATTESTATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth.length;
+        uint256 expectedOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + encodedAuth.length;
 
         // Advance cursor and verify first auth
         bytes29 currentAuth = cursor.next();
@@ -683,12 +683,12 @@ contract AttestationSetTest is AuthorizationTestUtils {
         // Initial state
         assertEq(cursor.done, false);
         assertEq(cursor.setOrAuthView, setRef);
-        assertEq(cursor.offset, ATTESTATION_SET_AUTHORIZATIONS_OFFSET);
+        assertEq(cursor.offset, ATTESTATION_SET_ATTESTATIONS_OFFSET);
         assertEq(cursor.numAuths, 2);
         assertEq(cursor.index, 0);
 
         bytes memory encodedAuth1 = AttestationLib.encodeAttestation(auth1);
-        uint256 expectedOffset = ATTESTATION_SET_AUTHORIZATIONS_OFFSET + encodedAuth1.length;
+        uint256 expectedOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + encodedAuth1.length;
 
         // Advance cursor and verify first auth
         bytes29 currentAuth = cursor.next();

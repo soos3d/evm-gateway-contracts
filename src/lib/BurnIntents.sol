@@ -32,8 +32,8 @@ uint16 constant BURN_INTENT_TRANSFER_SPEC_OFFSET = 72;
 
 // `BurnIntentSet` field offsets
 uint16 constant BURN_INTENT_SET_MAGIC_OFFSET = 0;
-uint16 constant BURN_INTENT_SET_NUM_AUTHORIZATIONS_OFFSET = 4;
-uint16 constant BURN_INTENT_SET_AUTHORIZATIONS_OFFSET = 8;
+uint16 constant BURN_INTENT_SET_NUM_INTENTS_OFFSET = 4;
+uint16 constant BURN_INTENT_SET_INTENTS_OFFSET = 8;
 
 /// @title BurnIntent
 ///
