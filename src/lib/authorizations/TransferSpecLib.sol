@@ -345,8 +345,8 @@ library TransferSpecLib {
         }
 
         // Sanity check that the metadata view is valid. A NULL view would indicate that the
-        // actual metadata length differs from the declared length in the metadata length field.
-        // This should be unreachable due to prior validation, but is included for completeness.
+        // actual metadata length differs from the declared length in the metadata length field
+        // or extends beyond the bounds of the transfer spec data.
         if (metadataView == TypedMemView.NULL) {
             revert TransferSpecInvalidMetadata(metadataLength, ref.len());
         }
