@@ -13,8 +13,8 @@ gas_reports = ["GatewayWallet", "GatewayMinter", "UpgradeablePlaceholder"]
 fs_permissions = [{ access = "read", path = "./script/compiled-contract-artifacts"}]
 
 [rpc_endpoints]
-ethereum = "https://gateway.tenderly.co/public/mainnet"
-ethereum_sepolia = "https://gateway.tenderly.co/public/sepolia"
+ethereum = "https://ethereum-rpc.publicnode.com"
+ethereum_sepolia = "https://ethereum-sepolia-rpc.publicnode.com"
 arbitrum = "https://arb1.arbitrum.io/rpc"
 arbitrum_sepolia = "https://sepolia-rollup.arbitrum.io/rpc"
 base = "https://mainnet.base.org"
