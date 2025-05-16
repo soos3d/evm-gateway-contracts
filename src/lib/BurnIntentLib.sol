@@ -66,7 +66,7 @@ library BurnIntentLib {
     ///
     /// @param data   The raw bytes to create a view into. Must contain at least 4 bytes.
     /// @return ref   A `TypedMemView` reference to `data`, typed according to the magic number found
-    function _asAuthOrSetView(bytes memory data) internal pure returns (bytes29 ref) {
+    function _asIntentOrSetView(bytes memory data) internal pure returns (bytes29 ref) {
         if (data.length < BYTES4_BYTES) {
             revert TransferSpecLib.TransferPayloadDataTooShort(BYTES4_BYTES, data.length);
         }
@@ -117,7 +117,7 @@ library BurnIntentLib {
     ///   2. Full recursive validation of the nested `TransferSpec` structure.
     ///
     /// @dev Performs structural validation on a `BurnIntent` view. Reverts on failure. Assumes the view has the
-    ///      correct `BurnIntent` magic number (e.g., validated by `_asAuthOrSetView`).
+    ///      correct `BurnIntent` magic number (e.g., validated by `_asIntentOrSetView`).
     /// @dev Reverts with specific errors (e.g., `TransferPayloadHeaderTooShort`, `TransferPayloadOverallLengthMismatch`,
     ///      `InvalidTransferSpecMagic`, `TransferSpecHeaderTooShort`, `TransferSpecOverallLengthMismatch`) if the
     ///      structure is invalid
@@ -135,7 +135,7 @@ library BurnIntentLib {
     /// @notice Validation includes:
     ///   1. Minimum header length check.
     ///   2. Reading declared authorization count.
-    ///   3. Iterating through declared authorizations:
+    ///   3. Iterating through declared intents:
     ///      a. Checking bounds based on previously declared lengths.
     ///      b. Checking the magic number of each authorization.
     ///      c. Performing full recursive validation on each authorization using `_validateBurnIntent`.
@@ -150,13 +150,11 @@ library BurnIntentLib {
     function _validateBurnIntentSet(bytes29 setView) internal pure {
         // 1. Minimum header length check
         if (setView.len() < BURN_INTENT_SET_INTENTS_OFFSET) {
-            revert TransferSpecLib.TransferPayloadSetHeaderTooShort(
-                BURN_INTENT_SET_INTENTS_OFFSET, setView.len()
-            );
+            revert TransferSpecLib.TransferPayloadSetHeaderTooShort(BURN_INTENT_SET_INTENTS_OFFSET, setView.len());
         }
 
         // 2. Read declared count
-        uint32 numAuths = getNumAuthorizations(setView);
+        uint32 numAuths = getNumIntents(setView);
         uint256 currentOffset = BURN_INTENT_SET_INTENTS_OFFSET;
 
         // 3. Iterate and validate each element
@@ -165,7 +163,9 @@ library BurnIntentLib {
 
             // 3a. Check bounds for header read
             if (setView.len() < requiredOffsetForHeader) {
-                revert TransferSpecLib.TransferPayloadSetElementHeaderTooShort(i, setView.len(), requiredOffsetForHeader);
+                revert TransferSpecLib.TransferPayloadSetElementHeaderTooShort(
+                    i, setView.len(), requiredOffsetForHeader
+                );
             }
 
             // Read spec length to determine current auth total length
@@ -186,9 +186,8 @@ library BurnIntentLib {
             }
 
             // 3c. Create view and perform full recursive validation on the element
-            bytes29 authView = setView.slice(
-                currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC)
-            );
+            bytes29 authView =
+                setView.slice(currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC));
             _validateBurnIntent(authView);
 
             // Update offset for the next iteration
@@ -203,14 +202,14 @@ library BurnIntentLib {
 
     /// Validates the structural integrity of either a `BurnIntent` or a `BurnIntentSet`
     ///
-    /// @dev First casts the data using `_asAuthOrSetView`, then calls the appropriate specific validation function
+    /// @dev First casts the data using `_asIntentOrSetView`, then calls the appropriate specific validation function
     ///      (`_validateBurnIntent` or `_validateBurnIntentSet`). Reverts with specific errors if casting
     ///      or validation fails.
     ///
     /// @param data   The raw bytes representing either an encoded `BurnIntent` or `BurnIntentSet`
     /// @return ref   A `TypedMemView` reference to `data`, typed according to the magic number found
     function _validate(bytes memory data) internal pure returns (bytes29 ref) {
-        ref = _asAuthOrSetView(data);
+        ref = _asIntentOrSetView(data);
 
         if (_isSet(ref)) {
             _validateBurnIntentSet(ref);
@@ -225,7 +224,7 @@ library BurnIntentLib {
     ///
     /// @dev For a single `BurnIntent`, the cursor will yield that single element. For a `BurnIntentSet`,
     ///      it iterates through each contained `BurnIntent`. Sets the 'done' flag immediately if the set
-    ///      contains zero authorizations.
+    ///      contains zero intents.
     /// @dev Reverts with `TransferPayloadDataTooShort` or `InvalidTransferPayloadMagic` if casting fails
     ///
     /// @param data   The raw bytes representing either an encoded `BurnIntent` or `BurnIntentSet`
@@ -242,7 +241,7 @@ library BurnIntentLib {
             return c;
         }
 
-        uint32 numAuths = getNumAuthorizations(ref);
+        uint32 numAuths = getNumIntents(ref);
         c.offset = BURN_INTENT_SET_INTENTS_OFFSET;
         c.numAuths = numAuths;
         c.done = (numAuths == 0); // If the set is empty, the cursor is immediately done
@@ -264,9 +263,7 @@ library BurnIntentLib {
             uint32(c.setOrAuthView.indexUint(c.offset + BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
         uint256 currentAuthTotalLength = BURN_INTENT_TRANSFER_SPEC_OFFSET + currentSpecLength;
 
-        ref = c.setOrAuthView.slice(
-            c.offset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC)
-        );
+        ref = c.setOrAuthView.slice(c.offset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC));
 
         c.offset += currentAuthTotalLength;
         c.index++;
@@ -308,9 +305,8 @@ library BurnIntentLib {
     /// @return      A `TypedMemView` reference to the `TransferSpec` portion
     function getTransferSpec(bytes29 ref) internal pure returns (bytes29) {
         uint32 specLength = getTransferSpecLength(ref);
-        bytes29 specRef = ref.slice(
-            BURN_INTENT_TRANSFER_SPEC_OFFSET, specLength, TransferSpecLib._toMemViewType(TRANSFER_SPEC_MAGIC)
-        );
+        bytes29 specRef =
+            ref.slice(BURN_INTENT_TRANSFER_SPEC_OFFSET, specLength, TransferSpecLib._toMemViewType(TRANSFER_SPEC_MAGIC));
 
         // Validate that the slice contains a valid TransferSpec
         bytes4 specMagic = bytes4(specRef.index(0, BYTES4_BYTES));
@@ -321,11 +317,11 @@ library BurnIntentLib {
         return specRef;
     }
 
-    /// Extract the number of authorizations from an encoded `BurnIntentSet`
+    /// Extract the number of intents from an encoded `BurnIntentSet`
     ///
     /// @param ref   The `TypedMemView` reference to the encoded `BurnIntentSet`
-    /// @return      The number of authorizations in the set
-    function getNumAuthorizations(bytes29 ref) internal pure returns (uint32) {
+    /// @return      The number of intents in the set
+    function getNumIntents(bytes29 ref) internal pure returns (uint32) {
         return uint32(ref.indexUint(BURN_INTENT_SET_NUM_INTENTS_OFFSET, UINT32_BYTES));
     }
 
@@ -352,17 +348,17 @@ library BurnIntentLib {
     /// @param authSet   The `BurnIntentSet` to encode
     /// @return          The encoded bytes
     function encodeBurnIntentSet(BurnIntentSet memory authSet) internal pure returns (bytes memory) {
-        uint256 numAuths = authSet.authorizations.length;
+        uint256 numAuths = authSet.intents.length;
 
         if (numAuths > type(uint32).max) {
             revert TransferSpecLib.TransferPayloadSetTooManyElements(type(uint32).max);
         }
 
-        // Calculate total size of all encoded authorizations
+        // Calculate total size of all encoded intents
         uint256 totalSize = 0;
         bytes[] memory encodedAuths = new bytes[](numAuths);
         for (uint256 i = 0; i < numAuths; i++) {
-            encodedAuths[i] = encodeBurnIntent(authSet.authorizations[i]);
+            encodedAuths[i] = encodeBurnIntent(authSet.intents[i]);
             totalSize += encodedAuths[i].length;
         }
 
@@ -372,7 +368,7 @@ library BurnIntentLib {
             uint32(numAuths) // 4 bytes
         );
 
-        // Combine header and all encoded authorizations
+        // Combine header and all encoded intents
         bytes memory result = new bytes(header.length + totalSize);
 
         // Copy header into result
@@ -400,7 +396,7 @@ library BurnIntentLib {
     /// @param auth     The encoded burn intent or burn intent set
     /// @return         The EIP-712 typed data hash
     function getTypedDataHash(bytes memory auth) internal view returns (bytes32) {
-        bytes29 ref = _asAuthOrSetView(auth);
+        bytes29 ref = _asIntentOrSetView(auth);
         if (_isSet(ref)) {
             return _getburnAuthorizationSetTypedDataHash(ref);
         } else {
@@ -441,7 +437,7 @@ library BurnIntentLib {
     /// @param setView   A MemView reference to the encoded burn intent set
     /// @return          The EIP-712 typed data hash of the burn intent set
     function _getburnAuthorizationSetTypedDataHash(bytes29 setView) private view returns (bytes32) {
-        uint32 numAuths = getNumAuthorizations(setView);
+        uint32 numAuths = getNumIntents(setView);
         uint256 currentOffset = BURN_INTENT_SET_INTENTS_OFFSET;
         bytes32[] memory authHashes = new bytes32[](numAuths);
 
@@ -452,9 +448,8 @@ library BurnIntentLib {
                 uint32(setView.indexUint(currentOffset + BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
             uint256 currentAuthTotalLength = BURN_INTENT_TRANSFER_SPEC_OFFSET + specLength;
 
-            bytes29 authView = setView.slice(
-                currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC)
-            );
+            bytes29 authView =
+                setView.slice(currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC));
             authHashes[i] = _getburnAuthorizationTypedDataHash(authView);
 
             // Update offset for the next iteration

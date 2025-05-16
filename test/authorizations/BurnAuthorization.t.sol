@@ -24,9 +24,9 @@ import {BurnIntent, BURN_INTENT_MAGIC} from "src/lib/BurnIntents.sol";
 import {TRANSFER_SPEC_MAGIC, TRANSFER_SPEC_VERSION} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
-import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
+import {TransferPayloadTestUtils} from "./TransferPayloadTestUtils.sol";
 
-contract BurnIntentTest is AuthorizationTestUtils {
+contract BurnIntentTest is TransferPayloadTestUtils {
     using BurnIntentLib for bytes29;
     using BurnIntentLib for Cursor;
 
@@ -34,7 +34,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
 
     function test_asAuthOrSetView_successBurnAuth() public pure {
         (bytes memory data, uint40 expectedType) = _magic("circle.gateway.BurnIntent"); // Use helper
-        bytes29 ref = BurnIntentLib._asAuthOrSetView(data);
+        bytes29 ref = BurnIntentLib._asIntentOrSetView(data);
         assertEq(TypedMemView.typeOf(ref), expectedType);
         assertEq(bytes4(uint32(expectedType)), BURN_INTENT_MAGIC);
     }
@@ -45,7 +45,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
         vm.expectRevert(
             abi.encodeWithSelector(TransferSpecLib.TransferPayloadDataTooShort.selector, BYTES4_BYTES, shortData.length)
         );
-        BurnIntentLib._asAuthOrSetView(shortData);
+        BurnIntentLib._asIntentOrSetView(shortData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -53,7 +53,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
         (bytes memory invalidMagicData,) = _magic("not a valid magic");
         bytes4 incorrectMagic = bytes4(invalidMagicData);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferPayloadMagic.selector, incorrectMagic));
-        BurnIntentLib._asAuthOrSetView(invalidMagicData);
+        BurnIntentLib._asIntentOrSetView(invalidMagicData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -62,7 +62,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
         bytes memory longerInvalidMagic = bytes.concat(invalidMagicData, hex"01020304");
         bytes4 incorrectMagic = bytes4(longerInvalidMagic);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferPayloadMagic.selector, incorrectMagic));
-        BurnIntentLib._asAuthOrSetView(longerInvalidMagic);
+        BurnIntentLib._asIntentOrSetView(longerInvalidMagic);
     }
 
     // ===== Validation Tests =====
@@ -87,9 +87,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
             shortData[i] = validEncodedBurnAuth[i];
         }
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.TransferPayloadHeaderTooShort.selector,
-            BURN_INTENT_TRANSFER_SPEC_OFFSET,
-            shortData.length
+            TransferSpecLib.TransferPayloadHeaderTooShort.selector, BURN_INTENT_TRANSFER_SPEC_OFFSET, shortData.length
         );
 
         vm.expectRevert(expectedRevertData);
@@ -233,9 +231,8 @@ contract BurnIntentTest is AuthorizationTestUtils {
         uint32 incorrectSpecLength = TRANSFER_SPEC_METADATA_OFFSET - 1;
         bytes memory dummySpecData =
             abi.encodePacked(TRANSFER_SPEC_MAGIC, new bytes(incorrectSpecLength - BYTES4_BYTES));
-        bytes memory corruptedData = abi.encodePacked(
-            BURN_INTENT_MAGIC, auth.maxBlockHeight, auth.maxFee, incorrectSpecLength, dummySpecData
-        );
+        bytes memory corruptedData =
+            abi.encodePacked(BURN_INTENT_MAGIC, auth.maxBlockHeight, auth.maxFee, incorrectSpecLength, dummySpecData);
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferSpecHeaderTooShort.selector, TRANSFER_SPEC_METADATA_OFFSET, incorrectSpecLength
         );
@@ -283,9 +280,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_innerSpec_revertsOnDeclaredMetadataLengthTooSmallFuzz(BurnIntent memory auth)
-        public
-    {
+    function test_validate_innerSpec_revertsOnDeclaredMetadataLengthTooSmallFuzz(BurnIntent memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = BurnIntentLib.encodeBurnIntent(auth);
@@ -316,7 +311,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = BurnIntentLib.encodeBurnIntent(auth);
-        bytes29 authView = BurnIntentLib._asAuthOrSetView(encodedAuth);
+        bytes29 authView = BurnIntentLib._asIntentOrSetView(encodedAuth);
 
         // Initial state
         Cursor memory cursor = BurnIntentLib.cursor(encodedAuth);
@@ -355,7 +350,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = new bytes(0);
         bytes memory encodedAuth = BurnIntentLib.encodeBurnIntent(auth);
-        bytes29 ref = BurnIntentLib._asAuthOrSetView(encodedAuth);
+        bytes29 ref = BurnIntentLib._asIntentOrSetView(encodedAuth);
         _verifyBurnIntentFieldsFromView(ref, auth);
     }
 
@@ -363,7 +358,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = SHORT_METADATA;
         bytes memory encodedAuth = BurnIntentLib.encodeBurnIntent(auth);
-        bytes29 ref = BurnIntentLib._asAuthOrSetView(encodedAuth);
+        bytes29 ref = BurnIntentLib._asIntentOrSetView(encodedAuth);
         _verifyBurnIntentFieldsFromView(ref, auth);
     }
 
@@ -371,7 +366,7 @@ contract BurnIntentTest is AuthorizationTestUtils {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = BurnIntentLib.encodeBurnIntent(auth);
-        bytes29 ref = BurnIntentLib._asAuthOrSetView(encodedAuth);
+        bytes29 ref = BurnIntentLib._asIntentOrSetView(encodedAuth);
         _verifyBurnIntentFieldsFromView(ref, auth);
     }
 }

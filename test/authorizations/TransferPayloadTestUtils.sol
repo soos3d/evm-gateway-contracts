@@ -26,7 +26,7 @@ import {Attestation, ATTESTATION_MAGIC} from "src/lib/Attestations.sol";
 import {TransferSpec, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
 
-contract AuthorizationTestUtils is Test {
+contract TransferPayloadTestUtils is Test {
     using TypedMemView for bytes29; // For keccak/len on views
 
     uint16 internal constant TRANSFER_SPEC_METADATA_LENGTH_OFFSET = 336;

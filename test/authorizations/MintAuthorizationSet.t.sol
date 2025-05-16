@@ -20,79 +20,74 @@ pragma solidity ^0.8.29;
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {Cursor} from "src/lib/Cursor.sol";
 import {AttestationLib} from "src/lib/AttestationLib.sol";
-import {
-    Attestation,
-    AttestationSet,
-    ATTESTATION_SET_MAGIC,
-    ATTESTATION_MAGIC_OFFSET
-} from "src/lib/Attestations.sol";
+import {Attestation, AttestationSet, ATTESTATION_SET_MAGIC, ATTESTATION_MAGIC_OFFSET} from "src/lib/Attestations.sol";
 import {TRANSFER_SPEC_VERSION} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {BYTES4_BYTES, TRANSFER_SPEC_METADATA_OFFSET} from "src/lib/TransferSpecLib.sol";
-import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
+import {TransferPayloadTestUtils} from "./TransferPayloadTestUtils.sol";
 
-contract AttestationSetTest is AuthorizationTestUtils {
+contract AttestationSetTest is TransferPayloadTestUtils {
     using AttestationLib for bytes29;
     using AttestationLib for Cursor;
 
     uint16 private constant ATTESTATION_SET_ATTESTATIONS_OFFSET = 8;
 
-    /// @notice Helper to create a AttestationSet with two authorizations and specified metadata.
-    function _createMintAuthSet(Attestation memory auth1, Attestation memory auth2, bytes memory metadata)
-        internal
-        pure
-        returns (AttestationSet memory)
-    {
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = metadata;
-        auth2.spec.version = TRANSFER_SPEC_VERSION;
-        auth2.spec.metadata = metadata;
+    /// @notice Helper to create a AttestationSet with two attestations and specified metadata.
+    function _createAttestationSet(
+        Attestation memory attestation1,
+        Attestation memory attestation2,
+        bytes memory metadata
+    ) internal pure returns (AttestationSet memory) {
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = metadata;
+        attestation2.spec.version = TRANSFER_SPEC_VERSION;
+        attestation2.spec.metadata = metadata;
 
-        Attestation[] memory authorizations = new Attestation[](2);
-        authorizations[0] = auth1;
-        authorizations[1] = auth2;
+        Attestation[] memory attestations = new Attestation[](2);
+        attestations[0] = attestation1;
+        attestations[1] = attestation2;
 
-        return AttestationSet({authorizations: authorizations});
+        return AttestationSet({attestations: attestations});
     }
 
     /// @notice Internal helper to verify all fields from encoded set bytes match the original struct.
-    function _verifyEncodedSetFieldsAgainstStruct(bytes memory encodedAuthSet, AttestationSet memory authSet)
-        internal
-        pure
-    {
-        bytes29 setRef = AttestationLib._asAuthOrSetView(encodedAuthSet);
-        uint32 numAuths = setRef.getNumAuthorizations();
-        assertEq(numAuths, authSet.authorizations.length, "Eq Fail: numAuths");
+    function _verifyEncodedSetFieldsAgainstStruct(
+        bytes memory encodedAttestationSet,
+        AttestationSet memory attestationSet
+    ) internal pure {
+        bytes29 setRef = AttestationLib._asAttestationOrSetView(encodedAttestationSet);
+        uint32 numAttestations = setRef.getNumAttestations();
+        assertEq(numAttestations, attestationSet.attestations.length, "Eq Fail: numAttestations");
 
-        Cursor memory cursor = AttestationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = AttestationLib.cursor(encodedAttestationSet);
         uint32 i = 0;
-        bytes29 authRef;
+        bytes29 attestationRef;
         while (!cursor.done) {
-            authRef = cursor.next();
-            _verifyAttestationFieldsFromView(authRef, authSet.authorizations[i]);
+            attestationRef = cursor.next();
+            _verifyAttestationFieldsFromView(attestationRef, attestationSet.attestations[i]);
             i++;
         }
-        assertEq(i, numAuths, "Loop iteration count mismatch");
+        assertEq(i, numAttestations, "Loop iteration count mismatch");
     }
 
     // ===== Casting Tests =====
 
-    function test_asAuthOrSetView_successMintAuthSet() public pure {
+    function test_asAttestationOrSetView_successMintAttestationSet() public pure {
         (bytes memory data, uint40 expectedType) = _magic("circle.gateway.AttestationSet");
-        bytes29 ref = AttestationLib._asAuthOrSetView(data);
+        bytes29 ref = AttestationLib._asAttestationOrSetView(data);
         assertEq(TypedMemView.typeOf(ref), expectedType);
         assertEq(bytes4(uint32(expectedType)), ATTESTATION_SET_MAGIC);
     }
 
     // ===== Validation Tests =====
 
-    function test_validateAttestationSet_successFuzz(
-        Attestation memory auth1,
-        Attestation memory auth2
-    ) public pure {
-        AttestationSet memory authSet = _createMintAuthSet(auth1, auth2, LONG_METADATA);
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
-        AttestationLib._validate(encodedAuthSet);
+    function test_validateAttestationSet_successFuzz(Attestation memory attestation1, Attestation memory attestation2)
+        public
+        pure
+    {
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, LONG_METADATA);
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
+        AttestationLib._validate(encodedAttestationSet);
     }
 
     // ===== Validation Failures: Set Structure =====
@@ -100,18 +95,18 @@ contract AttestationSetTest is AuthorizationTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_encode_tooLongSet() public {
         // Create an empty AttestationSet
-        Attestation[] memory auths = new Attestation[](0);
-        AttestationSet memory authSet = AttestationSet({authorizations: auths});
+        Attestation[] memory attestations = new Attestation[](0);
+        AttestationSet memory attestationSet = AttestationSet({attestations: attestations});
 
         // Simulate an array with a size of `type(uint32).max + 1`
         uint256 maxSize = uint256(type(uint32).max);
         assembly {
-            mstore(auths, add(maxSize, 1))
+            mstore(attestations, add(maxSize, 1))
         }
 
         // Expect it to revert since the array is too long
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.TransferPayloadSetTooManyElements.selector, maxSize));
-        AttestationLib.encodeAttestationSet(authSet);
+        AttestationLib.encodeAttestationSet(attestationSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -129,10 +124,10 @@ contract AttestationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsOnEmptyAuthorizationsWithTrailingBytes() public {
+    function test_validate_set_revertsOnEmptyAttestationsWithTrailingBytes() public {
         bytes memory encodedSetHeader = abi.encodePacked(
             ATTESTATION_SET_MAGIC,
-            uint32(0) // numAuthorizations = 0
+            uint32(0) // numAttestations = 0
         );
         bytes memory trailingBytesData = bytes.concat(encodedSetHeader, hex"FFFF");
 
@@ -145,11 +140,11 @@ contract AttestationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsIfDataEndsPrematurely_BeforeFirstAuthHeader() public {
-        // Set numAuthorizations = 1 but provide only the set header
+    function test_validate_set_revertsIfDataEndsPrematurely_BeforeFirstAttestationHeader() public {
+        // Set numAttestations = 1 but provide only the set header
         bytes memory encodedSetHeaderOnly = abi.encodePacked(
             ATTESTATION_SET_MAGIC,
-            uint32(1) // numAuthorizations = 1
+            uint32(1) // numAttestations = 1
         ); // 8 bytes total
         uint32 elementIndex = 0;
         uint256 requiredOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
@@ -165,27 +160,27 @@ contract AttestationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsIfDataEndsPrematurely_WithinFirstAuthHeaderFuzz(Attestation memory auth1)
-        public
-    {
-        // Set numAuthorizations = 1, provide set header + partial auth header
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = new bytes(0);
-        bytes memory encodedAuth1 = AttestationLib.encodeAttestation(auth1);
+    function test_validate_set_revertsIfDataEndsPrematurely_WithinFirstAttestationHeaderFuzz(
+        Attestation memory attestation1
+    ) public {
+        // Set numAttestations = 1, provide set header + partial attestation header
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = new bytes(0);
+        bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestation1);
 
         bytes memory encodedSetHeader = abi.encodePacked(
             ATTESTATION_SET_MAGIC,
-            uint32(1) // numAuthorizations = 1
+            uint32(1) // numAttestations = 1
         );
 
-        // Truncate the first auth header (e.g., provide only 10 bytes of it)
-        uint256 partialAuthHeaderLength = ATTESTATION_TRANSFER_SPEC_OFFSET - 1; // Ensure it's too short
-        bytes memory partialAuthData = new bytes(partialAuthHeaderLength);
-        for (uint256 i = 0; i < partialAuthHeaderLength; i++) {
-            partialAuthData[i] = encodedAuth1[i];
+        // Truncate the first attestation header (e.g., provide only 10 bytes of it)
+        uint256 partialAttestationHeaderLength = ATTESTATION_TRANSFER_SPEC_OFFSET - 1; // Ensure it's too short
+        bytes memory partialAttestationData = new bytes(partialAttestationHeaderLength);
+        for (uint256 i = 0; i < partialAttestationHeaderLength; i++) {
+            partialAttestationData[i] = encodedAttestation1[i];
         }
 
-        bytes memory truncatedData = bytes.concat(encodedSetHeader, partialAuthData);
+        bytes memory truncatedData = bytes.concat(encodedSetHeader, partialAttestationData);
 
         uint32 elementIndex = 0;
         uint256 requiredOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
@@ -201,31 +196,34 @@ contract AttestationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsIfDataEndsPrematurely_BasedOnFirstAuthSpecLengthFuzz(
-        Attestation memory auth1
+    function test_validate_set_revertsIfDataEndsPrematurely_BasedOnFirstAttestationSpecLengthFuzz(
+        Attestation memory attestation1
     ) public {
-        // Set numAuthorizations = 1, provide set header + full auth header + partial spec
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = LONG_METADATA;
-        bytes memory encodedAuth1 = AttestationLib.encodeAttestation(auth1);
+        // Set numAttestations = 1, provide set header + full attestation header + partial spec
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = LONG_METADATA;
+        bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestation1);
 
         bytes memory encodedSetHeader = abi.encodePacked(
             ATTESTATION_SET_MAGIC,
-            uint32(1) // numAuthorizations = 1
+            uint32(1) // numAttestations = 1
         );
 
-        // Truncate the overall data just before the end of the first auth's spec
-        uint256 truncatedLength = encodedSetHeader.length + encodedAuth1.length - 1;
+        // Truncate the overall data just before the end of the first attestation's spec
+        uint256 truncatedLength = encodedSetHeader.length + encodedAttestation1.length - 1;
         bytes memory truncatedData = new bytes(truncatedLength);
-        bytes memory combined = bytes.concat(encodedSetHeader, encodedAuth1);
+        bytes memory combined = bytes.concat(encodedSetHeader, encodedAttestation1);
         for (uint256 i = 0; i < truncatedLength; i++) {
             truncatedData[i] = combined[i];
         }
 
         uint32 elementIndex = 0;
-        uint256 requiredOffset = encodedSetHeader.length + encodedAuth1.length;
+        uint256 requiredOffset = encodedSetHeader.length + encodedAttestation1.length;
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.TransferPayloadSetElementTooShort.selector, elementIndex, truncatedData.length, requiredOffset
+            TransferSpecLib.TransferPayloadSetElementTooShort.selector,
+            elementIndex,
+            truncatedData.length,
+            requiredOffset
         );
 
         vm.expectRevert(expectedRevertData);
@@ -233,36 +231,36 @@ contract AttestationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsIfDataEndsPrematurely_BetweenAuthorizationsFuzz(
-        Attestation memory auth1,
-        Attestation memory auth2
+    function test_validate_set_revertsIfDataEndsPrematurely_BetweenAttestationsFuzz(
+        Attestation memory attestation1,
+        Attestation memory attestation2
     ) public {
-        // Set numAuthorizations = 2, provide set header + auth1 + partial auth2 header
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = new bytes(0);
-        auth2.spec.version = TRANSFER_SPEC_VERSION;
-        auth2.spec.metadata = new bytes(0);
+        // Set numAttestations = 2, provide set header + attestation1 + partial attestation2 header
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = new bytes(0);
+        attestation2.spec.version = TRANSFER_SPEC_VERSION;
+        attestation2.spec.metadata = new bytes(0);
 
-        bytes memory encodedAuth1 = AttestationLib.encodeAttestation(auth1);
-        bytes memory encodedAuth2 = AttestationLib.encodeAttestation(auth2);
+        bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestation1);
+        bytes memory encodedAttestation2 = AttestationLib.encodeAttestation(attestation2);
 
         bytes memory encodedSetHeader = abi.encodePacked(
             ATTESTATION_SET_MAGIC,
-            uint32(2) // numAuthorizations = 2
+            uint32(2) // numAttestations = 2
         );
 
-        // Truncate data after auth1 and partway into auth2's header
-        uint256 partialAuth2HeaderLength = ATTESTATION_TRANSFER_SPEC_OFFSET - 1;
-        bytes memory partialAuth2Data = new bytes(partialAuth2HeaderLength);
-        for (uint256 i = 0; i < partialAuth2HeaderLength; i++) {
-            partialAuth2Data[i] = encodedAuth2[i];
+        // Truncate data after attestation1 and partway into attestation2's header
+        uint256 partialAttestation2HeaderLength = ATTESTATION_TRANSFER_SPEC_OFFSET - 1;
+        bytes memory partialAttestation2Data = new bytes(partialAttestation2HeaderLength);
+        for (uint256 i = 0; i < partialAttestation2HeaderLength; i++) {
+            partialAttestation2Data[i] = encodedAttestation2[i];
         }
 
-        bytes memory truncatedData = bytes.concat(encodedSetHeader, encodedAuth1, partialAuth2Data);
+        bytes memory truncatedData = bytes.concat(encodedSetHeader, encodedAttestation1, partialAttestation2Data);
 
         uint32 elementIndex = 1;
         uint256 requiredOffset =
-            ATTESTATION_SET_ATTESTATIONS_OFFSET + encodedAuth1.length + ATTESTATION_TRANSFER_SPEC_OFFSET;
+            ATTESTATION_SET_ATTESTATIONS_OFFSET + encodedAttestation1.length + ATTESTATION_TRANSFER_SPEC_OFFSET;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferPayloadSetElementHeaderTooShort.selector,
             elementIndex,
@@ -275,36 +273,39 @@ contract AttestationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsIfDataEndsPrematurely_WithinSecondAuthorizationFuzz(
-        Attestation memory auth1,
-        Attestation memory auth2
+    function test_validate_set_revertsIfDataEndsPrematurely_WithinSecondAttestationFuzz(
+        Attestation memory attestation1,
+        Attestation memory attestation2
     ) public {
-        // Set numAuthorizations = 2, provide set header + auth1 + auth2 header + partial auth2 spec
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = new bytes(0);
-        auth2.spec.version = TRANSFER_SPEC_VERSION;
-        auth2.spec.metadata = new bytes(0);
+        // Set numAttestations = 2, provide set header + attestation1 + attestation2 header + partial attestation2 spec
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = new bytes(0);
+        attestation2.spec.version = TRANSFER_SPEC_VERSION;
+        attestation2.spec.metadata = new bytes(0);
 
-        bytes memory encodedAuth1 = AttestationLib.encodeAttestation(auth1);
-        bytes memory encodedAuth2 = AttestationLib.encodeAttestation(auth2);
+        bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestation1);
+        bytes memory encodedAttestation2 = AttestationLib.encodeAttestation(attestation2);
 
         bytes memory encodedSetHeader = abi.encodePacked(
             ATTESTATION_SET_MAGIC,
-            uint32(2) // numAuthorizations = 2
+            uint32(2) // numAttestations = 2
         );
 
-        // Truncate data partway through the second authorization's spec
-        uint256 truncatedLength = encodedSetHeader.length + encodedAuth1.length + encodedAuth2.length - 1;
+        // Truncate data partway through the second attestation's spec
+        uint256 truncatedLength = encodedSetHeader.length + encodedAttestation1.length + encodedAttestation2.length - 1;
         bytes memory truncatedData = new bytes(truncatedLength);
-        bytes memory combined = bytes.concat(encodedSetHeader, encodedAuth1, encodedAuth2);
+        bytes memory combined = bytes.concat(encodedSetHeader, encodedAttestation1, encodedAttestation2);
         for (uint256 i = 0; i < truncatedLength; i++) {
             truncatedData[i] = combined[i];
         }
 
         uint32 elementIndex = 1;
-        uint256 requiredOffset = encodedSetHeader.length + encodedAuth1.length + encodedAuth2.length;
+        uint256 requiredOffset = encodedSetHeader.length + encodedAttestation1.length + encodedAttestation2.length;
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.TransferPayloadSetElementTooShort.selector, elementIndex, truncatedData.length, requiredOffset
+            TransferSpecLib.TransferPayloadSetElementTooShort.selector,
+            elementIndex,
+            truncatedData.length,
+            requiredOffset
         );
 
         vm.expectRevert(expectedRevertData);
@@ -312,21 +313,21 @@ contract AttestationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsOnTrailingBytes_AfterAllAuthsFuzz(
-        Attestation memory auth1,
-        Attestation memory auth2
+    function test_validate_set_revertsOnTrailingBytes_AfterAllAttestationsFuzz(
+        Attestation memory attestation1,
+        Attestation memory attestation2
     ) public {
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = new bytes(0);
-        auth2.spec.version = TRANSFER_SPEC_VERSION;
-        auth2.spec.metadata = new bytes(0);
-        AttestationSet memory authSet = _createMintAuthSet(auth1, auth2, new bytes(0));
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = new bytes(0);
+        attestation2.spec.version = TRANSFER_SPEC_VERSION;
+        attestation2.spec.metadata = new bytes(0);
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, new bytes(0));
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
         // Add trailing bytes
-        bytes memory trailingBytesData = bytes.concat(encodedAuthSet, hex"FFFF");
+        bytes memory trailingBytesData = bytes.concat(encodedAttestationSet, hex"FFFF");
 
-        uint256 expectedLength = encodedAuthSet.length;
+        uint256 expectedLength = encodedAttestationSet.length;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferPayloadSetOverallLengthMismatch.selector, expectedLength, trailingBytesData.length
         );
@@ -334,29 +335,29 @@ contract AttestationSetTest is AuthorizationTestUtils {
         AttestationLib._validate(trailingBytesData);
     }
 
-    // ===== Validation Failures: Inner Authorization Consistency =====
+    // ===== Validation Failures: Inner Attestation Consistency =====
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsOnInnerAuth_CorruptedMagic_InFirstFuzz(
-        Attestation memory auth1,
-        Attestation memory auth2
+    function test_validate_set_revertsOnInnerAttestation_CorruptedMagic_InFirstFuzz(
+        Attestation memory attestation1,
+        Attestation memory attestation2
     ) public {
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = new bytes(0);
-        auth2.spec.version = TRANSFER_SPEC_VERSION;
-        auth2.spec.metadata = new bytes(0);
-        AttestationSet memory authSet = _createMintAuthSet(auth1, auth2, new bytes(0));
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = new bytes(0);
+        attestation2.spec.version = TRANSFER_SPEC_VERSION;
+        attestation2.spec.metadata = new bytes(0);
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, new bytes(0));
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
-        // Corrupt the magic of the first authorization (at offset 8)
-        encodedAuthSet[ATTESTATION_SET_ATTESTATIONS_OFFSET] = hex"00";
+        // Corrupt the magic of the first attestation (at offset 8)
+        encodedAttestationSet[ATTESTATION_SET_ATTESTATIONS_OFFSET] = hex"00";
 
         uint32 elementIndex = 0;
         bytes4 corruptedMagic;
         uint256 offset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_MAGIC_OFFSET;
         bytes memory tempBytes = new bytes(BYTES4_BYTES);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
-            tempBytes[i] = encodedAuthSet[offset + i];
+            tempBytes[i] = encodedAttestationSet[offset + i];
         }
         corruptedMagic = bytes4(tempBytes);
 
@@ -365,34 +366,34 @@ contract AttestationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        AttestationLib._validate(encodedAuthSet);
+        AttestationLib._validate(encodedAttestationSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsOnInnerAuth_CorruptedMagic_InSecondFuzz(
-        Attestation memory auth1,
-        Attestation memory auth2
+    function test_validate_set_revertsOnInnerAttestation_CorruptedMagic_InSecondFuzz(
+        Attestation memory attestation1,
+        Attestation memory attestation2
     ) public {
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = new bytes(0);
-        auth2.spec.version = TRANSFER_SPEC_VERSION;
-        auth2.spec.metadata = new bytes(0);
-        AttestationSet memory authSet = _createMintAuthSet(auth1, auth2, new bytes(0));
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = new bytes(0);
+        attestation2.spec.version = TRANSFER_SPEC_VERSION;
+        attestation2.spec.metadata = new bytes(0);
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, new bytes(0));
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
-        // Calculate offset of second authorization's magic
-        bytes memory encodedAuth1 = AttestationLib.encodeAttestation(authSet.authorizations[0]);
-        uint256 secondAuthOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + encodedAuth1.length;
+        // Calculate offset of second attestation's magic
+        bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestationSet.attestations[0]);
+        uint256 secondAttestationOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + encodedAttestation1.length;
 
-        // Corrupt the magic of the second authorization
-        encodedAuthSet[secondAuthOffset] = hex"00";
+        // Corrupt the magic of the second attestation
+        encodedAttestationSet[secondAttestationOffset] = hex"00";
 
         uint32 elementIndex = 1;
         bytes4 corruptedMagic;
-        uint256 offset = secondAuthOffset + ATTESTATION_MAGIC_OFFSET;
+        uint256 offset = secondAttestationOffset + ATTESTATION_MAGIC_OFFSET;
         bytes memory tempBytes = new bytes(BYTES4_BYTES);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
-            tempBytes[i] = encodedAuthSet[offset + i];
+            tempBytes[i] = encodedAttestationSet[offset + i];
         }
         corruptedMagic = bytes4(tempBytes);
 
@@ -401,33 +402,32 @@ contract AttestationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        AttestationLib._validate(encodedAuthSet);
+        AttestationLib._validate(encodedAttestationSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsOnInnerAuth_DeclaredSpecLengthTooSmallFuzz(Attestation memory auth1)
+    function test_validate_set_revertsOnInnerAttestation_DeclaredSpecLengthTooSmallFuzz(Attestation memory attestation1)
         public
     {
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = LONG_METADATA;
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = LONG_METADATA;
 
-        Attestation[] memory authorizations = new Attestation[](1);
-        authorizations[0] = auth1;
-        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
+        Attestation[] memory attestations = new Attestation[](1);
+        attestations[0] = attestation1;
+        AttestationSet memory attestationSet = AttestationSet({attestations: attestations});
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
-        bytes memory encodedAuth1 = AttestationLib.encodeAttestation(auth1);
-        uint256 originalAuthLength = encodedAuth1.length;
-        uint32 originalSpecLength = uint32(originalAuthLength - ATTESTATION_TRANSFER_SPEC_OFFSET);
-        uint32 originalMetadataLength = uint32(auth1.spec.metadata.length);
+        bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestation1);
+        uint256 originalAttestationLength = encodedAttestation1.length;
+        uint32 originalSpecLength = uint32(originalAttestationLength - ATTESTATION_TRANSFER_SPEC_OFFSET);
+        uint32 originalMetadataLength = uint32(attestation1.spec.metadata.length);
 
         // Corrupt the outer Attestation's declared spec length (make it smaller)
-        uint256 outerSpecLengthOffset =
-            ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET;
+        uint256 outerSpecLengthOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET;
         uint32 invalidSpecLength = originalSpecLength - 1;
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
-            encodedAuthSet[outerSpecLengthOffset + i] = encodedInvalidLength[i];
+            encodedAttestationSet[outerSpecLengthOffset + i] = encodedInvalidLength[i];
         }
 
         // The failure occurs inside the TransferSpec validation because the outer corruption
@@ -441,68 +441,68 @@ contract AttestationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        AttestationLib._validate(encodedAuthSet);
+        AttestationLib._validate(encodedAttestationSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsOnInnerAuth_DeclaredSpecLengthTooBigFuzz(Attestation memory auth1) public {
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = LONG_METADATA;
+    function test_validate_set_revertsOnInnerAttestation_DeclaredSpecLengthTooBigFuzz(Attestation memory attestation1)
+        public
+    {
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = LONG_METADATA;
 
-        Attestation[] memory authorizations = new Attestation[](1);
-        authorizations[0] = auth1;
-        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
+        Attestation[] memory attestations = new Attestation[](1);
+        attestations[0] = attestation1;
+        AttestationSet memory attestationSet = AttestationSet({attestations: attestations});
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
-        bytes memory encodedAuth1 = AttestationLib.encodeAttestation(auth1);
-        uint256 originalAuthLength = encodedAuth1.length;
-        uint32 originalSpecLength = uint32(originalAuthLength - ATTESTATION_TRANSFER_SPEC_OFFSET);
+        bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestation1);
+        uint256 originalAttestationLength = encodedAttestation1.length;
+        uint32 originalSpecLength = uint32(originalAttestationLength - ATTESTATION_TRANSFER_SPEC_OFFSET);
 
         // Corrupt the outer Attestation's declared spec length (make it larger)
-        uint256 outerSpecLengthOffset =
-            ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET;
+        uint256 outerSpecLengthOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET;
         uint32 invalidSpecLength = originalSpecLength + 1; // Make it larger than actual
         bytes4 encodedInvalidLength = bytes4(invalidSpecLength);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
-            encodedAuthSet[outerSpecLengthOffset + i] = encodedInvalidLength[i];
+            encodedAttestationSet[outerSpecLengthOffset + i] = encodedInvalidLength[i];
         }
 
         // The failure occurs in the main validation loop when checking if the set data
-        // is long enough to contain the authorization based on its inflated declared length.
+        // is long enough to contain the attestation based on its inflated declared length.
         uint32 elementIndex = 0;
         uint256 requiredOffset =
             ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET + invalidSpecLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferPayloadSetElementTooShort.selector,
             elementIndex,
-            encodedAuthSet.length,
+            encodedAttestationSet.length,
             requiredOffset
         );
 
         vm.expectRevert(expectedRevertData);
-        AttestationLib._validate(encodedAuthSet);
+        AttestationLib._validate(encodedAttestationSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsOnInnerSpec_CorruptedMagicFuzz(Attestation memory auth1) public {
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = LONG_METADATA;
+    function test_validate_set_revertsOnInnerSpec_CorruptedMagicFuzz(Attestation memory attestation1) public {
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = LONG_METADATA;
 
-        Attestation[] memory authorizations = new Attestation[](1);
-        authorizations[0] = auth1;
-        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
+        Attestation[] memory attestations = new Attestation[](1);
+        attestations[0] = attestation1;
+        AttestationSet memory attestationSet = AttestationSet({attestations: attestations});
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
-        // Corrupt the inner TransferSpec magic within the first authorization
-        uint256 innerSpecMagicOffset =
-            ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
-        encodedAuthSet[innerSpecMagicOffset] = hex"00";
+        // Corrupt the inner TransferSpec magic within the first attestation
+        uint256 innerSpecMagicOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
+        encodedAttestationSet[innerSpecMagicOffset] = hex"00";
 
         bytes4 corruptedMagic;
         uint256 offset = innerSpecMagicOffset;
         bytes memory tempBytes = new bytes(BYTES4_BYTES);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
-            tempBytes[i] = encodedAuthSet[offset + i];
+            tempBytes[i] = encodedAttestationSet[offset + i];
         }
         corruptedMagic = bytes4(tempBytes);
 
@@ -510,50 +510,51 @@ contract AttestationSetTest is AuthorizationTestUtils {
             abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecMagic.selector, corruptedMagic);
 
         vm.expectRevert(expectedRevertData);
-        AttestationLib._validate(encodedAuthSet);
+        AttestationLib._validate(encodedAttestationSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_set_revertsOnInnerSpec_InvalidVersionFuzz(
-        Attestation memory auth1,
-        Attestation memory auth2
+        Attestation memory attestation1,
+        Attestation memory attestation2
     ) public {
-        // The inner TransferSpec of the second auth has an invalid version
+        // The inner TransferSpec of the second attestation has an invalid version
         uint32 invalidVersion = TRANSFER_SPEC_VERSION + 1;
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = new bytes(0);
-        auth2.spec.version = invalidVersion;
-        auth2.spec.metadata = new bytes(0);
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = new bytes(0);
+        attestation2.spec.version = invalidVersion;
+        attestation2.spec.metadata = new bytes(0);
 
-        Attestation[] memory authorizations = new Attestation[](2);
-        authorizations[0] = auth1;
-        authorizations[1] = auth2;
-        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
+        Attestation[] memory attestations = new Attestation[](2);
+        attestations[0] = attestation1;
+        attestations[1] = attestation2;
+        AttestationSet memory attestationSet = AttestationSet({attestations: attestations});
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferSpecVersion.selector, invalidVersion));
-        AttestationLib._validate(encodedAuthSet);
+        AttestationLib._validate(encodedAttestationSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsOnInnerSpec_DeclaredMetadataLengthTooBigFuzz(Attestation memory auth1)
+    function test_validate_set_revertsOnInnerSpec_DeclaredMetadataLengthTooBigFuzz(Attestation memory attestation1)
         public
     {
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = LONG_METADATA;
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = LONG_METADATA;
 
-        Attestation[] memory authorizations = new Attestation[](1);
-        authorizations[0] = auth1;
-        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
+        Attestation[] memory attestations = new Attestation[](1);
+        attestations[0] = attestation1;
+        AttestationSet memory attestationSet = AttestationSet({attestations: attestations});
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
-        uint32 originalMetadataLength = uint32(auth1.spec.metadata.length);
-        uint256 encodedAuth1Length = encodedAuthSet.length - ATTESTATION_SET_ATTESTATIONS_OFFSET;
-        uint32 actualInnerSpecLength = uint32(encodedAuth1Length - ATTESTATION_TRANSFER_SPEC_OFFSET);
+        uint32 originalMetadataLength = uint32(attestation1.spec.metadata.length);
+        uint256 encodedAttestation1Length = encodedAttestationSet.length - ATTESTATION_SET_ATTESTATIONS_OFFSET;
+        uint32 actualInnerSpecLength = uint32(encodedAttestation1Length - ATTESTATION_TRANSFER_SPEC_OFFSET);
 
         uint32 specOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
-        (bytes memory corruptedEncodedAuthSet, uint32 invalidMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
-            encodedAuthSet,
+        (bytes memory corruptedEncodedAttestationSet, uint32 invalidMetadataLength) =
+        _getCorruptedInnerSpecMetadataLengthData(
+            encodedAttestationSet,
             specOffset,
             originalMetadataLength,
             true // makeLengthBigger = true
@@ -566,28 +567,29 @@ contract AttestationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        AttestationLib._validate(corruptedEncodedAuthSet);
+        AttestationLib._validate(corruptedEncodedAttestationSet);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsOnInnerSpec_DeclaredMetadataLengthTooSmallFuzz(Attestation memory auth1)
+    function test_validate_set_revertsOnInnerSpec_DeclaredMetadataLengthTooSmallFuzz(Attestation memory attestation1)
         public
     {
-        auth1.spec.version = TRANSFER_SPEC_VERSION;
-        auth1.spec.metadata = LONG_METADATA;
+        attestation1.spec.version = TRANSFER_SPEC_VERSION;
+        attestation1.spec.metadata = LONG_METADATA;
 
-        Attestation[] memory authorizations = new Attestation[](1);
-        authorizations[0] = auth1;
-        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
+        Attestation[] memory attestations = new Attestation[](1);
+        attestations[0] = attestation1;
+        AttestationSet memory attestationSet = AttestationSet({attestations: attestations});
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
-        uint32 originalMetadataLength = uint32(auth1.spec.metadata.length);
-        uint256 encodedAuth1Length = encodedAuthSet.length - ATTESTATION_SET_ATTESTATIONS_OFFSET;
-        uint32 actualInnerSpecLength = uint32(encodedAuth1Length - ATTESTATION_TRANSFER_SPEC_OFFSET);
+        uint32 originalMetadataLength = uint32(attestation1.spec.metadata.length);
+        uint256 encodedAttestation1Length = encodedAttestationSet.length - ATTESTATION_SET_ATTESTATIONS_OFFSET;
+        uint32 actualInnerSpecLength = uint32(encodedAttestation1Length - ATTESTATION_TRANSFER_SPEC_OFFSET);
 
         uint32 specOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
-        (bytes memory corruptedEncodedAuthSet, uint32 invalidMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
-            encodedAuthSet,
+        (bytes memory corruptedEncodedAttestationSet, uint32 invalidMetadataLength) =
+        _getCorruptedInnerSpecMetadataLengthData(
+            encodedAttestationSet,
             specOffset,
             originalMetadataLength,
             false // makeLengthBigger = false
@@ -600,40 +602,40 @@ contract AttestationSetTest is AuthorizationTestUtils {
         );
 
         vm.expectRevert(expectedRevertData);
-        AttestationLib._validate(corruptedEncodedAuthSet);
+        AttestationLib._validate(corruptedEncodedAttestationSet);
     }
 
     // ===== Iteration Tests =====
 
     function test_cursor_emptySet() public pure {
-        Attestation[] memory authorizations = new Attestation[](0);
-        AttestationSet memory set = AttestationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(set);
-        Cursor memory cursor = AttestationLib.cursor(encodedAuthSet);
+        Attestation[] memory attestations = new Attestation[](0);
+        AttestationSet memory set = AttestationSet({attestations: attestations});
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(set);
+        Cursor memory cursor = AttestationLib.cursor(encodedAttestationSet);
         assertEq(cursor.done, true);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
     function test_cursor_revertsOnNextWhenEmptySet() public {
-        Attestation[] memory authorizations = new Attestation[](0);
-        AttestationSet memory set = AttestationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(set);
-        Cursor memory cursor = AttestationLib.cursor(encodedAuthSet);
+        Attestation[] memory attestations = new Attestation[](0);
+        AttestationSet memory set = AttestationSet({attestations: attestations});
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(set);
+        Cursor memory cursor = AttestationLib.cursor(encodedAttestationSet);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
         cursor.next();
     }
 
-    function test_cursor_singleAuthInSetFuzz(Attestation memory auth) public pure {
-        auth.spec.version = TRANSFER_SPEC_VERSION;
-        auth.spec.metadata = LONG_METADATA;
+    function test_cursor_singleAttestationInSetFuzz(Attestation memory attestation) public pure {
+        attestation.spec.version = TRANSFER_SPEC_VERSION;
+        attestation.spec.metadata = LONG_METADATA;
 
-        Attestation[] memory authorizations = new Attestation[](1);
-        authorizations[0] = auth;
-        AttestationSet memory authSet = AttestationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
-        bytes29 setRef = AttestationLib._asAuthOrSetView(encodedAuthSet);
+        Attestation[] memory attestations = new Attestation[](1);
+        attestations[0] = attestation;
+        AttestationSet memory attestationSet = AttestationSet({attestations: attestations});
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
+        bytes29 setRef = AttestationLib._asAttestationOrSetView(encodedAttestationSet);
 
-        Cursor memory cursor = AttestationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = AttestationLib.cursor(encodedAttestationSet);
 
         // Initial state
         assertEq(cursor.done, false);
@@ -642,12 +644,12 @@ contract AttestationSetTest is AuthorizationTestUtils {
         assertEq(cursor.numAuths, 1);
         assertEq(cursor.index, 0);
 
-        bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
-        uint256 expectedOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + encodedAuth.length;
+        bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
+        uint256 expectedOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + encodedAttestation.length;
 
-        // Advance cursor and verify first auth
-        bytes29 currentAuth = cursor.next();
-        _verifyAttestationFieldsFromView(currentAuth, auth);
+        // Advance cursor and verify first attestation
+        bytes29 currentAttestation = cursor.next();
+        _verifyAttestationFieldsFromView(currentAttestation, attestation);
         assertEq(cursor.setOrAuthView, setRef);
         assertEq(cursor.offset, expectedOffset);
         assertEq(cursor.numAuths, 1);
@@ -656,29 +658,29 @@ contract AttestationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_cursor_revertsOnNextWhenDone_SingleAuthFuzz(Attestation memory auth) public {
-        auth.spec.version = TRANSFER_SPEC_VERSION;
-        auth.spec.metadata = LONG_METADATA;
-        Attestation[] memory authorizations = new Attestation[](1);
-        authorizations[0] = auth;
-        AttestationSet memory set = AttestationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(set);
+    function test_cursor_revertsOnNextWhenDone_SingleAttestationFuzz(Attestation memory attestation) public {
+        attestation.spec.version = TRANSFER_SPEC_VERSION;
+        attestation.spec.metadata = LONG_METADATA;
+        Attestation[] memory attestations = new Attestation[](1);
+        attestations[0] = attestation;
+        AttestationSet memory set = AttestationSet({attestations: attestations});
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(set);
 
-        Cursor memory cursor = AttestationLib.cursor(encodedAuthSet);
+        Cursor memory cursor = AttestationLib.cursor(encodedAttestationSet);
         cursor.next();
         assertEq(cursor.done, true);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.CursorOutOfBounds.selector));
         cursor.next();
     }
 
-    function test_cursor_multipleAuthsInSetFuzz(Attestation memory auth1, Attestation memory auth2)
+    function test_cursor_multipleAttestationsInSetFuzz(Attestation memory attestation1, Attestation memory attestation2)
         public
         pure
     {
-        AttestationSet memory authSet = _createMintAuthSet(auth1, auth2, LONG_METADATA);
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
-        bytes29 setRef = AttestationLib._asAuthOrSetView(encodedAuthSet);
-        Cursor memory cursor = AttestationLib.cursor(encodedAuthSet);
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, LONG_METADATA);
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
+        bytes29 setRef = AttestationLib._asAttestationOrSetView(encodedAttestationSet);
+        Cursor memory cursor = AttestationLib.cursor(encodedAttestationSet);
 
         // Initial state
         assertEq(cursor.done, false);
@@ -687,24 +689,24 @@ contract AttestationSetTest is AuthorizationTestUtils {
         assertEq(cursor.numAuths, 2);
         assertEq(cursor.index, 0);
 
-        bytes memory encodedAuth1 = AttestationLib.encodeAttestation(auth1);
-        uint256 expectedOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + encodedAuth1.length;
+        bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestation1);
+        uint256 expectedOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + encodedAttestation1.length;
 
-        // Advance cursor and verify first auth
-        bytes29 currentAuth = cursor.next();
-        _verifyAttestationFieldsFromView(currentAuth, auth1);
+        // Advance cursor and verify first attestation
+        bytes29 currentAttestation = cursor.next();
+        _verifyAttestationFieldsFromView(currentAttestation, attestation1);
         assertEq(cursor.setOrAuthView, setRef);
         assertEq(cursor.offset, expectedOffset);
         assertEq(cursor.numAuths, 2);
         assertEq(cursor.index, 1);
         assertEq(cursor.done, false);
 
-        bytes memory encodedAuth2 = AttestationLib.encodeAttestation(auth2);
-        uint256 expectedUpdatedOffset = expectedOffset + encodedAuth2.length;
+        bytes memory encodedAttestation2 = AttestationLib.encodeAttestation(attestation2);
+        uint256 expectedUpdatedOffset = expectedOffset + encodedAttestation2.length;
 
-        // Advance cursor and verify second auth
-        currentAuth = cursor.next();
-        _verifyAttestationFieldsFromView(currentAuth, auth2);
+        // Advance cursor and verify second attestation
+        currentAttestation = cursor.next();
+        _verifyAttestationFieldsFromView(currentAttestation, attestation2);
         assertEq(cursor.setOrAuthView, setRef);
         assertEq(cursor.offset, expectedUpdatedOffset);
         assertEq(cursor.numAuths, 2);
@@ -713,13 +715,13 @@ contract AttestationSetTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_cursor_revertsOnNextWhenDone_MultipleAuthsFuzz(
-        Attestation memory auth1,
-        Attestation memory auth2
+    function test_cursor_revertsOnNextWhenDone_MultipleAttestationsFuzz(
+        Attestation memory attestation1,
+        Attestation memory attestation2
     ) public {
-        AttestationSet memory authSet = _createMintAuthSet(auth1, auth2, LONG_METADATA);
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
-        Cursor memory cursor = AttestationLib.cursor(encodedAuthSet);
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, LONG_METADATA);
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
+        Cursor memory cursor = AttestationLib.cursor(encodedAttestationSet);
         cursor.next();
         cursor.next();
         assertEq(cursor.done, true);
@@ -730,37 +732,37 @@ contract AttestationSetTest is AuthorizationTestUtils {
 
     // ===== Field Accessor / Set Iteration Tests =====
 
-    function test_mintAuthorizationSet_readsAllFieldsEmptySet() public pure {
-        Attestation[] memory authorizations = new Attestation[](0);
-        AttestationSet memory set = AttestationSet({authorizations: authorizations});
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(set);
-        _verifyEncodedSetFieldsAgainstStruct(encodedAuthSet, set);
+    function test_mintAttestationSet_readsAllFieldsEmptySet() public pure {
+        Attestation[] memory attestations = new Attestation[](0);
+        AttestationSet memory set = AttestationSet({attestations: attestations});
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(set);
+        _verifyEncodedSetFieldsAgainstStruct(encodedAttestationSet, set);
     }
 
-    function test_mintAuthorizationSet_readAllFieldsEmptyMetadataFuzz(
-        Attestation memory auth1,
-        Attestation memory auth2
+    function test_mintAttestationSet_readAllFieldsEmptyMetadataFuzz(
+        Attestation memory attestation1,
+        Attestation memory attestation2
     ) public pure {
-        AttestationSet memory authSet = _createMintAuthSet(auth1, auth2, new bytes(0));
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
-        _verifyEncodedSetFieldsAgainstStruct(encodedAuthSet, authSet);
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, new bytes(0));
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
+        _verifyEncodedSetFieldsAgainstStruct(encodedAttestationSet, attestationSet);
     }
 
-    function test_mintAuthorizationSet_readAllFieldsShortMetadataFuzz(
-        Attestation memory auth1,
-        Attestation memory auth2
+    function test_mintAttestationSet_readAllFieldsShortMetadataFuzz(
+        Attestation memory attestation1,
+        Attestation memory attestation2
     ) public pure {
-        AttestationSet memory authSet = _createMintAuthSet(auth1, auth2, SHORT_METADATA);
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
-        _verifyEncodedSetFieldsAgainstStruct(encodedAuthSet, authSet);
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, SHORT_METADATA);
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
+        _verifyEncodedSetFieldsAgainstStruct(encodedAttestationSet, attestationSet);
     }
 
-    function test_mintAuthorizationSet_readAllFieldsLongMetadataFuzz(
-        Attestation memory auth1,
-        Attestation memory auth2
+    function test_mintAttestationSet_readAllFieldsLongMetadataFuzz(
+        Attestation memory attestation1,
+        Attestation memory attestation2
     ) public pure {
-        AttestationSet memory authSet = _createMintAuthSet(auth1, auth2, LONG_METADATA);
-        bytes memory encodedAuthSet = AttestationLib.encodeAttestationSet(authSet);
-        _verifyEncodedSetFieldsAgainstStruct(encodedAuthSet, authSet);
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, LONG_METADATA);
+        bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
+        _verifyEncodedSetFieldsAgainstStruct(encodedAttestationSet, attestationSet);
     }
 }

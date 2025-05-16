@@ -21,37 +21,34 @@
  */
 
 const EIP712Domain = [
-  { name: "name", type: "string" },
-  { name: "version", type: "string" },
+  { name: 'name', type: 'string' },
+  { name: 'version', type: 'string' }
 ];
 
 const TransferSpec = [
-  { name: "version", type: "uint32" },
-  { name: "sourceDomain", type: "uint32" },
-  { name: "destinationDomain", type: "uint32" },
-  { name: "sourceContract", type: "bytes32" },
-  { name: "destinationContract", type: "bytes32" },
-  { name: "sourceToken", type: "bytes32" },
-  { name: "destinationToken", type: "bytes32" },
-  { name: "sourceDepositor", type: "bytes32" },
-  { name: "destinationRecipient", type: "bytes32" },
-  { name: "sourceSigner", type: "bytes32" },
-  { name: "destinationCaller", type: "bytes32" },
-  { name: "value", type: "uint256" },
-  { name: "nonce", type: "bytes32" },
-  { name: "metadata", type: "bytes" },
+  { name: 'version', type: 'uint32' },
+  { name: 'sourceDomain', type: 'uint32' },
+  { name: 'destinationDomain', type: 'uint32' },
+  { name: 'sourceContract', type: 'bytes32' },
+  { name: 'destinationContract', type: 'bytes32' },
+  { name: 'sourceToken', type: 'bytes32' },
+  { name: 'destinationToken', type: 'bytes32' },
+  { name: 'sourceDepositor', type: 'bytes32' },
+  { name: 'destinationRecipient', type: 'bytes32' },
+  { name: 'sourceSigner', type: 'bytes32' },
+  { name: 'destinationCaller', type: 'bytes32' },
+  { name: 'value', type: 'uint256' },
+  { name: 'nonce', type: 'bytes32' },
+  { name: 'metadata', type: 'bytes' }
 ];
 
 const BurnIntent = [
-  { name: "maxBlockHeight", type: "uint256" },
-  { name: "maxFee", type: "uint256" },
-  { name: "spec", type: "TransferSpec" },
+  { name: 'maxBlockHeight', type: 'uint256' },
+  { name: 'maxFee', type: 'uint256' },
+  { name: 'spec', type: 'TransferSpec' }
 ];
 
-const BurnIntentSet = [
-  { name: "authorizations", type: "BurnIntent[]" },
-];
-
+const BurnIntentSet = [{ name: 'intents', type: 'BurnIntent[]' }];
 
 /**
  * Helpers for generating test data
@@ -61,7 +58,12 @@ const BurnIntentSet = [
 function generateRandomBytes(length = 32) {
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
-  return "0x" + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  return (
+    '0x' +
+    Array.from(bytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+  );
 }
 
 // Generate a random TransferSpec
@@ -80,33 +82,31 @@ const generateTransferSpec = () => ({
   value: Math.floor(Math.random() * 1000000),
   nonce: generateRandomBytes(32),
   // random 100 bytes of metadata
-  metadata: generateRandomBytes(100),
+  metadata: generateRandomBytes(100)
 });
-
 
 /**
  * Generated test data
  */
 export const domain = {
-  name: "GatewayWallet",
-  version: "1",
+  name: 'GatewayWallet',
+  version: '1'
 };
 export const transferSpec1 = generateTransferSpec();
 export const transferSpec2 = generateTransferSpec();
 export const burnIntent1 = {
   spec: transferSpec1,
   maxBlockHeight: 1000000,
-  maxFee: 1000000,
+  maxFee: 1000000
 };
 export const burnIntent2 = {
   spec: transferSpec2,
   maxBlockHeight: 1000001,
-  maxFee: 1000001,
+  maxFee: 1000001
 };
 export const burnIntentSet = {
-  authorizations: [burnIntent1, burnIntent2],
+  intents: [burnIntent1, burnIntent2]
 };
-
 
 /**
  * Assembled test data with types for signing
@@ -116,11 +116,11 @@ export const burnIntentTypedData = {
   types: {
     EIP712Domain,
     TransferSpec,
-    BurnIntent,
+    BurnIntent
   },
   domain,
-  primaryType: "BurnIntent",
-  message: burnIntent1,
+  primaryType: 'BurnIntent',
+  message: burnIntent1
 };
 
 export const burnIntentSetTypedData = {
@@ -128,9 +128,9 @@ export const burnIntentSetTypedData = {
     EIP712Domain,
     TransferSpec,
     BurnIntent,
-    BurnIntentSet,
+    BurnIntentSet
   },
   domain,
-  primaryType: "BurnIntentSet",
-  message: burnIntentSet,
+  primaryType: 'BurnIntentSet',
+  message: burnIntentSet
 };

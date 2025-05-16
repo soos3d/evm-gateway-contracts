@@ -52,7 +52,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         uint256 forkId;
         uint32 domain;
         uint256 walletBurnSignerKey;
-        uint256 minterMintSignerKey;
+        uint256 minterAttestationSignerKey;
         GatewayWallet wallet;
         GatewayMinter minter;
         FiatTokenV2_2 usdc;
@@ -74,7 +74,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         address owner = vm.addr(chainId + 1);
         address walletFeeRecipient = vm.addr(chainId + 2);
         (address walletBurnSigner, uint256 walletBurnSignerKey) = makeAddrAndKey(vm.toString(chainId + 3));
-        (address minterMintSigner, uint256 minterMintSignerKey) = makeAddrAndKey(vm.toString(chainId + 4));
+        (address minterAttestationSigner, uint256 minterAttestationSignerKey) = makeAddrAndKey(vm.toString(chainId + 4));
 
         // Deploy core contracts
         (GatewayWallet wallet, GatewayMinter minter) = deploy(owner, domain);
@@ -85,7 +85,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         {
             // Configure minter settings
             minter.addSupportedToken(address(usdc));
-            minter.updateAttestationSigner(minterMintSigner);
+            minter.updateAttestationSigner(minterAttestationSigner);
             minter.updateMintAuthority(address(usdc), address(usdc));
 
             // Configure wallet settings
@@ -116,7 +116,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
             forkId: forkId,
             domain: domain,
             walletBurnSignerKey: walletBurnSignerKey,
-            minterMintSignerKey: minterMintSignerKey,
+            minterAttestationSignerKey: minterAttestationSignerKey,
             wallet: wallet,
             minter: minter,
             usdc: usdc
@@ -236,8 +236,8 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
 
     function _mintFromChain(
         ChainSetup memory chain,
-        bytes memory encodedMintAuth,
-        bytes memory mintSignature,
+        bytes memory encodedAttestation,
+        bytes memory attestationSignature,
         uint256 expectedTotalMinted
     ) internal {
         vm.selectFork(chain.forkId);
@@ -248,7 +248,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
 
         // Execute mint operation
         vm.prank(destinationCaller);
-        chain.minter.gatewayMint(encodedMintAuth, mintSignature);
+        chain.minter.gatewayMint(encodedAttestation, attestationSignature);
 
         // Verify state after mint
         assertEq(

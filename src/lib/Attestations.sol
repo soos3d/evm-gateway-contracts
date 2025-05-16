@@ -62,8 +62,8 @@ struct Attestation {
 /// @dev Byte encoding (big-endian):
 ///     FIELD                      OFFSET   BYTES   NOTES
 ///     magic                           0       4   Always 0x1e12db71
-///     number of authorizations        4       4
-///     authorizations                  8       ?   Concatenated one after another
+///     number of attestations          4       4
+///     attestations                    8       ?   Concatenated one after another
 struct AttestationSet {
-    Attestation[] authorizations;
+    Attestation[] attestations;
 }

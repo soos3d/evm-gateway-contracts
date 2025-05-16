@@ -78,33 +78,33 @@ contract Mints is GatewayCommon {
     /// @param index            The index of the attestation with the issue
     /// @param maxBlockHeight   The attestation's expiration block height
     /// @param currentBlock     The current block height
-    error AuthorizationExpiredAtIndex(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
+    error AttestationExpiredAtIndex(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
 
     /// Thrown when an attestation's value is zero
     ///
     /// @param index   The index of the attestation with the issue
-    error AuthorizationValueMustBePositiveAtIndex(uint32 index);
+    error AttestationValueMustBePositiveAtIndex(uint32 index);
 
     /// Thrown when an attestation has a non-zero destination caller but was used by a different caller
     ///
     /// @param index          The index of the attestation with the issue
     /// @param authCaller     The destination caller from the attestation
     /// @param actualCaller   The caller that used the attestation
-    error InvalidAuthorizationDestinationCallerAtIndex(uint32 index, address authCaller, address actualCaller);
+    error InvalidAttestationDestinationCallerAtIndex(uint32 index, address authCaller, address actualCaller);
 
     /// Thrown when an attestation has a destination domain that does not match the one for this contract
     ///
     /// @param index            The index of the attestation with the issue
     /// @param authDomain       The destination domain from the attestation
     /// @param expectedDomain   The domain of this contract
-    error InvalidAuthorizationDestinationDomainAtIndex(uint32 index, uint32 authDomain, uint32 expectedDomain);
+    error InvalidAttestationDestinationDomainAtIndex(uint32 index, uint32 authDomain, uint32 expectedDomain);
 
     /// Thrown when an attestation has the wrong destination contract
     ///
     /// @param index              The index of the attestation with the issue
     /// @param authContract       The destination contract from the attestation
     /// @param expectedContract   The address of this contract
-    error InvalidAuthorizationDestinationContractAtIndex(uint32 index, address authContract, address expectedContract);
+    error InvalidAttestationDestinationContractAtIndex(uint32 index, address authContract, address expectedContract);
 
     /// Thrown when the destination token in an attestation is not supported
     ///
@@ -118,7 +118,7 @@ contract Mints is GatewayCommon {
     /// @param index              The index of the attestation with the issue
     /// @param authContract       The source contract from the attestation
     /// @param expectedContract   The address of the wallet contract on the same domain
-    error InvalidAuthorizationSourceContractAtIndex(uint32 index, address authContract, address expectedContract);
+    error InvalidAttestationSourceContractAtIndex(uint32 index, address authContract, address expectedContract);
 
     /// Thrown when an attestation is for the same domain as the source but has a source token that does not
     /// match the destination token
@@ -126,7 +126,7 @@ contract Mints is GatewayCommon {
     /// @param index              The index of the attestation with the issue
     /// @param sourceToken        The source token
     /// @param destinationToken   The destination token
-    error InvalidAuthorizationTokenAtIndex(uint32 index, address sourceToken, address destinationToken);
+    error InvalidAttestationTokenAtIndex(uint32 index, address sourceToken, address destinationToken);
 
     /// Initializes the `attestationSigner` role and any initial token mint authorities
     ///
@@ -252,7 +252,7 @@ contract Mints is GatewayCommon {
         // Ensure the attestation is not expired
         uint256 maxBlockHeight = auth.getMaxBlockHeight();
         if (maxBlockHeight < block.number) {
-            revert AuthorizationExpiredAtIndex(index, maxBlockHeight, block.number);
+            revert AttestationExpiredAtIndex(index, maxBlockHeight, block.number);
         }
 
         // Extract the `TransferSpec`
@@ -261,7 +261,7 @@ contract Mints is GatewayCommon {
         // Ensure the value is nonzero
         uint256 value = spec.getValue();
         if (value == 0) {
-            revert AuthorizationValueMustBePositiveAtIndex(index);
+            revert AttestationValueMustBePositiveAtIndex(index);
         }
 
         // Ensure the intended recipient is not denylisted
@@ -270,19 +270,19 @@ contract Mints is GatewayCommon {
         // Ensure the caller is the specified destination caller (if any)
         address destinationCaller = AddressLib._bytes32ToAddress(spec.getDestinationCaller());
         if (destinationCaller != address(0) && destinationCaller != msg.sender) {
-            revert InvalidAuthorizationDestinationCallerAtIndex(index, destinationCaller, msg.sender);
+            revert InvalidAttestationDestinationCallerAtIndex(index, destinationCaller, msg.sender);
         }
 
         // Ensure the attestation is for the current domain
         uint32 destinationDomain = spec.getDestinationDomain();
         if (!_isCurrentDomain(destinationDomain)) {
-            revert InvalidAuthorizationDestinationDomainAtIndex(index, destinationDomain, domain());
+            revert InvalidAttestationDestinationDomainAtIndex(index, destinationDomain, domain());
         }
 
         // Ensure the attestation is for this minter contract
         address destinationContract = AddressLib._bytes32ToAddress(spec.getDestinationContract());
         if (destinationContract != address(this)) {
-            revert InvalidAuthorizationDestinationContractAtIndex(index, destinationContract, address(this));
+            revert InvalidAttestationDestinationContractAtIndex(index, destinationContract, address(this));
         }
 
         // Ensure the destination token is supported
@@ -298,13 +298,13 @@ contract Mints is GatewayCommon {
             address sourceContract = AddressLib._bytes32ToAddress(spec.getSourceContract());
             address walletAddr = _counterpart();
             if (sourceContract != walletAddr) {
-                revert InvalidAuthorizationSourceContractAtIndex(index, sourceContract, walletAddr);
+                revert InvalidAttestationSourceContractAtIndex(index, sourceContract, walletAddr);
             }
 
             // Ensure the source and destination tokens are the same
             address sourceToken = AddressLib._bytes32ToAddress(spec.getSourceToken());
             if (sourceToken != destinationToken) {
-                revert InvalidAuthorizationTokenAtIndex(index, sourceToken, destinationToken);
+                revert InvalidAttestationTokenAtIndex(index, sourceToken, destinationToken);
             }
         }
     }

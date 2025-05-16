@@ -70,12 +70,12 @@ bytes32 constant BURN_INTENT_TYPEHASH = 0xa3f9ead15bb3694b6a68c381d79edde07b7b14
 /// @dev Byte encoding (big-endian):
 ///     FIELD                      OFFSET   BYTES   NOTES
 ///     magic                           0       4   Always 0xe999239b
-///     number of authorizations        4       4
-///     authorizations                  8       ?   Concatenated one after another
+///     number of intents        4       4
+///     intents                  8       ?   Concatenated one after another
 struct BurnIntentSet {
-    BurnIntent[] authorizations;
+    BurnIntent[] intents;
 }
 
 // Type hash for the BurnIntentSet struct
-// keccak256("BurnIntentSet(BurnIntent[] authorizations)BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)")
-bytes32 constant BURN_INTENT_SET_TYPEHASH = 0x81dea1ea78c068b21ff5bc63925a1a3f1780e98661cad9e40167e919e0e74650;
+// keccak256("BurnIntentSet(BurnIntent[] intents)BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)")
+bytes32 constant BURN_INTENT_SET_TYPEHASH = 0x0df0a1f5b563e2faf841a5a7ea9f7ff99582927f62e253e4517422c831496e38;

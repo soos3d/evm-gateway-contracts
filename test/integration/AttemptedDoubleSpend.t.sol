@@ -48,23 +48,25 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
         // Offchain: Generate burn intent and validate
         TransferSpec memory transferSpec =
             _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
-        (bytes memory encodedBurnAuth, bytes memory burnSignature) =
-            _signBurnAuthWithTransferSpec(transferSpec, ethereum.wallet, depositorPrivateKey);
-        bool isValidBurnAuth = ethereum.wallet.validateBurnIntents(encodedBurnAuth, depositor);
-        assertTrue(isValidBurnAuth);
+        (bytes memory encodedBurnIntent, bytes memory burnSignature) =
+            _signBurnIntentWithTransferSpec(transferSpec, ethereum.wallet, depositorPrivateKey);
+        bool isValidBurnIntent = ethereum.wallet.validateBurnIntents(encodedBurnIntent, depositor);
+        assertTrue(isValidBurnIntent);
 
         // Offchain: Generate attestation given valid burn intent
         vm.selectFork(arbitrum.forkId);
-        (bytes memory encodedMintAuth, bytes memory mintSignature) =
-            _signMintAuthWithTransferSpec(transferSpec, arbitrum.minterMintSignerKey);
+        (bytes memory encodedAttestation, bytes memory attestationSignature) =
+            _signAttestationWithTransferSpec(transferSpec, arbitrum.minterAttestationSignerKey);
 
         // On Arbitrum: Mint using attestation
-        _mintFromChain(arbitrum, encodedMintAuth, mintSignature, MINT_AMOUNT /* expected total minted amount */ );
+        _mintFromChain(
+            arbitrum, encodedAttestation, attestationSignature, MINT_AMOUNT /* expected total minted amount */
+        );
 
         // On Ethereum: Burn used amount
         _burnFromChain(
             ethereum,
-            encodedBurnAuth,
+            encodedBurnIntent,
             burnSignature,
             MINT_AMOUNT, /* expected total burnt amount */
             FEE_AMOUNT /* expected total fee amount */

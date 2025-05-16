@@ -24,9 +24,9 @@ import {Attestation, ATTESTATION_MAGIC} from "src/lib/Attestations.sol";
 import {TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
-import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
+import {TransferPayloadTestUtils} from "./TransferPayloadTestUtils.sol";
 
-contract AttestationTest is AuthorizationTestUtils {
+contract AttestationTest is TransferPayloadTestUtils {
     using AttestationLib for bytes29;
     using AttestationLib for Cursor;
 
@@ -34,7 +34,7 @@ contract AttestationTest is AuthorizationTestUtils {
 
     function test_asAuthOrSetView_successMintAuth() public pure {
         (bytes memory data, uint40 magicType) = _magic("circle.gateway.Attestation");
-        bytes29 ref = AttestationLib._asAuthOrSetView(data);
+        bytes29 ref = AttestationLib._asAttestationOrSetView(data);
         assertEq(TypedMemView.typeOf(ref), magicType);
         assertEq(bytes4(uint32(magicType)), ATTESTATION_MAGIC);
     }
@@ -45,7 +45,7 @@ contract AttestationTest is AuthorizationTestUtils {
         vm.expectRevert(
             abi.encodeWithSelector(TransferSpecLib.TransferPayloadDataTooShort.selector, BYTES4_BYTES, shortData.length)
         );
-        AttestationLib._asAuthOrSetView(shortData);
+        AttestationLib._asAttestationOrSetView(shortData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -53,7 +53,7 @@ contract AttestationTest is AuthorizationTestUtils {
         (bytes memory invalidMagicData,) = _magic("not a valid magic");
         bytes4 incorrectMagic = bytes4(invalidMagicData);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferPayloadMagic.selector, incorrectMagic));
-        AttestationLib._asAuthOrSetView(invalidMagicData);
+        AttestationLib._asAttestationOrSetView(invalidMagicData);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -62,7 +62,7 @@ contract AttestationTest is AuthorizationTestUtils {
         bytes memory longerInvalidMagic = bytes.concat(invalidMagicData, hex"01020304");
         bytes4 incorrectMagic = bytes4(longerInvalidMagic);
         vm.expectRevert(abi.encodeWithSelector(TransferSpecLib.InvalidTransferPayloadMagic.selector, incorrectMagic));
-        AttestationLib._asAuthOrSetView(longerInvalidMagic);
+        AttestationLib._asAttestationOrSetView(longerInvalidMagic);
     }
 
     // ===== Validation Tests =====
@@ -87,9 +87,7 @@ contract AttestationTest is AuthorizationTestUtils {
             shortData[i] = validEncodedMintAuth[i];
         }
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.TransferPayloadHeaderTooShort.selector,
-            ATTESTATION_TRANSFER_SPEC_OFFSET,
-            shortData.length
+            TransferSpecLib.TransferPayloadHeaderTooShort.selector, ATTESTATION_TRANSFER_SPEC_OFFSET, shortData.length
         );
 
         vm.expectRevert(expectedRevertData);
@@ -282,9 +280,7 @@ contract AttestationTest is AuthorizationTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_innerSpec_revertsOnDeclaredMetadataLengthTooSmallFuzz(Attestation memory auth)
-        public
-    {
+    function test_validate_innerSpec_revertsOnDeclaredMetadataLengthTooSmallFuzz(Attestation memory auth) public {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
@@ -315,7 +311,7 @@ contract AttestationTest is AuthorizationTestUtils {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
-        bytes29 authView = AttestationLib._asAuthOrSetView(encodedAuth);
+        bytes29 authView = AttestationLib._asAttestationOrSetView(encodedAuth);
 
         // Initial state
         Cursor memory cursor = AttestationLib.cursor(encodedAuth);
@@ -354,7 +350,7 @@ contract AttestationTest is AuthorizationTestUtils {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = new bytes(0);
         bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
-        bytes29 ref = AttestationLib._asAuthOrSetView(encodedAuth);
+        bytes29 ref = AttestationLib._asAttestationOrSetView(encodedAuth);
         _verifyAttestationFieldsFromView(ref, auth);
     }
 
@@ -362,7 +358,7 @@ contract AttestationTest is AuthorizationTestUtils {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = SHORT_METADATA;
         bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
-        bytes29 ref = AttestationLib._asAuthOrSetView(encodedAuth);
+        bytes29 ref = AttestationLib._asAttestationOrSetView(encodedAuth);
         _verifyAttestationFieldsFromView(ref, auth);
     }
 
@@ -370,7 +366,7 @@ contract AttestationTest is AuthorizationTestUtils {
         auth.spec.version = TRANSFER_SPEC_VERSION;
         auth.spec.metadata = LONG_METADATA;
         bytes memory encodedAuth = AttestationLib.encodeAttestation(auth);
-        bytes29 ref = AttestationLib._asAuthOrSetView(encodedAuth);
+        bytes29 ref = AttestationLib._asAttestationOrSetView(encodedAuth);
         _verifyAttestationFieldsFromView(ref, auth);
     }
 }
