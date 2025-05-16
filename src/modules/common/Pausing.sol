@@ -96,7 +96,7 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
 ///
 /// @notice Implements the EIP-7201 storage pattern for the `Pausing` module
 library PausingStorage {
-    /// @custom:storage-location 7201:circle.gateway.Pausing
+    /// @custom:storage-location erc7201:circle.gateway.Pausing
     struct Data {
         /// The address that is allowed to pause and unpause the contract
         address pauser;

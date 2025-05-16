@@ -93,7 +93,7 @@ contract WithdrawalDelay is Ownable2StepUpgradeable {
 ///
 /// @notice Implements the EIP-7201 storage pattern for the `WithdrawalDelay` module
 library WithdrawalDelayStorage {
-    /// @custom:storage-location 7201:circle.gateway.WithdrawalDelay
+    /// @custom:storage-location erc7201:circle.gateway.WithdrawalDelay
     struct Data {
         /// The block numbers at which in-progress withdrawals will be withdrawable
         mapping(address token => mapping(address depositor => uint256 block)) withdrawableAtBlocks;

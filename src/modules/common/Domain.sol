@@ -50,7 +50,7 @@ contract Domain is Initializable {
 ///
 /// @notice Implements the EIP-7201 storage pattern for the `Domain` module
 library DomainStorage {
-    /// @custom:storage-location 7201:circle.gateway.Domain
+    /// @custom:storage-location erc7201:circle.gateway.Domain
     struct Data {
         /// An operator-issued identifier for the current chain (does not match the chainId)
         uint32 domain;
