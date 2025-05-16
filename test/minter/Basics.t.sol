@@ -116,8 +116,8 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         vm.startPrank(owner);
         minter.addSupportedToken(token);
 
-        vm.expectEmit(false, false, false, true);
-        emit Mints.MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
+        vm.expectEmit(true, true, true, false, address(minter));
+        emit Mints.MintAuthorityChanged(token, oldMintAuthority, newMintAuthority);
 
         minter.updateMintAuthority(token, newMintAuthority);
         assertEq(minter.tokenMintAuthority(token), newMintAuthority);
@@ -133,8 +133,8 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         minter.updateMintAuthority(token, mintAuthority);
 
         // Update to same address again
-        vm.expectEmit(false, false, false, true);
-        emit Mints.MintAuthorityUpdated(token, mintAuthority, mintAuthority);
+        vm.expectEmit(true, true, true, false, address(minter));
+        emit Mints.MintAuthorityChanged(token, mintAuthority, mintAuthority);
         minter.updateMintAuthority(token, mintAuthority);
 
         assertEq(minter.tokenMintAuthority(token), mintAuthority);
@@ -162,8 +162,8 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
 
         address oldMintAuthorizationSigner = minter.mintAuthorizationSigner();
 
-        vm.expectEmit(false, false, false, true);
-        emit Mints.MintAuthorizationSignerUpdated(oldMintAuthorizationSigner, newMintAuthorizationSigner);
+        vm.expectEmit(true, true, false, false, address(minter));
+        emit Mints.MintAuthorizationSignerChanged(oldMintAuthorizationSigner, newMintAuthorizationSigner);
 
         vm.startPrank(owner);
         minter.updateMintAuthorizationSigner(newMintAuthorizationSigner);
@@ -178,8 +178,8 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         minter.updateMintAuthorizationSigner(newMintAuthorizationSigner); // first update
         assertEq(minter.mintAuthorizationSigner(), newMintAuthorizationSigner);
 
-        vm.expectEmit(false, false, false, true);
-        emit Mints.MintAuthorizationSignerUpdated(newMintAuthorizationSigner, newMintAuthorizationSigner);
+        vm.expectEmit(true, true, false, false, address(minter));
+        emit Mints.MintAuthorizationSignerChanged(newMintAuthorizationSigner, newMintAuthorizationSigner);
         minter.updateMintAuthorizationSigner(newMintAuthorizationSigner); // second update
         vm.stopPrank();
 
