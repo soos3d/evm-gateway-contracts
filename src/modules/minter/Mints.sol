@@ -171,7 +171,7 @@ contract Mints is GatewayCommon {
         Cursor memory cursor = AttestationLib.cursor(authorization);
 
         // Ensure there is at least one attestation
-        if (cursor.numAuths == 0) {
+        if (cursor.numElements == 0) {
             revert MustHaveAtLeastOneAttestation();
         }
 

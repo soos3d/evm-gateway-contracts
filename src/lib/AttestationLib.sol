@@ -150,11 +150,11 @@ library AttestationLib {
         }
 
         // 2. Read declared count
-        uint32 numAuths = getNumAttestations(setView);
+        uint32 numAttestations = getNumAttestations(setView);
         uint256 currentOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET;
 
         // 3. Iterate and validate each element
-        for (uint32 i = 0; i < numAuths; i++) {
+        for (uint32 i = 0; i < numAttestations; i++) {
             uint256 requiredOffsetForHeader = currentOffset + ATTESTATION_TRANSFER_SPEC_OFFSET;
 
             // 3a. Check bounds for header read
@@ -227,20 +227,20 @@ library AttestationLib {
     /// @return c     An initialized `Cursor` struct
     function cursor(bytes memory data) internal pure returns (Cursor memory c) {
         bytes29 ref = _validate(data);
-        c.setOrAuthView = ref;
+        c.memView = ref;
         c.index = 0;
 
         if (!_isSet(ref)) {
             c.offset = 0;
-            c.numAuths = 1;
+            c.numElements = 1;
             c.done = false; // There's one element to process
             return c;
         }
 
-        uint32 numAuths = getNumAttestations(ref);
+        uint32 numAttestations = getNumAttestations(ref);
         c.offset = ATTESTATION_SET_ATTESTATIONS_OFFSET;
-        c.numAuths = numAuths;
-        c.done = (numAuths == 0); // If the set is empty, the cursor is immediately done
+        c.numElements = numAttestations;
+        c.done = (numAttestations == 0); // If the set is empty, the cursor is immediately done
     }
 
     /// Gets the `TypedMemView` reference to the next element and advances the cursor
@@ -256,15 +256,15 @@ library AttestationLib {
         }
 
         uint32 currentSpecLength =
-            uint32(c.setOrAuthView.indexUint(c.offset + ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
+            uint32(c.memView.indexUint(c.offset + ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
         uint256 currentAuthTotalLength = ATTESTATION_TRANSFER_SPEC_OFFSET + currentSpecLength;
 
-        ref = c.setOrAuthView.slice(c.offset, currentAuthTotalLength, TransferSpecLib._toMemViewType(ATTESTATION_MAGIC));
+        ref = c.memView.slice(c.offset, currentAuthTotalLength, TransferSpecLib._toMemViewType(ATTESTATION_MAGIC));
 
         c.offset += currentAuthTotalLength;
         c.index++;
 
-        if (c.index >= c.numAuths) {
+        if (c.index >= c.numElements) {
             c.done = true;
         }
 
@@ -337,16 +337,16 @@ library AttestationLib {
     /// @param authSet   The `AttestationSet` to encode
     /// @return          The encoded bytes
     function encodeAttestationSet(AttestationSet memory authSet) internal pure returns (bytes memory) {
-        uint256 numAuths = authSet.attestations.length;
+        uint256 numAttestations = authSet.attestations.length;
 
-        if (numAuths > type(uint32).max) {
+        if (numAttestations > type(uint32).max) {
             revert TransferSpecLib.TransferPayloadSetTooManyElements(type(uint32).max);
         }
 
         // Calculate total size of all encoded attestations
         uint256 totalSize = 0;
-        bytes[] memory encodedAuths = new bytes[](numAuths);
-        for (uint256 i = 0; i < numAuths; i++) {
+        bytes[] memory encodedAuths = new bytes[](numAttestations);
+        for (uint256 i = 0; i < numAttestations; i++) {
             encodedAuths[i] = encodeAttestation(authSet.attestations[i]);
             totalSize += encodedAuths[i].length;
         }
@@ -354,7 +354,7 @@ library AttestationLib {
         // Create header with magic and authorization count
         bytes memory header = abi.encodePacked(
             ATTESTATION_SET_MAGIC,
-            uint32(numAuths) // 4 bytes
+            uint32(numAttestations) // 4 bytes
         );
 
         // Combine header and all encoded attestations
@@ -367,7 +367,7 @@ library AttestationLib {
 
         // Copy each encoded authorization into result
         uint256 position = header.length;
-        for (uint256 i = 0; i < numAuths; i++) {
+        for (uint256 i = 0; i < numAttestations; i++) {
             bytes memory auth = encodedAuths[i];
             for (uint256 j = 0; j < auth.length; j++) {
                 result[position] = auth[j];

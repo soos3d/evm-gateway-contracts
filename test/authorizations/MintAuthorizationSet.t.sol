@@ -639,9 +639,9 @@ contract AttestationSetTest is TransferPayloadTestUtils {
 
         // Initial state
         assertEq(cursor.done, false);
-        assertEq(cursor.setOrAuthView, setRef);
+        assertEq(cursor.memView, setRef);
         assertEq(cursor.offset, ATTESTATION_SET_ATTESTATIONS_OFFSET);
-        assertEq(cursor.numAuths, 1);
+        assertEq(cursor.numElements, 1);
         assertEq(cursor.index, 0);
 
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
@@ -650,9 +650,9 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         // Advance cursor and verify first attestation
         bytes29 currentAttestation = cursor.next();
         _verifyAttestationFieldsFromView(currentAttestation, attestation);
-        assertEq(cursor.setOrAuthView, setRef);
+        assertEq(cursor.memView, setRef);
         assertEq(cursor.offset, expectedOffset);
-        assertEq(cursor.numAuths, 1);
+        assertEq(cursor.numElements, 1);
         assertEq(cursor.index, 1);
         assertEq(cursor.done, true);
     }
@@ -684,9 +684,9 @@ contract AttestationSetTest is TransferPayloadTestUtils {
 
         // Initial state
         assertEq(cursor.done, false);
-        assertEq(cursor.setOrAuthView, setRef);
+        assertEq(cursor.memView, setRef);
         assertEq(cursor.offset, ATTESTATION_SET_ATTESTATIONS_OFFSET);
-        assertEq(cursor.numAuths, 2);
+        assertEq(cursor.numElements, 2);
         assertEq(cursor.index, 0);
 
         bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestation1);
@@ -695,9 +695,9 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         // Advance cursor and verify first attestation
         bytes29 currentAttestation = cursor.next();
         _verifyAttestationFieldsFromView(currentAttestation, attestation1);
-        assertEq(cursor.setOrAuthView, setRef);
+        assertEq(cursor.memView, setRef);
         assertEq(cursor.offset, expectedOffset);
-        assertEq(cursor.numAuths, 2);
+        assertEq(cursor.numElements, 2);
         assertEq(cursor.index, 1);
         assertEq(cursor.done, false);
 
@@ -707,9 +707,9 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         // Advance cursor and verify second attestation
         currentAttestation = cursor.next();
         _verifyAttestationFieldsFromView(currentAttestation, attestation2);
-        assertEq(cursor.setOrAuthView, setRef);
+        assertEq(cursor.memView, setRef);
         assertEq(cursor.offset, expectedUpdatedOffset);
-        assertEq(cursor.numAuths, 2);
+        assertEq(cursor.numElements, 2);
         assertEq(cursor.index, 2);
         assertEq(cursor.done, true);
     }

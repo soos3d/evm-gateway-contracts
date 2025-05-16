@@ -625,9 +625,9 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
 
         // Initial state
         assertEq(cursor.done, false);
-        assertEq(cursor.setOrAuthView, setRef);
+        assertEq(cursor.memView, setRef);
         assertEq(cursor.offset, BURN_INTENT_SET_INTENTS_OFFSET);
-        assertEq(cursor.numAuths, 1);
+        assertEq(cursor.numElements, 1);
         assertEq(cursor.index, 0);
 
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
@@ -636,9 +636,9 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
         // Advance cursor and verify first intent
         bytes29 currentIntent = cursor.next();
         _verifyBurnIntentFieldsFromView(currentIntent, intent);
-        assertEq(cursor.setOrAuthView, setRef);
+        assertEq(cursor.memView, setRef);
         assertEq(cursor.offset, expectedOffset);
-        assertEq(cursor.numAuths, 1);
+        assertEq(cursor.numElements, 1);
         assertEq(cursor.index, 1);
         assertEq(cursor.done, true);
     }
@@ -667,9 +667,9 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
 
         // Initial state
         assertEq(cursor.done, false);
-        assertEq(cursor.setOrAuthView, setRef);
+        assertEq(cursor.memView, setRef);
         assertEq(cursor.offset, BURN_INTENT_SET_INTENTS_OFFSET);
-        assertEq(cursor.numAuths, 2);
+        assertEq(cursor.numElements, 2);
         assertEq(cursor.index, 0);
 
         bytes memory encodedIntent1 = BurnIntentLib.encodeBurnIntent(intent1);
@@ -678,9 +678,9 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
         // Advance cursor and verify first intent
         bytes29 currentIntent = cursor.next();
         _verifyBurnIntentFieldsFromView(currentIntent, intent1);
-        assertEq(cursor.setOrAuthView, setRef);
+        assertEq(cursor.memView, setRef);
         assertEq(cursor.offset, expectedOffset);
-        assertEq(cursor.numAuths, 2);
+        assertEq(cursor.numElements, 2);
         assertEq(cursor.index, 1);
         assertEq(cursor.done, false);
 
@@ -690,9 +690,9 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
         // Advance cursor and verify second intent
         currentIntent = cursor.next();
         _verifyBurnIntentFieldsFromView(currentIntent, intent2);
-        assertEq(cursor.setOrAuthView, setRef);
+        assertEq(cursor.memView, setRef);
         assertEq(cursor.offset, expectedUpdatedOffset);
-        assertEq(cursor.numAuths, 2);
+        assertEq(cursor.numElements, 2);
         assertEq(cursor.index, 2);
         assertEq(cursor.done, true);
     }

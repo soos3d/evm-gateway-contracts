@@ -315,18 +315,18 @@ contract AttestationTest is TransferPayloadTestUtils {
 
         // Initial state
         Cursor memory cursor = AttestationLib.cursor(encodedAuth);
-        assertEq(cursor.setOrAuthView, authView);
+        assertEq(cursor.memView, authView);
         assertEq(cursor.offset, 0);
-        assertEq(cursor.numAuths, 1);
+        assertEq(cursor.numElements, 1);
         assertEq(cursor.index, 0);
         assertEq(cursor.done, false);
 
         // Advance the cursor
         bytes29 currentAuth = cursor.next();
         assertEq(currentAuth, authView);
-        assertEq(cursor.setOrAuthView, authView);
+        assertEq(cursor.memView, authView);
         assertEq(cursor.offset, encodedAuth.length);
-        assertEq(cursor.numAuths, 1);
+        assertEq(cursor.numElements, 1);
         assertEq(cursor.index, 1);
         assertEq(cursor.done, true);
     }

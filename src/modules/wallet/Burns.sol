@@ -132,9 +132,9 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// Thrown when a burn intent has the wrong source contract
     ///
     /// @param index              The index of the burn intent with the issue
-    /// @param authContract       The source contract from the burn intent
+    /// @param intentContract     The source contract from the burn intent
     /// @param expectedContract   The address of this contract
-    error InvalidIntentSourceContractAtIndex(uint32 index, address authContract, address expectedContract);
+    error InvalidIntentSourceContractAtIndex(uint32 index, address intentContract, address expectedContract);
 
     /// Thrown when the source token in a burn intent is not supported
     ///
@@ -145,9 +145,9 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// Thrown when a burn intent is not signed by the burn signer specified in the `TransferSpec`
     ///
     /// @param index          The index of the burn intent with the issue
-    /// @param authSigner     The source signer from the burn intent
+    /// @param intentSigner   The source signer from the burn intent
     /// @param actualSigner   The signer that was recovered from the signature
-    error InvalidIntentSourceSignerAtIndex(uint32 index, address authSigner, address actualSigner);
+    error InvalidIntentSourceSignerAtIndex(uint32 index, address intentSigner, address actualSigner);
 
     /// Initializes the `burnSigner` and `feeRecipient` roles
     ///
@@ -162,25 +162,24 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// another chain. Charges a fee for the burn (which may be at most each burn intent's `maxFee`), and sends
     /// it to the `feeRecipient`.
     ///
-    /// @dev The `calldataBytes` input must be ABI-encoded and contain three arrays: `authorizations`, `signatures`,
-    ///      and `fees`.
-    /// @dev `authorizations`, `signatures`, and `fees` encoded in the `calldataBytes` input must all be the same length.
-    /// @dev For a set of burn intents, authorizations from other domains and those inadvertently submitted for
-    ///      the same domain are ignored. The whole set is still needed to verify the signature.
+    /// @dev The `calldataBytes` input must be ABI-encoded and contain three arrays: `intents`, `signatures`, and `fees`.
+    /// @dev `intents`, `signatures`, and `fees` encoded in the `calldataBytes` input must all be the same length.
+    /// @dev For a set of burn intents, intents from other domains are ignored. The whole set is still needed to verify
+    ///      the signature.
     /// @dev See `lib/BurnIntents.sol` for encoding details
     ///
-    /// @param calldataBytes     ABI-encoded (authorizations[], signatures[], fees[][]) arrays
+    /// @param calldataBytes     ABI-encoded (intents[], signatures[], fees[][]) arrays
     /// @param burnerSignature   Signature from `burnSigner` on `calldataBytes`
     function gatewayBurn(bytes calldata calldataBytes, bytes calldata burnerSignature) external whenNotPaused {
         // Verify that the calldata was signed by the expected signer
         _verifyBurnerSignature(calldataBytes, burnerSignature);
 
-        // Decode the calldata into the authorizations, signatures, and fees arrays
-        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) =
+        // Decode the calldata into the intents, signatures, and fees arrays
+        (bytes[] memory intents, bytes[] memory signatures, uint256[][] memory fees) =
             abi.decode(calldataBytes, (bytes[], bytes[], uint256[][]));
 
         // Process the burn intents
-        _gatewayBurn(authorizations, signatures, fees);
+        _gatewayBurn(intents, signatures, fees);
     }
 
     /// Returns the byte encoding of a single burn intent
@@ -196,8 +195,8 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// @param intents   The burn intents to encode
     /// @return          The byte-encoded burn intent set
     function encodeBurnIntents(BurnIntent[] memory intents) external pure returns (bytes memory) {
-        BurnIntentSet memory authSet = BurnIntentSet({intents: intents});
-        return BurnIntentLib.encodeBurnIntentSet(authSet);
+        BurnIntentSet memory intentSet = BurnIntentSet({intents: intents});
+        return BurnIntentLib.encodeBurnIntentSet(intentSet);
     }
 
     /// Returns the `keccak256` hash of a burn intent
@@ -221,7 +220,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         Cursor memory cursor = BurnIntentLib.cursor(intent);
 
         // Ensure there is at least one burn intent
-        if (cursor.numAuths == 0) {
+        if (cursor.numElements == 0) {
             revert MustHaveAtLeastOneBurnIntent();
         }
 
@@ -298,7 +297,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
 
     /// Internal function to verify the signature of the `burnSigner` on the `calldataBytes` input
     ///
-    /// @param calldataBytes     Calldata that includes all of authorizations, signatures, and fees
+    /// @param calldataBytes     Calldata that includes all of intents, signatures, and fees
     /// @param burnerSignature   The signature from the `burnSigner` to verify
     function _verifyBurnerSignature(bytes calldata calldataBytes, bytes calldata burnerSignature) internal view {
         // Ensure that the signature is the expected length
@@ -348,12 +347,12 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         Cursor memory cursor = BurnIntentLib.cursor(authorization);
 
         // Ensure there is at least one burn intent
-        if (cursor.numAuths == 0) {
+        if (cursor.numElements == 0) {
             revert MustHaveAtLeastOneBurnIntent();
         }
 
         // Ensure there are the same number of fees as burn intents
-        if (fees.length != cursor.numAuths) {
+        if (fees.length != cursor.numElements) {
             revert MismatchedBurn();
         }
 
@@ -479,7 +478,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         }
 
         // Ensure that the signer of the burn intent was at one point authorized for the balance being burned.
-        // Revoked authorizations are okay, to ensure that revocations cannot prevent burns
+        // Revoked authorizations are okay, to ensure that revocations cannot prevent burns.
         address sourceDepositor = AddressLib._bytes32ToAddress(spec.getSourceDepositor());
         if (!_wasEverAuthorizedForBalance(sourceToken, sourceDepositor, signer)) {
             revert Delegation.NotAuthorized();

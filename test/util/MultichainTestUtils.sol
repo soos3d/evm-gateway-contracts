@@ -132,7 +132,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
 
         fees = new uint256[][](n);
         for (uint256 i = 0; i < n; i++) {
-            uint256 m = BurnIntentLib.cursor(encodedBurnAuths[i]).numAuths;
+            uint256 m = BurnIntentLib.cursor(encodedBurnAuths[i]).numElements;
             fees[i] = new uint256[](m);
             for (uint256 j = 0; j < m; j++) {
                 fees[i][j] = feeAmount;
