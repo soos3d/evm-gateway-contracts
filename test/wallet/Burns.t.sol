@@ -17,22 +17,22 @@
  */
 pragma solidity ^0.8.29;
 
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import { MessageHashUtils } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import { GatewayWallet } from "src/GatewayWallet.sol";
-import { AddressLib } from "src/lib/AddressLib.sol";
-import { BurnIntentLib } from "src/lib/BurnIntentLib.sol";
-import { BurnIntent, BurnIntentSet } from "src/lib/BurnIntents.sol";
-import { TransferSpec, TRANSFER_SPEC_VERSION } from "src/lib/TransferSpec.sol";
-import { TransferSpecLib } from "src/lib/TransferSpecLib.sol";
-import { TransferSpecHashes } from "src/modules/common/TransferSpecHashes.sol";
-import { Burns } from "src/modules/wallet/Burns.sol";
-import { Delegation } from "src/modules/wallet/Delegation.sol";
-import { MasterMinter } from "test/mock_fiattoken/contracts/minting/MasterMinter.sol";
-import { FiatTokenV2_2 } from "test/mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
-import { DeployUtils } from "test/util/DeployUtils.sol";
-import { ForkTestUtils } from "test/util/ForkTestUtils.sol";
-import { SignatureTestUtils } from "test/util/SignatureTestUtils.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
+import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
+import {BurnIntent, BurnIntentSet} from "src/lib/BurnIntents.sol";
+import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/TransferSpec.sol";
+import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
+import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
+import {Burns} from "src/modules/wallet/Burns.sol";
+import {Delegation} from "src/modules/wallet/Delegation.sol";
+import {MasterMinter} from "test/mock_fiattoken/contracts/minting/MasterMinter.sol";
+import {FiatTokenV2_2} from "test/mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
+import {DeployUtils} from "test/util/DeployUtils.sol";
+import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
+import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 
 // solhint-disable max-states-count
 contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {

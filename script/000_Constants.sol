@@ -17,8 +17,8 @@
  */
 pragma solidity ^0.8.29;
 
-import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
+import {Script} from "forge-std/Script.sol";
 
 /**
  * @title Constants
@@ -27,26 +27,26 @@ import {console} from "forge-std/console.sol";
  */
 library Constants {
     // Smokebox environment constants
-    bytes32 constant SMOKEBOX_WALLET_SALT = bytes32(uint256(0));
-    bytes32 constant SMOKEBOX_MINTER_SALT = bytes32(uint256(1));
-    bytes32 constant SMOKEBOX_WALLET_PROXY_SALT = bytes32(uint256(0));
-    bytes32 constant SMOKEBOX_MINTER_PROXY_SALT = bytes32(uint256(1));
+    bytes32 internal constant SMOKEBOX_WALLET_SALT = bytes32(uint256(0));
+    bytes32 internal constant SMOKEBOX_MINTER_SALT = bytes32(uint256(1));
+    bytes32 internal constant SMOKEBOX_WALLET_PROXY_SALT = bytes32(uint256(0));
+    bytes32 internal constant SMOKEBOX_MINTER_PROXY_SALT = bytes32(uint256(1));
 
     // Sandbox environment constants
-    bytes32 constant SANDBOX_WALLET_SALT = bytes32(uint256(0));
-    bytes32 constant SANDBOX_MINTER_SALT = bytes32(uint256(1));
-    bytes32 constant SANDBOX_WALLET_PROXY_SALT = bytes32(uint256(0));
-    bytes32 constant SANDBOX_MINTER_PROXY_SALT = bytes32(uint256(1));
-    address constant SANDBOX_CREATE2FACTORY_ADDRESS = 0x643151056F7cCCD36030d6507a8C07Ed4a46E8D2;
-    address constant SANDBOX_DEPLOYER_ADDRESS = 0xD1e4098de8667a491Eb2Bf5acf09ED7F67260BCA;
+    bytes32 internal constant SANDBOX_WALLET_SALT = bytes32(uint256(0));
+    bytes32 internal constant SANDBOX_MINTER_SALT = bytes32(uint256(1));
+    bytes32 internal constant SANDBOX_WALLET_PROXY_SALT = bytes32(uint256(0));
+    bytes32 internal constant SANDBOX_MINTER_PROXY_SALT = bytes32(uint256(1));
+    address internal constant SANDBOX_CREATE2FACTORY_ADDRESS = 0x643151056F7cCCD36030d6507a8C07Ed4a46E8D2;
+    address internal constant SANDBOX_DEPLOYER_ADDRESS = 0xD1e4098de8667a491Eb2Bf5acf09ED7F67260BCA;
 
     // Production environment constants
-    bytes32 constant PROD_WALLET_SALT = bytes32(uint256(0));
-    bytes32 constant PROD_MINTER_SALT = bytes32(uint256(1));
-    bytes32 constant PROD_WALLET_PROXY_SALT = bytes32(uint256(0));
-    bytes32 constant PROD_MINTER_PROXY_SALT = bytes32(uint256(1));
-    address constant PROD_CREATE2FACTORY_ADDRESS = 0xe7b84D8846c96Bb83155Da5537625c75e42d6E42;
-    address constant PROD_DEPLOYER_ADDRESS = 0xadB384F7fa7486422051D2a896417EAAb9E5A9D1;
+    bytes32 internal constant PROD_WALLET_SALT = bytes32(uint256(0));
+    bytes32 internal constant PROD_MINTER_SALT = bytes32(uint256(1));
+    bytes32 internal constant PROD_WALLET_PROXY_SALT = bytes32(uint256(0));
+    bytes32 internal constant PROD_MINTER_PROXY_SALT = bytes32(uint256(1));
+    address internal constant PROD_CREATE2FACTORY_ADDRESS = 0xe7b84D8846c96Bb83155Da5537625c75e42d6E42;
+    address internal constant PROD_DEPLOYER_ADDRESS = 0xadB384F7fa7486422051D2a896417EAAb9E5A9D1;
 }
 
 /**

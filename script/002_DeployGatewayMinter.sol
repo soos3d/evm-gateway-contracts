@@ -17,10 +17,9 @@
  */
 pragma solidity ^0.8.29;
 
-import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {EnvSelector, EnvConfig} from "script/000_Constants.sol";
-import "script/BaseBytecodeDeployScript.sol";
+import {BaseBytecodeDeployScript} from "script/BaseBytecodeDeployScript.sol";
 
 /// @title DeployGatewayMinter
 /// @notice Deployment script for GatewayMinter implementation and proxy with initialization
