@@ -18,11 +18,11 @@
 pragma solidity ^0.8.29;
 
 import {Test} from "forge-std/Test.sol";
-import {MasterMinter} from "./../mock_fiattoken/contracts/minting/MasterMinter.sol";
-import {FiatTokenProxy} from "./../mock_fiattoken/contracts/v1/FiatTokenProxy.sol";
-import {FiatTokenV2_2} from "./../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
-import {DeployMockFiatToken} from "./DeployMockFiatToken.sol";
-import {ForkTestUtils} from "./ForkTestUtils.sol";
+import {MasterMinter} from "test/mock_fiattoken/contracts/minting/MasterMinter.sol";
+import {FiatTokenProxy} from "test/mock_fiattoken/contracts/v1/FiatTokenProxy.sol";
+import {FiatTokenV2_2} from "test/mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
+import {DeployMockFiatToken} from "test/util/DeployMockFiatToken.sol";
+import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
 contract TestDeployMockFiatToken is Test {
     DeployMockFiatToken private mockTokenDeployer;

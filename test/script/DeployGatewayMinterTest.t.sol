@@ -18,8 +18,8 @@
 pragma solidity ^0.8.29;
 
 import {Test} from "forge-std/Test.sol";
-import {DeployGatewayMinter} from "../../script/002_DeployGatewayMinter.sol";
-import {Create2Factory} from "../../script/Create2Factory.sol";
+import {DeployGatewayMinter} from "script/002_DeployGatewayMinter.sol";
+import {Create2Factory} from "script/Create2Factory.sol";
 
 contract DeployGatewayMinterTest is Test {
     DeployGatewayMinter private deployer;

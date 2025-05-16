@@ -17,7 +17,7 @@
  */
 pragma solidity ^0.8.29;
 
-import {TransferSpec} from "./TransferSpec.sol";
+import {TransferSpec} from "src/lib/TransferSpec.sol";
 
 // Magic values for marking byte encodings
 bytes4 constant BURN_INTENT_MAGIC = 0x070afbc2; // `bytes4(keccak256("circle.gateway.BurnIntent"))`

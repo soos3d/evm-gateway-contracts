@@ -23,11 +23,11 @@ import {GatewayWallet} from "src/GatewayWallet.sol";
 import {AddressLib} from "src/lib/AddressLib.sol";
 import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
 import {TransferSpec} from "src/lib/TransferSpec.sol";
-import {MasterMinter} from "./../mock_fiattoken/contracts/minting/MasterMinter.sol";
-import {FiatTokenV2_2} from "./../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
-import {DeployUtils} from "./DeployUtils.sol";
-import {ForkTestUtils} from "./ForkTestUtils.sol";
-import {SignatureTestUtils} from "./SignatureTestUtils.sol";
+import {MasterMinter} from "test/mock_fiattoken/contracts/minting/MasterMinter.sol";
+import {FiatTokenV2_2} from "test/mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
+import {DeployUtils} from "test/util/DeployUtils.sol";
+import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
+import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 
 contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
     using MessageHashUtils for bytes32;

@@ -29,10 +29,10 @@ import {
     ATTESTATION_TRANSFER_SPEC_OFFSET,
     ATTESTATION_SET_NUM_ATTESTATIONS_OFFSET,
     ATTESTATION_SET_ATTESTATIONS_OFFSET
-} from "./Attestations.sol";
-import {Cursor} from "./Cursor.sol";
-import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
-import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
+} from "src/lib/Attestations.sol";
+import {Cursor} from "src/lib/Cursor.sol";
+import {TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
+import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "src/lib/TransferSpecLib.sol";
 
 /// @title AttestationLib
 ///

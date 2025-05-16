@@ -19,7 +19,7 @@ pragma solidity ^0.8.29;
 
 import {BurnIntent} from "src/lib/BurnIntents.sol";
 import {TransferSpec} from "src/lib/TransferSpec.sol";
-import {MultichainTestUtils} from "./../util/MultichainTestUtils.sol";
+import {MultichainTestUtils} from "test/util/MultichainTestUtils.sol";
 
 contract MultiDepositAndMintFlowTest is MultichainTestUtils {
     ChainSetup private ethereum;

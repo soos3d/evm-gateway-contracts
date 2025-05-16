@@ -18,8 +18,8 @@
 pragma solidity ^0.8.29;
 
 import {Test} from "forge-std/Test.sol";
-import {DeployGatewayWallet} from "../../script/001_DeployGatewayWallet.sol";
-import {Create2Factory} from "../../script/Create2Factory.sol";
+import {DeployGatewayWallet} from "script/001_DeployGatewayWallet.sol";
+import {Create2Factory} from "script/Create2Factory.sol";
 
 contract DeployGatewayWalletTest is Test {
     DeployGatewayWallet private deployer;

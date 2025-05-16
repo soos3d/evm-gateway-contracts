@@ -39,7 +39,7 @@ import {
     TRANSFER_SPEC_METADATA_OFFSET,
     // solhint-disable-next-line no-unused-import
     TRANSFER_SPEC_TYPEHASH
-} from "./TransferSpec.sol";
+} from "src/lib/TransferSpec.sol";
 
 uint8 constant BYTES4_BYTES = 4;
 uint8 constant UINT32_BYTES = 4;

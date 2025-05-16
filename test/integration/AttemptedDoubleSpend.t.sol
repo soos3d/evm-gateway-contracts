@@ -18,7 +18,7 @@
 pragma solidity ^0.8.29;
 
 import {TransferSpec} from "src/lib/TransferSpec.sol";
-import {MultichainTestUtils} from "./../util/MultichainTestUtils.sol";
+import {MultichainTestUtils} from "test/util/MultichainTestUtils.sol";
 
 contract AttemptedDoubleSpendTest is MultichainTestUtils {
     ChainSetup private ethereum;

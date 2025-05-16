@@ -24,7 +24,7 @@ import {Cursor} from "src/lib/Cursor.sol";
 import {TRANSFER_SPEC_VERSION} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {BYTES4_BYTES, TRANSFER_SPEC_METADATA_OFFSET} from "src/lib/TransferSpecLib.sol";
-import {TransferPayloadTestUtils} from "./TransferPayloadTestUtils.sol";
+import {TransferPayloadTestUtils} from "test/util/TransferPayloadTestUtils.sol";
 
 contract BurnIntentSetTest is TransferPayloadTestUtils {
     using BurnIntentLib for bytes29;

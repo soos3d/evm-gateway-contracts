@@ -17,8 +17,8 @@
  */
 pragma solidity ^0.8.29;
 
-import {FiatTokenProxy} from "./../mock_fiattoken/contracts/v1/FiatTokenProxy.sol";
-import {DeployMockFiatToken} from "./DeployMockFiatToken.sol";
+import {FiatTokenProxy} from "test/mock_fiattoken/contracts/v1/FiatTokenProxy.sol";
+import {DeployMockFiatToken} from "test/util/DeployMockFiatToken.sol";
 
 /// Helpers for managing values and dependencies between forks
 library ForkTestUtils {

@@ -32,10 +32,10 @@ import {
     BURN_INTENT_SET_INTENTS_OFFSET,
     BURN_INTENT_TYPEHASH, // solhint-disable-line no-unused-import, only used in assembly
     BURN_INTENT_SET_TYPEHASH
-} from "./BurnIntents.sol";
-import {Cursor} from "./Cursor.sol";
-import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
-import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
+} from "src/lib/BurnIntents.sol";
+import {Cursor} from "src/lib/Cursor.sol";
+import {TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
+import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "src/lib/TransferSpecLib.sol";
 
 /// @title BurnIntentLib
 ///

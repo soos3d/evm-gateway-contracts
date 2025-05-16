@@ -17,7 +17,7 @@
  */
 pragma solidity ^0.8.29;
 
-import {MultichainTestUtils} from "./MultichainTestUtils.sol";
+import {MultichainTestUtils} from "test/util/MultichainTestUtils.sol";
 
 contract MultichainTestUtilsTest is MultichainTestUtils {
     function test_forkSelectionReturnsExpectedFork() public {

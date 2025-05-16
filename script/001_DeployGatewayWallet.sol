@@ -19,8 +19,8 @@ pragma solidity ^0.8.29;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {EnvSelector, EnvConfig} from "./000_Constants.sol";
-import "./BaseBytecodeDeployScript.sol";
+import {EnvSelector, EnvConfig} from "script/000_Constants.sol";
+import "script/BaseBytecodeDeployScript.sol";
 
 /// @title DeployGatewayWallet
 /// @notice Deployment script for GatewayWallet implementation and proxy with initialization

@@ -24,7 +24,7 @@ import {Cursor} from "src/lib/Cursor.sol";
 import {TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
-import {TransferPayloadTestUtils} from "./TransferPayloadTestUtils.sol";
+import {TransferPayloadTestUtils} from "test/util/TransferPayloadTestUtils.sol";
 
 contract AttestationTest is TransferPayloadTestUtils {
     using AttestationLib for bytes29;
