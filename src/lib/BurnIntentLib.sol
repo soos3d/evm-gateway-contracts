@@ -18,7 +18,6 @@
 pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {Cursor} from "./Cursor.sol";
 import {
     BurnIntent,
     BurnIntentSet,
@@ -31,10 +30,10 @@ import {
     BURN_INTENT_TRANSFER_SPEC_OFFSET,
     BURN_INTENT_SET_NUM_INTENTS_OFFSET,
     BURN_INTENT_SET_INTENTS_OFFSET,
-    // solhint-disable-next-line no-unused-import
-    BURN_INTENT_TYPEHASH,
+    BURN_INTENT_TYPEHASH, // solhint-disable-line no-unused-import, only used in assembly
     BURN_INTENT_SET_TYPEHASH
 } from "./BurnIntents.sol";
+import {Cursor} from "./Cursor.sol";
 import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
 

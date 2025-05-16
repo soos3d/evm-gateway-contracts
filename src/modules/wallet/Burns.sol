@@ -23,12 +23,12 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {GatewayCommon} from "src/GatewayCommon.sol";
 import {IBurnToken} from "src/interfaces/IBurnToken.sol";
-import {Cursor} from "src/lib/Cursor.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
 import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
 import {BurnIntent, BurnIntentSet} from "src/lib/BurnIntents.sol";
-import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
-import {AddressLib} from "src/lib/AddressLib.sol";
+import {Cursor} from "src/lib/Cursor.sol";
 import {EIP712Domain} from "src/lib/EIP712Domain.sol";
+import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {Balances} from "src/modules/wallet/Balances.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
 

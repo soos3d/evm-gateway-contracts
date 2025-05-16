@@ -18,9 +18,9 @@
 pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {Cursor} from "src/lib/Cursor.sol";
 import {AttestationLib} from "src/lib/AttestationLib.sol";
 import {Attestation, ATTESTATION_MAGIC} from "src/lib/Attestations.sol";
+import {Cursor} from "src/lib/Cursor.sol";
 import {TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";

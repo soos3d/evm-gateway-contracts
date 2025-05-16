@@ -19,10 +19,10 @@ pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {Test} from "forge-std/Test.sol";
-import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
-import {BurnIntent, BURN_INTENT_MAGIC} from "src/lib/BurnIntents.sol";
 import {AttestationLib} from "src/lib/AttestationLib.sol";
 import {Attestation, ATTESTATION_MAGIC} from "src/lib/Attestations.sol";
+import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
+import {BurnIntent, BURN_INTENT_MAGIC} from "src/lib/BurnIntents.sol";
 import {TransferSpec, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
 

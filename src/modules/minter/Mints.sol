@@ -21,10 +21,10 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {GatewayCommon} from "src/GatewayCommon.sol";
 import {IMintToken} from "src/interfaces/IMintToken.sol";
-import {Cursor} from "src/lib/Cursor.sol";
-import {AttestationLib} from "src/lib/AttestationLib.sol";
-import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {AddressLib} from "src/lib/AddressLib.sol";
+import {AttestationLib} from "src/lib/AttestationLib.sol";
+import {Cursor} from "src/lib/Cursor.sol";
+import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 
 /// @title Mints
 ///

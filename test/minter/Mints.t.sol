@@ -24,11 +24,11 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {Test} from "forge-std/Test.sol";
 import {GatewayMinter} from "src/GatewayMinter.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
 import {AttestationLib} from "src/lib/AttestationLib.sol";
 import {Attestation, AttestationSet} from "src/lib/Attestations.sol";
 import {TransferSpec, TRANSFER_SPEC_VERSION} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
-import {AddressLib} from "src/lib/AddressLib.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 import {Mints} from "src/modules/minter/Mints.sol";

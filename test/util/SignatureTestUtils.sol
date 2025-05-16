@@ -21,10 +21,10 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Test} from "forge-std/Test.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
-import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
-import {BurnIntent} from "src/lib/BurnIntents.sol";
 import {AttestationLib} from "src/lib/AttestationLib.sol";
 import {Attestation, AttestationSet} from "src/lib/Attestations.sol";
+import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
+import {BurnIntent} from "src/lib/BurnIntents.sol";
 import {TransferSpec} from "src/lib/TransferSpec.sol";
 
 contract SignatureTestUtils is Test {

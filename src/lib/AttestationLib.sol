@@ -18,7 +18,6 @@
 pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {Cursor} from "./Cursor.sol";
 import {
     Attestation,
     AttestationSet,
@@ -31,6 +30,7 @@ import {
     ATTESTATION_SET_NUM_ATTESTATIONS_OFFSET,
     ATTESTATION_SET_ATTESTATIONS_OFFSET
 } from "./Attestations.sol";
+import {Cursor} from "./Cursor.sol";
 import {TRANSFER_SPEC_MAGIC} from "./TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES, UINT32_BYTES, UINT256_BYTES} from "./TransferSpecLib.sol";
 

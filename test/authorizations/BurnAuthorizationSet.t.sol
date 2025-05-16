@@ -18,9 +18,9 @@
 pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {Cursor} from "src/lib/Cursor.sol";
 import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
 import {BurnIntent, BurnIntentSet, BURN_INTENT_SET_MAGIC, BURN_INTENT_MAGIC_OFFSET} from "src/lib/BurnIntents.sol";
+import {Cursor} from "src/lib/Cursor.sol";
 import {TRANSFER_SPEC_VERSION} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {BYTES4_BYTES, TRANSFER_SPEC_METADATA_OFFSET} from "src/lib/TransferSpecLib.sol";
