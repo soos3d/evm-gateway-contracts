@@ -225,20 +225,20 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         }
 
         // Iterate over the burn intents, validating each one
-        bytes29 auth;
+        bytes29 intent;
         address token;
         while (!cursor.done) {
             // Get the next burn intent
-            auth = cursor.next();
+            intent = cursor.next();
 
             // Validate that everything about the burn intent is as expected, and skip if it's not for this domain
-            bool relevant = _validateBurnIntent(auth, signer, 0, cursor.index - 1);
+            bool relevant = _validateBurnIntent(intent, signer, 0, cursor.index - 1);
             if (!relevant) {
                 continue;
             }
 
             // Ensure that each one we've seen so far is for the same token
-            bytes29 spec = auth.getTransferSpec();
+            bytes29 spec = intent.getTransferSpec();
             address _token = AddressLib._bytes32ToAddress(spec.getSourceToken());
             if (token == address(0)) {
                 token = _token;
@@ -337,14 +337,14 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
 
     /// Validates a single burn intent (set), recovers the signer, and processes all relevant burns
     ///
-    /// @param authorization   The byte-encoded burn intent (set)
-    /// @param signature       The signature on the `keccak256` hash of `authorization`
+    /// @param intent   The byte-encoded burn intent (set)
+    /// @param signature       The signature on the `keccak256` hash of `intent`
     /// @param fees            The fees to be charged, one for each individual burn intent
-    function _validateAndProcessIntentPayload(bytes memory authorization, bytes memory signature, uint256[] memory fees)
+    function _validateAndProcessIntentPayload(bytes memory intent, bytes memory signature, uint256[] memory fees)
         internal
     {
         // Validate the burn intent(s) and get an iteration cursor
-        Cursor memory cursor = BurnIntentLib.cursor(authorization);
+        Cursor memory cursor = BurnIntentLib.cursor(intent);
 
         // Ensure there is at least one burn intent
         if (cursor.numElements == 0) {
@@ -357,19 +357,19 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         }
 
         // Recover the signer of the burn intent(s) and process each one
-        bytes32 digest = _hashTypedData(BurnIntentLib.getTypedDataHash(authorization));
+        bytes32 digest = _hashTypedData(BurnIntentLib.getTypedDataHash(intent));
         address signer = ECDSA.recover(digest, signature);
         _processIntentsAndBurn(cursor, signer, fees);
     }
 
     /// Iterates through a set of burn intents, validating and processing each relevant ones
     ///
-    /// @param cursor   An initialized `Cursor` pointing to the start of the authorization set
+    /// @param cursor   An initialized `Cursor` pointing to the start of the intent set
     /// @param signer   The address that signed the entire burn intent payload
     /// @param fees     The fees to be charged, one for each individual burn intent
     function _processIntentsAndBurn(Cursor memory cursor, address signer, uint256[] memory fees) internal {
         address token;
-        bytes29 auth;
+        bytes29 intent;
         uint32 index = 0;
         uint256 totalFee = 0;
         uint256 totalDeductedAmount = 0;
@@ -378,11 +378,11 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
             index = cursor.index; // cursor.next() increments index, so get the current one first
 
             // Get the next burn intent and extract its transfer spec
-            auth = cursor.next();
-            bytes29 spec = auth.getTransferSpec();
+            intent = cursor.next();
+            bytes29 spec = intent.getTransferSpec();
 
             // Validate that everything about the burn intent is as expected, skipping if it's not for this domain
-            bool relevant = _validateBurnIntent(auth, signer, fees[index], index);
+            bool relevant = _validateBurnIntent(intent, signer, fees[index], index);
             if (!relevant) {
                 continue;
             }
@@ -420,18 +420,18 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// @dev Checks include: non-zero value, source domain match, expiry block, fee limit, source contract address,
     ///      token support, and signer delegation
     ///
-    /// @param auth        The `TypedMemView` reference to the encoded burn intent to validate
+    /// @param intent        The `TypedMemView` reference to the encoded burn intent to validate
     /// @param signer      The address that signed the entire burn intent payload
     /// @param fee         The fee proposed for this burn intent
     /// @param index       The index of this burn intent within the original set (used for error messages)
     /// @return relevant   `true` if the burn intent is for the current domain, `false` otherwise
-    function _validateBurnIntent(bytes29 auth, address signer, uint256 fee, uint32 index)
+    function _validateBurnIntent(bytes29 intent, address signer, uint256 fee, uint32 index)
         internal
         view
         returns (bool relevant)
     {
         // Extract the `TransferSpec` from the burn intent
-        bytes29 spec = auth.getTransferSpec();
+        bytes29 spec = intent.getTransferSpec();
 
         // If any burn intents are zero (even if they are for a different domain), refuse to continue so that
         // they all fail together across all source domains
@@ -448,13 +448,13 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         }
 
         // Ensure that the burn intent is not expired
-        uint256 maxBlockHeight = auth.getMaxBlockHeight();
+        uint256 maxBlockHeight = intent.getMaxBlockHeight();
         if (maxBlockHeight < block.number) {
             revert IntentExpiredAtIndex(index, maxBlockHeight, block.number);
         }
 
         // Ensure that the fee is within the allowed range
-        uint256 maxFee = auth.getMaxFee();
+        uint256 maxFee = intent.getMaxFee();
         if (maxFee < fee) {
             revert BurnFeeTooHighAtIndex(index, maxFee, fee);
         }

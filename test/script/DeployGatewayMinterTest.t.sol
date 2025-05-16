@@ -41,7 +41,7 @@ contract DeployGatewayMinterTest is Test {
         vm.setEnv("GATEWAYMINTER_WALLET_ADDRESS", vm.toString(makeAddr("minterWallet")));
         vm.setEnv("GATEWAYMINTER_SUPPORTED_TOKEN_1", vm.toString(makeAddr("token1")));
         vm.setEnv("GATEWAYMINTER_DOMAIN", "1");
-        vm.setEnv("GATEWAYMINTER_AUTH_SIGNER", vm.toString(makeAddr("authSigner")));
+        vm.setEnv("GATEWAYMINTER_ATTESTATION_SIGNER", vm.toString(makeAddr("attestationSigner")));
         vm.setEnv("GATEWAYMINTER_TOKEN_AUTH_1", vm.toString(makeAddr("tokenAuth1")));
 
         // Initialize the deployer script

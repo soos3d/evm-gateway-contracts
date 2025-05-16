@@ -88,23 +88,25 @@ contract Mints is GatewayCommon {
     /// Thrown when an attestation has a non-zero destination caller but was used by a different caller
     ///
     /// @param index          The index of the attestation with the issue
-    /// @param authCaller     The destination caller from the attestation
+    /// @param attestationCaller     The destination caller from the attestation
     /// @param actualCaller   The caller that used the attestation
-    error InvalidAttestationDestinationCallerAtIndex(uint32 index, address authCaller, address actualCaller);
+    error InvalidAttestationDestinationCallerAtIndex(uint32 index, address attestationCaller, address actualCaller);
 
     /// Thrown when an attestation has a destination domain that does not match the one for this contract
     ///
     /// @param index            The index of the attestation with the issue
-    /// @param authDomain       The destination domain from the attestation
+    /// @param attestationDomain       The destination domain from the attestation
     /// @param expectedDomain   The domain of this contract
-    error InvalidAttestationDestinationDomainAtIndex(uint32 index, uint32 authDomain, uint32 expectedDomain);
+    error InvalidAttestationDestinationDomainAtIndex(uint32 index, uint32 attestationDomain, uint32 expectedDomain);
 
     /// Thrown when an attestation has the wrong destination contract
     ///
     /// @param index              The index of the attestation with the issue
-    /// @param authContract       The destination contract from the attestation
+    /// @param attestationContract       The destination contract from the attestation
     /// @param expectedContract   The address of this contract
-    error InvalidAttestationDestinationContractAtIndex(uint32 index, address authContract, address expectedContract);
+    error InvalidAttestationDestinationContractAtIndex(
+        uint32 index, address attestationContract, address expectedContract
+    );
 
     /// Thrown when the destination token in an attestation is not supported
     ///
@@ -116,9 +118,9 @@ contract Mints is GatewayCommon {
     /// match the expected counterpart wallet contract address
     ///
     /// @param index              The index of the attestation with the issue
-    /// @param authContract       The source contract from the attestation
+    /// @param attestationContract       The source contract from the attestation
     /// @param expectedContract   The address of the wallet contract on the same domain
-    error InvalidAttestationSourceContractAtIndex(uint32 index, address authContract, address expectedContract);
+    error InvalidAttestationSourceContractAtIndex(uint32 index, address attestationContract, address expectedContract);
 
     /// Thrown when an attestation is for the same domain as the source but has a source token that does not
     /// match the destination token
@@ -156,19 +158,19 @@ contract Mints is GatewayCommon {
     ///
     /// @dev See `Attestations.sol` for encoding details
     ///
-    /// @param authorization   The byte-encoded attestation(s)
-    /// @param signature       The signature of the `attestationSigner` on the `authorization`
+    /// @param attestation   The byte-encoded attestation(s)
+    /// @param signature       The signature of the `attestationSigner` on the `attestation`
 
-    function gatewayMint(bytes memory authorization, bytes memory signature)
+    function gatewayMint(bytes memory attestation, bytes memory signature)
         external
         whenNotPaused
         notDenylisted(msg.sender)
     {
         // Verify that the payload was signed by the expected signer
-        _verifyAttestationSignature(authorization, signature);
+        _verifyAttestationSignature(attestation, signature);
 
         // Validate the attestation(s) and get an iteration cursor
-        Cursor memory cursor = AttestationLib.cursor(authorization);
+        Cursor memory cursor = AttestationLib.cursor(attestation);
 
         // Ensure there is at least one attestation
         if (cursor.numElements == 0) {
@@ -176,11 +178,11 @@ contract Mints is GatewayCommon {
         }
 
         // Iterate over the attestations, validating and processing each one
-        bytes29 auth;
+        bytes29 attestation;
         while (!cursor.done) {
-            auth = cursor.next();
-            _validateAttestation(auth, cursor.index - 1);
-            _mint(auth.getTransferSpec());
+            attestation = cursor.next();
+            _validateAttestation(attestation, cursor.index - 1);
+            _mint(attestation.getTransferSpec());
         }
     }
 
@@ -232,10 +234,10 @@ contract Mints is GatewayCommon {
     ///
     /// @dev Recovers the signer from the signature and compares it to the `attestationSigner`
     ///
-    /// @param authorization   The byte-encoded attestation(s)
-    /// @param signature       The signature on the `authorization` to verify
-    function _verifyAttestationSignature(bytes memory authorization, bytes memory signature) internal view {
-        address recoveredSigner = ECDSA.recover(keccak256(authorization).toEthSignedMessageHash(), signature);
+    /// @param attestation   The byte-encoded attestation(s)
+    /// @param signature       The signature on the `attestation` to verify
+    function _verifyAttestationSignature(bytes memory attestation, bytes memory signature) internal view {
+        address recoveredSigner = ECDSA.recover(keccak256(attestation).toEthSignedMessageHash(), signature);
         if (recoveredSigner != attestationSigner()) {
             revert InvalidAttestationSigner();
         }
@@ -246,17 +248,17 @@ contract Mints is GatewayCommon {
     /// @dev Checks expiration, value, recipient denylist status, destination caller, destination domain, destination
     ///      contract, and (when the domains match) source contract and token consistency
     ///
-    /// @param auth    A `TypedMemView` reference to the byte-encoded attestation
+    /// @param attestation    A `TypedMemView` reference to the byte-encoded attestation
     /// @param index   The index of the attestation within the batch (used for error reporting)
-    function _validateAttestation(bytes29 auth, uint32 index) internal view {
+    function _validateAttestation(bytes29 attestation, uint32 index) internal view {
         // Ensure the attestation is not expired
-        uint256 maxBlockHeight = auth.getMaxBlockHeight();
+        uint256 maxBlockHeight = attestation.getMaxBlockHeight();
         if (maxBlockHeight < block.number) {
             revert AttestationExpiredAtIndex(index, maxBlockHeight, block.number);
         }
 
         // Extract the `TransferSpec`
-        bytes29 spec = auth.getTransferSpec();
+        bytes29 spec = attestation.getTransferSpec();
 
         // Ensure the value is nonzero
         uint256 value = spec.getValue();

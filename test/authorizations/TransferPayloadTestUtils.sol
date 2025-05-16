@@ -83,20 +83,20 @@ contract TransferPayloadTestUtils is Test {
     }
 
     // Verifies all fields read from a BurnIntent view match the original struct
-    function _verifyBurnIntentFieldsFromView(bytes29 ref, BurnIntent memory auth) internal pure {
+    function _verifyBurnIntentFieldsFromView(bytes29 ref, BurnIntent memory intent) internal pure {
         ref.assertType(TransferSpecLib._toMemViewType(BURN_INTENT_MAGIC));
-        assertEq(BurnIntentLib.getMaxBlockHeight(ref), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
-        assertEq(BurnIntentLib.getMaxFee(ref), auth.maxFee, "Eq Fail: maxFee");
+        assertEq(BurnIntentLib.getMaxBlockHeight(ref), intent.maxBlockHeight, "Eq Fail: maxBlockHeight");
+        assertEq(BurnIntentLib.getMaxFee(ref), intent.maxFee, "Eq Fail: maxFee");
         bytes29 specRef = BurnIntentLib.getTransferSpec(ref);
-        _verifyTransferSpecFieldsFromView(specRef, auth.spec);
+        _verifyTransferSpecFieldsFromView(specRef, intent.spec);
     }
 
     // Verifies all fields read from a Attestation view match the original struct
-    function _verifyAttestationFieldsFromView(bytes29 ref, Attestation memory auth) internal pure {
+    function _verifyAttestationFieldsFromView(bytes29 ref, Attestation memory attestation) internal pure {
         ref.assertType(TransferSpecLib._toMemViewType(ATTESTATION_MAGIC));
-        assertEq(AttestationLib.getMaxBlockHeight(ref), auth.maxBlockHeight, "Eq Fail: maxBlockHeight");
+        assertEq(AttestationLib.getMaxBlockHeight(ref), attestation.maxBlockHeight, "Eq Fail: maxBlockHeight");
         bytes29 specRef = AttestationLib.getTransferSpec(ref);
-        _verifyTransferSpecFieldsFromView(specRef, auth.spec);
+        _verifyTransferSpecFieldsFromView(specRef, attestation.spec);
     }
 
     /// @notice Creates corrupted TransferSpec data by modifying the inner spec's declared metadata length.

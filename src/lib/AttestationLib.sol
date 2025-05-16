@@ -91,18 +91,22 @@ library AttestationLib {
     ///      nested `TransferSpec` and its magic number. Reverts on failure. Assumes outer magic number check has passed
     ///      (via casting).
     ///
-    /// @param authView   The `TypedMemView` reference to the encoded `Attestation` to validate
-    function _validateAttestationOuterStructure(bytes29 authView) private pure {
+    /// @param attestationView   The `TypedMemView` reference to the encoded `Attestation` to validate
+    function _validateAttestationOuterStructure(bytes29 attestationView) private pure {
         // 1. Minimum header length check
-        if (authView.len() < ATTESTATION_TRANSFER_SPEC_OFFSET) {
-            revert TransferSpecLib.TransferPayloadHeaderTooShort(ATTESTATION_TRANSFER_SPEC_OFFSET, authView.len());
+        if (attestationView.len() < ATTESTATION_TRANSFER_SPEC_OFFSET) {
+            revert TransferSpecLib.TransferPayloadHeaderTooShort(
+                ATTESTATION_TRANSFER_SPEC_OFFSET, attestationView.len()
+            );
         }
 
         // 2. Total length consistency check
-        uint32 specLengthDeclaredInAuth = getTransferSpecLength(authView);
-        uint256 expectedAuthLength = ATTESTATION_TRANSFER_SPEC_OFFSET + specLengthDeclaredInAuth;
-        if (authView.len() != expectedAuthLength) {
-            revert TransferSpecLib.TransferPayloadOverallLengthMismatch(expectedAuthLength, authView.len());
+        uint32 specLengthDeclaredInAttestation = getTransferSpecLength(attestationView);
+        uint256 expectedAttestationLength = ATTESTATION_TRANSFER_SPEC_OFFSET + specLengthDeclaredInAttestation;
+        if (attestationView.len() != expectedAttestationLength) {
+            revert TransferSpecLib.TransferPayloadOverallLengthMismatch(
+                expectedAttestationLength, attestationView.len()
+            );
         }
     }
 
@@ -118,11 +122,11 @@ library AttestationLib {
     ///      `InvalidTransferSpecMagic`, `TransferSpecHeaderTooShort`, `TransferSpecOverallLengthMismatch`) if the
     ///      structure is invalid
     ///
-    /// @param authView   The `TypedMemView` reference to the encoded `Attestation` to validate
-    function _validateAttestation(bytes29 authView) internal pure {
-        _validateAttestationOuterStructure(authView);
+    /// @param attestationView   The `TypedMemView` reference to the encoded `Attestation` to validate
+    function _validateAttestation(bytes29 attestationView) internal pure {
+        _validateAttestationOuterStructure(attestationView);
 
-        bytes29 specView = getTransferSpec(authView);
+        bytes29 specView = getTransferSpec(attestationView);
         TransferSpecLib._validateTransferSpecStructure(specView);
     }
 
@@ -130,11 +134,11 @@ library AttestationLib {
     ///
     /// @notice Validation includes:
     ///   1. Minimum header length check.
-    ///   2. Reading declared authorization count.
+    ///   2. Reading declared attestation count.
     ///   3. Iterating through declared attestations:
     ///      a. Checking bounds based on previously declared lengths.
-    ///      b. Checking the magic number of each authorization.
-    ///      c. Performing full recursive validation on each authorization using `_validateAttestation`.
+    ///      b. Checking the magic number of each attestation.
+    ///      c. Performing full recursive validation on each attestation using `_validateAttestation`.
     ///   4. Final total length consistency check.
     ///
     /// @dev Performs structural validation on a `AttestationSet` view. Reverts on failure. Assumes the view has
@@ -164,13 +168,13 @@ library AttestationLib {
                 );
             }
 
-            // Read spec length to determine current auth total length
+            // Read spec length to determine current attestation's total length
             uint32 specLength =
                 uint32(setView.indexUint(currentOffset + ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
-            uint256 currentAuthTotalLength = ATTESTATION_TRANSFER_SPEC_OFFSET + specLength;
-            uint256 requiredOffsetForElement = currentOffset + currentAuthTotalLength;
+            uint256 currentAttestationTotalLength = ATTESTATION_TRANSFER_SPEC_OFFSET + specLength;
+            uint256 requiredOffsetForElement = currentOffset + currentAttestationTotalLength;
 
-            // Check bounds for full auth read
+            // Check bounds for full attestation read
             if (setView.len() < requiredOffsetForElement) {
                 revert TransferSpecLib.TransferPayloadSetElementTooShort(i, setView.len(), requiredOffsetForElement);
             }
@@ -182,12 +186,13 @@ library AttestationLib {
             }
 
             // 3c. Create view and perform full recursive validation on the element
-            bytes29 authView =
-                setView.slice(currentOffset, currentAuthTotalLength, TransferSpecLib._toMemViewType(ATTESTATION_MAGIC));
-            _validateAttestation(authView);
+            bytes29 attestationView = setView.slice(
+                currentOffset, currentAttestationTotalLength, TransferSpecLib._toMemViewType(ATTESTATION_MAGIC)
+            );
+            _validateAttestation(attestationView);
 
             // Update offset for the next iteration
-            currentOffset += currentAuthTotalLength;
+            currentOffset += currentAttestationTotalLength;
         }
 
         // 4. Final total length consistency check
@@ -257,11 +262,12 @@ library AttestationLib {
 
         uint32 currentSpecLength =
             uint32(c.memView.indexUint(c.offset + ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET, UINT32_BYTES));
-        uint256 currentAuthTotalLength = ATTESTATION_TRANSFER_SPEC_OFFSET + currentSpecLength;
+        uint256 currentAttestationTotalLength = ATTESTATION_TRANSFER_SPEC_OFFSET + currentSpecLength;
 
-        ref = c.memView.slice(c.offset, currentAuthTotalLength, TransferSpecLib._toMemViewType(ATTESTATION_MAGIC));
+        ref =
+            c.memView.slice(c.offset, currentAttestationTotalLength, TransferSpecLib._toMemViewType(ATTESTATION_MAGIC));
 
-        c.offset += currentAuthTotalLength;
+        c.offset += currentAttestationTotalLength;
         c.index++;
 
         if (c.index >= c.numElements) {
@@ -319,14 +325,14 @@ library AttestationLib {
 
     /// Encode a `Attestation` struct into bytes
     ///
-    /// @param auth   The `Attestation` to encode
+    /// @param attestation   The `Attestation` to encode
     /// @return       The encoded bytes
-    function encodeAttestation(Attestation memory auth) internal pure returns (bytes memory) {
-        bytes memory specBytes = TransferSpecLib.encodeTransferSpec(auth.spec);
+    function encodeAttestation(Attestation memory attestation) internal pure returns (bytes memory) {
+        bytes memory specBytes = TransferSpecLib.encodeTransferSpec(attestation.spec);
 
         return abi.encodePacked(
             ATTESTATION_MAGIC,
-            auth.maxBlockHeight,
+            attestation.maxBlockHeight,
             uint32(specBytes.length), // 4 bytes
             specBytes
         );
@@ -334,10 +340,10 @@ library AttestationLib {
 
     /// Encode a `AttestationSet` struct into bytes
     ///
-    /// @param authSet   The `AttestationSet` to encode
+    /// @param attestationSet   The `AttestationSet` to encode
     /// @return          The encoded bytes
-    function encodeAttestationSet(AttestationSet memory authSet) internal pure returns (bytes memory) {
-        uint256 numAttestations = authSet.attestations.length;
+    function encodeAttestationSet(AttestationSet memory attestationSet) internal pure returns (bytes memory) {
+        uint256 numAttestations = attestationSet.attestations.length;
 
         if (numAttestations > type(uint32).max) {
             revert TransferSpecLib.TransferPayloadSetTooManyElements(type(uint32).max);
@@ -345,13 +351,13 @@ library AttestationLib {
 
         // Calculate total size of all encoded attestations
         uint256 totalSize = 0;
-        bytes[] memory encodedAuths = new bytes[](numAttestations);
+        bytes[] memory encodedAttestations = new bytes[](numAttestations);
         for (uint256 i = 0; i < numAttestations; i++) {
-            encodedAuths[i] = encodeAttestation(authSet.attestations[i]);
-            totalSize += encodedAuths[i].length;
+            encodedAttestations[i] = encodeAttestation(attestationSet.attestations[i]);
+            totalSize += encodedAttestations[i].length;
         }
 
-        // Create header with magic and authorization count
+        // Create header with magic and attestation count
         bytes memory header = abi.encodePacked(
             ATTESTATION_SET_MAGIC,
             uint32(numAttestations) // 4 bytes
@@ -365,12 +371,12 @@ library AttestationLib {
             result[i] = header[i];
         }
 
-        // Copy each encoded authorization into result
+        // Copy each encoded attestation into result
         uint256 position = header.length;
         for (uint256 i = 0; i < numAttestations; i++) {
-            bytes memory auth = encodedAuths[i];
-            for (uint256 j = 0; j < auth.length; j++) {
-                result[position] = auth[j];
+            bytes memory attestation = encodedAttestations[i];
+            for (uint256 j = 0; j < attestation.length; j++) {
+                result[position] = attestation[j];
                 position++;
             }
         }

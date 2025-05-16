@@ -26,22 +26,22 @@ import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
 /// @title GatewayWallet
 ///
 /// @notice This contract allows users to deposit supported tokens. Once deposits are observed in a finalized block by
-/// the operator, the user may request an authorization to instantly mint those funds on another chain. Minted funds are
+/// the operator, the user may request an attestation to instantly mint those funds on another chain. Minted funds are
 /// then burned on the chain where they were deposited.
 ///
 /// @notice The available balance is the amount the user has deposited that may be used instantly on any chain, subject
 /// to finality observed by the operator and an attestation obtained from the API. To obtain an attestation,
 /// the user must provide the operator with a signed message containing the desired parameters, which acts as a burn
-/// authorization that will allow the operator to burn those funds once the mint is observed on the destination chain.
+/// intent that will allow the operator to burn those funds once the mint is observed on the destination chain.
 ///
 /// @notice To mint funds on another chain, the user may use an attestation obtained from the API to call
 /// `gatewayMint` on the `GatewayMinter` contract on the desired chain. This will mint the funds to the requested
 /// destination, and may be composed with other actions via a multicall contract or SCA implementation. A fee is
 /// deducted from the user's balance within the `GatewayWallet` contract in addition to the requested amount.
 ///
-/// @notice For same-chain withdrawals, users can obtain an API authorization similar to cross-chain mints. They then call
-/// `gatewayMint` on the `GatewayMinter` contract to receive their funds at their specified address, while their original
-/// deposit in the `GatewayWallet` contract is subsequently burned.
+/// @notice For same-chain withdrawals, users can obtain attestation from the API similar to cross-chain mints. They
+/// then call `gatewayMint` on the `GatewayMinter` contract to receive their funds at their specified address, while
+/// their original deposit in the `GatewayWallet` contract is subsequently burned.
 ///
 /// @notice To ensure funds are withdrawable even if the API is unavailable, users may withdraw permissionlessly using a
 /// two-step process. First, the user must call `initiateWithdrawal` with the desired withdrawal amount. After a delay,

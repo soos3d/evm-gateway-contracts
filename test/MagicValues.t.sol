@@ -40,19 +40,19 @@ import {WithdrawalDelayStorage} from "src/modules/wallet/WithdrawalDelay.sol";
 
 /// Ensures the magic values used throughout the codebase are correct
 contract TestMagicValues is Test {
-    function test_burn_authorization() external pure {
+    function test_burn_() external pure {
         assertEq(BURN_INTENT_MAGIC, bytes4(keccak256("circle.gateway.BurnIntent")));
     }
 
-    function test_burn_authorization_set() external pure {
+    function test_burn_intent_set() external pure {
         assertEq(BURN_INTENT_SET_MAGIC, bytes4(keccak256("circle.gateway.BurnIntentSet")));
     }
 
-    function test_mint_authorization() external pure {
+    function test_attestation() external pure {
         assertEq(ATTESTATION_MAGIC, bytes4(keccak256("circle.gateway.Attestation")));
     }
 
-    function test_mint_authorization_set() external pure {
+    function test_attestation_set() external pure {
         assertEq(ATTESTATION_SET_MAGIC, bytes4(keccak256("circle.gateway.AttestationSet")));
     }
 

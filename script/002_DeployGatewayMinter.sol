@@ -45,7 +45,7 @@ contract DeployGatewayMinter is BaseBytecodeDeployScript {
         address[] memory supportedTokens = new address[](1);
         supportedTokens[0] = vm.envAddress("GATEWAYMINTER_SUPPORTED_TOKEN_1");
         uint32 domain = uint32(vm.envUint("GATEWAYMINTER_DOMAIN"));
-        address mintAuthSigner = vm.envAddress("GATEWAYMINTER_AUTH_SIGNER");
+        address mintAuthSigner = vm.envAddress("GATEWAYMINTER_ATTESTATION_SIGNER");
 
         address[] memory tokenAuthorities = new address[](1);
         tokenAuthorities[0] = vm.envAddress("GATEWAYMINTER_TOKEN_AUTH_1");
