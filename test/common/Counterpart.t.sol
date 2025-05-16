@@ -52,8 +52,8 @@ contract CounterpartTest is Test {
         counterpart.initialize(owner, counterpartAddress);
         assertEq(counterpartAddress, counterpart.counterpart());
 
-        vm.expectEmit(false, false, false, true);
-        emit Counterpart.CounterpartUpdated(secondCounterpartAddress);
+        vm.expectEmit(true, true, false, false, address(counterpart));
+        emit Counterpart.CounterpartChanged(counterpartAddress, secondCounterpartAddress);
 
         vm.startPrank(owner);
         counterpart.updateCounterpart(secondCounterpartAddress);
