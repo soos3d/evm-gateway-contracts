@@ -27,8 +27,9 @@ import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Pau
 contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable {
     /// Emitted when the pauser address is updated
     ///
+    /// @param oldPauser   The old pauser address
     /// @param newPauser   The new pauser address
-    event PauserUpdated(address newPauser);
+    event PauserChanged(address indexed oldPauser, address indexed newPauser);
 
     /// Thrown when the pauser is expected, but an unauthorized caller is used
     ///
@@ -85,8 +86,9 @@ contract Pausing is Initializable, Ownable2StepUpgradeable, PausableUpgradeable 
     ///
     /// @param newPauser   The new pauser address
     function _setPauser(address newPauser) private {
+        address oldPauser = PausingStorage.get().pauser;
         PausingStorage.get().pauser = newPauser;
-        emit PauserUpdated(newPauser);
+        emit PauserChanged(oldPauser, newPauser);
     }
 }
 

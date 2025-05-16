@@ -87,13 +87,13 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     ///
     /// @param oldBurnSigner   The previous burn signer address
     /// @param newBurnSigner   The new burn signer address
-    event BurnSignerUpdated(address oldBurnSigner, address newBurnSigner);
+    event BurnSignerChanged(address indexed oldBurnSigner, address indexed newBurnSigner);
 
     /// Emitted when the `feeRecipient` role is updated
     ///
     /// @param oldFeeRecipient   The previous fee recipient address
     /// @param newFeeRecipient   The new fee recipient address
-    event FeeRecipientUpdated(address oldFeeRecipient, address newFeeRecipient);
+    event FeeRecipientChanged(address indexed oldFeeRecipient, address indexed newFeeRecipient);
 
     /// Thrown when a burn authorization set or batch is empty
     error MustHaveAtLeastOneBurnAuthorization();
@@ -287,7 +287,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         BurnsStorage.Data storage $ = BurnsStorage.get();
         address oldBurnSigner = $.burnSigner;
         $.burnSigner = newBurnSigner;
-        emit BurnSignerUpdated(oldBurnSigner, newBurnSigner);
+        emit BurnSignerChanged(oldBurnSigner, newBurnSigner);
     }
 
     /// Sets the address that will receive the fee for burns
@@ -301,7 +301,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         BurnsStorage.Data storage $ = BurnsStorage.get();
         address oldFeeRecipient = $.feeRecipient;
         $.feeRecipient = newFeeRecipient;
-        emit FeeRecipientUpdated(oldFeeRecipient, newFeeRecipient);
+        emit FeeRecipientChanged(oldFeeRecipient, newFeeRecipient);
     }
 
     /// Internal function to verify the signature of the `burnSigner` on the `calldataBytes` input

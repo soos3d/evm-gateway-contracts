@@ -59,13 +59,17 @@ contract Mints is GatewayCommon {
     /// @param token              The token whose mint authority was updated
     /// @param oldMintAuthority   The previous mint authority address
     /// @param newMintAuthority   The new mint authority address
-    event MintAuthorityUpdated(address token, address oldMintAuthority, address newMintAuthority);
+    event MintAuthorityChanged(
+        address indexed token, address indexed oldMintAuthority, address indexed newMintAuthority
+    );
 
     /// Emitted when the `mintAuthorizationSigner` role is updated
     ///
     /// @param oldMintAuthorizationSigner   The previous mint authorization signer address
     /// @param newMintAuthorizationSigner   The new mint authorization signer address
-    event MintAuthorizationSignerUpdated(address oldMintAuthorizationSigner, address newMintAuthorizationSigner);
+    event MintAuthorizationSignerChanged(
+        address indexed oldMintAuthorizationSigner, address indexed newMintAuthorizationSigner
+    );
 
     /// Thrown when a mint authorization set is empty
     error MustHaveAtLeastOneMintAuthorization();
@@ -218,7 +222,7 @@ contract Mints is GatewayCommon {
         MintsStorage.Data storage $ = MintsStorage.get();
         address oldMintAuthority = $.tokenMintAuthorities[token];
         $.tokenMintAuthorities[token] = newMintAuthority;
-        emit MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
+        emit MintAuthorityChanged(token, oldMintAuthority, newMintAuthority);
     }
 
     /// Sets the address that may sign mint authorizations
@@ -232,7 +236,7 @@ contract Mints is GatewayCommon {
         MintsStorage.Data storage $ = MintsStorage.get();
         address oldMintAuthorizationSigner = $.mintAuthorizationSigner;
         $.mintAuthorizationSigner = newMintAuthorizationSigner;
-        emit MintAuthorizationSignerUpdated(oldMintAuthorizationSigner, newMintAuthorizationSigner);
+        emit MintAuthorizationSignerChanged(oldMintAuthorizationSigner, newMintAuthorizationSigner);
     }
 
     /// Verifies the signature for a (set of) mint authorization(s)
