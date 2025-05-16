@@ -38,7 +38,7 @@ contract GatewayWalletAdminTest is Test, DeployUtils {
         uint256 newDelay = 100;
         uint256 oldDelay = wallet.withdrawalDelay();
         vm.startPrank(owner);
-        vm.expectEmit(true, true, false, false);
+        vm.expectEmit(true, true, false, false, address(wallet));
         emit WithdrawalDelay.WithdrawalDelayChanged(oldDelay, newDelay);
         wallet.updateWithdrawalDelay(newDelay);
         vm.stopPrank();
@@ -48,7 +48,7 @@ contract GatewayWalletAdminTest is Test, DeployUtils {
         oldDelay = newDelay;
         newDelay = 200;
         vm.startPrank(owner);
-        vm.expectEmit(true, true, false, false);
+        vm.expectEmit(true, true, false, false, address(wallet));
         emit WithdrawalDelay.WithdrawalDelayChanged(oldDelay, newDelay);
         wallet.updateWithdrawalDelay(newDelay);
         vm.stopPrank();

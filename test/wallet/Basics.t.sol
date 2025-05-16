@@ -67,7 +67,7 @@ contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
 
         address oldBurnSigner = wallet.burnSigner();
 
-        vm.expectEmit(true, true, false, false);
+        vm.expectEmit(true, true, false, false, address(wallet));
         emit Burns.BurnSignerChanged(oldBurnSigner, newBurnSigner);
 
         vm.prank(owner);
@@ -82,7 +82,7 @@ contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
         wallet.updateBurnSigner(newBurnSigner); // first update
         assertEq(wallet.burnSigner(), newBurnSigner);
 
-        vm.expectEmit(true, true, false, false);
+        vm.expectEmit(true, true, false, false, address(wallet));
         emit Burns.BurnSignerChanged(newBurnSigner, newBurnSigner);
         wallet.updateBurnSigner(newBurnSigner); // second update
 
@@ -109,7 +109,7 @@ contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
 
         address oldFeeRecipient = wallet.feeRecipient();
 
-        vm.expectEmit(true, true, false, false);
+        vm.expectEmit(true, true, false, false, address(wallet));
         emit Burns.FeeRecipientChanged(oldFeeRecipient, newFeeRecipient);
 
         vm.prank(owner);
@@ -124,7 +124,7 @@ contract GatewayWalletBasicsTest is OwnershipTest, DeployUtils {
         wallet.updateFeeRecipient(newFeeRecipient); // first update
         assertEq(wallet.feeRecipient(), newFeeRecipient);
 
-        vm.expectEmit(true, true, false, false);
+        vm.expectEmit(true, true, false, false, address(wallet));
         emit Burns.FeeRecipientChanged(newFeeRecipient, newFeeRecipient);
         wallet.updateFeeRecipient(newFeeRecipient); // second update
 

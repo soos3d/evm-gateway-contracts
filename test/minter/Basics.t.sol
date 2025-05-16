@@ -116,7 +116,7 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         vm.startPrank(owner);
         minter.addSupportedToken(token);
 
-        vm.expectEmit(true, true, true, false);
+        vm.expectEmit(true, true, true, false, address(minter));
         emit Mints.MintAuthorityChanged(token, oldMintAuthority, newMintAuthority);
 
         minter.updateMintAuthority(token, newMintAuthority);
@@ -133,7 +133,7 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         minter.updateMintAuthority(token, mintAuthority);
 
         // Update to same address again
-        vm.expectEmit(true, true, true, false);
+        vm.expectEmit(true, true, true, false, address(minter));
         emit Mints.MintAuthorityChanged(token, mintAuthority, mintAuthority);
         minter.updateMintAuthority(token, mintAuthority);
 
@@ -162,7 +162,7 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
 
         address oldMintAuthorizationSigner = minter.mintAuthorizationSigner();
 
-        vm.expectEmit(true, true, false, false);
+        vm.expectEmit(true, true, false, false, address(minter));
         emit Mints.MintAuthorizationSignerChanged(oldMintAuthorizationSigner, newMintAuthorizationSigner);
 
         vm.startPrank(owner);
@@ -178,7 +178,7 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         minter.updateMintAuthorizationSigner(newMintAuthorizationSigner); // first update
         assertEq(minter.mintAuthorizationSigner(), newMintAuthorizationSigner);
 
-        vm.expectEmit(true, true, false, false);
+        vm.expectEmit(true, true, false, false, address(minter));
         emit Mints.MintAuthorizationSignerChanged(newMintAuthorizationSigner, newMintAuthorizationSigner);
         minter.updateMintAuthorizationSigner(newMintAuthorizationSigner); // second update
         vm.stopPrank();

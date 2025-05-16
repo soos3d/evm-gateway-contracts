@@ -52,12 +52,12 @@ contract PausingTest is Test {
         vm.startPrank(pauserAddress);
         assertFalse(pausing.paused(), "Contract should not be paused initially");
 
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(false, false, false, true, address(pausing));
         emit PausableUpgradeable.Paused(pauserAddress);
         pausing.pause();
         assertTrue(pausing.paused(), "Contract should be paused after pause()");
 
-        vm.expectEmit(false, false, false, true);
+        vm.expectEmit(false, false, false, true, address(pausing));
         emit PausableUpgradeable.Unpaused(pauserAddress);
         pausing.unpause();
         assertFalse(pausing.paused(), "Contract should be unpaused after unpause()");
@@ -67,7 +67,7 @@ contract PausingTest is Test {
     function testInitialization_success() public {
         assertEq(pausing.pauser(), address(0), "Pauser should be zero address before initialization");
 
-        vm.expectEmit(true, true, false, false);
+        vm.expectEmit(true, true, false, false, address(pausing));
         emit Pausing.PauserChanged(address(0), pauser);
 
         pausing.initialize(owner, pauser);
@@ -76,11 +76,11 @@ contract PausingTest is Test {
     }
 
     function testUpdatePauser_success() public {
-        vm.expectEmit(true, true, false, false);
+        vm.expectEmit(true, true, false, false, address(pausing));
         emit Pausing.PauserChanged(address(0), pauser);
         pausing.initialize(owner, pauser);
 
-        vm.expectEmit(true, true, false, false);
+        vm.expectEmit(true, true, false, false, address(pausing));
         emit Pausing.PauserChanged(pauser, otherPauser);
 
         vm.startPrank(owner);
