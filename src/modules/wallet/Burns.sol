@@ -238,13 +238,14 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
 
             // Validate that everything about the burn authorization is as expected, and skip if it's not for this domain
             bytes29 spec = auth.getTransferSpec();
-            bool relevant = _validateBurnAuthorizationTransferSpec(spec, signer, cursor.index - 1);
+            uint32 index = cursor.index - 1;
+            bool relevant = _validateBurnAuthorizationTransferSpec(spec, signer, index);
             if (!relevant) {
                 continue;
             }
 
-            // If relevant, validate the block height and fee of the burn authorization
-            _validateBurnAuthorizationBlockHeightAndFee(auth, 0, cursor.index - 1);
+            // Validate the block height and fee of the burn authorization
+            _validateBurnAuthorizationBlockHeightAndFee(auth, 0, index);
 
             // Ensure that each one we've seen so far is for the same token
             address _token = AddressLib._bytes32ToAddress(spec.getSourceToken());
@@ -400,7 +401,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
                 continue;
             }
 
-            // If relevant, validate the block height and fee of the burn authorization
+            // Validate the block height and fee of the burn authorization
             _validateBurnAuthorizationBlockHeightAndFee(auth, fees[index], index);
 
             // Ensure that each one we've seen so far is for the same token
