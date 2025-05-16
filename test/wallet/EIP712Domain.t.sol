@@ -22,7 +22,7 @@ import {GatewayWallet} from "../../src/GatewayWallet.sol";
 import {DeployUtils} from "../util/DeployUtils.sol";
 import {ForkTestUtils} from "../util/ForkTestUtils.sol";
 
-contract EIP712DomainTest is Test, DeployUtils {
+contract GatewayWalletEIP712DomainTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     GatewayWallet private wallet;
 

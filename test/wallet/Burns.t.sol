@@ -35,7 +35,7 @@ import {MasterMinter} from "./../mock_fiattoken/contracts/minting/MasterMinter.s
 import {FiatTokenV2_2} from "./../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
 
 // solhint-disable max-states-count
-contract TestBurns is SignatureTestUtils, DeployUtils {
+contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
     using MessageHashUtils for bytes32;
 
     uint32 private domain;

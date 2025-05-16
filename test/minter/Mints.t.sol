@@ -48,7 +48,7 @@ contract MockMintableToken is ERC20 {
 
 /// Tests minting functionality of GatewayMinter
 // solhint-disable max-states-count
-contract TestMints is Test, DeployUtils {
+contract GatewayMinterMintsTest is Test, DeployUtils {
     using MessageHashUtils for bytes32;
 
     uint32 private domain;
