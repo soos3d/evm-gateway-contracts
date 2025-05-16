@@ -74,6 +74,16 @@ ENV=$ENV forge script script/001_DeployGatewayMinter.sol --rpc-url $RPC_URL -vvv
 
 The generated transaction data will be available in the `broadcast/` directory and can be used for signing.
 
+### Deployed contract validation
+
+Fill in the `Deployed Contract Validation` section in `.env` and run:
+
+```bash
+forge script script/003_DeployedContractValidation.s.sol --rpc-url $RPC_URL -vvvv --slow --force
+```
+
+This command validates deployed contract bytecode matches expected bytecode and contract state matches expected values.
+
 ### How to Update Deployment Scripts
 
 #### Update Compiled Contract Artifacts
@@ -93,7 +103,7 @@ forge build src/GatewayMinter.sol --force
 cp out/GatewayMinter.sol/GatewayMinter.json script/compiled-contract-artifacts/GatewayMinter.json
 
 forge build src/GatewayWallet.sol --force 
-cp out/GatewayWallet.sol/UpgradeablePlaceholder.json script/compiled-contract-artifacts/GatewayWallet.json
+cp out/GatewayWallet.sol/GatewayWallet.json script/compiled-contract-artifacts/GatewayWallet.json
 ```
 
 #### Find New Salts
