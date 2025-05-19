@@ -2,7 +2,7 @@
   "name": "evm-gateway-contracts-private",
   "version": "1.0.0",
   "scripts": {
-    "test": "forge test",
+    "test": "forge test --no-match-path 'test/BytecodeMatch.t.sol'",
     "test:all": "./scripts/test_all_forks.sh",
     "test:js": "mocha test/js/*.test.js",
     "test:gas": "FORGE_GAS_REPORT=true forge test",

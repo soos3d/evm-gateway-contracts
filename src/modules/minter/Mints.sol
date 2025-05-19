@@ -59,13 +59,15 @@ contract Mints is GatewayCommon {
     /// @param token              The token whose mint authority was updated
     /// @param oldMintAuthority   The previous mint authority address
     /// @param newMintAuthority   The new mint authority address
-    event MintAuthorityUpdated(address token, address oldMintAuthority, address newMintAuthority);
+    event MintAuthorityChanged(
+        address indexed token, address indexed oldMintAuthority, address indexed newMintAuthority
+    );
 
     /// Emitted when the `attestationSigner` role is updated
     ///
     /// @param oldAttestationSigner   The previous attestation signer address
     /// @param newAttestationSigner   The new attestation signer address
-    event AttestationSignerUpdated(address oldAttestationSigner, address newAttestationSigner);
+    event AttestationSignerChanged(address indexed oldAttestationSigner, address indexed newAttestationSigner);
 
     /// Thrown when an attestation set is empty
     error MustHaveAtLeastOneAttestation();
@@ -158,19 +160,19 @@ contract Mints is GatewayCommon {
     ///
     /// @dev See `Attestations.sol` for encoding details
     ///
-    /// @param attestation   The byte-encoded attestation(s)
-    /// @param signature       The signature of the `attestationSigner` on the `attestation`
+    /// @param attestationPayload   The byte-encoded attestation(s)
+    /// @param signature            The signature of the `attestationSigner` on the `attestationPayload`
 
-    function gatewayMint(bytes memory attestation, bytes memory signature)
+    function gatewayMint(bytes memory attestationPayload, bytes memory signature)
         external
         whenNotPaused
         notDenylisted(msg.sender)
     {
         // Verify that the payload was signed by the expected signer
-        _verifyAttestationSignature(attestation, signature);
+        _verifyAttestationSignature(attestationPayload, signature);
 
         // Validate the attestation(s) and get an iteration cursor
-        Cursor memory cursor = AttestationLib.cursor(attestation);
+        Cursor memory cursor = AttestationLib.cursor(attestationPayload);
 
         // Ensure there is at least one attestation
         if (cursor.numElements == 0) {
@@ -181,8 +183,17 @@ contract Mints is GatewayCommon {
         bytes29 attestation;
         while (!cursor.done) {
             attestation = cursor.next();
-            _validateAttestation(attestation, cursor.index - 1);
-            _mint(attestation.getTransferSpec());
+
+            // Ensure the attestation is not expired
+            uint32 index = cursor.index - 1;
+            _validateAttestationNotExpired(attestation, index);
+
+            // Extract and validate the `TransferSpec`
+            bytes29 spec = attestation.getTransferSpec();
+            _validateAttestationTransferSpec(spec, index);
+
+            // Mint funds according to the spec
+            _mint(spec);
         }
     }
 
@@ -213,7 +224,7 @@ contract Mints is GatewayCommon {
         MintsStorage.Data storage $ = MintsStorage.get();
         address oldMintAuthority = $.tokenMintAuthorities[token];
         $.tokenMintAuthorities[token] = newMintAuthority;
-        emit MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
+        emit MintAuthorityChanged(token, oldMintAuthority, newMintAuthority);
     }
 
     /// Sets the address that may sign attestations
@@ -227,7 +238,7 @@ contract Mints is GatewayCommon {
         MintsStorage.Data storage $ = MintsStorage.get();
         address oldAttestationSigner = $.attestationSigner;
         $.attestationSigner = newAttestationSigner;
-        emit AttestationSignerUpdated(oldAttestationSigner, newAttestationSigner);
+        emit AttestationSignerChanged(oldAttestationSigner, newAttestationSigner);
     }
 
     /// Verifies the signature for a (set of) attestation(s)
@@ -243,23 +254,28 @@ contract Mints is GatewayCommon {
         }
     }
 
-    /// Validates a single attestation
+    /// Validates that an attestation is not expired
     ///
-    /// @dev Checks expiration, value, recipient denylist status, destination caller, destination domain, destination
-    ///      contract, and (when the domains match) source contract and token consistency
+    /// @dev Reverts if the attestation is expired
     ///
     /// @param attestation    A `TypedMemView` reference to the byte-encoded attestation
-    /// @param index   The index of the attestation within the batch (used for error reporting)
-    function _validateAttestation(bytes29 attestation, uint32 index) internal view {
+    /// @param index          The index of the attesation within the batch (used for error reporting)
+    function _validateAttestationNotExpired(bytes29 attestation, uint32 index) internal view {
         // Ensure the attestation is not expired
         uint256 maxBlockHeight = attestation.getMaxBlockHeight();
         if (maxBlockHeight < block.number) {
             revert AttestationExpiredAtIndex(index, maxBlockHeight, block.number);
         }
+    }
 
-        // Extract the `TransferSpec`
-        bytes29 spec = attestation.getTransferSpec();
-
+    /// Validates a single attestation's transfer spec
+    ///
+    /// @dev Checks value, recipient denylist status, destination caller, destination domain, destination
+    ///      contract, and (when the domains match) source contract and token consistency
+    ///
+    /// @param spec    A `TypedMemView` reference to the transfer spec portion of the attestation
+    /// @param index   The index of the attestation within the batch (used for error reporting)
+    function _validateAttestationTransferSpec(bytes29 spec, uint32 index) internal view {
         // Ensure the value is nonzero
         uint256 value = spec.getValue();
         if (value == 0) {

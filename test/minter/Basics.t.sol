@@ -116,8 +116,8 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         vm.startPrank(owner);
         minter.addSupportedToken(token);
 
-        vm.expectEmit(false, false, false, true);
-        emit Mints.MintAuthorityUpdated(token, oldMintAuthority, newMintAuthority);
+        vm.expectEmit(true, true, true, false, address(minter));
+        emit Mints.MintAuthorityChanged(token, oldMintAuthority, newMintAuthority);
 
         minter.updateMintAuthority(token, newMintAuthority);
         assertEq(minter.tokenMintAuthority(token), newMintAuthority);
@@ -133,8 +133,8 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         minter.updateMintAuthority(token, mintAuthority);
 
         // Update to same address again
-        vm.expectEmit(false, false, false, true);
-        emit Mints.MintAuthorityUpdated(token, mintAuthority, mintAuthority);
+        vm.expectEmit(true, true, true, false, address(minter));
+        emit Mints.MintAuthorityChanged(token, mintAuthority, mintAuthority);
         minter.updateMintAuthority(token, mintAuthority);
 
         assertEq(minter.tokenMintAuthority(token), mintAuthority);
@@ -162,8 +162,8 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
 
         address oldAttestationSigner = minter.attestationSigner();
 
-        vm.expectEmit(false, false, false, true);
-        emit Mints.AttestationSignerUpdated(oldAttestationSigner, newAttestationSigner);
+        vm.expectEmit(true, true, false, false, address(minter));
+        emit Mints.AttestationSignerChanged(oldAttestationSigner, newAttestationSigner);
 
         vm.startPrank(owner);
         minter.updateAttestationSigner(newAttestationSigner);
@@ -178,8 +178,8 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         minter.updateAttestationSigner(newAttestationSigner); // first update
         assertEq(minter.attestationSigner(), newAttestationSigner);
 
-        vm.expectEmit(false, false, false, true);
-        emit Mints.AttestationSignerUpdated(newAttestationSigner, newAttestationSigner);
+        vm.expectEmit(true, true, false, false, address(minter));
+        emit Mints.AttestationSignerChanged(newAttestationSigner, newAttestationSigner);
         minter.updateAttestationSigner(newAttestationSigner); // second update
         vm.stopPrank();
 

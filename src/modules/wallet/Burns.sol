@@ -87,13 +87,13 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     ///
     /// @param oldBurnSigner   The previous burn signer address
     /// @param newBurnSigner   The new burn signer address
-    event BurnSignerUpdated(address oldBurnSigner, address newBurnSigner);
+    event BurnSignerChanged(address indexed oldBurnSigner, address indexed newBurnSigner);
 
     /// Emitted when the `feeRecipient` role is updated
     ///
     /// @param oldFeeRecipient   The previous fee recipient address
     /// @param newFeeRecipient   The new fee recipient address
-    event FeeRecipientUpdated(address oldFeeRecipient, address newFeeRecipient);
+    event FeeRecipientChanged(address indexed oldFeeRecipient, address indexed newFeeRecipient);
 
     /// Thrown when a burn intent set or batch is empty
     error MustHaveAtLeastOneBurnIntent();
@@ -186,7 +186,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     ///
     /// @param intent   The burn intent to encode
     /// @return         The byte-encoded burn intent
-    function encodeBurnIntent(BurnIntent memory intent) external pure returns (bytes memory) {
+    function encodeBurnIntent(BurnIntent calldata intent) external pure returns (bytes memory) {
         return BurnIntentLib.encodeBurnIntent(intent);
     }
 
@@ -194,16 +194,15 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     ///
     /// @param intents   The burn intents to encode
     /// @return          The byte-encoded burn intent set
-    function encodeBurnIntents(BurnIntent[] memory intents) external pure returns (bytes memory) {
-        BurnIntentSet memory intentSet = BurnIntentSet({intents: intents});
-        return BurnIntentLib.encodeBurnIntentSet(intentSet);
+    function encodeBurnIntents(BurnIntent[] calldata intents) external pure returns (bytes memory) {
+        return BurnIntentLib.encodeBurnIntentSet(BurnIntentSet({intents: intents}));
     }
 
     /// Returns the `keccak256` hash of a burn intent
     ///
     /// @param intent   The burn intent to hash
     /// @return         The `keccak256` hash of the burn intent
-    function getTypedDataHash(bytes memory intent) external view returns (bytes32) {
+    function getTypedDataHash(bytes calldata intent) external view returns (bytes32) {
         return BurnIntentLib.getTypedDataHash(intent);
     }
 
@@ -212,12 +211,12 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     ///
     /// @dev See `BurnIntents.sol` for encoding details
     ///
-    /// @param intent   A byte-encoded (set of) burn intent(s)
-    /// @param signer   The address that will sign the burn intent(s)
-    /// @return         `true` if the burn intent(s) would be valid with the given signer, `false` otherwise
-    function validateBurnIntents(bytes memory intent, address signer) external view returns (bool) {
+    /// @param intents   A byte-encoded (set of) burn intent(s)
+    /// @param signer    The address that will sign the burn intent(s)
+    /// @return          `true` if the burn intent(s) would be valid with the given signer, `false` otherwise
+    function validateBurnIntents(bytes calldata intents, address signer) external view returns (bool) {
         // Validate the burn intent(s) and get an iteration cursor
-        Cursor memory cursor = BurnIntentLib.cursor(intent);
+        Cursor memory cursor = BurnIntentLib.cursor(intents);
 
         // Ensure there is at least one burn intent
         if (cursor.numElements == 0) {
@@ -232,13 +231,17 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
             intent = cursor.next();
 
             // Validate that everything about the burn intent is as expected, and skip if it's not for this domain
-            bool relevant = _validateBurnIntent(intent, signer, 0, cursor.index - 1);
+            bytes29 spec = intent.getTransferSpec();
+            uint32 index = cursor.index - 1;
+            bool relevant = _validateBurnIntentTransferSpec(spec, signer, index);
             if (!relevant) {
                 continue;
             }
 
+            // Validate the block height and fee of the burn intent
+            _validateBurnIntentBlockHeightAndFee(intent, 0, index);
+
             // Ensure that each one we've seen so far is for the same token
-            bytes29 spec = intent.getTransferSpec();
             address _token = AddressLib._bytes32ToAddress(spec.getSourceToken());
             if (token == address(0)) {
                 token = _token;
@@ -278,7 +281,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         BurnsStorage.Data storage $ = BurnsStorage.get();
         address oldBurnSigner = $.burnSigner;
         $.burnSigner = newBurnSigner;
-        emit BurnSignerUpdated(oldBurnSigner, newBurnSigner);
+        emit BurnSignerChanged(oldBurnSigner, newBurnSigner);
     }
 
     /// Sets the address that will receive the fee for burns
@@ -292,7 +295,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         BurnsStorage.Data storage $ = BurnsStorage.get();
         address oldFeeRecipient = $.feeRecipient;
         $.feeRecipient = newFeeRecipient;
-        emit FeeRecipientUpdated(oldFeeRecipient, newFeeRecipient);
+        emit FeeRecipientChanged(oldFeeRecipient, newFeeRecipient);
     }
 
     /// Internal function to verify the signature of the `burnSigner` on the `calldataBytes` input
@@ -382,10 +385,13 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
             bytes29 spec = intent.getTransferSpec();
 
             // Validate that everything about the burn intent is as expected, skipping if it's not for this domain
-            bool relevant = _validateBurnIntent(intent, signer, fees[index], index);
+            bool relevant = _validateBurnIntentTransferSpec(spec, signer, index);
             if (!relevant) {
                 continue;
             }
+
+            // Validate the block height and fee of the burn intent
+            _validateBurnIntentBlockHeightAndFee(intent, fees[index], index);
 
             // Ensure that each one we've seen so far is for the same token
             address _token = AddressLib._bytes32ToAddress(spec.getSourceToken());
@@ -415,24 +421,41 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         IBurnToken(token).burn(totalDeductedAmount - totalFee);
     }
 
-    /// Validates the contents of a single burn intent and its proposed fee
+    /// Validates that the block height and proposed fee for a burn intent do not exceed limits
     ///
-    /// @dev Checks include: non-zero value, source domain match, expiry block, fee limit, source contract address,
+    /// @dev Checks include: block height is within `maxBlockHeight` and fee is within `maxFee`.
+    ///
+    /// @param intent   The `TypedMemView` reference to the encoded burn intent to validate
+    /// @param fee      The fee proposed for this burn intent
+    /// @param index    The index of this burn intent within the original set (used for error messages)
+    function _validateBurnIntentBlockHeightAndFee(bytes29 intent, uint256 fee, uint32 index) internal view {
+        // Ensure that the burn intent is not expired
+        uint256 maxBlockHeight = intent.getMaxBlockHeight();
+        if (maxBlockHeight < block.number) {
+            revert IntentExpiredAtIndex(index, maxBlockHeight, block.number);
+        }
+
+        // Ensure that the fee is within the allowed range
+        uint256 maxFee = intent.getMaxFee();
+        if (maxFee < fee) {
+            revert BurnFeeTooHighAtIndex(index, maxFee, fee);
+        }
+    }
+
+    /// Validates the contents of a single burn intent's transfer spec
+    ///
+    /// @dev Checks include: non-zero value, source domain match, source contract address,
     ///      token support, and signer delegation
     ///
-    /// @param intent        The `TypedMemView` reference to the encoded burn intent to validate
+    /// @param spec        The `TypedMemView` reference to the encoded transfer spec to validate
     /// @param signer      The address that signed the entire burn intent payload
-    /// @param fee         The fee proposed for this burn intent
     /// @param index       The index of this burn intent within the original set (used for error messages)
     /// @return relevant   `true` if the burn intent is for the current domain, `false` otherwise
-    function _validateBurnIntent(bytes29 intent, address signer, uint256 fee, uint32 index)
+    function _validateBurnIntentTransferSpec(bytes29 spec, address signer, uint32 index)
         internal
         view
         returns (bool relevant)
     {
-        // Extract the `TransferSpec` from the burn intent
-        bytes29 spec = intent.getTransferSpec();
-
         // If any burn intents are zero (even if they are for a different domain), refuse to continue so that
         // they all fail together across all source domains
         uint256 value = spec.getValue();
@@ -445,18 +468,6 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         uint32 domain = spec.getSourceDomain();
         if (!_isCurrentDomain(domain)) {
             return false;
-        }
-
-        // Ensure that the burn intent is not expired
-        uint256 maxBlockHeight = intent.getMaxBlockHeight();
-        if (maxBlockHeight < block.number) {
-            revert IntentExpiredAtIndex(index, maxBlockHeight, block.number);
-        }
-
-        // Ensure that the fee is within the allowed range
-        uint256 maxFee = intent.getMaxFee();
-        if (maxFee < fee) {
-            revert BurnFeeTooHighAtIndex(index, maxFee, fee);
         }
 
         // Ensure that this is the correct source contract

@@ -136,7 +136,7 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     /// @param depositors   The depositor of the requested balance
     /// @param ids          The packed token and balance type
     /// @return             The balances of the depositors for the tokens and balance types
-    function balanceOfBatch(address[] calldata depositors, uint256[] memory ids)
+    function balanceOfBatch(address[] calldata depositors, uint256[] calldata ids)
         external
         view
         override
@@ -178,10 +178,11 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     {
         BalancesStorage.Data storage $ = BalancesStorage.get();
 
-        $.availableBalances[token][depositor] -= value;
-        $.withdrawingBalances[token][depositor] += value;
+        remainingAvailable = $.availableBalances[token][depositor] - value;
+        totalWithdrawing = $.withdrawingBalances[token][depositor] + value;
 
-        return ($.availableBalances[token][depositor], $.withdrawingBalances[token][depositor]);
+        $.availableBalances[token][depositor] = remainingAvailable;
+        $.withdrawingBalances[token][depositor] = totalWithdrawing;
     }
 
     /// Decreases a depositor's withdrawing balance to zero, returning what it was beforehand
