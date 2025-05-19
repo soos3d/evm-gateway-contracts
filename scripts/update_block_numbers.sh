@@ -3,7 +3,7 @@
 set -e
 
 filename="block-numbers.json"
-chains=$(jq -r 'keys[]' ${filename})
+chains=$(forge config --json | jq -r '.rpc_endpoints | keys[]')
 new_block_numbers=""
 
 function append() {
