@@ -326,7 +326,7 @@ library AttestationLib {
     /// Encode a `Attestation` struct into bytes
     ///
     /// @param attestation   The `Attestation` to encode
-    /// @return       The encoded bytes
+    /// @return              The encoded bytes
     function encodeAttestation(Attestation memory attestation) internal pure returns (bytes memory) {
         bytes memory specBytes = TransferSpecLib.encodeTransferSpec(attestation.spec);
 
@@ -341,10 +341,11 @@ library AttestationLib {
     /// Encode a `AttestationSet` struct into bytes
     ///
     /// @param attestationSet   The `AttestationSet` to encode
-    /// @return          The encoded bytes
+    /// @return                 The encoded bytes
     function encodeAttestationSet(AttestationSet memory attestationSet) internal pure returns (bytes memory) {
         uint256 numAttestations = attestationSet.attestations.length;
 
+        // Ensure the declared number of attestations is within the bounds of a uint32
         if (numAttestations > type(uint32).max) {
             revert TransferSpecLib.TransferPayloadSetTooManyElements(type(uint32).max);
         }

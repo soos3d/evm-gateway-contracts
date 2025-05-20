@@ -21,7 +21,7 @@ pragma solidity ^0.8.29;
 ///
 /// @notice Used to iterate over a single burn intent or attestation or a set of the same in a uniform way
 struct Cursor {
-    /// The view pointing to the start of the encoded single burn intent, attestation, or set
+    /// The `TypedMemView` reference pointing to the start of the encoded single burn intent, attestation, or set
     bytes29 memView;
     /// The byte offset within the `memView` data where the next burn intent or attestation begins
     uint256 offset;

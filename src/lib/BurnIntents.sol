@@ -44,20 +44,20 @@ uint16 constant BURN_INTENT_SET_INTENTS_OFFSET = 8;
 ///      and replay protection. See `TransferSpecHashes.sol` for more details.
 ///
 /// @dev Byte encoding (big-endian):
-///     FIELD                      OFFSET   BYTES   NOTES
-///     magic                           0       4   Always 0x070afbc2
-///     max block height                4      32
-///     max fee                        36      32   Denominated in the token
-///     transfer spec length           68       4   In bytes, may vary based on metadata length
-///     encoded transfer spec          72       ?   Must be the length indicated above
+///     FIELD                   OFFSET   BYTES   NOTES
+///     magic                        0       4   Always 0x070afbc2
+///     max block height             4      32
+///     max fee                     36      32   Denominated in the token
+///     transfer spec length        68       4   In bytes, may vary based on metadata length
+///     encoded transfer spec       72       ?   Must be the length indicated above
 struct BurnIntent {
     uint256 maxBlockHeight; //   Valid until this block height on the source domain
     uint256 maxFee; //           The maximum fee that may be collected by the operator
     TransferSpec spec; //        A description of the transfer
 }
 
-// Type hash for the BurnIntent struct
-// keccak256("BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)");
+// Type hash for the `BurnIntent` struct
+// `keccak256("BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)")`
 bytes32 constant BURN_INTENT_TYPEHASH = 0xa3f9ead15bb3694b6a68c381d79edde07b7b14311754c8e10fb254225b837425;
 
 /// @title BurnIntentSet
@@ -68,14 +68,14 @@ bytes32 constant BURN_INTENT_TYPEHASH = 0xa3f9ead15bb3694b6a68c381d79edde07b7b14
 /// @dev Magic: `bytes4(keccak256("circle.gateway.BurnIntentSet"))`
 ///
 /// @dev Byte encoding (big-endian):
-///     FIELD                      OFFSET   BYTES   NOTES
-///     magic                           0       4   Always 0xe999239b
+///     FIELD               OFFSET   BYTES   NOTES
+///     magic                    0       4   Always 0xe999239b
 ///     number of intents        4       4
 ///     intents                  8       ?   Concatenated one after another
 struct BurnIntentSet {
     BurnIntent[] intents;
 }
 
-// Type hash for the BurnIntentSet struct
-// keccak256("BurnIntentSet(BurnIntent[] intents)BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)")
+// Type hash for the `BurnIntentSet` struct
+// `keccak256("BurnIntentSet(BurnIntent[] intents)BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)")`
 bytes32 constant BURN_INTENT_SET_TYPEHASH = 0x0df0a1f5b563e2faf841a5a7ea9f7ff99582927f62e253e4517422c831496e38;

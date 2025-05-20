@@ -1,6 +1,6 @@
 # Circle Gateway Contracts
 
-These are the contracts that support the Circle Gateway product. See the contract docs or Circle's website for more information about that product and how to use it.
+These are the contracts that support the Circle Gateway product. See the contract docs or Circle's website for more information about the product and how to use it.
 
 ## Install dependencies
 

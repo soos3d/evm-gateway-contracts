@@ -29,7 +29,7 @@ import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 
 /// @title GatewayCommon
 ///
-/// @notice Contains functionality that is common between `GatewayWallet` and `GatewayMinter`.
+/// @notice Contains functionality that is common between `GatewayWallet` and `GatewayMinter`
 contract GatewayCommon is
     Initializable,
     UUPSUpgradeable,

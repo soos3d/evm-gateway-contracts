@@ -37,7 +37,7 @@ import {
     TRANSFER_SPEC_NONCE_OFFSET,
     TRANSFER_SPEC_METADATA_LENGTH_OFFSET,
     TRANSFER_SPEC_METADATA_OFFSET,
-    // solhint-disable-next-line no-unused-import
+    // solhint-disable-next-line no-unused-import (only used in assembly)
     TRANSFER_SPEC_TYPEHASH
 } from "src/lib/TransferSpec.sol";
 
@@ -469,8 +469,8 @@ library TransferSpecLib {
     ///      The resulting hash can be used with `eth_signTypedData` for secure message signing.
     ///      The hash includes all fields of the TransferSpec struct in a structured format.
     ///
-    /// @param spec         The `TypedMemView` reference to the encoded `TransferSpec`
-    /// @return structHash  The EIP-712 formatted hash of the TransferSpec for signing
+    /// @param spec          The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return structHash   The EIP-712 formatted hash of the TransferSpec for signing
     function getTypedDataHash(bytes29 spec) internal view returns (bytes32 structHash) {
         uint32 version = getVersion(spec);
         uint32 sourceDomain = getSourceDomain(spec);
@@ -498,16 +498,16 @@ library TransferSpecLib {
 
             // Copy 320 bytes (10 x 32 bytes) from footerStart to ptr+128 using staticcall
             // This efficiently copies the following TransferSpec fields in order:
-            // - sourceContract      (32 bytes) -> offset 128-160
-            // - destinationContract (32 bytes) -> offset 160-192
-            // - sourceToken         (32 bytes) -> offset 192-224
-            // - destinationToken    (32 bytes) -> offset 224-256
-            // - sourceDepositor     (32 bytes) -> offset 256-288
-            // - destinationRecipient(32 bytes) -> offset 288-320
-            // - sourceSigner        (32 bytes) -> offset 320-352
-            // - destinationCaller   (32 bytes) -> offset 352-384
-            // - value               (32 bytes) -> offset 384-416
-            // - nonce               (32 bytes) -> offset 416-448
+            // - sourceContract       (32 bytes) -> offset 128-160
+            // - destinationContract  (32 bytes) -> offset 160-192
+            // - sourceToken          (32 bytes) -> offset 192-224
+            // - destinationToken     (32 bytes) -> offset 224-256
+            // - sourceDepositor      (32 bytes) -> offset 256-288
+            // - destinationRecipient (32 bytes) -> offset 288-320
+            // - sourceSigner         (32 bytes) -> offset 320-352
+            // - destinationCaller    (32 bytes) -> offset 352-384
+            // - value                (32 bytes) -> offset 384-416
+            // - nonce                (32 bytes) -> offset 416-448
             //
             // Uses staticcall to memory address 4 (identity precompile) which efficiently
             // copies memory regions. This is more gas efficient than copying each field individually.

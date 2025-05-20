@@ -48,23 +48,23 @@ uint16 constant TRANSFER_SPEC_METADATA_OFFSET = 340;
 ///      and replay protection. As such, repeated transfers with identical parameters must use a different `nonce`.
 ///
 /// @dev Byte encoding (big-endian):
-///     FIELD                     OFFSET   BYTES   NOTES
-///     magic                          0       4   Always 0xca85def7
-///     version                        4       4   Always 1
-///     source domain                  8       4
-///     destination domain            12       4
-///     source contract               16      32
-///     destination contract          48      32
-///     source token                  80      32
-///     destination token            112      32
-///     source depositor             144      32
-///     destination recipient        176      32
-///     source signer                208      32
-///     destination caller           240      32   May be 0, to allow any caller
-///     value                        272      32
-///     nonce                        304      32   Any random unique value, not necessarily sequential
-///     metadata length              336       4   In bytes, 0 to indicate no metadata
-///     metadata                     340       ?   Must be the length indicated above if present
+///     FIELD                   OFFSET   BYTES   NOTES
+///     magic                        0       4   Always 0xca85def7
+///     version                      4       4   Always 1
+///     source domain                8       4
+///     destination domain          12       4
+///     source contract             16      32
+///     destination contract        48      32
+///     source token                80      32
+///     destination token          112      32
+///     source depositor           144      32
+///     destination recipient      176      32
+///     source signer              208      32
+///     destination caller         240      32   May be 0, to allow any caller
+///     value                      272      32
+///     nonce                      304      32   Any random unique value, not necessarily sequential
+///     metadata length            336       4   In bytes, 0 to indicate no metadata
+///     metadata                   340       ?   Must be the length indicated above if present
 struct TransferSpec {
     uint32 version; //                 To allow for future upgrades
     uint32 sourceDomain; //            The domain of the wallet contract this transfer came from
@@ -82,6 +82,6 @@ struct TransferSpec {
     bytes metadata; //                 Arbitrary bytes that may be used for onchain composition
 }
 
-// Type hash for the TransferSpec struct
-// keccak256("TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)");
+// Type hash for the `TransferSpec` struct
+// `keccak256("TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)")`
 bytes32 constant TRANSFER_SPEC_TYPEHASH = 0x1680ef016ab4f25747b8a9f463783d23999acdcf480e486f896b577e4e05b21c;

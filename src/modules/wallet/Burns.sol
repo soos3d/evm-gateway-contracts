@@ -162,7 +162,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// another chain. Charges a fee for the burn (which may be at most each burn intent's `maxFee`), and sends
     /// it to the `feeRecipient`.
     ///
-    /// @dev The `calldataBytes` input must be ABI-encoded and contain three arrays: `intents`, `signatures`, and `fees`.
+    /// @dev The `calldataBytes` input must be ABI-encoded and contain three arrays: `intents`, `signatures`, and `fees`
     /// @dev `intents`, `signatures`, and `fees` encoded in the `calldataBytes` input must all be the same length.
     /// @dev For a set of burn intents, intents from other domains are ignored. The whole set is still needed to verify
     ///      the signature.
@@ -315,7 +315,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         }
     }
 
-    /// Internal function that validates and processes burn intents.
+    /// Internal function that validates and processes burn intents
     ///
     /// @param intents      A batch of byte-encoded burn intents or burn intent sets
     /// @param signatures   One signature for each burn intent (set)
@@ -340,9 +340,9 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
 
     /// Validates a single burn intent (set), recovers the signer, and processes all relevant burns
     ///
-    /// @param intent   The byte-encoded burn intent (set)
-    /// @param signature       The signature on the `keccak256` hash of `intent`
-    /// @param fees            The fees to be charged, one for each individual burn intent
+    /// @param intent      The byte-encoded burn intent (set)
+    /// @param signature   The signature on the `keccak256` hash of `intent`
+    /// @param fees        The fees to be charged, one for each individual burn intent
     function _validateAndProcessIntentPayload(bytes memory intent, bytes memory signature, uint256[] memory fees)
         internal
     {

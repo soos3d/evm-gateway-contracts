@@ -30,7 +30,7 @@ import {
     BURN_INTENT_TRANSFER_SPEC_OFFSET,
     BURN_INTENT_SET_NUM_INTENTS_OFFSET,
     BURN_INTENT_SET_INTENTS_OFFSET,
-    BURN_INTENT_TYPEHASH, // solhint-disable-line no-unused-import, only used in assembly
+    BURN_INTENT_TYPEHASH, // solhint-disable-line no-unused-import (only used in assembly)
     BURN_INTENT_SET_TYPEHASH
 } from "src/lib/BurnIntents.sol";
 import {Cursor} from "src/lib/Cursor.sol";
@@ -330,7 +330,7 @@ library BurnIntentLib {
     /// Encode a `BurnIntent` struct into bytes
     ///
     /// @param intent   The `BurnIntent` to encode
-    /// @return       The encoded bytes
+    /// @return         The encoded bytes
     function encodeBurnIntent(BurnIntent memory intent) internal pure returns (bytes memory) {
         bytes memory specBytes = TransferSpecLib.encodeTransferSpec(intent.spec);
 
@@ -346,10 +346,11 @@ library BurnIntentLib {
     /// Encode a `BurnIntentSet` struct into bytes
     ///
     /// @param intentSet   The `BurnIntentSet` to encode
-    /// @return          The encoded bytes
+    /// @return            The encoded bytes
     function encodeBurnIntentSet(BurnIntentSet memory intentSet) internal pure returns (bytes memory) {
         uint256 numIntents = intentSet.intents.length;
 
+        // Ensure the declared number of intents is within the bounds of a uint32
         if (numIntents > type(uint32).max) {
             revert TransferSpecLib.TransferPayloadSetTooManyElements(type(uint32).max);
         }
@@ -393,7 +394,7 @@ library BurnIntentLib {
 
     /// Computes the EIP-712 typed data hash for a burn intent or burn intent set
     ///
-    /// @param intent     The encoded burn intent or burn intent set
+    /// @param intent   The encoded burn intent or burn intent set
     /// @return         The EIP-712 typed data hash
     function getTypedDataHash(bytes memory intent) internal view returns (bytes32) {
         bytes29 ref = _asIntentOrSetView(intent);
@@ -406,8 +407,8 @@ library BurnIntentLib {
 
     /// Computes the EIP-712 typed data hash for a single burn intent
     ///
-    /// @param intent         A MemView reference to the encoded burn intent
-    /// @return structHash  The EIP-712 typed data hash of the burn intent
+    /// @param intent         A `TypedMemView` reference to the encoded burn intent
+    /// @return structHash   The EIP-712 typed data hash of the burn intent
     function _getBurnIntentTypedDataHash(bytes29 intent) private view returns (bytes32 structHash) {
         uint256 maxBlockHeight = getMaxBlockHeight(intent);
         uint256 maxFee = getMaxFee(intent);
