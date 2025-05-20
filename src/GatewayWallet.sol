@@ -39,7 +39,7 @@ import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
 /// be composed with other actions via a multicall contract or SCA implementation. A fee is deducted from the user's
 /// balance within the `GatewayWallet` contract in addition to the requested amount.
 ///
-/// @notice For same-chain withdrawals, users can obtain attestation from the API similar to cross-chain mints. They
+/// @notice For same-chain withdrawals, users can obtain an attestation from the API similar to cross-chain mints. They
 /// then call `gatewayMint` on the `GatewayMinter` contract to receive their funds at their specified address, while
 /// their original deposit in the `GatewayWallet` contract is subsequently burned.
 ///
