@@ -14,7 +14,7 @@
     "lint:script": "solhint --disc -c .solhint-script.json './script/**/*.sol'",
     "lint:fix": "yarn lint:src --fix && yarn lint:test --fix && yarn lint:script --fix",
     "sizes": "forge build --sizes; ./scripts/contract_sizes.sh",
-    "ci": "yarn format && yarn lint && yarn test:all",
+    "ci": "yarn format && yarn lint && yarn test:all && yarn test:js && echo 'Local CI passed!'",
     "coverage": "./scripts/coverage.sh"
   },
   "license": "Apache-2.0",
