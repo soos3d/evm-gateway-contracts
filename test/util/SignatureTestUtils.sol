@@ -168,7 +168,8 @@ contract SignatureTestUtils is Test {
         view
         returns (bytes memory encodedIntent, bytes memory signature)
     {
-        encodedIntent = intents.length == 1 ? wallet.encodeBurnIntent(intents[0]) : wallet.encodeBurnIntents(intents);
+        encodedIntent =
+            intents.length == 1 ? BurnIntentLib.encodeBurnIntent(intents[0]) : wallet.encodeBurnIntents(intents);
         bytes32 domainSeparator = wallet.domainSeparator();
         bytes32 digest =
             MessageHashUtils.toTypedDataHash(domainSeparator, BurnIntentLib.getTypedDataHash(encodedIntent));

@@ -182,14 +182,6 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         _gatewayBurn(intents, signatures, fees);
     }
 
-    /// Returns the byte encoding of a single burn intent
-    ///
-    /// @param intent   The burn intent to encode
-    /// @return         The byte-encoded burn intent
-    function encodeBurnIntent(BurnIntent calldata intent) external pure returns (bytes memory) {
-        return BurnIntentLib.encodeBurnIntent(intent);
-    }
-
     /// Returns the byte encoding of a set of burn intents
     ///
     /// @param intents   The burn intents to encode

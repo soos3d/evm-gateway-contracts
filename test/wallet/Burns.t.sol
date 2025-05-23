@@ -2113,12 +2113,6 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
 
     // ===== Burn Intent Encoding Tests =====
 
-    function test_encodeBurnIntent() public view {
-        bytes memory walletEncoded = wallet.encodeBurnIntent(baseIntent);
-        bytes memory libEncoded = BurnIntentLib.encodeBurnIntent(baseIntent);
-        assertEq(walletEncoded, libEncoded);
-    }
-
     function test_encodeBurnIntents() public view {
         BurnIntent memory intent1 = baseIntent;
         BurnIntent memory intent2 = baseIntent;
@@ -2158,7 +2152,7 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
             })
         });
 
-        bytes memory walletEncoded = wallet.encodeBurnIntent(intent);
+        bytes memory walletEncoded = BurnIntentLib.encodeBurnIntent(intent);
         bytes32 expectedHash = 0x52528dacb2770069666b863a3c27ae73d54cf8c96b25dde5da5480a82b504b71;
 
         bytes32 walletEIP712Hash = wallet.getTypedDataHash(walletEncoded);
