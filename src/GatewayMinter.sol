@@ -67,7 +67,7 @@ contract GatewayMinter is GatewayCommon, Mints {
 
     /// The address of the corresponding wallet contract on the same domain
     ///
-    /// @return   The `GatewayWallet` address
+    /// @return   The `GatewayWallet` contract address
     function walletContract() external view returns (GatewayWallet) {
         return GatewayWallet(_counterpart());
     }

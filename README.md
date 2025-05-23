@@ -153,7 +153,7 @@ To check the bytecode size of all top-level contracts against the EIP-170 contra
 
 ### Important Considerations: Memory Initialization with TypedMemView
 
-This project relies heavily on the `TypedMemView` library (`lib/memview-sol/`) for efficient memory manipulation, particularly within `AuthorizationLib.sol`.
+This project relies heavily on the `TypedMemView` library (`lib/memview-sol/`) for efficient memory manipulation.
 
 **Warning:** As documented in the [TypedMemView](https://github.com/summa-tx/memview-sol/tree/main) library itself, it utilizes unallocated memory operations and **does not guarantee cleanup of unallocated memory regions** after its internal functions execute.
 

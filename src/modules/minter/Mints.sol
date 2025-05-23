@@ -54,6 +54,12 @@ contract Mints is GatewayCommon {
         uint256 value
     );
 
+    /// Emitted when the `attestationSigner` role is updated
+    ///
+    /// @param oldAttestationSigner   The previous attestation signer address
+    /// @param newAttestationSigner   The new attestation signer address
+    event AttestationSignerChanged(address indexed oldAttestationSigner, address indexed newAttestationSigner);
+
     /// Emitted when the mint authority is updated for a token
     ///
     /// @param token              The token whose mint authority was updated
@@ -62,12 +68,6 @@ contract Mints is GatewayCommon {
     event MintAuthorityChanged(
         address indexed token, address indexed oldMintAuthority, address indexed newMintAuthority
     );
-
-    /// Emitted when the `attestationSigner` role is updated
-    ///
-    /// @param oldAttestationSigner   The previous attestation signer address
-    /// @param newAttestationSigner   The new attestation signer address
-    event AttestationSignerChanged(address indexed oldAttestationSigner, address indexed newAttestationSigner);
 
     /// Thrown when an attestation set is empty
     error MustHaveAtLeastOneAttestation();
@@ -162,7 +162,6 @@ contract Mints is GatewayCommon {
     ///
     /// @param attestationPayload   The byte-encoded attestation(s)
     /// @param signature            The signature of the `attestationSigner` on the `attestationPayload`
-
     function gatewayMint(bytes memory attestationPayload, bytes memory signature)
         external
         whenNotPaused
@@ -197,9 +196,9 @@ contract Mints is GatewayCommon {
         }
     }
 
-    /// The attestation signer that is recognized by the contract
+    /// The ddress with the `attestationSigner` role that may sign attestations to mint funds
     ///
-    /// @return   The attestation signer address
+    /// @return   The address of the attestation signer
     function attestationSigner() public view returns (address) {
         return MintsStorage.get().attestationSigner;
     }
@@ -360,12 +359,12 @@ contract Mints is GatewayCommon {
 library MintsStorage {
     /// @custom:storage-location erc7201:circle.gateway.Mints
     struct Data {
+        /// The ddress that may sign attestations to mint funds
+        address attestationSigner;
         /// Maps token addresses to their corresponding minter contract addresses. Absence of an entry means the token
         /// itself should be used as the minter. This contract must have permission to mint the associated token via
         /// the minter contract.
         mapping(address token => address tokenMintAuthority) tokenMintAuthorities;
-        /// The address of the operator that can sign attestations
-        address attestationSigner;
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Mints"))) - 1)) & ~bytes32(uint256(0xff))`

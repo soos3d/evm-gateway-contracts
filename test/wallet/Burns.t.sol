@@ -1030,7 +1030,7 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
         _assertBalances("Final State", underFundedDepositor, feeRecipient, finalExpectedBalances);
     }
 
-    /// Tests gatewayBurn with an authorization set containing two intents for the same depositor.
+    /// Tests gatewayBurn with an intent set containing two intents for the same depositor.
     /// The first intent succeeds, but depletes the balance such that the second intent
     /// can cover its value but only a portion of its fee.
     function test_gatewayBurn_singleIntentSet_secondIntentPartialFee() public {
@@ -1182,7 +1182,7 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
     // 1. Input Structure: How intents are grouped (single vs. multiple sets, single vs. multiple intents per set).
     // 2. Domain Relevance: Whether intents are for the current domain (processed) or another (skipped).
     // 3. Balance Source: Where funds are drawn from (available only, withdrawing only, or both).
-    // 4. Intent Signer: Who signed the authorization (the depositor, an authorized delegate, or a now revoked delegate).
+    // 4. Intent Signer: Who signed the intent (the depositor, an authorized delegate, or a now revoked delegate).
 
     struct SingleBurnTestConfig {
         string contextSuffix; // Short description (e.g., "(Available, Depositor)")
@@ -1824,7 +1824,7 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
         ExpectedBurnEventParams eventParams4;
     }
 
-    /// Tests gatewayBurn with multiple independent authorization inputs, including a set with mixed domain relevance.
+    /// Tests gatewayBurn with multiple independent intent inputs, including a set with mixed domain relevance.
     /// - intents[0]: Single intent, current domain.
     /// - intents[1]: Set of 3 intents (current, other, current).
     /// Expects burns for the 3 current-domain intents to succeed and the other-domain intent to be skipped.

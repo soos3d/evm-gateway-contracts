@@ -98,7 +98,7 @@ contract Delegation is Pausing, Denylist, TokenSupport {
     }
 
     /// Stop allowing `delegate` to withdraw or transfer the caller's `token` balance. This revocation is not respected
-    /// for burn intents that have been signed, so that burns cannot be prevented by removing the delegate.
+    /// for burn intents that have already been signed, so that burns cannot be prevented by removing the delegate.
     ///
     /// @param token      The token the delegate should no longer be authorized for
     /// @param delegate   The address that should no longer be authorized
@@ -128,7 +128,7 @@ contract Delegation is Pausing, Denylist, TokenSupport {
         emit DelegateRemoved(token, msg.sender, delegate);
     }
 
-    /// Check if an address is authorized to withdraw and transfer tokens on behalf of a depositor
+    /// Check if an address is currently authorized to withdraw and transfer tokens on behalf of a depositor
     ///
     /// @param token       The token to check
     /// @param depositor   The depositor to check

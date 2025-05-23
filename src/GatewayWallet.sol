@@ -87,7 +87,7 @@ contract GatewayWallet is GatewayCommon, Deposits, Withdrawals, Burns {
 
     /// The address of the corresponding minter contract on the same domain
     ///
-    /// @return   The `GatewayMinter` address
+    /// @return   The `GatewayMinter` contract address
     function minterContract() external view returns (GatewayMinter) {
         return GatewayMinter(_counterpart());
     }

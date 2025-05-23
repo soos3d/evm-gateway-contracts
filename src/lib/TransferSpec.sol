@@ -62,9 +62,9 @@ uint16 constant TRANSFER_SPEC_METADATA_OFFSET = 340;
 ///     source signer              208      32
 ///     destination caller         240      32   May be 0, to allow any caller
 ///     value                      272      32
-///     nonce                      304      32   Any random unique value, not necessarily sequential
-///     metadata length            336       4   In bytes, 0 to indicate no metadata
-///     metadata                   340       ?   Must be the length indicated above if present
+///     salt                       304      32   Any random value that makes the transfer spec hash unique
+///     hook data length           336       4   In bytes, 0 to indicate no hook data
+///     hook data                  340       ?   Must be the length indicated above if present
 struct TransferSpec {
     uint32 version; //                 To allow for future upgrades
     uint32 sourceDomain; //            The domain of the wallet contract this transfer came from
@@ -78,8 +78,8 @@ struct TransferSpec {
     bytes32 sourceSigner; //           The signer who signed for the transfer, which may be the same as sourceDepositor
     bytes32 destinationCaller; //      The address of the caller who may use the attestation, 0 if any caller
     uint256 value; //                  The amount to be minted
-    bytes32 nonce; //                  An arbitrary value chosen by the user to be unique
-    bytes metadata; //                 Arbitrary bytes that may be used for onchain composition
+    bytes32 salt; //                   An arbitrary value chosen by the user to be unique
+    bytes hookData; //                 Arbitrary bytes that may be used for onchain composition
 }
 
 // Type hash for the `TransferSpec` struct

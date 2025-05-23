@@ -256,16 +256,17 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         return true;
     }
 
-    /// The address that may sign the calldata for burning tokens that have been minted on another domain
+    /// The address with the `burnSigner` role that may sign the calldata for burning tokens that have been minted using
+    /// the `GatewayMinter` contract
     ///
-    /// @return   The stored burn signer
+    /// @return   The address of the burn signer
     function burnSigner() public view returns (address) {
         return BurnsStorage.get().burnSigner;
     }
 
     /// The address that will receive the onchain fee for burns
     ///
-    /// @return   The stored fee recipient
+    /// @return   The address of the fee recipient
     function feeRecipient() public view returns (address) {
         return BurnsStorage.get().feeRecipient;
     }
@@ -570,7 +571,8 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
 library BurnsStorage {
     /// @custom:storage-location erc7201:circle.gateway.Burns
     struct Data {
-        /// The address that may sign the calldata for burning tokens that have been minted on another chain
+        /// The address that may sign the calldata for burning tokens that have been minted using the `GatewayMinter`
+        /// contract
         address burnSigner;
         /// The address that will receive the onchain fee for burns
         address feeRecipient;
