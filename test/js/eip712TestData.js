@@ -38,7 +38,7 @@ const TransferSpec = [
   { name: 'sourceSigner', type: 'bytes32' },
   { name: 'destinationCaller', type: 'bytes32' },
   { name: 'value', type: 'uint256' },
-  { name: 'nonce', type: 'bytes32' },
+  { name: 'salt', type: 'bytes32' },
   { name: 'metadata', type: 'bytes' }
 ];
 
@@ -80,7 +80,7 @@ const generateTransferSpec = () => ({
   sourceSigner: generateRandomBytes(32),
   destinationCaller: generateRandomBytes(32),
   value: Math.floor(Math.random() * 1000000),
-  nonce: generateRandomBytes(32),
+  salt: generateRandomBytes(32),
   // random 100 bytes of metadata
   metadata: generateRandomBytes(100)
 });

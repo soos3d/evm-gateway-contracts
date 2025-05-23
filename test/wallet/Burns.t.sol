@@ -151,7 +151,7 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
                 sourceSigner: AddressLib._addressToBytes32(depositor),
                 destinationCaller: bytes32(0),
                 value: depositorInitialBalance / 2,
-                nonce: keccak256("nonce"),
+                salt: keccak256("salt"),
                 metadata: METADATA
             })
         });
@@ -2278,13 +2278,13 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
                 sourceSigner: AddressLib._addressToBytes32(address(0x7)),
                 destinationCaller: bytes32(0),
                 value: 100,
-                nonce: keccak256("nonce"),
+                salt: keccak256("salt"),
                 metadata: METADATA
             })
         });
 
         bytes memory walletEncoded = wallet.encodeBurnIntent(intent);
-        bytes32 expectedHash = 0xb89a83bf6004ff37fc7cd497b2297e02a4642fd9891993e90a95d4d54820ab76;
+        bytes32 expectedHash = 0xf3f8c5a7e582119007c450f64cd3bdcf876ba26ea6508d9d23a73dde9585346c;
 
         bytes32 walletEIP712Hash = wallet.getTypedDataHash(walletEncoded);
 
@@ -2308,7 +2308,7 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
                 sourceSigner: AddressLib._addressToBytes32(address(0x7)),
                 destinationCaller: bytes32(0),
                 value: 100,
-                nonce: keccak256("nonce"),
+                salt: keccak256("salt"),
                 metadata: METADATA
             })
         });
@@ -2316,7 +2316,7 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
         BurnIntent[] memory intentArray = new BurnIntent[](1);
         intentArray[0] = intent;
         bytes memory encodedIntentSet = wallet.encodeBurnIntents(intentArray);
-        bytes32 expectedHash = 0xde5755f291341b439941eeab7674f226522596b040be271d0fbf9a9e728a0a5a;
+        bytes32 expectedHash = 0x2ddc3d4cd24b71c6985d3ffd121d18f262f494bd481b47860cfdf41fea75d455;
 
         bytes32 walletEIP712Hash = wallet.getTypedDataHash(encodedIntentSet);
 

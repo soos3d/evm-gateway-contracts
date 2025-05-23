@@ -57,8 +57,8 @@ struct BurnIntent {
 }
 
 // Type hash for the `BurnIntent` struct
-// `keccak256("BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)")`
-bytes32 constant BURN_INTENT_TYPEHASH = 0xa3f9ead15bb3694b6a68c381d79edde07b7b14311754c8e10fb254225b837425;
+// `keccak256("BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 salt,bytes metadata)")`
+bytes32 constant BURN_INTENT_TYPEHASH = 0x045dd233fee3672ab0e064cf85f9dac4a433114a86da1abfb5265d81307e2f04;
 
 /// @title BurnIntentSet
 ///
@@ -77,5 +77,5 @@ struct BurnIntentSet {
 }
 
 // Type hash for the `BurnIntentSet` struct
-// `keccak256("BurnIntentSet(BurnIntent[] intents)BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)")`
-bytes32 constant BURN_INTENT_SET_TYPEHASH = 0x0df0a1f5b563e2faf841a5a7ea9f7ff99582927f62e253e4517422c831496e38;
+// `keccak256("BurnIntentSet(BurnIntent[] intents)BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 salt,bytes metadata)")`
+bytes32 constant BURN_INTENT_SET_TYPEHASH = 0xe36abc89cf381eb8fb78528d9acdfa2d2bc8b7ddf54098a5013cb610dbf7141e;

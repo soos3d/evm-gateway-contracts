@@ -125,7 +125,7 @@ contract GatewayMinterMintsTest is Test, DeployUtils {
                 sourceSigner: AddressLib._addressToBytes32(sourceSigner),
                 destinationCaller: bytes32(0),
                 value: mintValue,
-                nonce: keccak256("nonceCrossChain"),
+                salt: keccak256("saltCrossChain"),
                 metadata: METADATA
             })
         });
@@ -145,7 +145,7 @@ contract GatewayMinterMintsTest is Test, DeployUtils {
                 sourceSigner: AddressLib._addressToBytes32(sourceSigner),
                 destinationCaller: bytes32(0),
                 value: mintValue,
-                nonce: keccak256("nonceSameChain"),
+                salt: keccak256("saltSameChain"),
                 metadata: METADATA
             })
         });

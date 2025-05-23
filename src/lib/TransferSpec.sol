@@ -37,7 +37,7 @@ uint16 constant TRANSFER_SPEC_DESTINATION_RECIPIENT_OFFSET = 176;
 uint16 constant TRANSFER_SPEC_SOURCE_SIGNER_OFFSET = 208;
 uint16 constant TRANSFER_SPEC_DESTINATION_CALLER_OFFSET = 240;
 uint16 constant TRANSFER_SPEC_VALUE_OFFSET = 272;
-uint16 constant TRANSFER_SPEC_NONCE_OFFSET = 304;
+uint16 constant TRANSFER_SPEC_SALT_OFFSET = 304;
 uint16 constant TRANSFER_SPEC_METADATA_LENGTH_OFFSET = 336;
 uint16 constant TRANSFER_SPEC_METADATA_OFFSET = 340;
 
@@ -45,7 +45,7 @@ uint16 constant TRANSFER_SPEC_METADATA_OFFSET = 340;
 ///
 /// @dev Magic: `bytes4(keccak256("circle.gateway.TransferSpec"))`
 /// @dev The `keccak256` hash of the encoded `TransferSpec` is used as a cross-chain identifier, for both linkability
-///      and replay protection. As such, repeated transfers with identical parameters must use a different `nonce`.
+///      and replay protection. As such, repeated transfers with identical parameters must use a different `salt`.
 ///
 /// @dev Byte encoding (big-endian):
 ///     FIELD                   OFFSET   BYTES   NOTES
@@ -79,9 +79,9 @@ struct TransferSpec {
     bytes32 destinationCaller; //      The address of the caller who may use the attestation, 0 if any caller
     uint256 value; //                  The amount to be minted
     bytes32 salt; //                   An arbitrary value chosen by the user to be unique
-    bytes hookData; //                 Arbitrary bytes that may be used for onchain composition
+    bytes metadata; //                 Arbitrary bytes that may be used for onchain composition
 }
 
 // Type hash for the `TransferSpec` struct
-// `keccak256("TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 nonce,bytes metadata)")`
-bytes32 constant TRANSFER_SPEC_TYPEHASH = 0x1680ef016ab4f25747b8a9f463783d23999acdcf480e486f896b577e4e05b21c;
+// `keccak256("TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 salt,bytes metadata)")`
+bytes32 constant TRANSFER_SPEC_TYPEHASH = 0x079df08fc57e69f6768cec63326f070ca8b29901a8f054c267fa189a36adc0ea;

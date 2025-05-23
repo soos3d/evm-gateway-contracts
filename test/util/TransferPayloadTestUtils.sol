@@ -69,7 +69,7 @@ contract TransferPayloadTestUtils is Test {
         assertEq(TransferSpecLib.getSourceSigner(ref), spec.sourceSigner, "Eq Fail: sourceSigner");
         assertEq(TransferSpecLib.getDestinationCaller(ref), spec.destinationCaller, "Eq Fail: destinationCaller");
         assertEq(TransferSpecLib.getValue(ref), spec.value, "Eq Fail: value");
-        assertEq(TransferSpecLib.getNonce(ref), spec.nonce, "Eq Fail: nonce");
+        assertEq(TransferSpecLib.getSalt(ref), spec.salt, "Eq Fail: salt");
 
         // Metadata checks
         uint32 metadataLength = TransferSpecLib.getMetadataLength(ref);

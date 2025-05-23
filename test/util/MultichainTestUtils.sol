@@ -162,7 +162,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
             sourceSigner: AddressLib._addressToBytes32(sourceSigner_),
             destinationCaller: AddressLib._addressToBytes32(destinationCaller_),
             value: amount,
-            nonce: keccak256(abi.encode(vm.randomUint())),
+            salt: keccak256(abi.encode(vm.randomUint())),
             metadata: METADATA
         });
     }

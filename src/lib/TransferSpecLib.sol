@@ -34,7 +34,7 @@ import {
     TRANSFER_SPEC_SOURCE_SIGNER_OFFSET,
     TRANSFER_SPEC_DESTINATION_CALLER_OFFSET,
     TRANSFER_SPEC_VALUE_OFFSET,
-    TRANSFER_SPEC_NONCE_OFFSET,
+    TRANSFER_SPEC_SALT_OFFSET,
     TRANSFER_SPEC_METADATA_LENGTH_OFFSET,
     TRANSFER_SPEC_METADATA_OFFSET,
     // solhint-disable-next-line no-unused-import (only used in assembly)
@@ -317,12 +317,12 @@ library TransferSpecLib {
         return ref.indexUint(TRANSFER_SPEC_VALUE_OFFSET, UINT256_BYTES);
     }
 
-    /// Extract the nonce from an encoded `TransferSpec`
+    /// Extract the salt from an encoded `TransferSpec`
     ///
     /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
-    /// @return      The `nonce` field
-    function getNonce(bytes29 ref) internal pure returns (bytes32) {
-        return ref.index(TRANSFER_SPEC_NONCE_OFFSET, BYTES32_BYTES);
+    /// @return      The `salt` field
+    function getSalt(bytes29 ref) internal pure returns (bytes32) {
+        return ref.index(TRANSFER_SPEC_SALT_OFFSET, BYTES32_BYTES);
     }
 
     /// Extract the metadata length from an encoded `TransferSpec`
@@ -378,7 +378,7 @@ library TransferSpecLib {
             spec.sourceDepositor
         );
         bytes memory footer = _encodeTransferSpecFooter(
-            spec.destinationRecipient, spec.sourceSigner, spec.destinationCaller, spec.value, spec.nonce, spec.metadata
+            spec.destinationRecipient, spec.sourceSigner, spec.destinationCaller, spec.value, spec.salt, spec.metadata
         );
         return bytes.concat(header, footer);
     }
@@ -427,7 +427,7 @@ library TransferSpecLib {
     /// @param sourceSigner           The `sourceSigner` field
     /// @param destinationCaller      The `destinationCaller` field
     /// @param value                  The `value` field
-    /// @param nonce                  The `nonce` field
+    /// @param salt                   The `salt` field
     /// @param metadata               The `metadata` field
     /// @return                       The encoded bytes
     function _encodeTransferSpecFooter(
@@ -435,7 +435,7 @@ library TransferSpecLib {
         bytes32 sourceSigner,
         bytes32 destinationCaller,
         uint256 value,
-        bytes32 nonce,
+        bytes32 salt,
         bytes memory metadata
     ) private pure returns (bytes memory) {
         if (metadata.length > type(uint32).max) {
@@ -447,7 +447,7 @@ library TransferSpecLib {
             sourceSigner,
             destinationCaller,
             value,
-            nonce,
+            salt,
             uint32(metadata.length), // 4 bytes
             metadata
         );
@@ -507,7 +507,7 @@ library TransferSpecLib {
             // - sourceSigner         (32 bytes) -> offset 320-352
             // - destinationCaller    (32 bytes) -> offset 352-384
             // - value                (32 bytes) -> offset 384-416
-            // - nonce                (32 bytes) -> offset 416-448
+            // - salt                 (32 bytes) -> offset 416-448
             //
             // Uses staticcall to memory address 4 (identity precompile) which efficiently
             // copies memory regions. This is more gas efficient than copying each field individually.
