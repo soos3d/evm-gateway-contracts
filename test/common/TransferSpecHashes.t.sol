@@ -60,7 +60,7 @@ contract TransferSpecHashesTest is Test {
             destinationCaller: keccak256(abi.encode("destinationCaller", seed)),
             value: seed,
             salt: keccak256(abi.encode("salt", seed)),
-            metadata: abi.encode("metadata", seed)
+            hookData: abi.encode("hookData", seed)
         });
     }
 

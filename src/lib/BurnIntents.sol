@@ -48,7 +48,7 @@ uint16 constant BURN_INTENT_SET_INTENTS_OFFSET = 8;
 ///     magic                        0       4   Always 0x070afbc2
 ///     max block height             4      32
 ///     max fee                     36      32   Denominated in the token
-///     transfer spec length        68       4   In bytes, may vary based on metadata length
+///     transfer spec length        68       4   In bytes, may vary based on hook data length
 ///     encoded transfer spec       72       ?   Must be the length indicated above
 struct BurnIntent {
     uint256 maxBlockHeight; //   Valid until this block height on the source domain
@@ -57,8 +57,8 @@ struct BurnIntent {
 }
 
 // Type hash for the `BurnIntent` struct
-// `keccak256("BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 salt,bytes metadata)")`
-bytes32 constant BURN_INTENT_TYPEHASH = 0x045dd233fee3672ab0e064cf85f9dac4a433114a86da1abfb5265d81307e2f04;
+// `keccak256("BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 salt,bytes hookData)")`
+bytes32 constant BURN_INTENT_TYPEHASH = 0x8b99d17a83a2dd1add9fc2a450e22732c7e8564aa110ab99c20485a7a10ba37c;
 
 /// @title BurnIntentSet
 ///
@@ -77,5 +77,5 @@ struct BurnIntentSet {
 }
 
 // Type hash for the `BurnIntentSet` struct
-// `keccak256("BurnIntentSet(BurnIntent[] intents)BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 salt,bytes metadata)")`
-bytes32 constant BURN_INTENT_SET_TYPEHASH = 0xe36abc89cf381eb8fb78528d9acdfa2d2bc8b7ddf54098a5013cb610dbf7141e;
+// `keccak256("BurnIntentSet(BurnIntent[] intents)BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 salt,bytes hookData)")`
+bytes32 constant BURN_INTENT_SET_TYPEHASH = 0xe30760cf7d79e3521ad1553a73a6c6f8d33226ea613eaa29ceda6de148fbd07a;

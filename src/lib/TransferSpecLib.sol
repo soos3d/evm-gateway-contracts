@@ -35,9 +35,9 @@ import {
     TRANSFER_SPEC_DESTINATION_CALLER_OFFSET,
     TRANSFER_SPEC_VALUE_OFFSET,
     TRANSFER_SPEC_SALT_OFFSET,
-    TRANSFER_SPEC_METADATA_LENGTH_OFFSET,
-    TRANSFER_SPEC_METADATA_OFFSET,
-    // solhint-disable-next-line no-unused-import (only used in assembly)
+    TRANSFER_SPEC_HOOK_DATA_LENGTH_OFFSET,
+    TRANSFER_SPEC_HOOK_DATA_OFFSET,
+    // solhint-disable-next-line no-unused-import, only used in assembly
     TRANSFER_SPEC_TYPEHASH
 } from "src/lib/TransferSpec.sol";
 
@@ -83,23 +83,24 @@ library TransferSpecLib {
     error InvalidTransferSpecVersion(uint32 actualVersion);
 
     /// Thrown when validating an encoded `TransferSpec` and the length of the data is different than what is implied by
-    /// the metadata length
+    /// the hook data length
     ///
     /// @param expectedTotalLength   The expected length of the data
     /// @param actualTotalLength     The actual length of the data
     error TransferSpecOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
 
-    /// Thrown when encoding a `TransferSpec` and the metadata length exceeds the maximum encodable length
+    /// Thrown when encoding a `TransferSpec` and the hook data length exceeds the maximum encodable length
     ///
-    /// @param actualLength   The actual length of the metadata
-    /// @param maxLength      The maximum encodable length of the metadata
-    error TransferSpecMetadataFieldTooLarge(uint256 actualLength, uint256 maxLength);
+    /// @param actualLength   The actual length of the hook data
+    /// @param maxLength      The maximum encodable length of the hook data
+    error TransferSpecHookDataFieldTooLarge(uint256 actualLength, uint256 maxLength);
 
-    /// Thrown when the metadata view matches the NULL value from `TypedMemView`
+    /// Thrown when the declared hook data length in the `TransferSpec` does not match the actual length of the hook
+    /// data
     ///
-    /// @param expectedMetadataLength   The expected metadata length declared in the metadata length field
+    /// @param expectedHookDataLength   The expected hook data length declared in the hook data length field
     /// @param transferSpecLength       The length of the transfer spec
-    error TransferSpecInvalidMetadata(uint256 expectedMetadataLength, uint256 transferSpecLength);
+    error TransferSpecInvalidHookData(uint256 expectedHookDataLength, uint256 transferSpecLength);
 
     // --- Common transfer payload errors ------------------------------------------------------------------------------
 
@@ -200,8 +201,8 @@ library TransferSpecLib {
     /// @param specView   The `TypedMemView` reference to the encoded `TransferSpec` to validate
     function _validateTransferSpecStructure(bytes29 specView) internal pure {
         // 1. Minimum header length check
-        if (specView.len() < TRANSFER_SPEC_METADATA_OFFSET) {
-            revert TransferSpecHeaderTooShort(TRANSFER_SPEC_METADATA_OFFSET, specView.len());
+        if (specView.len() < TRANSFER_SPEC_HOOK_DATA_OFFSET) {
+            revert TransferSpecHeaderTooShort(TRANSFER_SPEC_HOOK_DATA_OFFSET, specView.len());
         }
 
         // 2. Version check
@@ -211,9 +212,9 @@ library TransferSpecLib {
         }
 
         // 3. Total length consistency check
-        //    (Reads declared metadata length from the view and checks against view's total length)
-        uint32 metadataLength = getMetadataLength(specView);
-        uint256 expectedInternalSpecLength = TRANSFER_SPEC_METADATA_OFFSET + metadataLength;
+        //    (Reads declared hook data length from the view and checks against view's total length)
+        uint32 hookDataLength = getHookDataLength(specView);
+        uint256 expectedInternalSpecLength = TRANSFER_SPEC_HOOK_DATA_OFFSET + hookDataLength;
         if (specView.len() != expectedInternalSpecLength) {
             revert TransferSpecOverallLengthMismatch(expectedInternalSpecLength, specView.len());
         }
@@ -325,37 +326,36 @@ library TransferSpecLib {
         return ref.index(TRANSFER_SPEC_SALT_OFFSET, BYTES32_BYTES);
     }
 
-    /// Extract the metadata length from an encoded `TransferSpec`
+    /// Extract the hook data length from an encoded `TransferSpec`
     ///
     /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
-    /// @return      The `metadata` length
-    function getMetadataLength(bytes29 ref) internal pure returns (uint32) {
-        return uint32(ref.indexUint(TRANSFER_SPEC_METADATA_LENGTH_OFFSET, UINT32_BYTES));
+    /// @return      The `hookData` length
+    function getHookDataLength(bytes29 ref) internal pure returns (uint32) {
+        return uint32(ref.indexUint(TRANSFER_SPEC_HOOK_DATA_LENGTH_OFFSET, UINT32_BYTES));
     }
 
-    /// Extract the metadata from an encoded `TransferSpec` as a memory view
+    /// Extract the hook data from an encoded `TransferSpec` as a memory view
     ///
     /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
-    /// @return      The metadata as a `TypedMemView` reference
-    function getMetadata(bytes29 ref) internal pure returns (bytes29) {
-        uint32 metadataLength = getMetadataLength(ref);
-        bytes29 metadataView;
-        if (metadataLength > 0) {
-            metadataView = ref.slice(TRANSFER_SPEC_METADATA_OFFSET, metadataLength, 0);
+    /// @return      The hook data as a `TypedMemView` reference
+    function getHookData(bytes29 ref) internal pure returns (bytes29) {
+        uint32 hookDataLength = getHookDataLength(ref);
+        bytes29 hookDataView;
+        if (hookDataLength > 0) {
+            hookDataView = ref.slice(TRANSFER_SPEC_HOOK_DATA_OFFSET, hookDataLength, 0);
         } else {
             // Return an empty slice
-            metadataView = ref.slice(TRANSFER_SPEC_METADATA_OFFSET, 0, 0);
+            hookDataView = ref.slice(TRANSFER_SPEC_HOOK_DATA_OFFSET, 0, 0);
         }
 
-        // Verify metadata view is valid. A NULL view means the actual metadata length
-        // differs from the declared length in the metadata length field. This check should
-        // be unreachable since validation of transfer spec structure happens before
-        // calling this function, but included for completeness.
-        if (metadataView == TypedMemView.NULL) {
-            revert TransferSpecInvalidMetadata(metadataLength, ref.len());
+        // Verify hook data view is valid. A NULL view means the actual length differs from the declared length in the
+        // hook data length field and would overrun the allocated memory. This check should be unreachable since
+        // validation of transfer spec structure happens before calling this function, but included for completeness.
+        if (hookDataView == TypedMemView.NULL) {
+            revert TransferSpecInvalidHookData(hookDataLength, ref.len());
         }
 
-        return metadataView;
+        return hookDataView;
     }
 
     // --- Encoding ----------------------------------------------------------------------------------------------------
@@ -378,7 +378,7 @@ library TransferSpecLib {
             spec.sourceDepositor
         );
         bytes memory footer = _encodeTransferSpecFooter(
-            spec.destinationRecipient, spec.sourceSigner, spec.destinationCaller, spec.value, spec.salt, spec.metadata
+            spec.destinationRecipient, spec.sourceSigner, spec.destinationCaller, spec.value, spec.salt, spec.hookData
         );
         return bytes.concat(header, footer);
     }
@@ -428,7 +428,7 @@ library TransferSpecLib {
     /// @param destinationCaller      The `destinationCaller` field
     /// @param value                  The `value` field
     /// @param salt                   The `salt` field
-    /// @param metadata               The `metadata` field
+    /// @param hookData               The `hookData` field
     /// @return                       The encoded bytes
     function _encodeTransferSpecFooter(
         bytes32 destinationRecipient,
@@ -436,10 +436,10 @@ library TransferSpecLib {
         bytes32 destinationCaller,
         uint256 value,
         bytes32 salt,
-        bytes memory metadata
+        bytes memory hookData
     ) private pure returns (bytes memory) {
-        if (metadata.length > type(uint32).max) {
-            revert TransferSpecMetadataFieldTooLarge(metadata.length, type(uint32).max);
+        if (hookData.length > type(uint32).max) {
+            revert TransferSpecHookDataFieldTooLarge(hookData.length, type(uint32).max);
         }
 
         return abi.encodePacked(
@@ -448,8 +448,8 @@ library TransferSpecLib {
             destinationCaller,
             value,
             salt,
-            uint32(metadata.length), // 4 bytes
-            metadata
+            uint32(hookData.length), // 4 bytes
+            hookData
         );
     }
 
@@ -475,7 +475,7 @@ library TransferSpecLib {
         uint32 version = getVersion(spec);
         uint32 sourceDomain = getSourceDomain(spec);
         uint32 destinationDomain = getDestinationDomain(spec);
-        bytes32 metadataHash = getMetadata(spec).keccak();
+        bytes32 hookDataHash = getHookData(spec).keccak();
 
         uint96 footerStart = uint96(TRANSFER_SPEC_SOURCE_CONTRACT_OFFSET) + spec.loc();
         uint96 footerLen = uint96(BYTES32_BYTES) * 10;
@@ -514,8 +514,8 @@ library TransferSpecLib {
             // The pop() removes the success boolean returned by staticcall since we don't need it.
             pop(staticcall(gas(), 4, footerStart, footerLen, add(ptr, 128), footerLen))
 
-            // Store metadataHash at 0x1C0 (448-480 bytes)
-            mstore(add(ptr, 448), metadataHash)
+            // Store hookDataHash at 0x1C0 (448-480 bytes)
+            mstore(add(ptr, 448), hookDataHash)
 
             // Compute keccak256 hash of the entire struct (480 bytes total)
             structHash := keccak256(ptr, 480)

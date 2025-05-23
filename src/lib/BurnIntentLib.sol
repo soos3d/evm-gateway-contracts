@@ -30,7 +30,7 @@ import {
     BURN_INTENT_TRANSFER_SPEC_OFFSET,
     BURN_INTENT_SET_NUM_INTENTS_OFFSET,
     BURN_INTENT_SET_INTENTS_OFFSET,
-    BURN_INTENT_TYPEHASH, // solhint-disable-line no-unused-import (only used in assembly)
+    BURN_INTENT_TYPEHASH, // solhint-disable-line no-unused-import, only used in assembly
     BURN_INTENT_SET_TYPEHASH
 } from "src/lib/BurnIntents.sol";
 import {Cursor} from "src/lib/Cursor.sol";

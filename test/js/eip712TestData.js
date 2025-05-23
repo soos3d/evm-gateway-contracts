@@ -39,7 +39,7 @@ const TransferSpec = [
   { name: 'destinationCaller', type: 'bytes32' },
   { name: 'value', type: 'uint256' },
   { name: 'salt', type: 'bytes32' },
-  { name: 'metadata', type: 'bytes' }
+  { name: 'hookData', type: 'bytes' }
 ];
 
 const BurnIntent = [
@@ -81,8 +81,8 @@ const generateTransferSpec = () => ({
   destinationCaller: generateRandomBytes(32),
   value: Math.floor(Math.random() * 1000000),
   salt: generateRandomBytes(32),
-  // random 100 bytes of metadata
-  metadata: generateRandomBytes(100)
+  // random 100 bytes of hook data
+  hookData: generateRandomBytes(100)
 });
 
 /**

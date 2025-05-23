@@ -59,7 +59,7 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
     uint256 private defaultMaxFee = 10 ** 6;
     uint256 private depositorInitialBalance = 5 * 1000 * 10 ** 6;
     uint256 private depositor2InitialBalance = 3 * 1000 * 10 ** 6;
-    bytes internal constant METADATA = "Test metadata";
+    bytes internal constant HOOK_DATA = "Test hook data";
 
     struct ExpectedBurnEventParams {
         address token;
@@ -152,7 +152,7 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
                 destinationCaller: bytes32(0),
                 value: depositorInitialBalance / 2,
                 salt: keccak256("salt"),
-                metadata: METADATA
+                hookData: HOOK_DATA
             })
         });
     }
@@ -2279,12 +2279,12 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
                 destinationCaller: bytes32(0),
                 value: 100,
                 salt: keccak256("salt"),
-                metadata: METADATA
+                hookData: HOOK_DATA
             })
         });
 
         bytes memory walletEncoded = wallet.encodeBurnIntent(intent);
-        bytes32 expectedHash = 0xf3f8c5a7e582119007c450f64cd3bdcf876ba26ea6508d9d23a73dde9585346c;
+        bytes32 expectedHash = 0x52528dacb2770069666b863a3c27ae73d54cf8c96b25dde5da5480a82b504b71;
 
         bytes32 walletEIP712Hash = wallet.getTypedDataHash(walletEncoded);
 
@@ -2309,14 +2309,14 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
                 destinationCaller: bytes32(0),
                 value: 100,
                 salt: keccak256("salt"),
-                metadata: METADATA
+                hookData: HOOK_DATA
             })
         });
 
         BurnIntent[] memory intentArray = new BurnIntent[](1);
         intentArray[0] = intent;
         bytes memory encodedIntentSet = wallet.encodeBurnIntents(intentArray);
-        bytes32 expectedHash = 0x2ddc3d4cd24b71c6985d3ffd121d18f262f494bd481b47860cfdf41fea75d455;
+        bytes32 expectedHash = 0xe598e3111843912b9b25c9fd7976c93fbd3edfeaf186edaf4e205b0a92cea9a7;
 
         bytes32 walletEIP712Hash = wallet.getTypedDataHash(encodedIntentSet);
 

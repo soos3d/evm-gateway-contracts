@@ -23,21 +23,14 @@ import {AttestationLib} from "src/lib/AttestationLib.sol";
 import {Attestation, ATTESTATION_MAGIC} from "src/lib/Attestations.sol";
 import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
 import {BurnIntent, BURN_INTENT_MAGIC} from "src/lib/BurnIntents.sol";
-import {TransferSpec, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
+import {TransferSpec, TRANSFER_SPEC_MAGIC, TRANSFER_SPEC_HOOK_DATA_LENGTH_OFFSET} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib, BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
 
 contract TransferPayloadTestUtils is Test {
     using TypedMemView for bytes29; // For keccak/len on views
 
-    uint16 internal constant TRANSFER_SPEC_METADATA_LENGTH_OFFSET = 336;
-    uint16 internal constant TRANSFER_SPEC_METADATA_OFFSET = 340;
-    uint16 internal constant BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET = 68;
-    uint16 internal constant BURN_INTENT_TRANSFER_SPEC_OFFSET = 72;
-    uint16 internal constant ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET = 36;
-    uint16 internal constant ATTESTATION_TRANSFER_SPEC_OFFSET = 40;
-
-    bytes internal constant SHORT_METADATA = "Test metadata";
-    bytes internal constant LONG_METADATA = "This is a longer metadata string to test larger metadata payloads";
+    bytes internal constant SHORT_HOOK_DATA = "Test hook data";
+    bytes internal constant LONG_HOOK_DATA = "This is a longer hook data string to test larger hook data payloads";
 
     function cloneBytes(bytes memory source) internal pure returns (bytes memory target) {
         target = new bytes(source.length);
@@ -71,14 +64,14 @@ contract TransferPayloadTestUtils is Test {
         assertEq(TransferSpecLib.getValue(ref), spec.value, "Eq Fail: value");
         assertEq(TransferSpecLib.getSalt(ref), spec.salt, "Eq Fail: salt");
 
-        // Metadata checks
-        uint32 metadataLength = TransferSpecLib.getMetadataLength(ref);
-        assertEq(metadataLength, spec.metadata.length, "Mismatch: metadata.length");
-        bytes29 metadataView = TransferSpecLib.getMetadata(ref);
-        if (metadataLength > 0) {
-            assertEq(metadataView.keccak(), keccak256(spec.metadata), "Mismatch: metadata keccak");
+        // Hook data checks
+        uint32 hookDataLength = TransferSpecLib.getHookDataLength(ref);
+        assertEq(hookDataLength, spec.hookData.length, "Mismatch: hookData.length");
+        bytes29 hookDataView = TransferSpecLib.getHookData(ref);
+        if (hookDataLength > 0) {
+            assertEq(hookDataView.keccak(), keccak256(spec.hookData), "Mismatch: hookData keccak");
         } else {
-            assertEq(metadataView.len(), 0, "Mismatch: empty metadataView length");
+            assertEq(hookDataView.len(), 0, "Mismatch: empty hookDataView length");
         }
     }
 
@@ -99,34 +92,34 @@ contract TransferPayloadTestUtils is Test {
         _verifyTransferSpecFieldsFromView(specRef, attestation.spec);
     }
 
-    /// @notice Creates corrupted TransferSpec data by modifying the inner spec's declared metadata length.
+    /// @notice Creates corrupted TransferSpec data by modifying the inner spec's declared hookData length.
     ///         Useful for testing direct `TransferSpec` decoding or decoding of structs containing an embedded `TransferSpec`.
     /// @param encodedStruct The original encoded data containing the TransferSpec.
     /// @param specOffset The starting offset of the inner TransferSpec within `encodedStruct` (0 for direct TransferSpec tests).
-    /// @param originalMetadataLength The actual length of the metadata in the original `spec`.
+    /// @param originalHookDataLength The actual length of the hook data in the original `spec`.
     /// @param makeLengthBigger If true, corrupts the length field to be larger; otherwise, makes it smaller.
-    /// @return corruptedData The modified byte array with the corrupted metadata length.
-    /// @return corruptedMetadataLength The artificially inflated/deflated metadata length value written into the corrupted data.
-    function _getCorruptedInnerSpecMetadataLengthData(
+    /// @return corruptedData The modified byte array with the corrupted hook data length.
+    /// @return corruptedHookDataLength The artificially inflated/deflated hook data length value written into the corrupted data.
+    function _getCorruptedInnerSpecHookDataLengthData(
         bytes memory encodedStruct,
         uint32 specOffset,
-        uint32 originalMetadataLength,
+        uint32 originalHookDataLength,
         bool makeLengthBigger
-    ) internal pure returns (bytes memory corruptedData, uint32 corruptedMetadataLength) {
-        uint256 innerMetadataLengthOffset = specOffset + TRANSFER_SPEC_METADATA_LENGTH_OFFSET;
+    ) internal pure returns (bytes memory corruptedData, uint32 corruptedHookDataLength) {
+        uint256 innerHookDataLengthOffset = specOffset + TRANSFER_SPEC_HOOK_DATA_LENGTH_OFFSET;
         corruptedData = cloneBytes(encodedStruct);
 
         if (makeLengthBigger) {
-            corruptedMetadataLength = originalMetadataLength * 2;
+            corruptedHookDataLength = originalHookDataLength * 2;
         } else {
-            corruptedMetadataLength = originalMetadataLength / 2;
+            corruptedHookDataLength = originalHookDataLength / 2;
         }
 
-        bytes4 encodedInvalidLength = bytes4(corruptedMetadataLength);
+        bytes4 encodedInvalidLength = bytes4(corruptedHookDataLength);
         for (uint8 i = 0; i < BYTES4_BYTES; i++) {
-            corruptedData[innerMetadataLengthOffset + i] = encodedInvalidLength[i];
+            corruptedData[innerHookDataLengthOffset + i] = encodedInvalidLength[i];
         }
 
-        return (corruptedData, corruptedMetadataLength);
+        return (corruptedData, corruptedHookDataLength);
     }
 }

@@ -19,29 +19,35 @@ pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {AttestationLib} from "src/lib/AttestationLib.sol";
-import {Attestation, AttestationSet, ATTESTATION_SET_MAGIC, ATTESTATION_MAGIC_OFFSET} from "src/lib/Attestations.sol";
+import {
+    Attestation,
+    AttestationSet,
+    ATTESTATION_SET_MAGIC,
+    ATTESTATION_MAGIC_OFFSET,
+    ATTESTATION_SET_ATTESTATIONS_OFFSET,
+    ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET,
+    ATTESTATION_TRANSFER_SPEC_OFFSET
+} from "src/lib/Attestations.sol";
 import {Cursor} from "src/lib/Cursor.sol";
 import {TRANSFER_SPEC_VERSION} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
-import {BYTES4_BYTES, TRANSFER_SPEC_METADATA_OFFSET} from "src/lib/TransferSpecLib.sol";
+import {BYTES4_BYTES, TRANSFER_SPEC_HOOK_DATA_OFFSET} from "src/lib/TransferSpecLib.sol";
 import {TransferPayloadTestUtils} from "test/util/TransferPayloadTestUtils.sol";
 
 contract AttestationSetTest is TransferPayloadTestUtils {
     using AttestationLib for bytes29;
     using AttestationLib for Cursor;
 
-    uint16 private constant ATTESTATION_SET_ATTESTATIONS_OFFSET = 8;
-
-    /// @notice Helper to create a AttestationSet with two attestations and specified metadata.
+    /// @notice Helper to create a AttestationSet with two attestations and specified hook data.
     function _createAttestationSet(
         Attestation memory attestation1,
         Attestation memory attestation2,
-        bytes memory metadata
+        bytes memory hookData
     ) internal pure returns (AttestationSet memory) {
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = metadata;
+        attestation1.spec.hookData = hookData;
         attestation2.spec.version = TRANSFER_SPEC_VERSION;
-        attestation2.spec.metadata = metadata;
+        attestation2.spec.hookData = hookData;
 
         Attestation[] memory attestations = new Attestation[](2);
         attestations[0] = attestation1;
@@ -85,7 +91,7 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         public
         pure
     {
-        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, LONG_METADATA);
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, LONG_HOOK_DATA);
         bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
         AttestationLib._validate(encodedAttestationSet);
     }
@@ -165,7 +171,7 @@ contract AttestationSetTest is TransferPayloadTestUtils {
     ) public {
         // Set numAttestations = 1, provide set header + partial attestation header
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = new bytes(0);
+        attestation1.spec.hookData = new bytes(0);
         bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestation1);
 
         bytes memory encodedSetHeader = abi.encodePacked(
@@ -201,7 +207,7 @@ contract AttestationSetTest is TransferPayloadTestUtils {
     ) public {
         // Set numAttestations = 1, provide set header + full attestation header + partial spec
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = LONG_METADATA;
+        attestation1.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestation1);
 
         bytes memory encodedSetHeader = abi.encodePacked(
@@ -237,9 +243,9 @@ contract AttestationSetTest is TransferPayloadTestUtils {
     ) public {
         // Set numAttestations = 2, provide set header + attestation1 + partial attestation2 header
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = new bytes(0);
+        attestation1.spec.hookData = new bytes(0);
         attestation2.spec.version = TRANSFER_SPEC_VERSION;
-        attestation2.spec.metadata = new bytes(0);
+        attestation2.spec.hookData = new bytes(0);
 
         bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestation1);
         bytes memory encodedAttestation2 = AttestationLib.encodeAttestation(attestation2);
@@ -279,9 +285,9 @@ contract AttestationSetTest is TransferPayloadTestUtils {
     ) public {
         // Set numAttestations = 2, provide set header + attestation1 + attestation2 header + partial attestation2 spec
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = new bytes(0);
+        attestation1.spec.hookData = new bytes(0);
         attestation2.spec.version = TRANSFER_SPEC_VERSION;
-        attestation2.spec.metadata = new bytes(0);
+        attestation2.spec.hookData = new bytes(0);
 
         bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestation1);
         bytes memory encodedAttestation2 = AttestationLib.encodeAttestation(attestation2);
@@ -318,9 +324,9 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         Attestation memory attestation2
     ) public {
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = new bytes(0);
+        attestation1.spec.hookData = new bytes(0);
         attestation2.spec.version = TRANSFER_SPEC_VERSION;
-        attestation2.spec.metadata = new bytes(0);
+        attestation2.spec.hookData = new bytes(0);
         AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, new bytes(0));
         bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
@@ -343,9 +349,9 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         Attestation memory attestation2
     ) public {
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = new bytes(0);
+        attestation1.spec.hookData = new bytes(0);
         attestation2.spec.version = TRANSFER_SPEC_VERSION;
-        attestation2.spec.metadata = new bytes(0);
+        attestation2.spec.hookData = new bytes(0);
         AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, new bytes(0));
         bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
@@ -375,9 +381,9 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         Attestation memory attestation2
     ) public {
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = new bytes(0);
+        attestation1.spec.hookData = new bytes(0);
         attestation2.spec.version = TRANSFER_SPEC_VERSION;
-        attestation2.spec.metadata = new bytes(0);
+        attestation2.spec.hookData = new bytes(0);
         AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, new bytes(0));
         bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
@@ -410,7 +416,7 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         public
     {
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = LONG_METADATA;
+        attestation1.spec.hookData = LONG_HOOK_DATA;
 
         Attestation[] memory attestations = new Attestation[](1);
         attestations[0] = attestation1;
@@ -420,7 +426,7 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         bytes memory encodedAttestation1 = AttestationLib.encodeAttestation(attestation1);
         uint256 originalAttestationLength = encodedAttestation1.length;
         uint32 originalSpecLength = uint32(originalAttestationLength - ATTESTATION_TRANSFER_SPEC_OFFSET);
-        uint32 originalMetadataLength = uint32(attestation1.spec.metadata.length);
+        uint32 originalHookDataLength = uint32(attestation1.spec.hookData.length);
 
         // Corrupt the outer Attestation's declared spec length (make it smaller)
         uint256 outerSpecLengthOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET;
@@ -432,11 +438,11 @@ contract AttestationSetTest is TransferPayloadTestUtils {
 
         // The failure occurs inside the TransferSpec validation because the outer corruption
         // leads to providing a truncated spec slice.
-        uint256 expectedInnerSpecLengthBasedOnMetadata = TRANSFER_SPEC_METADATA_OFFSET + originalMetadataLength;
+        uint256 expectedInnerSpecLengthBasedOnHookData = TRANSFER_SPEC_HOOK_DATA_OFFSET + originalHookDataLength;
 
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferSpecOverallLengthMismatch.selector,
-            expectedInnerSpecLengthBasedOnMetadata, // Length expected by inner spec based on its metadata
+            expectedInnerSpecLengthBasedOnHookData, // Length expected by inner spec based on its hook data
             invalidSpecLength // Actual length of the spec slice provided due to outer corruption
         );
 
@@ -449,7 +455,7 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         public
     {
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = LONG_METADATA;
+        attestation1.spec.hookData = LONG_HOOK_DATA;
 
         Attestation[] memory attestations = new Attestation[](1);
         attestations[0] = attestation1;
@@ -487,7 +493,7 @@ contract AttestationSetTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_set_revertsOnInnerSpec_CorruptedMagicFuzz(Attestation memory attestation1) public {
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = LONG_METADATA;
+        attestation1.spec.hookData = LONG_HOOK_DATA;
 
         Attestation[] memory attestations = new Attestation[](1);
         attestations[0] = attestation1;
@@ -521,9 +527,9 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         // The inner TransferSpec of the second attestation has an invalid version
         uint32 invalidVersion = TRANSFER_SPEC_VERSION + 1;
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = new bytes(0);
+        attestation1.spec.hookData = new bytes(0);
         attestation2.spec.version = invalidVersion;
-        attestation2.spec.metadata = new bytes(0);
+        attestation2.spec.hookData = new bytes(0);
 
         Attestation[] memory attestations = new Attestation[](2);
         attestations[0] = attestation1;
@@ -536,31 +542,31 @@ contract AttestationSetTest is TransferPayloadTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsOnInnerSpec_DeclaredMetadataLengthTooBigFuzz(Attestation memory attestation1)
+    function test_validate_set_revertsOnInnerSpec_DeclaredHookDataLengthTooBigFuzz(Attestation memory attestation1)
         public
     {
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = LONG_METADATA;
+        attestation1.spec.hookData = LONG_HOOK_DATA;
 
         Attestation[] memory attestations = new Attestation[](1);
         attestations[0] = attestation1;
         AttestationSet memory attestationSet = AttestationSet({attestations: attestations});
         bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
-        uint32 originalMetadataLength = uint32(attestation1.spec.metadata.length);
+        uint32 originalHookDataLength = uint32(attestation1.spec.hookData.length);
         uint256 encodedAttestation1Length = encodedAttestationSet.length - ATTESTATION_SET_ATTESTATIONS_OFFSET;
         uint32 actualInnerSpecLength = uint32(encodedAttestation1Length - ATTESTATION_TRANSFER_SPEC_OFFSET);
 
         uint32 specOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
-        (bytes memory corruptedEncodedAttestationSet, uint32 invalidMetadataLength) =
-        _getCorruptedInnerSpecMetadataLengthData(
+        (bytes memory corruptedEncodedAttestationSet, uint32 invalidHookDataLength) =
+        _getCorruptedInnerSpecHookDataLengthData(
             encodedAttestationSet,
             specOffset,
-            originalMetadataLength,
+            originalHookDataLength,
             true // makeLengthBigger = true
         );
 
-        uint256 expectedInnerSpecLength = TRANSFER_SPEC_METADATA_OFFSET + invalidMetadataLength;
+        uint256 expectedInnerSpecLength = TRANSFER_SPEC_HOOK_DATA_OFFSET + invalidHookDataLength;
 
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferSpecOverallLengthMismatch.selector, expectedInnerSpecLength, actualInnerSpecLength
@@ -571,31 +577,31 @@ contract AttestationSetTest is TransferPayloadTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsOnInnerSpec_DeclaredMetadataLengthTooSmallFuzz(Attestation memory attestation1)
+    function test_validate_set_revertsOnInnerSpec_DeclaredHookDataLengthTooSmallFuzz(Attestation memory attestation1)
         public
     {
         attestation1.spec.version = TRANSFER_SPEC_VERSION;
-        attestation1.spec.metadata = LONG_METADATA;
+        attestation1.spec.hookData = LONG_HOOK_DATA;
 
         Attestation[] memory attestations = new Attestation[](1);
         attestations[0] = attestation1;
         AttestationSet memory attestationSet = AttestationSet({attestations: attestations});
         bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
 
-        uint32 originalMetadataLength = uint32(attestation1.spec.metadata.length);
+        uint32 originalHookDataLength = uint32(attestation1.spec.hookData.length);
         uint256 encodedAttestation1Length = encodedAttestationSet.length - ATTESTATION_SET_ATTESTATIONS_OFFSET;
         uint32 actualInnerSpecLength = uint32(encodedAttestation1Length - ATTESTATION_TRANSFER_SPEC_OFFSET);
 
         uint32 specOffset = ATTESTATION_SET_ATTESTATIONS_OFFSET + ATTESTATION_TRANSFER_SPEC_OFFSET;
-        (bytes memory corruptedEncodedAttestationSet, uint32 invalidMetadataLength) =
-        _getCorruptedInnerSpecMetadataLengthData(
+        (bytes memory corruptedEncodedAttestationSet, uint32 invalidHookDataLength) =
+        _getCorruptedInnerSpecHookDataLengthData(
             encodedAttestationSet,
             specOffset,
-            originalMetadataLength,
+            originalHookDataLength,
             false // makeLengthBigger = false
         );
 
-        uint256 expectedInnerSpecLength = TRANSFER_SPEC_METADATA_OFFSET + invalidMetadataLength;
+        uint256 expectedInnerSpecLength = TRANSFER_SPEC_HOOK_DATA_OFFSET + invalidHookDataLength;
 
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferSpecOverallLengthMismatch.selector, expectedInnerSpecLength, actualInnerSpecLength
@@ -627,7 +633,7 @@ contract AttestationSetTest is TransferPayloadTestUtils {
 
     function test_cursor_singleAttestationInSetFuzz(Attestation memory attestation) public pure {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
 
         Attestation[] memory attestations = new Attestation[](1);
         attestations[0] = attestation;
@@ -660,7 +666,7 @@ contract AttestationSetTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_cursor_revertsOnNextWhenDone_SingleAttestationFuzz(Attestation memory attestation) public {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
         Attestation[] memory attestations = new Attestation[](1);
         attestations[0] = attestation;
         AttestationSet memory set = AttestationSet({attestations: attestations});
@@ -677,7 +683,7 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         public
         pure
     {
-        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, LONG_METADATA);
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, LONG_HOOK_DATA);
         bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
         bytes29 setRef = AttestationLib._asAttestationOrSetView(encodedAttestationSet);
         Cursor memory cursor = AttestationLib.cursor(encodedAttestationSet);
@@ -719,7 +725,7 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         Attestation memory attestation1,
         Attestation memory attestation2
     ) public {
-        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, LONG_METADATA);
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, LONG_HOOK_DATA);
         bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
         Cursor memory cursor = AttestationLib.cursor(encodedAttestationSet);
         cursor.next();
@@ -739,7 +745,7 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         _verifyEncodedSetFieldsAgainstStruct(encodedAttestationSet, set);
     }
 
-    function test_mintAttestationSet_readAllFieldsEmptyMetadataFuzz(
+    function test_mintAttestationSet_readAllFieldsEmptyHookDataFuzz(
         Attestation memory attestation1,
         Attestation memory attestation2
     ) public pure {
@@ -748,20 +754,20 @@ contract AttestationSetTest is TransferPayloadTestUtils {
         _verifyEncodedSetFieldsAgainstStruct(encodedAttestationSet, attestationSet);
     }
 
-    function test_mintAttestationSet_readAllFieldsShortMetadataFuzz(
+    function test_mintAttestationSet_readAllFieldsShortHookDataFuzz(
         Attestation memory attestation1,
         Attestation memory attestation2
     ) public pure {
-        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, SHORT_METADATA);
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, SHORT_HOOK_DATA);
         bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
         _verifyEncodedSetFieldsAgainstStruct(encodedAttestationSet, attestationSet);
     }
 
-    function test_mintAttestationSet_readAllFieldsLongMetadataFuzz(
+    function test_mintAttestationSet_readAllFieldsLongHookDataFuzz(
         Attestation memory attestation1,
         Attestation memory attestation2
     ) public pure {
-        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, LONG_METADATA);
+        AttestationSet memory attestationSet = _createAttestationSet(attestation1, attestation2, LONG_HOOK_DATA);
         bytes memory encodedAttestationSet = AttestationLib.encodeAttestationSet(attestationSet);
         _verifyEncodedSetFieldsAgainstStruct(encodedAttestationSet, attestationSet);
     }

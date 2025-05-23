@@ -20,8 +20,9 @@ pragma solidity ^0.8.29;
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
 import {BurnIntent, BURN_INTENT_MAGIC} from "src/lib/BurnIntents.sol";
+import {BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET, BURN_INTENT_TRANSFER_SPEC_OFFSET} from "src/lib/BurnIntents.sol";
 import {Cursor} from "src/lib/Cursor.sol";
-import {TRANSFER_SPEC_MAGIC, TRANSFER_SPEC_VERSION} from "src/lib/TransferSpec.sol";
+import {TRANSFER_SPEC_MAGIC, TRANSFER_SPEC_VERSION, TRANSFER_SPEC_HOOK_DATA_OFFSET} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
 import {TransferPayloadTestUtils} from "test/util/TransferPayloadTestUtils.sol";
@@ -69,7 +70,7 @@ contract BurnIntentTest is TransferPayloadTestUtils {
 
     function test_validate_successFuzz(BurnIntent memory intent) public pure {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
         BurnIntentLib._validate(encodedIntent);
     }
@@ -97,7 +98,7 @@ contract BurnIntentTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_burnIntent_revertsOnDeclaredSpecLengthTooBigFuzz(BurnIntent memory intent) public {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
         uint256 originalIntentLength = encodedIntent.length;
         uint32 originalSpecLength = uint32(originalIntentLength - BURN_INTENT_TRANSFER_SPEC_OFFSET);
@@ -123,7 +124,7 @@ contract BurnIntentTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_burnIntent_revertsOnDeclaredSpecLengthTooSmallFuzz(BurnIntent memory intent) public {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
         uint256 originalIntentLength = encodedIntent.length;
         uint32 originalSpecLength = uint32(originalIntentLength - BURN_INTENT_TRANSFER_SPEC_OFFSET);
@@ -149,7 +150,7 @@ contract BurnIntentTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_burnIntent_revertsOnTruncatedDataFuzz(BurnIntent memory intent) public {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
         uint256 expectedLength = encodedIntent.length;
 
@@ -168,7 +169,7 @@ contract BurnIntentTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_burnIntent_revertsOnTrailingBytesFuzz(BurnIntent memory intent) public {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
         uint256 originalIntentLength = encodedIntent.length;
 
@@ -206,7 +207,7 @@ contract BurnIntentTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_innerSpec_revertsOnCorruptedMagicFuzz(BurnIntent memory intent) public {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
 
         encodedIntent[BURN_INTENT_TRANSFER_SPEC_OFFSET] = hex"00";
@@ -228,14 +229,14 @@ contract BurnIntentTest is TransferPayloadTestUtils {
 
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_innerSpec_revertsOnDataTooShortForHeaderFuzz(BurnIntent memory intent) public {
-        uint32 incorrectSpecLength = TRANSFER_SPEC_METADATA_OFFSET - 1;
+        uint32 incorrectSpecLength = TRANSFER_SPEC_HOOK_DATA_OFFSET - 1;
         bytes memory dummySpecData =
             abi.encodePacked(TRANSFER_SPEC_MAGIC, new bytes(incorrectSpecLength - BYTES4_BYTES));
         bytes memory corruptedData = abi.encodePacked(
             BURN_INTENT_MAGIC, intent.maxBlockHeight, intent.maxFee, incorrectSpecLength, dummySpecData
         );
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.TransferSpecHeaderTooShort.selector, TRANSFER_SPEC_METADATA_OFFSET, incorrectSpecLength
+            TransferSpecLib.TransferSpecHeaderTooShort.selector, TRANSFER_SPEC_HOOK_DATA_OFFSET, incorrectSpecLength
         );
 
         vm.expectRevert(expectedRevertData);
@@ -246,7 +247,7 @@ contract BurnIntentTest is TransferPayloadTestUtils {
     function test_validate_innerSpec_revertsOnInvalidVersionFuzz(BurnIntent memory intent) public {
         uint32 invalidVersion = TRANSFER_SPEC_VERSION + 1;
         intent.spec.version = invalidVersion;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
 
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
 
@@ -255,21 +256,21 @@ contract BurnIntentTest is TransferPayloadTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_innerSpec_revertsOnDeclaredMetadataLengthTooBigFuzz(BurnIntent memory intent) public {
+    function test_validate_innerSpec_revertsOnDeclaredHookDataLengthTooBigFuzz(BurnIntent memory intent) public {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
-        uint32 originalMetadataLength = uint32(intent.spec.metadata.length);
+        uint32 originalHookDataLength = uint32(intent.spec.hookData.length);
         uint32 originalInnerSpecLength = uint32(encodedIntent.length - BURN_INTENT_TRANSFER_SPEC_OFFSET);
 
-        (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
+        (bytes memory corruptedData, uint32 corruptedHookDataLength) = _getCorruptedInnerSpecHookDataLengthData(
             encodedIntent,
             BURN_INTENT_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within BurnIntent
-            originalMetadataLength, // Original metadata length
-            true // Inflate the metadata length field
+            originalHookDataLength, // Original hook data length
+            true // Inflate the hook data length field
         );
 
-        uint256 expectedInnerSpecLength = TRANSFER_SPEC_METADATA_OFFSET + corruptedMetadataLength;
+        uint256 expectedInnerSpecLength = TRANSFER_SPEC_HOOK_DATA_OFFSET + corruptedHookDataLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferSpecOverallLengthMismatch.selector,
             expectedInnerSpecLength, // The incorrect length expected based on corrupted field
@@ -281,21 +282,21 @@ contract BurnIntentTest is TransferPayloadTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_innerSpec_revertsOnDeclaredMetadataLengthTooSmallFuzz(BurnIntent memory intent) public {
+    function test_validate_innerSpec_revertsOnDeclaredHookDataLengthTooSmallFuzz(BurnIntent memory intent) public {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
-        uint32 originalMetadataLength = uint32(intent.spec.metadata.length);
+        uint32 originalHookDataLength = uint32(intent.spec.hookData.length);
         uint32 originalInnerSpecLength = uint32(encodedIntent.length - BURN_INTENT_TRANSFER_SPEC_OFFSET);
 
-        (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
+        (bytes memory corruptedData, uint32 corruptedHookDataLength) = _getCorruptedInnerSpecHookDataLengthData(
             encodedIntent,
             BURN_INTENT_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within BurnIntent
-            originalMetadataLength, // Original metadata length
-            false // Make the metadata length field smaller
+            originalHookDataLength, // Original hook data length
+            false // Make the hook data length field smaller
         );
 
-        uint256 expectedInnerSpecLength = TRANSFER_SPEC_METADATA_OFFSET + corruptedMetadataLength;
+        uint256 expectedInnerSpecLength = TRANSFER_SPEC_HOOK_DATA_OFFSET + corruptedHookDataLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferSpecOverallLengthMismatch.selector,
             expectedInnerSpecLength, // The incorrect length expected based on corrupted field
@@ -310,7 +311,7 @@ contract BurnIntentTest is TransferPayloadTestUtils {
 
     function test_cursor_successFuzz(BurnIntent memory intent) public pure {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
         bytes29 intentView = BurnIntentLib._asIntentOrSetView(encodedIntent);
 
@@ -335,7 +336,7 @@ contract BurnIntentTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_cursor_revertsOnNextWhenDoneFuzz(BurnIntent memory intent) public {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
 
         Cursor memory cursor = BurnIntentLib.cursor(encodedIntent);
@@ -347,25 +348,25 @@ contract BurnIntentTest is TransferPayloadTestUtils {
 
     // ===== Field Accessor Tests =====
 
-    function test_burnIntent_readAllFieldsEmptyMetadataFuzz(BurnIntent memory intent) public pure {
+    function test_burnIntent_readAllFieldsEmptyHookDataFuzz(BurnIntent memory intent) public pure {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = new bytes(0);
+        intent.spec.hookData = new bytes(0);
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
         bytes29 ref = BurnIntentLib._asIntentOrSetView(encodedIntent);
         _verifyBurnIntentFieldsFromView(ref, intent);
     }
 
-    function test_burnIntent_readAllFieldsShortMetadataFuzz(BurnIntent memory intent) public pure {
+    function test_burnIntent_readAllFieldsShortHookDataFuzz(BurnIntent memory intent) public pure {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = SHORT_METADATA;
+        intent.spec.hookData = SHORT_HOOK_DATA;
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
         bytes29 ref = BurnIntentLib._asIntentOrSetView(encodedIntent);
         _verifyBurnIntentFieldsFromView(ref, intent);
     }
 
-    function test_burnIntent_readAllFieldsLongMetadataFuzz(BurnIntent memory intent) public pure {
+    function test_burnIntent_readAllFieldsLongHookDataFuzz(BurnIntent memory intent) public pure {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
         bytes29 ref = BurnIntentLib._asIntentOrSetView(encodedIntent);
         _verifyBurnIntentFieldsFromView(ref, intent);

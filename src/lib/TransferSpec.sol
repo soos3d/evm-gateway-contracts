@@ -38,8 +38,8 @@ uint16 constant TRANSFER_SPEC_SOURCE_SIGNER_OFFSET = 208;
 uint16 constant TRANSFER_SPEC_DESTINATION_CALLER_OFFSET = 240;
 uint16 constant TRANSFER_SPEC_VALUE_OFFSET = 272;
 uint16 constant TRANSFER_SPEC_SALT_OFFSET = 304;
-uint16 constant TRANSFER_SPEC_METADATA_LENGTH_OFFSET = 336;
-uint16 constant TRANSFER_SPEC_METADATA_OFFSET = 340;
+uint16 constant TRANSFER_SPEC_HOOK_DATA_LENGTH_OFFSET = 336;
+uint16 constant TRANSFER_SPEC_HOOK_DATA_OFFSET = 340;
 
 /// Describes a transfer between domains. Embedded in both a `BurnIntent` and a `Attestation`.
 ///
@@ -79,9 +79,9 @@ struct TransferSpec {
     bytes32 destinationCaller; //      The address of the caller who may use the attestation, 0 if any caller
     uint256 value; //                  The amount to be minted
     bytes32 salt; //                   An arbitrary value chosen by the user to be unique
-    bytes metadata; //                 Arbitrary bytes that may be used for onchain composition
+    bytes hookData; //                 Arbitrary bytes that may be used for onchain composition
 }
 
 // Type hash for the `TransferSpec` struct
-// `keccak256("TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 salt,bytes metadata)")`
-bytes32 constant TRANSFER_SPEC_TYPEHASH = 0x079df08fc57e69f6768cec63326f070ca8b29901a8f054c267fa189a36adc0ea;
+// `keccak256("TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 salt,bytes hookData)")`
+bytes32 constant TRANSFER_SPEC_TYPEHASH = 0x44409c7ba8872720f5fc290d2788c2d70a3905b7ca1cdb2ffa152791a69e089b;

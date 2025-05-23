@@ -19,9 +19,14 @@ pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {AttestationLib} from "src/lib/AttestationLib.sol";
-import {Attestation, ATTESTATION_MAGIC} from "src/lib/Attestations.sol";
+import {
+    Attestation,
+    ATTESTATION_MAGIC,
+    ATTESTATION_TRANSFER_SPEC_LENGTH_OFFSET,
+    ATTESTATION_TRANSFER_SPEC_OFFSET
+} from "src/lib/Attestations.sol";
 import {Cursor} from "src/lib/Cursor.sol";
-import {TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
+import {TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC, TRANSFER_SPEC_HOOK_DATA_OFFSET} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {BYTES4_BYTES} from "src/lib/TransferSpecLib.sol";
 import {TransferPayloadTestUtils} from "test/util/TransferPayloadTestUtils.sol";
@@ -69,7 +74,7 @@ contract AttestationTest is TransferPayloadTestUtils {
 
     function test_validate_successFuzz(Attestation memory attestation) public pure {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
         AttestationLib._validate(encodedAttestation);
     }
@@ -97,7 +102,7 @@ contract AttestationTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_attestation_revertsOnDeclaredSpecLengthTooBigFuzz(Attestation memory attestation) public {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
         uint256 originalAttestationLength = encodedAttestation.length;
         uint32 originalSpecLength = uint32(originalAttestationLength - ATTESTATION_TRANSFER_SPEC_OFFSET);
@@ -123,7 +128,7 @@ contract AttestationTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_attestation_revertsOnDeclaredSpecLengthTooSmallFuzz(Attestation memory attestation) public {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
         uint256 originalAttestationLength = encodedAttestation.length;
         uint32 originalSpecLength = uint32(originalAttestationLength - ATTESTATION_TRANSFER_SPEC_OFFSET);
@@ -149,7 +154,7 @@ contract AttestationTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_attestation_revertsOnTruncatedDataFuzz(Attestation memory attestation) public {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
         uint256 expectedLength = encodedAttestation.length;
 
@@ -168,7 +173,7 @@ contract AttestationTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_attestation_revertsOnTrailingBytesFuzz(Attestation memory attestation) public {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
         uint256 originalAttestationLength = encodedAttestation.length;
 
@@ -208,7 +213,7 @@ contract AttestationTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_innerSpec_revertsOnCorruptedMagicFuzz(Attestation memory attestation) public {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
 
         encodedAttestation[ATTESTATION_TRANSFER_SPEC_OFFSET] = hex"00";
@@ -230,13 +235,13 @@ contract AttestationTest is TransferPayloadTestUtils {
 
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_innerSpec_revertsOnDataTooShortForHeaderFuzz(Attestation memory attestation) public {
-        uint32 incorrectSpecLength = TRANSFER_SPEC_METADATA_OFFSET - 1;
+        uint32 incorrectSpecLength = TRANSFER_SPEC_HOOK_DATA_OFFSET - 1;
         bytes memory dummySpecData =
             abi.encodePacked(TRANSFER_SPEC_MAGIC, new bytes(incorrectSpecLength - BYTES4_BYTES));
         bytes memory corruptedData =
             abi.encodePacked(ATTESTATION_MAGIC, attestation.maxBlockHeight, incorrectSpecLength, dummySpecData);
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            TransferSpecLib.TransferSpecHeaderTooShort.selector, TRANSFER_SPEC_METADATA_OFFSET, incorrectSpecLength
+            TransferSpecLib.TransferSpecHeaderTooShort.selector, TRANSFER_SPEC_HOOK_DATA_OFFSET, incorrectSpecLength
         );
 
         vm.expectRevert(expectedRevertData);
@@ -247,7 +252,7 @@ contract AttestationTest is TransferPayloadTestUtils {
     function test_validate_innerSpec_revertsOnInvalidVersionFuzz(Attestation memory attestation) public {
         uint32 invalidVersion = TRANSFER_SPEC_VERSION + 1;
         attestation.spec.version = invalidVersion;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
 
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
 
@@ -256,21 +261,21 @@ contract AttestationTest is TransferPayloadTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_innerSpec_revertsOnDeclaredMetadataLengthTooBigFuzz(Attestation memory attestation) public {
+    function test_validate_innerSpec_revertsOnDeclaredHookDataLengthTooBigFuzz(Attestation memory attestation) public {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
-        uint32 originalMetadataLength = uint32(attestation.spec.metadata.length);
+        uint32 originalHookDataLength = uint32(attestation.spec.hookData.length);
         uint32 originalInnerSpecLength = uint32(encodedAttestation.length - ATTESTATION_TRANSFER_SPEC_OFFSET);
 
-        (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
+        (bytes memory corruptedData, uint32 corruptedHookDataLength) = _getCorruptedInnerSpecHookDataLengthData(
             encodedAttestation,
             ATTESTATION_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within Attestation
-            originalMetadataLength, // Original metadata length
-            true // Inflate the metadata length field
+            originalHookDataLength, // Original hook data length
+            true // Inflate the hook data length field
         );
 
-        uint256 expectedInnerSpecLength = TRANSFER_SPEC_METADATA_OFFSET + corruptedMetadataLength;
+        uint256 expectedInnerSpecLength = TRANSFER_SPEC_HOOK_DATA_OFFSET + corruptedHookDataLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferSpecOverallLengthMismatch.selector,
             expectedInnerSpecLength, // The incorrect length expected based on corrupted field
@@ -282,23 +287,23 @@ contract AttestationTest is TransferPayloadTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_innerSpec_revertsOnDeclaredMetadataLengthTooSmallFuzz(Attestation memory attestation)
+    function test_validate_innerSpec_revertsOnDeclaredHookDataLengthTooSmallFuzz(Attestation memory attestation)
         public
     {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
-        uint32 originalMetadataLength = uint32(attestation.spec.metadata.length);
+        uint32 originalHookDataLength = uint32(attestation.spec.hookData.length);
         uint32 originalInnerSpecLength = uint32(encodedAttestation.length - ATTESTATION_TRANSFER_SPEC_OFFSET);
 
-        (bytes memory corruptedData, uint32 corruptedMetadataLength) = _getCorruptedInnerSpecMetadataLengthData(
+        (bytes memory corruptedData, uint32 corruptedHookDataLength) = _getCorruptedInnerSpecHookDataLengthData(
             encodedAttestation,
             ATTESTATION_TRANSFER_SPEC_OFFSET, // Offset of TransferSpec within Attestation
-            originalMetadataLength, // Original metadata length
-            false // Make the metadata length field smaller
+            originalHookDataLength, // Original hook data length
+            false // Make the hook data length field smaller
         );
 
-        uint256 expectedInnerSpecLength = TRANSFER_SPEC_METADATA_OFFSET + corruptedMetadataLength;
+        uint256 expectedInnerSpecLength = TRANSFER_SPEC_HOOK_DATA_OFFSET + corruptedHookDataLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferSpecOverallLengthMismatch.selector,
             expectedInnerSpecLength, // The incorrect length expected based on corrupted field
@@ -313,7 +318,7 @@ contract AttestationTest is TransferPayloadTestUtils {
 
     function test_cursor_successFuzz(Attestation memory attestation) public pure {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
         bytes29 attestationView = AttestationLib._asAttestationOrSetView(encodedAttestation);
 
@@ -338,7 +343,7 @@ contract AttestationTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_cursor_revertsOnNextWhenDoneFuzz(Attestation memory attestation) public {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
 
         Cursor memory cursor = AttestationLib.cursor(encodedAttestation);
@@ -350,25 +355,25 @@ contract AttestationTest is TransferPayloadTestUtils {
 
     // ===== Field Accessor Tests =====
 
-    function test_attestation_readAllFieldsEmptyMetadataFuzz(Attestation memory attestation) public pure {
+    function test_attestation_readAllFieldsEmptyHookDataFuzz(Attestation memory attestation) public pure {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = new bytes(0);
+        attestation.spec.hookData = new bytes(0);
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
         bytes29 ref = AttestationLib._asAttestationOrSetView(encodedAttestation);
         _verifyAttestationFieldsFromView(ref, attestation);
     }
 
-    function test_attestation_readAllFieldsShortMetadataFuzz(Attestation memory attestation) public pure {
+    function test_attestation_readAllFieldsShortHookDataFuzz(Attestation memory attestation) public pure {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = SHORT_METADATA;
+        attestation.spec.hookData = SHORT_HOOK_DATA;
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
         bytes29 ref = AttestationLib._asAttestationOrSetView(encodedAttestation);
         _verifyAttestationFieldsFromView(ref, attestation);
     }
 
-    function test_attestation_readAllFieldsLongMetadataFuzz(Attestation memory attestation) public pure {
+    function test_attestation_readAllFieldsLongHookDataFuzz(Attestation memory attestation) public pure {
         attestation.spec.version = TRANSFER_SPEC_VERSION;
-        attestation.spec.metadata = LONG_METADATA;
+        attestation.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
         bytes29 ref = AttestationLib._asAttestationOrSetView(encodedAttestation);
         _verifyAttestationFieldsFromView(ref, attestation);

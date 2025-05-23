@@ -46,7 +46,7 @@ uint16 constant ATTESTATION_SET_ATTESTATIONS_OFFSET = 8;
 ///     FIELD                      OFFSET   BYTES   NOTES
 ///     magic                           0       4   Always 0xff6fb334
 ///     max block height                4      32
-///     transfer spec length           36       4   In bytes, may vary based on metadata length
+///     transfer spec length           36       4   In bytes, may vary based on hook data length
 ///     encoded transfer spec          40       ?   Must be the length indicated above
 struct Attestation {
     uint256 maxBlockHeight; //   Valid until this block height

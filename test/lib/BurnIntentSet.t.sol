@@ -20,10 +20,11 @@ pragma solidity ^0.8.29;
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
 import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
 import {BurnIntent, BurnIntentSet, BURN_INTENT_SET_MAGIC, BURN_INTENT_MAGIC_OFFSET} from "src/lib/BurnIntents.sol";
+import {BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET, BURN_INTENT_TRANSFER_SPEC_OFFSET} from "src/lib/BurnIntents.sol";
 import {Cursor} from "src/lib/Cursor.sol";
 import {TRANSFER_SPEC_VERSION} from "src/lib/TransferSpec.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
-import {BYTES4_BYTES, TRANSFER_SPEC_METADATA_OFFSET} from "src/lib/TransferSpecLib.sol";
+import {BYTES4_BYTES, TRANSFER_SPEC_HOOK_DATA_OFFSET} from "src/lib/TransferSpecLib.sol";
 import {TransferPayloadTestUtils} from "test/util/TransferPayloadTestUtils.sol";
 
 contract BurnIntentSetTest is TransferPayloadTestUtils {
@@ -32,16 +33,16 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
 
     uint16 private constant BURN_INTENT_SET_INTENTS_OFFSET = 8;
 
-    /// @notice Helper to create a BurnIntentSet with two intents and specified metadata.
-    function _createBurnIntentSet(BurnIntent memory intent1, BurnIntent memory intent2, bytes memory metadata)
+    /// @notice Helper to create a BurnIntentSet with two intents and specified hook data.
+    function _createBurnIntentSet(BurnIntent memory intent1, BurnIntent memory intent2, bytes memory hookData)
         internal
         pure
         returns (BurnIntentSet memory)
     {
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = metadata;
+        intent1.spec.hookData = hookData;
         intent2.spec.version = TRANSFER_SPEC_VERSION;
-        intent2.spec.metadata = metadata;
+        intent2.spec.hookData = hookData;
 
         BurnIntent[] memory intents = new BurnIntent[](2);
         intents[0] = intent1;
@@ -82,7 +83,7 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
     // ===== Validation Tests =====
 
     function test_validateBurnIntentSet_successFuzz(BurnIntent memory intent1, BurnIntent memory intent2) public pure {
-        BurnIntentSet memory intentSet = _createBurnIntentSet(intent1, intent2, LONG_METADATA);
+        BurnIntentSet memory intentSet = _createBurnIntentSet(intent1, intent2, LONG_HOOK_DATA);
         bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
         BurnIntentLib._validate(encodedIntentSet);
     }
@@ -160,7 +161,7 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
     {
         // Set numIntents = 1, provide set header + partial intent header
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = new bytes(0);
+        intent1.spec.hookData = new bytes(0);
         bytes memory encodedIntent1 = BurnIntentLib.encodeBurnIntent(intent1);
 
         bytes memory encodedSetHeader = abi.encodePacked(
@@ -196,7 +197,7 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
     {
         // Set numIntents = 1, provide set header + full intent header + partial spec
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = LONG_METADATA;
+        intent1.spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedIntent1 = BurnIntentLib.encodeBurnIntent(intent1);
 
         bytes memory encodedSetHeader = abi.encodePacked(
@@ -232,9 +233,9 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
     ) public {
         // Set numIntents = 2, provide set header + intent1 + partial intent2 header
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = new bytes(0);
+        intent1.spec.hookData = new bytes(0);
         intent2.spec.version = TRANSFER_SPEC_VERSION;
-        intent2.spec.metadata = new bytes(0);
+        intent2.spec.hookData = new bytes(0);
 
         bytes memory encodedIntent1 = BurnIntentLib.encodeBurnIntent(intent1);
         bytes memory encodedIntent2 = BurnIntentLib.encodeBurnIntent(intent2);
@@ -274,9 +275,9 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
     ) public {
         // Set numIntents = 2, provide set header + intent1 + intent2 header + partial intent2 spec
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = new bytes(0);
+        intent1.spec.hookData = new bytes(0);
         intent2.spec.version = TRANSFER_SPEC_VERSION;
-        intent2.spec.metadata = new bytes(0);
+        intent2.spec.hookData = new bytes(0);
 
         bytes memory encodedIntent1 = BurnIntentLib.encodeBurnIntent(intent1);
         bytes memory encodedIntent2 = BurnIntentLib.encodeBurnIntent(intent2);
@@ -313,9 +314,9 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
         BurnIntent memory intent2
     ) public {
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = new bytes(0);
+        intent1.spec.hookData = new bytes(0);
         intent2.spec.version = TRANSFER_SPEC_VERSION;
-        intent2.spec.metadata = new bytes(0);
+        intent2.spec.hookData = new bytes(0);
         BurnIntentSet memory intentSet = _createBurnIntentSet(intent1, intent2, new bytes(0));
         bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
 
@@ -338,9 +339,9 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
         BurnIntent memory intent2
     ) public {
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = new bytes(0);
+        intent1.spec.hookData = new bytes(0);
         intent2.spec.version = TRANSFER_SPEC_VERSION;
-        intent2.spec.metadata = new bytes(0);
+        intent2.spec.hookData = new bytes(0);
         BurnIntentSet memory intentSet = _createBurnIntentSet(intent1, intent2, new bytes(0));
         bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
 
@@ -370,9 +371,9 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
         BurnIntent memory intent2
     ) public {
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = new bytes(0);
+        intent1.spec.hookData = new bytes(0);
         intent2.spec.version = TRANSFER_SPEC_VERSION;
-        intent2.spec.metadata = new bytes(0);
+        intent2.spec.hookData = new bytes(0);
         BurnIntentSet memory intentSet = _createBurnIntentSet(intent1, intent2, new bytes(0));
         bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
 
@@ -403,7 +404,7 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_set_revertsOnInnerIntent_DeclaredSpecLengthTooSmallFuzz(BurnIntent memory intent1) public {
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = LONG_METADATA;
+        intent1.spec.hookData = LONG_HOOK_DATA;
 
         BurnIntent[] memory intents = new BurnIntent[](1);
         intents[0] = intent1;
@@ -413,7 +414,7 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
         bytes memory encodedIntent1 = BurnIntentLib.encodeBurnIntent(intent1);
         uint256 originalIntentLength = encodedIntent1.length;
         uint32 originalSpecLength = uint32(originalIntentLength - BURN_INTENT_TRANSFER_SPEC_OFFSET);
-        uint32 originalMetadataLength = uint32(intent1.spec.metadata.length);
+        uint32 originalHookDataLength = uint32(intent1.spec.hookData.length);
 
         // Corrupt the outer BurnIntent's declared spec length (make it smaller)
         uint256 outerSpecLengthOffset = BURN_INTENT_SET_INTENTS_OFFSET + BURN_INTENT_TRANSFER_SPEC_LENGTH_OFFSET;
@@ -425,11 +426,11 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
 
         // The failure occurs inside the TransferSpec validation because the outer corruption
         // leads to providing a truncated spec slice.
-        uint256 expectedInnerSpecLengthBasedOnMetadata = TRANSFER_SPEC_METADATA_OFFSET + originalMetadataLength;
+        uint256 expectedInnerSpecLengthBasedOnHookData = TRANSFER_SPEC_HOOK_DATA_OFFSET + originalHookDataLength;
 
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferSpecOverallLengthMismatch.selector,
-            expectedInnerSpecLengthBasedOnMetadata, // Length expected by inner spec based on its metadata
+            expectedInnerSpecLengthBasedOnHookData, // Length expected by inner spec based on its hook data
             invalidSpecLength // Actual length of the spec slice provided due to outer corruption
         );
 
@@ -440,7 +441,7 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_set_revertsOnInnerIntent_DeclaredSpecLengthTooBigFuzz(BurnIntent memory intent1) public {
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = LONG_METADATA;
+        intent1.spec.hookData = LONG_HOOK_DATA;
 
         BurnIntent[] memory intents = new BurnIntent[](1);
         intents[0] = intent1;
@@ -477,7 +478,7 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_validate_set_revertsOnInnerSpec_CorruptedMagicFuzz(BurnIntent memory intent1) public {
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = LONG_METADATA;
+        intent1.spec.hookData = LONG_HOOK_DATA;
 
         BurnIntent[] memory intents = new BurnIntent[](1);
         intents[0] = intent1;
@@ -511,9 +512,9 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
         // The inner TransferSpec of the second intent has an invalid version
         uint32 invalidVersion = TRANSFER_SPEC_VERSION + 1;
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = new bytes(0);
+        intent1.spec.hookData = new bytes(0);
         intent2.spec.version = invalidVersion;
-        intent2.spec.metadata = new bytes(0);
+        intent2.spec.hookData = new bytes(0);
 
         BurnIntent[] memory intents = new BurnIntent[](2);
         intents[0] = intent1;
@@ -526,29 +527,29 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsOnInnerSpec_DeclaredMetadataLengthTooBigFuzz(BurnIntent memory intent1) public {
+    function test_validate_set_revertsOnInnerSpec_DeclaredHookDataLengthTooBigFuzz(BurnIntent memory intent1) public {
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = LONG_METADATA;
+        intent1.spec.hookData = LONG_HOOK_DATA;
 
         BurnIntent[] memory intents = new BurnIntent[](1);
         intents[0] = intent1;
         BurnIntentSet memory intentSet = BurnIntentSet({intents: intents});
         bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
 
-        uint32 originalMetadataLength = uint32(intent1.spec.metadata.length);
+        uint32 originalHookDataLength = uint32(intent1.spec.hookData.length);
         uint256 encodedIntent1Length = encodedIntentSet.length - BURN_INTENT_SET_INTENTS_OFFSET;
         uint32 actualInnerSpecLength = uint32(encodedIntent1Length - BURN_INTENT_TRANSFER_SPEC_OFFSET);
 
         uint32 specOffset = BURN_INTENT_SET_INTENTS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
-        (bytes memory corruptedEncodedIntentSet, uint32 invalidMetadataLength) =
-        _getCorruptedInnerSpecMetadataLengthData(
+        (bytes memory corruptedEncodedIntentSet, uint32 invalidHookDataLength) =
+        _getCorruptedInnerSpecHookDataLengthData(
             encodedIntentSet,
             specOffset,
-            originalMetadataLength,
+            originalHookDataLength,
             true // makeLengthBigger = true
         );
 
-        uint256 expectedInnerSpecLength = TRANSFER_SPEC_METADATA_OFFSET + invalidMetadataLength;
+        uint256 expectedInnerSpecLength = TRANSFER_SPEC_HOOK_DATA_OFFSET + invalidHookDataLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferSpecOverallLengthMismatch.selector, expectedInnerSpecLength, actualInnerSpecLength
         );
@@ -558,31 +559,31 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_validate_set_revertsOnInnerSpec_DeclaredMetadataLengthTooSmallFuzz(BurnIntent memory intent1)
+    function test_validate_set_revertsOnInnerSpec_DeclaredHookDataLengthTooSmallFuzz(BurnIntent memory intent1)
         public
     {
         intent1.spec.version = TRANSFER_SPEC_VERSION;
-        intent1.spec.metadata = LONG_METADATA;
+        intent1.spec.hookData = LONG_HOOK_DATA;
 
         BurnIntent[] memory intents = new BurnIntent[](1);
         intents[0] = intent1;
         BurnIntentSet memory intentSet = BurnIntentSet({intents: intents});
         bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
 
-        uint32 originalMetadataLength = uint32(intent1.spec.metadata.length);
+        uint32 originalHookDataLength = uint32(intent1.spec.hookData.length);
         uint256 encodedIntent1Length = encodedIntentSet.length - BURN_INTENT_SET_INTENTS_OFFSET;
         uint32 actualInnerSpecLength = uint32(encodedIntent1Length - BURN_INTENT_TRANSFER_SPEC_OFFSET);
 
         uint32 specOffset = BURN_INTENT_SET_INTENTS_OFFSET + BURN_INTENT_TRANSFER_SPEC_OFFSET;
-        (bytes memory corruptedEncodedIntentSet, uint32 invalidMetadataLength) =
-        _getCorruptedInnerSpecMetadataLengthData(
+        (bytes memory corruptedEncodedIntentSet, uint32 invalidHookDataLength) =
+        _getCorruptedInnerSpecHookDataLengthData(
             encodedIntentSet,
             specOffset,
-            originalMetadataLength,
+            originalHookDataLength,
             false // makeLengthBigger = false
         );
 
-        uint256 expectedInnerSpecLength = TRANSFER_SPEC_METADATA_OFFSET + invalidMetadataLength;
+        uint256 expectedInnerSpecLength = TRANSFER_SPEC_HOOK_DATA_OFFSET + invalidHookDataLength;
         bytes memory expectedRevertData = abi.encodeWithSelector(
             TransferSpecLib.TransferSpecOverallLengthMismatch.selector, expectedInnerSpecLength, actualInnerSpecLength
         );
@@ -613,7 +614,7 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
 
     function test_cursor_singleIntentInSetFuzz(BurnIntent memory intent) public pure {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
 
         BurnIntent[] memory intents = new BurnIntent[](1);
         intents[0] = intent;
@@ -646,7 +647,7 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
     /// forge-config: default.allow_internal_expect_revert = true
     function test_cursor_revertsOnNextWhenDone_SingleIntentFuzz(BurnIntent memory intent) public {
         intent.spec.version = TRANSFER_SPEC_VERSION;
-        intent.spec.metadata = LONG_METADATA;
+        intent.spec.hookData = LONG_HOOK_DATA;
         BurnIntent[] memory intents = new BurnIntent[](1);
         intents[0] = intent;
         BurnIntentSet memory set = BurnIntentSet({intents: intents});
@@ -660,7 +661,7 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
     }
 
     function test_cursor_multipleIntentsInSetFuzz(BurnIntent memory intent1, BurnIntent memory intent2) public pure {
-        BurnIntentSet memory intentSet = _createBurnIntentSet(intent1, intent2, LONG_METADATA);
+        BurnIntentSet memory intentSet = _createBurnIntentSet(intent1, intent2, LONG_HOOK_DATA);
         bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
         bytes29 setRef = BurnIntentLib._asIntentOrSetView(encodedIntentSet);
         Cursor memory cursor = BurnIntentLib.cursor(encodedIntentSet);
@@ -701,7 +702,7 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
     function test_cursor_revertsOnNextWhenDone_MultipleIntentsFuzz(BurnIntent memory intent1, BurnIntent memory intent2)
         public
     {
-        BurnIntentSet memory intentSet = _createBurnIntentSet(intent1, intent2, LONG_METADATA);
+        BurnIntentSet memory intentSet = _createBurnIntentSet(intent1, intent2, LONG_HOOK_DATA);
         bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
         Cursor memory cursor = BurnIntentLib.cursor(encodedIntentSet);
         cursor.next();
@@ -721,7 +722,7 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
         _verifyEncodedSetFieldsAgainstStruct(encodedIntentSet, set);
     }
 
-    function test_burnIntentSet_readAllFieldsEmptyMetadataFuzz(BurnIntent memory intent1, BurnIntent memory intent2)
+    function test_burnIntentSet_readAllFieldsEmptyHookDataFuzz(BurnIntent memory intent1, BurnIntent memory intent2)
         public
         pure
     {
@@ -730,20 +731,20 @@ contract BurnIntentSetTest is TransferPayloadTestUtils {
         _verifyEncodedSetFieldsAgainstStruct(encodedIntentSet, intentSet);
     }
 
-    function test_burnIntentSet_readAllFieldsShortMetadataFuzz(BurnIntent memory intent1, BurnIntent memory intent2)
+    function test_burnIntentSet_readAllFieldsShortHookDataFuzz(BurnIntent memory intent1, BurnIntent memory intent2)
         public
         pure
     {
-        BurnIntentSet memory intentSet = _createBurnIntentSet(intent1, intent2, SHORT_METADATA);
+        BurnIntentSet memory intentSet = _createBurnIntentSet(intent1, intent2, SHORT_HOOK_DATA);
         bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
         _verifyEncodedSetFieldsAgainstStruct(encodedIntentSet, intentSet);
     }
 
-    function test_burnIntentSet_readAllFieldsLongMetadataFuzz(BurnIntent memory intent1, BurnIntent memory intent2)
+    function test_burnIntentSet_readAllFieldsLongHookDataFuzz(BurnIntent memory intent1, BurnIntent memory intent2)
         public
         pure
     {
-        BurnIntentSet memory intentSet = _createBurnIntentSet(intent1, intent2, LONG_METADATA);
+        BurnIntentSet memory intentSet = _createBurnIntentSet(intent1, intent2, LONG_HOOK_DATA);
         bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
         _verifyEncodedSetFieldsAgainstStruct(encodedIntentSet, intentSet);
     }

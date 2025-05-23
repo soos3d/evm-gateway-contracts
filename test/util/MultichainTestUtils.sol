@@ -37,7 +37,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
     uint256 public constant DEPOSIT_AMOUNT = 1000e6; // 1000 USDC
     uint256 public constant MINT_AMOUNT = 100e6; // 100 USDC
     uint256 public constant FEE_AMOUNT = 10000; // 0.01 USDC
-    bytes public constant METADATA = "Test metadata";
+    bytes public constant HOOK_DATA = "Test hook data";
 
     uint256 public depositorPrivateKey = 0x123;
     address public depositor = vm.addr(depositorPrivateKey);
@@ -163,7 +163,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
             destinationCaller: AddressLib._addressToBytes32(destinationCaller_),
             value: amount,
             salt: keccak256(abi.encode(vm.randomUint())),
-            metadata: METADATA
+            hookData: HOOK_DATA
         });
     }
 

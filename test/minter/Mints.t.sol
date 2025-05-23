@@ -63,7 +63,7 @@ contract GatewayMinterMintsTest is Test, DeployUtils {
     address private depositor = makeAddr("depositor");
     uint256 private mintValue = 1000 * 10 ** 6;
     uint256 private defaultMaxBlockHeightOffset = 100;
-    bytes internal constant METADATA = "Test metadata";
+    bytes internal constant HOOK_DATA = "Test hook data";
 
     FiatTokenV2_2 private usdc;
     MockMintableToken private mockToken;
@@ -126,7 +126,7 @@ contract GatewayMinterMintsTest is Test, DeployUtils {
                 destinationCaller: bytes32(0),
                 value: mintValue,
                 salt: keccak256("saltCrossChain"),
-                metadata: METADATA
+                hookData: HOOK_DATA
             })
         });
 
@@ -146,7 +146,7 @@ contract GatewayMinterMintsTest is Test, DeployUtils {
                 destinationCaller: bytes32(0),
                 value: mintValue,
                 salt: keccak256("saltSameChain"),
-                metadata: METADATA
+                hookData: HOOK_DATA
             })
         });
     }
@@ -194,7 +194,7 @@ contract GatewayMinterMintsTest is Test, DeployUtils {
     }
 
     function test_gatewayMint_validAttestation_wrongSigner(Attestation memory attestation) public {
-        attestation.spec.metadata = METADATA;
+        attestation.spec.hookData = HOOK_DATA;
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
         (, uint256 wrongSignerKey) = makeAddrAndKey("wrongSigner");
         vm.expectRevert(Mints.InvalidAttestationSigner.selector);
