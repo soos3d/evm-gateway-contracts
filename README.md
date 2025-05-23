@@ -16,12 +16,14 @@ These are the contracts that support the Circle Gateway product. See the contrac
 ## Deployment
 
 ### How it works
+
 The deployment steps are:
+
 1. Deploy the `UpgradablePlaceholder` implementation
 2. Deploy the actual implementation (e.g. `GatewayMinter`)
 3. Deploy the ERC1967Proxy and setup the proxy:
-    1. Deploy the ERC1967 Proxy, set the implementation to `UpgradablePlaceholder` and initialize the owner to Create2Factory address.
-    2. In the same transcation, upgrade the implementation to actual implementation and initialize the implementation properly.
+   1. Deploy the ERC1967 Proxy, set the implementation to `UpgradablePlaceholder` and initialize the owner to Create2Factory address.
+   2. In the same transcation, upgrade the implementation to actual implementation and initialize the implementation properly.
 
 The reason of setting owner of `UpgradablePlaceholder` to Create2Factory address is that since the owner is part of the address computation, we want to use Create2Factory to avoid managing an extra EOA key.
 
@@ -39,26 +41,29 @@ Before deploying the contracts, ensure you have:
 
 #### Step 1: Start a local blockchain
 
-*Only needed for local deployment*
+_Only needed for local deployment_
 
 Start a local RPC node at http://127.0.0.1:8485 by running `anvil`.
 
 #### Step 2: Deploy Create2Factory Contract
 
-*Only needed for local and SMOKEBOX deployment*
+_Only needed for local and SMOKEBOX deployment_
 
 ##### Local Deployment
+
 Run the following command to deploy a test instance of the Create2Factory contract:
 
 ```bash
 forge create Create2Factory -r http://127.0.0.1:8545 --broadcast --private-key $DEPLOYER_PRIVATE_KEY --constructor-args $CREATE2FACTORY_OWNER
 ```
-* `DEPLOYER_PRIVATE_KEY`: Any key from anvil pre-funded addresses.
-* `CREATE2FACTORY_OWNER`: This address should match the $DEPLOYER_ADDRESS in `.env`
+
+- `DEPLOYER_PRIVATE_KEY`: Any key from anvil pre-funded addresses.
+- `CREATE2FACTORY_OWNER`: This address should match the $DEPLOYER_ADDRESS in `.env`
 
 Add the deployed Create2Factory contract address to your `.env` file under the variable `CREATE2_FACTORY_ADDRESS`.
 
 ##### SMOKEBOX deployment
+
 Follow the instructions in evm-cctp-contracts-private README to deploy Create2Factory. Update `DEPLOYER_ADDRESS` and `CREATE2_FACTORY_ADDRESS` in `.env`.
 
 #### Step3: Generate Deployment Transactions for `GatewayWallet` and `GatewayMinter`.
@@ -69,8 +74,9 @@ Run the following command to generate deployment transactions for `GatewayWallet
 ENV=$ENV forge script script/001_DeployGatewayWallet.sol --rpc-url $RPC_URL -vvvv --slow --force
 ENV=$ENV forge script script/001_DeployGatewayMinter.sol --rpc-url $RPC_URL -vvvv --slow --force
 ```
-* `ENV`: Use `SMOKEBOX` for local and SMOKEBOX deployment. Or choose from `SANDBOX` and `PROD`.
-* `RPC_URL`: The rpc url for the targeted blockchain. use `http://127.0.0.1:8485` for local deployment.
+
+- `ENV`: Use `SMOKEBOX` for local and SMOKEBOX deployment. Or choose from `SANDBOX` and `PROD`.
+- `RPC_URL`: The rpc url for the targeted blockchain. use `http://127.0.0.1:8485` for local deployment.
 
 The generated transaction data will be available in the `broadcast/` directory and can be used for signing.
 
@@ -89,32 +95,36 @@ This command validates deployed contract bytecode matches expected bytecode and 
 #### Update Compiled Contract Artifacts
 
 Run the following command to generate new artifacts if `openzepplin-contracts` submodule is updated. Current commit hash is `acd4ff7`.
+
 ```bash
 forge build lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol --force
 cp out/ERC1967Proxy.sol/ERC1967Proxy.json script/compiled-contract-artifacts/ERC1967Proxy.json
 ```
 
 Run the following command to generate new artifacts for Gateway smart contracts.
+
 ```bash
-forge build src/UpgradeablePlaceholder.sol --force 
+forge build src/UpgradeablePlaceholder.sol --force
 cp out/UpgradeablePlaceholder.sol/UpgradeablePlaceholder.json script/compiled-contract-artifacts/UpgradeablePlaceholder.json
 
-forge build src/GatewayMinter.sol --force 
+forge build src/GatewayMinter.sol --force
 cp out/GatewayMinter.sol/GatewayMinter.json script/compiled-contract-artifacts/GatewayMinter.json
 
-forge build src/GatewayWallet.sol --force 
+forge build src/GatewayWallet.sol --force
 cp out/GatewayWallet.sol/GatewayWallet.json script/compiled-contract-artifacts/GatewayWallet.json
 ```
 
 #### Find New Salts
 
 Find salts that creates gas-efficient proxy addresses via:
+
 ```bash
 cast create2 --starts-with $ADDRESS_PREFIX --deployer $DEPLOYER> --init-code-hash $INIT_CODE_HASH
 ```
-* `ADDRESS_PREFIX` is the prefix of the address we want to find. Usually set to `00000000` for a gas-efficient address.
-* `DEPLOYER` is the address of Create2Factory.
-* `INIT_CODE_HASH` is keccak256 hash of initcode + abi-encoded constuctor argument.
+
+- `ADDRESS_PREFIX` is the prefix of the address we want to find. Usually set to `00000000` for a gas-efficient address.
+- `DEPLOYER` is the address of Create2Factory.
+- `INIT_CODE_HASH` is keccak256 hash of initcode + abi-encoded constuctor argument.
 
 ## Test
 
