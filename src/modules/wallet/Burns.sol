@@ -25,7 +25,6 @@ import {GatewayCommon} from "src/GatewayCommon.sol";
 import {IBurnToken} from "src/interfaces/IBurnToken.sol";
 import {AddressLib} from "src/lib/AddressLib.sol";
 import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
-import {BurnIntent, BurnIntentSet} from "src/lib/BurnIntents.sol";
 import {Cursor} from "src/lib/Cursor.sol";
 import {EIP712Domain} from "src/lib/EIP712Domain.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
