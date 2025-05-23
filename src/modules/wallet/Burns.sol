@@ -206,56 +206,6 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         return BurnIntentLib.getTypedDataHash(intent);
     }
 
-    /// Allows anyone to validate whether a set of burn intents would be valid if it were signed by the specified
-    /// signer (which must match `sourceSigner` in the `TransferSpec`).
-    ///
-    /// @dev See `BurnIntents.sol` for encoding details
-    ///
-    /// @param intents   A byte-encoded (set of) burn intent(s)
-    /// @param signer    The address that will sign the burn intent(s)
-    /// @return          `true` if the burn intent(s) would be valid with the given signer, `false` otherwise
-    function validateBurnIntents(bytes calldata intents, address signer) external view returns (bool) {
-        // Validate the burn intent(s) and get an iteration cursor
-        Cursor memory cursor = BurnIntentLib.cursor(intents);
-
-        // Ensure there is at least one burn intent
-        if (cursor.numElements == 0) {
-            revert MustHaveAtLeastOneBurnIntent();
-        }
-
-        // Iterate over the burn intents, validating each one
-        bytes29 intent;
-        address token;
-        while (!cursor.done) {
-            // Get the next burn intent
-            intent = cursor.next();
-
-            // Validate that everything about the burn intent is as expected, and skip if it's not for this domain
-            bytes29 spec = intent.getTransferSpec();
-            uint32 index = cursor.index - 1;
-            bool relevant = _validateBurnIntentTransferSpec(spec, signer, index);
-            if (!relevant) {
-                continue;
-            }
-
-            // Validate the block height and fee of the burn intent
-            _validateBurnIntentBlockHeightAndFee(intent, 0, index);
-
-            // Ensure that each one we've seen so far is for the same token
-            address _token = AddressLib._bytes32ToAddress(spec.getSourceToken());
-            if (token == address(0)) {
-                token = _token;
-            } else {
-                if (_token != token) {
-                    revert NotAllSameToken();
-                }
-            }
-        }
-
-        // If we get here, all burn intents are valid
-        return true;
-    }
-
     /// The address with the `burnSigner` role that may sign the calldata for burning tokens that have been minted using
     /// the `GatewayMinter` contract
     ///
