@@ -17,15 +17,16 @@
  */
 pragma solidity ^0.8.29;
 
-/// @title IBurnToken
+/// @title IMintableToken
 ///
-/// @notice Used to interact with a token that supports burning
-interface IBurnToken {
-    /// Allows a minter to burn some of its own tokens
+/// @notice Used to interact with a token that supports minting or a mint authority with the same interface
+interface IMintableToken {
+    /// Mints tokens to an address
     ///
-    /// @dev The caller must be a minter, must not be blacklisted, and the amount to burn should be less than or equal
-    ///      to the account's balance.
+    /// @dev The caller must be a minter and must not be blacklisted
     ///
-    /// @param _amount   The amount of tokens to be burned
-    function burn(uint256 _amount) external;
+    /// @param to       The address that will receive the minted tokens
+    /// @param amount   The amount of tokens to mint. Must be less than or equal to the minter allowance of the caller.
+    /// @return         `true` if the operation was successful, `false` otherwise
+    function mint(address to, uint256 amount) external returns (bool);
 }
