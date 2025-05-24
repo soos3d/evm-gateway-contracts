@@ -19,6 +19,7 @@ pragma solidity ^0.8.29;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IBlacklistableToken} from "src/interfaces/IBlacklistableToken.sol";
 import {IERC7597} from "src/interfaces/IERC7597.sol";
 import {IERC7598} from "src/interfaces/IERC7598.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
@@ -34,13 +35,21 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
 
     /// Emitted when a deposit is made
     ///
+    /// @dev The `sender` will always be the same as `depositor`, except when a deposit is made using `depositFor`
+    ///
     /// @param token       The token that was deposited
-    /// @param depositor   The address that deposited the funds
+    /// @param depositor   The address that the resulting balance is credited to
+    /// @param sender      The address that the funds were deposited from
     /// @param value       The amount that was deposited
-    event Deposited(address indexed token, address indexed depositor, uint256 value);
+    event Deposited(address indexed token, address indexed depositor, address indexed sender, uint256 value);
 
     /// Thrown for attempted zero-value deposits
     error DepositValueMustBePositive();
+
+    /// Thrown when attempting to deposit for a blacklisted address
+    ///
+    /// @param depositor   The depositor who is blacklisted and cannot receive a deposit
+    error DepositorIsBlacklisted(address depositor);
 
     /// Deposit tokens after approving this contract for the token
     ///
@@ -54,20 +63,32 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         notDenylisted(msg.sender)
         tokenSupported(token)
     {
-        // Ensure that the value is non-zero
-        if (value == 0) {
-            revert DepositValueMustBePositive();
+        address depositor = msg.sender;
+        address sender = msg.sender;
+        _depositWithApproval(token, depositor, sender, value);
+    }
+
+    /// Deposit tokens on behalf of another address after approving this contract for the token
+    ///
+    /// @dev The resulting balance in this contract belongs to `depositor`, not `msg.sender`
+    ///
+    /// @param token       The token to deposit
+    /// @param depositor   The address that should own the resulting balance
+    /// @param value       The amount to be deposited
+    function depositFor(address token, address depositor, uint256 value)
+        external
+        whenNotPaused
+        notDenylisted(msg.sender)
+        notDenylisted(depositor)
+        tokenSupported(token)
+    {
+        // Ensure that the depositor is not blacklisted
+        if (IBlacklistableToken(token).isBlacklisted(depositor)) {
+            revert DepositorIsBlacklisted(depositor);
         }
 
-        // Increase the depositor's available balance
-        address depositor = msg.sender;
-        _increaseAvailableBalance(token, depositor, value);
-
-        // Transfer the tokens from the depositor to this contract
-        IERC20(token).safeTransferFrom(depositor, address(this), value);
-
-        // Emit an event to signal the deposit
-        emit Deposited(token, depositor, value);
+        address sender = msg.sender;
+        _depositWithApproval(token, depositor, sender, value);
     }
 
     /// Deposit tokens with an EIP-2612 permit
@@ -172,6 +193,22 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         _depositWithAuthorization(token, from, value, validAfter, validBefore, nonce, signature);
     }
 
+    function _depositWithApproval(address token, address depositor, address sender, uint256 value) internal {
+        // Ensure that the value is non-zero
+        if (value == 0) {
+            revert DepositValueMustBePositive();
+        }
+
+        // Increase the depositor's available balance
+        _increaseAvailableBalance(token, depositor, value);
+
+        // Transfer the tokens from the depositor to this contract
+        IERC20(token).safeTransferFrom(sender, address(this), value);
+
+        // Emit an event to signal the deposit
+        emit Deposited(token, depositor, sender, value);
+    }
+
     /// Internal implementation for depositing tokens using an EIP-2612 permit
     ///
     /// @param token       The address of a token that supports EIP-2612 permits
@@ -196,7 +233,7 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         IERC20(token).safeTransferFrom(depositor, address(this), value);
 
         // Emit an event to signal the deposit
-        emit Deposited(token, owner, value);
+        emit Deposited(token, owner, owner, value);
     }
 
     /// @dev Internal implementation for depositing tokens using an ERC-7598 authorization
@@ -232,6 +269,6 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         );
 
         // Emit an event to signal the deposit
-        emit Deposited(token, depositor, value);
+        emit Deposited(token, depositor, depositor, value);
     }
 }
