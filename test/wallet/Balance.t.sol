@@ -64,14 +64,12 @@ contract GatewayWalletBalanceTest is Test, DeployUtils {
     function test_balanceOf_returnsZeroForUnsupportedToken() public {
         address unsupportedToken = makeAddr("unsupportedToken");
         uint256 balanceId = _createBalanceId(unsupportedToken, BalanceType.Total);
-        vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
-        wallet.balanceOf(depositor, balanceId);
+        assertEq(wallet.balanceOf(depositor, balanceId), 0);
     }
 
-    function test_balanceOf_revertsForInvalidBalanceType() public {
+    function test_balanceOf_returnsZeroForInvalidBalanceType() public view {
         uint256 balanceId = _createBalanceIdRaw(usdc, 4);
-        vm.expectRevert(abi.encodeWithSelector(Balances.InvalidBalanceType.selector, 4));
-        wallet.balanceOf(depositor, balanceId);
+        assertEq(wallet.balanceOf(depositor, balanceId), 0);
     }
 
     function test_balanceOf_returnsTotalBalance() public {
@@ -262,7 +260,7 @@ contract GatewayWalletBalanceTest is Test, DeployUtils {
         assertEq(balances[1], secondDepositorBalance);
     }
 
-    function test_balanceOfBatch_revertsForUnsupportedToken() public {
+    function test_balanceOfBatch_returnsZeroesForUnsupportedOrInvalidTokens() public {
         address unsupportedToken = makeAddr("unsupportedToken");
 
         address[] memory depositors = new address[](2);
@@ -270,23 +268,11 @@ contract GatewayWalletBalanceTest is Test, DeployUtils {
         depositors[1] = depositor;
 
         uint256[] memory ids = new uint256[](2);
-        ids[0] = _createBalanceId(usdc, BalanceType.Total);
+        ids[0] = _createBalanceIdRaw(usdc, 4);
         ids[1] = _createBalanceId(unsupportedToken, BalanceType.Total);
 
-        vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
-        wallet.balanceOfBatch(depositors, ids);
-    }
-
-    function test_balanceOfBatch_revertsForInvalidBalanceType() public {
-        address[] memory depositors = new address[](2);
-        depositors[0] = depositor;
-        depositors[1] = depositor;
-
-        uint256[] memory ids = new uint256[](2);
-        ids[0] = _createBalanceId(usdc, BalanceType.Total);
-        ids[1] = _createBalanceIdRaw(usdc, 4);
-
-        vm.expectRevert(abi.encodeWithSelector(Balances.InvalidBalanceType.selector, 4));
-        wallet.balanceOfBatch(depositors, ids);
+        uint256[] memory balances = wallet.balanceOfBatch(depositors, ids);
+        assertEq(balances[0], 0);
+        assertEq(balances[1], 0);
     }
 }
