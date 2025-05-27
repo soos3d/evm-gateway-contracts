@@ -45,15 +45,13 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
         assertEq(ethereum.wallet.withdrawingBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
         assertEq(ethereum.wallet.withdrawableBalance(address(ethereum.usdc), depositor), 0);
 
-        // Offchain: Generate burn intent and validate
+        // Offchain: Generate burn intent
         TransferSpec memory transferSpec =
             _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
         (bytes memory encodedBurnIntent, bytes memory burnSignature) =
             _signBurnIntentWithTransferSpec(transferSpec, ethereum.wallet, depositorPrivateKey);
-        bool isValidBurnIntent = ethereum.wallet.validateBurnIntents(encodedBurnIntent, depositor);
-        assertTrue(isValidBurnIntent);
 
-        // Offchain: Generate attestation given valid burn intent
+        // Offchain: Generate attestation given burn intent
         vm.selectFork(arbitrum.forkId);
         (bytes memory encodedAttestation, bytes memory attestationSignature) =
             _signAttestationWithTransferSpec(transferSpec, arbitrum.minterAttestationSignerKey);

@@ -2111,156 +2111,6 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
         );
     }
 
-    // ===== Burn Intent Encoding Tests =====
-
-    function test_encodeBurnIntent() public view {
-        bytes memory walletEncoded = wallet.encodeBurnIntent(baseIntent);
-        bytes memory libEncoded = BurnIntentLib.encodeBurnIntent(baseIntent);
-        assertEq(walletEncoded, libEncoded);
-    }
-
-    function test_encodeBurnIntents() public view {
-        BurnIntent memory intent1 = baseIntent;
-        BurnIntent memory intent2 = baseIntent;
-
-        BurnIntent[] memory intentArray = new BurnIntent[](2);
-        intentArray[0] = intent1;
-        intentArray[1] = intent2;
-
-        bytes memory walletEncoded = wallet.encodeBurnIntents(intentArray);
-
-        BurnIntentSet memory intentSet;
-        intentSet.intents = intentArray;
-        bytes memory libEncoded = BurnIntentLib.encodeBurnIntentSet(intentSet);
-
-        assertEq(walletEncoded, libEncoded);
-    }
-
-    function test_validateBurnIntents_revertIfNoIntents() public {
-        BurnIntent[] memory intents = new BurnIntent[](0);
-        bytes memory encodedIntents = BurnIntentLib.encodeBurnIntentSet(BurnIntentSet({intents: intents}));
-        vm.expectRevert(Burns.MustHaveAtLeastOneBurnIntent.selector);
-        wallet.validateBurnIntents(encodedIntents, depositor);
-    }
-
-    function test_validateBurnIntents_success_singleIntent() public view {
-        BurnIntent memory intent = baseIntent;
-        intent.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
-
-        bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
-
-        assertTrue(wallet.validateBurnIntents(encodedIntent, depositor));
-    }
-
-    function test_validateBurnIntents_success_setOfIntents() public view {
-        BurnIntent memory intent1 = baseIntent;
-        BurnIntent memory intent2 = baseIntent;
-        intent1.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
-        intent2.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
-
-        BurnIntent[] memory intentArray = new BurnIntent[](2);
-        intentArray[0] = intent1;
-        intentArray[1] = intent2;
-
-        BurnIntentSet memory intentSet;
-        intentSet.intents = intentArray;
-
-        bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
-
-        assertTrue(wallet.validateBurnIntents(encodedIntentSet, depositor));
-    }
-
-    function test_validateBurnIntents_failure_mismatchedSigner_singleIntent() public {
-        BurnIntent memory intent = baseIntent;
-        intent.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
-
-        bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
-
-        // Sign with a different key (attacker)
-        address attacker = makeAddr("attacker");
-
-        // Expect revert because the signer (attacker) is not authorized for the depositor's balance
-        vm.expectRevert(
-            abi.encodeWithSelector(Burns.InvalidIntentSourceSignerAtIndex.selector, uint32(0), depositor, attacker)
-        );
-        wallet.validateBurnIntents(encodedIntent, attacker);
-    }
-
-    function test_validateBurnIntents_failure_mismatchedSigner_SetOfIntents() public {
-        address otherSignerAddr = makeAddr("otherSigner");
-
-        BurnIntent memory intent1 = baseIntent;
-        BurnIntent memory intent2 = baseIntent;
-
-        // Set one intent with the depositor, one with a different signer
-        intent1.spec.sourceSigner = bytes32(uint256(uint160(depositor)));
-        intent2.spec.sourceSigner = bytes32(uint256(uint160(otherSignerAddr)));
-
-        BurnIntent[] memory intentArray = new BurnIntent[](2);
-        intentArray[0] = intent1;
-        intentArray[1] = intent2;
-
-        BurnIntentSet memory intentSet;
-        intentSet.intents = intentArray;
-
-        bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
-
-        // Expect revert because the recovered signer (depositor) won't match intent2's sourceSigner (otherSignerAddr)
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Burns.InvalidIntentSourceSignerAtIndex.selector, uint32(1), otherSignerAddr, depositor
-            )
-        );
-        wallet.validateBurnIntents(encodedIntentSet, depositor);
-    }
-
-    function test_validateBurnIntents_success_irrelevantDomain_singleIntent() public view {
-        BurnIntent memory intent = baseIntent;
-        intent.spec.sourceDomain = domain + 1; // Irrelevant domain
-
-        bytes memory encodedIntent = BurnIntentLib.encodeBurnIntent(intent);
-
-        // Validation should succeed even if the data isn't relevant to the current domain
-        assertTrue(wallet.validateBurnIntents(encodedIntent, depositor));
-    }
-
-    function test_validateBurnIntents_success_irrelevantDomain_setOfIntents() public view {
-        BurnIntent memory relevantIntent = baseIntent;
-        BurnIntent memory irrelevantIntent = baseIntent;
-        irrelevantIntent.spec.sourceDomain = domain + 1; // Irrelevant domain
-
-        BurnIntent[] memory intentArray = new BurnIntent[](2);
-        intentArray[0] = relevantIntent;
-        intentArray[1] = irrelevantIntent;
-
-        BurnIntentSet memory intentSet;
-        intentSet.intents = intentArray;
-
-        bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
-
-        // Validation should succeed even if there are irrelevant domains
-        assertTrue(wallet.validateBurnIntents(encodedIntentSet, depositor));
-    }
-
-    function test_validateBurnIntents_revert_notAllSameToken_setOfIntents() public {
-        BurnIntent memory usdcIntent = baseIntent; // Intent for USDC
-        BurnIntent memory otherTokenIntent = baseIntent;
-        otherTokenIntent.spec.sourceToken = AddressLib._addressToBytes32(otherToken); // Intent for the other token
-
-        BurnIntent[] memory intentArray = new BurnIntent[](2);
-        intentArray[0] = usdcIntent;
-        intentArray[1] = otherTokenIntent;
-
-        BurnIntentSet memory intentSet;
-        intentSet.intents = intentArray;
-
-        bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(intentSet);
-
-        // Should revert because the relevant intents are for different tokens
-        vm.expectRevert(Burns.NotAllSameToken.selector);
-        wallet.validateBurnIntents(encodedIntentSet, depositor);
-    }
-
     function test_getTypedDataHash_returnsExpectedBurnIntentHash() public view {
         BurnIntent memory intent = BurnIntent({
             maxBlockHeight: 1,
@@ -2283,7 +2133,7 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
             })
         });
 
-        bytes memory walletEncoded = wallet.encodeBurnIntent(intent);
+        bytes memory walletEncoded = BurnIntentLib.encodeBurnIntent(intent);
         bytes32 expectedHash = 0x52528dacb2770069666b863a3c27ae73d54cf8c96b25dde5da5480a82b504b71;
 
         bytes32 walletEIP712Hash = wallet.getTypedDataHash(walletEncoded);
@@ -2315,7 +2165,7 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
 
         BurnIntent[] memory intentArray = new BurnIntent[](1);
         intentArray[0] = intent;
-        bytes memory encodedIntentSet = wallet.encodeBurnIntents(intentArray);
+        bytes memory encodedIntentSet = BurnIntentLib.encodeBurnIntentSet(BurnIntentSet({intents: intentArray}));
         bytes32 expectedHash = 0xe598e3111843912b9b25c9fd7976c93fbd3edfeaf186edaf4e205b0a92cea9a7;
 
         bytes32 walletEIP712Hash = wallet.getTypedDataHash(encodedIntentSet);

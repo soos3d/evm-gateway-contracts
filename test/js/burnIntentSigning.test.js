@@ -26,8 +26,9 @@ import {
   burnIntentTypedData,
   burnIntentSetTypedData,
   burnIntent1,
-  burnIntent2
+  burnIntentSet
 } from './eip712TestData.js';
+import { encodeBurnIntent, encodeBurnIntentSet } from './encoding.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -92,9 +93,7 @@ describe('GatewayWallet Contract', function () {
       );
 
       // Get signature from direct signing
-      const encodedBurnIntent = await gatewayWallet.encodeBurnIntent(
-        burnIntent1
-      );
+      const encodedBurnIntent = encodeBurnIntent(burnIntent1);
       const structHashFromGatewayWallet = await gatewayWallet.getTypedDataHash(
         encodedBurnIntent
       );
@@ -122,10 +121,7 @@ describe('GatewayWallet Contract', function () {
       );
 
       // Get signature from direct signing
-      const encodedBurnIntentSet = await gatewayWallet.encodeBurnIntents([
-        burnIntent1,
-        burnIntent2
-      ]);
+      const encodedBurnIntentSet = encodeBurnIntentSet(burnIntentSet);
       const structHashFromGatewayWallet = await gatewayWallet.getTypedDataHash(
         encodedBurnIntentSet
       );
