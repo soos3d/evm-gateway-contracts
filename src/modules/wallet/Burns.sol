@@ -25,7 +25,6 @@ import {GatewayCommon} from "src/GatewayCommon.sol";
 import {IBurnToken} from "src/interfaces/IBurnToken.sol";
 import {AddressLib} from "src/lib/AddressLib.sol";
 import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
-import {BurnIntent, BurnIntentSet} from "src/lib/BurnIntents.sol";
 import {Cursor} from "src/lib/Cursor.sol";
 import {EIP712Domain} from "src/lib/EIP712Domain.sol";
 import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
@@ -182,78 +181,12 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         _gatewayBurn(intents, signatures, fees);
     }
 
-    /// Returns the byte encoding of a single burn intent
-    ///
-    /// @param intent   The burn intent to encode
-    /// @return         The byte-encoded burn intent
-    function encodeBurnIntent(BurnIntent calldata intent) external pure returns (bytes memory) {
-        return BurnIntentLib.encodeBurnIntent(intent);
-    }
-
-    /// Returns the byte encoding of a set of burn intents
-    ///
-    /// @param intents   The burn intents to encode
-    /// @return          The byte-encoded burn intent set
-    function encodeBurnIntents(BurnIntent[] calldata intents) external pure returns (bytes memory) {
-        return BurnIntentLib.encodeBurnIntentSet(BurnIntentSet({intents: intents}));
-    }
-
     /// Returns the `keccak256` hash of a burn intent
     ///
     /// @param intent   The burn intent to hash
     /// @return         The `keccak256` hash of the burn intent
     function getTypedDataHash(bytes calldata intent) external view returns (bytes32) {
         return BurnIntentLib.getTypedDataHash(intent);
-    }
-
-    /// Allows anyone to validate whether a set of burn intents would be valid if it were signed by the specified
-    /// signer (which must match `sourceSigner` in the `TransferSpec`).
-    ///
-    /// @dev See `BurnIntents.sol` for encoding details
-    ///
-    /// @param intents   A byte-encoded (set of) burn intent(s)
-    /// @param signer    The address that will sign the burn intent(s)
-    /// @return          `true` if the burn intent(s) would be valid with the given signer, `false` otherwise
-    function validateBurnIntents(bytes calldata intents, address signer) external view returns (bool) {
-        // Validate the burn intent(s) and get an iteration cursor
-        Cursor memory cursor = BurnIntentLib.cursor(intents);
-
-        // Ensure there is at least one burn intent
-        if (cursor.numElements == 0) {
-            revert MustHaveAtLeastOneBurnIntent();
-        }
-
-        // Iterate over the burn intents, validating each one
-        bytes29 intent;
-        address token;
-        while (!cursor.done) {
-            // Get the next burn intent
-            intent = cursor.next();
-
-            // Validate that everything about the burn intent is as expected, and skip if it's not for this domain
-            bytes29 spec = intent.getTransferSpec();
-            uint32 index = cursor.index - 1;
-            bool relevant = _validateBurnIntentTransferSpec(spec, signer, index);
-            if (!relevant) {
-                continue;
-            }
-
-            // Validate the block height and fee of the burn intent
-            _validateBurnIntentBlockHeightAndFee(intent, 0, index);
-
-            // Ensure that each one we've seen so far is for the same token
-            address _token = AddressLib._bytes32ToAddress(spec.getSourceToken());
-            if (token == address(0)) {
-                token = _token;
-            } else {
-                if (_token != token) {
-                    revert NotAllSameToken();
-                }
-            }
-        }
-
-        // If we get here, all burn intents are valid
-        return true;
     }
 
     /// The address with the `burnSigner` role that may sign the calldata for burning tokens that have been minted using

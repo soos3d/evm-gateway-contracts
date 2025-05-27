@@ -24,7 +24,7 @@ import {GatewayWallet} from "src/GatewayWallet.sol";
 import {AttestationLib} from "src/lib/AttestationLib.sol";
 import {Attestation, AttestationSet} from "src/lib/Attestations.sol";
 import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
-import {BurnIntent} from "src/lib/BurnIntents.sol";
+import {BurnIntent, BurnIntentSet} from "src/lib/BurnIntents.sol";
 import {TransferSpec} from "src/lib/TransferSpec.sol";
 
 contract SignatureTestUtils is Test {
@@ -168,7 +168,9 @@ contract SignatureTestUtils is Test {
         view
         returns (bytes memory encodedIntent, bytes memory signature)
     {
-        encodedIntent = intents.length == 1 ? wallet.encodeBurnIntent(intents[0]) : wallet.encodeBurnIntents(intents);
+        encodedIntent = intents.length == 1
+            ? BurnIntentLib.encodeBurnIntent(intents[0])
+            : BurnIntentLib.encodeBurnIntentSet(BurnIntentSet({intents: intents}));
         bytes32 domainSeparator = wallet.domainSeparator();
         bytes32 digest =
             MessageHashUtils.toTypedDataHash(domainSeparator, BurnIntentLib.getTypedDataHash(encodedIntent));
