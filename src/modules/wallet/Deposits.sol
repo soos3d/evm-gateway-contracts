@@ -193,6 +193,12 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         _depositWithAuthorization(token, from, value, validAfter, validBefore, nonce, signature);
     }
 
+    /// Internal implementation for depositing tokens acter approving this contract for the token
+    ///
+    /// @param token       The token to deposit
+    /// @param depositor   The address that should own the resulting balance
+    /// @param sender      The address that the funds should be deposited from
+    /// @param value       The amount to be deposited
     function _depositWithApproval(address token, address depositor, address sender, uint256 value) internal {
         // Ensure that the value is non-zero
         if (value == 0) {
