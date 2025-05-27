@@ -29,7 +29,8 @@ interface IERC7597 {
     /// @param owner       Token owner's address (Authorizer)
     /// @param spender     Spender's address
     /// @param value       Amount of allowance
-    /// @param deadline    The time at which the signature expires (unix time), or max uint256 value to signal no expiration
+    /// @param deadline    The time at which the signature expires (unix time), or max uint256 value to signal no
+    ///                    expiration
     /// @param signature   Signature byte array signed by an EOA wallet or a contract wallet
     function permit(address owner, address spender, uint256 value, uint256 deadline, bytes memory signature) external;
 }

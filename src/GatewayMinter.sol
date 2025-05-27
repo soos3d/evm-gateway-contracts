@@ -23,10 +23,9 @@ import {Mints} from "src/modules/minter/Mints.sol";
 
 /// @title GatewayMinter
 ///
-/// @notice This contract allows the minting of funds deposited in the GatewayWallet contract, either on
-/// the same chain or on a different chain. Either operation requires a signed authorization from
-/// the `mintAuthorizationSigner` configured in the contract. See the documentation for the `GatewayWallet` contract for
-/// more details.
+/// @notice This contract allows the minting of funds deposited in the GatewayWallet contract, either on the same chain
+/// or on a different chain. Either operation requires a signed attestation from the `attestationSigner` configured in
+/// the contract. See the documentation for the `GatewayWallet` contract for more details.
 contract GatewayMinter is GatewayCommon, Mints {
     /// Thrown when the length of `supportedTokens_` and `tokenMintAuthorities_` do not match
     error MismatchedLengthTokenAndTokenMintAuthorities();
@@ -42,20 +41,20 @@ contract GatewayMinter is GatewayCommon, Mints {
     /// @dev Assumes the contract is being deployed behind a proxy and that the proxy has already been initialized using
     ///      the `UpgradeablePlaceholder` contract
     ///
-    /// @param pauser_                    The address to initialize the `pauser` role
-    /// @param denylister_                The address to initialize the `denylister` role
-    /// @param wallet_                    The address of the `GatewayWallet` contract for this domain
-    /// @param supportedTokens_           The list of tokens to support initially
-    /// @param domain_                    The operator-issued identifier for this chain
-    /// @param mintAuthorizationSigner_   The address to initialize the `mintAuthorizationSigner` role
-    /// @param tokenMintAuthorities_      The list of initial token mint authorities (use the zero address for none)
+    /// @param pauser_                 The address to initialize the `pauser` role
+    /// @param denylister_             The address to initialize the `denylister` role
+    /// @param wallet_                 The address of the `GatewayWallet` contract for this domain
+    /// @param supportedTokens_        The list of tokens to support initially
+    /// @param domain_                 The operator-issued identifier for this chain
+    /// @param attestationSigner_      The address to initialize the `attestationSigner` role
+    /// @param tokenMintAuthorities_   The list of initial token mint authorities (use the zero address for none)
     function initialize(
         address pauser_,
         address denylister_,
         address wallet_,
         address[] calldata supportedTokens_,
         uint32 domain_,
-        address mintAuthorizationSigner_,
+        address attestationSigner_,
         address[] calldata tokenMintAuthorities_
     ) external reinitializer(2) {
         if (supportedTokens_.length != tokenMintAuthorities_.length) {
@@ -63,12 +62,12 @@ contract GatewayMinter is GatewayCommon, Mints {
         }
 
         __GatewayCommon_init(pauser_, denylister_, wallet_, supportedTokens_, domain_);
-        __Mints_init(mintAuthorizationSigner_, supportedTokens_, tokenMintAuthorities_);
+        __Mints_init(attestationSigner_, supportedTokens_, tokenMintAuthorities_);
     }
 
     /// The address of the corresponding wallet contract on the same domain
     ///
-    /// @return   The `GatewayWallet` address
+    /// @return   The `GatewayWallet` contract address
     function walletContract() external view returns (GatewayWallet) {
         return GatewayWallet(_counterpart());
     }

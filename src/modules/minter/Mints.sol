@@ -21,30 +21,30 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {GatewayCommon} from "src/GatewayCommon.sol";
 import {IMintToken} from "src/interfaces/IMintToken.sol";
-import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
-import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
-import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {AddressLib} from "src/lib/util/AddressLib.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
+import {AttestationLib} from "src/lib/AttestationLib.sol";
+import {Cursor} from "src/lib/Cursor.sol";
+import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 
 /// @title Mints
 ///
 /// @notice Manages mints for the `GatewayMinter` contract
 contract Mints is GatewayCommon {
     using TransferSpecLib for bytes29;
-    using MintAuthorizationLib for bytes29;
-    using MintAuthorizationLib for AuthorizationCursor;
+    using AttestationLib for bytes29;
+    using AttestationLib for Cursor;
     using MessageHashUtils for bytes32;
 
-    /// Emitted when a mint authorization is used
+    /// Emitted when an attestation is used
     ///
     /// @param token              The token that was minted
     /// @param recipient          The recipient of the funds
-    /// @param transferSpecHash   The `keccak256` hash of the `TransferSpec`, shared with the burn authorization
+    /// @param transferSpecHash   The `keccak256` hash of the `TransferSpec`, shared with the burn intent
     /// @param sourceDomain       The domain the funds came from
     /// @param sourceDepositor    The depositor on the source domain
     /// @param sourceSigner       The signer that authorized the transfer
     /// @param value              The amount that was minted
-    event MintAuthorizationUsed(
+    event AttestationUsed(
         address indexed token,
         address indexed recipient,
         bytes32 indexed transferSpecHash,
@@ -53,6 +53,12 @@ contract Mints is GatewayCommon {
         bytes32 sourceSigner,
         uint256 value
     );
+
+    /// Emitted when the `attestationSigner` role is updated
+    ///
+    /// @param oldAttestationSigner   The previous attestation signer address
+    /// @param newAttestationSigner   The new attestation signer address
+    event AttestationSignerChanged(address indexed oldAttestationSigner, address indexed newAttestationSigner);
 
     /// Emitted when the mint authority is updated for a token
     ///
@@ -63,86 +69,80 @@ contract Mints is GatewayCommon {
         address indexed token, address indexed oldMintAuthority, address indexed newMintAuthority
     );
 
-    /// Emitted when the `mintAuthorizationSigner` role is updated
+    /// Thrown when an attestation set is empty
+    error MustHaveAtLeastOneAttestation();
+
+    /// Thrown when an attestation was not signed by the right address
+    error InvalidAttestationSigner();
+
+    /// Thrown when an attestation is expired
     ///
-    /// @param oldMintAuthorizationSigner   The previous mint authorization signer address
-    /// @param newMintAuthorizationSigner   The new mint authorization signer address
-    event MintAuthorizationSignerChanged(
-        address indexed oldMintAuthorizationSigner, address indexed newMintAuthorizationSigner
+    /// @param index            The index of the attestation with the issue
+    /// @param maxBlockHeight   The attestation's expiration block height
+    /// @param currentBlock     The current block height
+    error AttestationExpiredAtIndex(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
+
+    /// Thrown when an attestation's value is zero
+    ///
+    /// @param index   The index of the attestation with the issue
+    error AttestationValueMustBePositiveAtIndex(uint32 index);
+
+    /// Thrown when an attestation has a non-zero destination caller but was used by a different caller
+    ///
+    /// @param index               The index of the attestation with the issue
+    /// @param attestationCaller   The destination caller from the attestation
+    /// @param actualCaller        The caller that used the attestation
+    error InvalidAttestationDestinationCallerAtIndex(uint32 index, address attestationCaller, address actualCaller);
+
+    /// Thrown when an attestation has a destination domain that does not match the one for this contract
+    ///
+    /// @param index               The index of the attestation with the issue
+    /// @param attestationDomain   The destination domain from the attestation
+    /// @param expectedDomain      The domain of this contract
+    error InvalidAttestationDestinationDomainAtIndex(uint32 index, uint32 attestationDomain, uint32 expectedDomain);
+
+    /// Thrown when an attestation has the wrong destination contract
+    ///
+    /// @param index                 The index of the attestation with the issue
+    /// @param attestationContract   The destination contract from the attestation
+    /// @param expectedContract      The address of this contract
+    error InvalidAttestationDestinationContractAtIndex(
+        uint32 index, address attestationContract, address expectedContract
     );
 
-    /// Thrown when a mint authorization set is empty
-    error MustHaveAtLeastOneMintAuthorization();
-
-    /// Thrown when a mint authorization was not signed by the right address
-    error InvalidMintAuthorizationSigner();
-
-    /// Thrown when a mint authorization is expired
+    /// Thrown when the destination token in an attestation is not supported
     ///
-    /// @param index            The index of the mint authorization with the issue
-    /// @param maxBlockHeight   The mint authorization's expiration block height
-    /// @param currentBlock     The current block height
-    error AuthorizationExpiredAtIndex(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
-
-    /// Thrown when a mint authorization's value is zero
-    ///
-    /// @param index   The index of the mint authorization with the issue
-    error AuthorizationValueMustBePositiveAtIndex(uint32 index);
-
-    /// Thrown when a mint authorization has a non-zero destination caller but was used by a different caller
-    ///
-    /// @param index          The index of the mint authorization with the issue
-    /// @param authCaller     The destination caller from the mint authorization
-    /// @param actualCaller   The caller that used the mint authorization
-    error InvalidAuthorizationDestinationCallerAtIndex(uint32 index, address authCaller, address actualCaller);
-
-    /// Thrown when a mint authorization has a destination domain that does not match the one for this contract
-    ///
-    /// @param index            The index of the mint authorization with the issue
-    /// @param authDomain       The destination domain from the mint authorization
-    /// @param expectedDomain   The domain of this contract
-    error InvalidAuthorizationDestinationDomainAtIndex(uint32 index, uint32 authDomain, uint32 expectedDomain);
-
-    /// Thrown when a mint authorization has the wrong destination contract
-    ///
-    /// @param index              The index of the mint authorization with the issue
-    /// @param authContract       The destination contract from the mint authorization
-    /// @param expectedContract   The address of this contract
-    error InvalidAuthorizationDestinationContractAtIndex(uint32 index, address authContract, address expectedContract);
-
-    /// Thrown when the destination token in a mint authorization is not supported
-    ///
-    /// @param index              The index of the mint authorization with the issue
-    /// @param destinationToken   The destination token from the mint authorization
+    /// @param index              The index of the attestation with the issue
+    /// @param destinationToken   The destination token from the attestation
     error UnsupportedTokenAtIndex(uint32 index, address destinationToken);
 
-    /// Thrown when a mint authorization is for the same domain as the source but has a source contract that does not
+    /// Thrown when an attestation is for the same domain as the source but has a source contract that does not
     /// match the expected counterpart wallet contract address
     ///
-    /// @param index              The index of the mint authorization with the issue
-    /// @param authContract       The source contract from the mint authorization
-    /// @param expectedContract   The address of the wallet contract on the same domain
-    error InvalidAuthorizationSourceContractAtIndex(uint32 index, address authContract, address expectedContract);
+    /// @param index                 The index of the attestation with the issue
+    /// @param attestationContract   The source contract from the attestation
+    /// @param expectedContract      The address of the wallet contract on the same domain
+    error InvalidAttestationSourceContractAtIndex(uint32 index, address attestationContract, address expectedContract);
 
-    /// Thrown when a mint authorization is for the same domain as the source but has a source token that does not
+    /// Thrown when an attestation is for the same domain as the source but has a source token that does not
     /// match the destination token
     ///
-    /// @param index              The index of the mint authorization with the issue
+    /// @param index              The index of the attestation with the issue
     /// @param sourceToken        The source token
     /// @param destinationToken   The destination token
-    error InvalidAuthorizationTokenAtIndex(uint32 index, address sourceToken, address destinationToken);
+    error InvalidAttestationTokenAtIndex(uint32 index, address sourceToken, address destinationToken);
 
-    /// Initializes the `mintAuthorizationSigner` role and any initial token mint authorities
+    /// Initializes the `attestationSigner` role and any initial token mint authorities
     ///
-    /// @param mintAuthorizationSigner_   The address to initialize the `mintAuthorizationSigner` role
-    /// @param tokens_                    The list of tokens to support initially
-    /// @param tokenMintAuthorities_      The list of initial token mint authorities (use the zero address for none)
+    /// @param attestationSigner_      The address to initialize the `attestationSigner` role
+    /// @param tokens_                 The list of tokens to support initially
+    /// @param tokenMintAuthorities_   The list of initial token mint authorities (use the zero address for none)
     function __Mints_init(
-        address mintAuthorizationSigner_,
+        address attestationSigner_,
         address[] calldata tokens_,
         address[] calldata tokenMintAuthorities_
     ) internal onlyInitializing {
-        updateMintAuthorizationSigner(mintAuthorizationSigner_);
+        updateAttestationSigner(attestationSigner_);
 
         for (uint256 i = 0; i < tokenMintAuthorities_.length; i++) {
             address mintAuthority = tokenMintAuthorities_[i];
@@ -153,53 +153,54 @@ contract Mints is GatewayCommon {
         }
     }
 
-    /// Mint funds via a signed mint authorization. Accepts either a single encoded `MintAuthorization` or several in
-    /// an encoded `MintAuthorizationSet`. Emits an event containing the `keccak256` hash of the encoded
+    /// Mint funds via a signed attestation. Accepts either a single encoded `Attestation` or several in
+    /// an encoded `AttestationSet`. Emits an event containing the `keccak256` hash of the encoded
     /// `TransferSpec` (which is the same for the corresponding burn that will happen on the source domain), to be
     /// used as a cross-chain identifier and for replay protection.
     ///
-    /// @dev See `MintAuthorizations.sol` for encoding details
+    /// @dev See `Attestations.sol` for encoding details
     ///
-    /// @param authorization   The byte-encoded mint authorization(s)
-    /// @param signature       The signature of the `mintAuthorizationSigner` on the `authorization`
-
-    function gatewayMint(bytes memory authorization, bytes memory signature)
+    /// @param attestationPayload   The byte-encoded attestation(s)
+    /// @param signature            The signature of the `attestationSigner` on the `attestationPayload`
+    function gatewayMint(bytes memory attestationPayload, bytes memory signature)
         external
         whenNotPaused
         notDenylisted(msg.sender)
     {
         // Verify that the payload was signed by the expected signer
-        _verifyMintAuthorizationSignature(authorization, signature);
+        _verifyAttestationSignature(attestationPayload, signature);
 
-        // Validate the mint authorization(s) and get an iteration cursor
-        AuthorizationCursor memory cursor = MintAuthorizationLib.cursor(authorization);
+        // Validate the attestation(s) and get an iteration cursor
+        Cursor memory cursor = AttestationLib.cursor(attestationPayload);
 
-        // Ensure there is at least one mint authorization
-        if (cursor.numAuths == 0) {
-            revert MustHaveAtLeastOneMintAuthorization();
+        // Ensure there is at least one attestation
+        if (cursor.numElements == 0) {
+            revert MustHaveAtLeastOneAttestation();
         }
 
-        // Iterate over the mint authorizations, validating and processing each one
-        bytes29 auth;
+        // Iterate over the attestations, validating and processing each one
+        bytes29 attestation;
         while (!cursor.done) {
-            auth = cursor.next();
+            attestation = cursor.next();
 
-            // Ensure the mint authorization is not expired
+            // Ensure the attestation is not expired
             uint32 index = cursor.index - 1;
-            _validateMintAuthorizationNotExpired(auth, index);
+            _validateAttestationNotExpired(attestation, index);
 
-            // Extract the `TransferSpec`
-            bytes29 spec = auth.getTransferSpec();
-            _validateMintAuthorizationTransferSpec(spec, index);
+            // Extract and validate the `TransferSpec`
+            bytes29 spec = attestation.getTransferSpec();
+            _validateAttestationTransferSpec(spec, index);
+
+            // Mint funds according to the spec
             _mint(spec);
         }
     }
 
-    /// The mint authorization signer that is recognized by the contract
+    /// The address with the `attestationSigner` role that may sign attestations to mint funds
     ///
-    /// @return   The mint authorization signer address
-    function mintAuthorizationSigner() public view returns (address) {
-        return MintsStorage.get().mintAuthorizationSigner;
+    /// @return   The address of the attestation signer
+    function attestationSigner() public view returns (address) {
+        return MintsStorage.get().attestationSigner;
     }
 
     /// The mint authority for a token
@@ -225,59 +226,59 @@ contract Mints is GatewayCommon {
         emit MintAuthorityChanged(token, oldMintAuthority, newMintAuthority);
     }
 
-    /// Sets the address that may sign mint authorizations
+    /// Sets the address that may sign attestations
     ///
     /// @dev May only be called by the `owner` role
     ///
-    /// @param newMintAuthorizationSigner   The new mint authorization signer address
-    function updateMintAuthorizationSigner(address newMintAuthorizationSigner) public onlyOwner {
-        AddressLib._checkNotZeroAddress(newMintAuthorizationSigner);
+    /// @param newAttestationSigner   The new attestation signer address
+    function updateAttestationSigner(address newAttestationSigner) public onlyOwner {
+        AddressLib._checkNotZeroAddress(newAttestationSigner);
 
         MintsStorage.Data storage $ = MintsStorage.get();
-        address oldMintAuthorizationSigner = $.mintAuthorizationSigner;
-        $.mintAuthorizationSigner = newMintAuthorizationSigner;
-        emit MintAuthorizationSignerChanged(oldMintAuthorizationSigner, newMintAuthorizationSigner);
+        address oldAttestationSigner = $.attestationSigner;
+        $.attestationSigner = newAttestationSigner;
+        emit AttestationSignerChanged(oldAttestationSigner, newAttestationSigner);
     }
 
-    /// Verifies the signature for a (set of) mint authorization(s)
+    /// Verifies the signature for a (set of) attestation(s)
     ///
-    /// @dev Recovers the signer from the signature and compares it to the `mintAuthorizationSigner`
+    /// @dev Recovers the signer from the signature and compares it to the `attestationSigner`
     ///
-    /// @param authorization   The byte-encoded mint authorization(s)
-    /// @param signature       The signature on the `authorization` to verify
-    function _verifyMintAuthorizationSignature(bytes memory authorization, bytes memory signature) internal view {
-        address recoveredSigner = ECDSA.recover(keccak256(authorization).toEthSignedMessageHash(), signature);
-        if (recoveredSigner != mintAuthorizationSigner()) {
-            revert InvalidMintAuthorizationSigner();
+    /// @param attestation   The byte-encoded attestation(s)
+    /// @param signature     The signature on the `attestation` to verify
+    function _verifyAttestationSignature(bytes memory attestation, bytes memory signature) internal view {
+        address recoveredSigner = ECDSA.recover(keccak256(attestation).toEthSignedMessageHash(), signature);
+        if (recoveredSigner != attestationSigner()) {
+            revert InvalidAttestationSigner();
         }
     }
 
-    /// Validates that a mint authorization is not expired
+    /// Validates that an attestation is not expired
     ///
-    /// @dev Reverts if the mint authorization is expired
+    /// @dev Reverts if the attestation is expired
     ///
-    /// @param auth    A `TypedMemView` reference to the byte-encoded mint authorization
-    /// @param index   The index of the mint authorization within the batch (used for error reporting)
-    function _validateMintAuthorizationNotExpired(bytes29 auth, uint32 index) internal view {
-        // Ensure the mint authorization is not expired
-        uint256 maxBlockHeight = auth.getMaxBlockHeight();
+    /// @param attestation   A `TypedMemView` reference to the byte-encoded attestation
+    /// @param index         The index of the attesation within the batch (used for error reporting)
+    function _validateAttestationNotExpired(bytes29 attestation, uint32 index) internal view {
+        // Ensure the attestation is not expired
+        uint256 maxBlockHeight = attestation.getMaxBlockHeight();
         if (maxBlockHeight < block.number) {
-            revert AuthorizationExpiredAtIndex(index, maxBlockHeight, block.number);
+            revert AttestationExpiredAtIndex(index, maxBlockHeight, block.number);
         }
     }
 
-    /// Validates a single mint authorization's transfer spec
+    /// Validates a single attestation's transfer spec
     ///
     /// @dev Checks value, recipient denylist status, destination caller, destination domain, destination
     ///      contract, and (when the domains match) source contract and token consistency
     ///
-    /// @param spec    A `TypedMemView` reference to the transfer spec portion of the mint authorization
-    /// @param index   The index of the mint authorization within the batch (used for error reporting)
-    function _validateMintAuthorizationTransferSpec(bytes29 spec, uint32 index) internal view {
+    /// @param spec    A `TypedMemView` reference to the transfer spec portion of the attestation
+    /// @param index   The index of the attestation within the batch (used for error reporting)
+    function _validateAttestationTransferSpec(bytes29 spec, uint32 index) internal view {
         // Ensure the value is nonzero
         uint256 value = spec.getValue();
         if (value == 0) {
-            revert AuthorizationValueMustBePositiveAtIndex(index);
+            revert AttestationValueMustBePositiveAtIndex(index);
         }
 
         // Ensure the intended recipient is not denylisted
@@ -286,19 +287,19 @@ contract Mints is GatewayCommon {
         // Ensure the caller is the specified destination caller (if any)
         address destinationCaller = AddressLib._bytes32ToAddress(spec.getDestinationCaller());
         if (destinationCaller != address(0) && destinationCaller != msg.sender) {
-            revert InvalidAuthorizationDestinationCallerAtIndex(index, destinationCaller, msg.sender);
+            revert InvalidAttestationDestinationCallerAtIndex(index, destinationCaller, msg.sender);
         }
 
-        // Ensure the mint authorization is for the current domain
+        // Ensure the attestation is for the current domain
         uint32 destinationDomain = spec.getDestinationDomain();
         if (!_isCurrentDomain(destinationDomain)) {
-            revert InvalidAuthorizationDestinationDomainAtIndex(index, destinationDomain, domain());
+            revert InvalidAttestationDestinationDomainAtIndex(index, destinationDomain, domain());
         }
 
-        // Ensure the mint authorization is for this minter contract
+        // Ensure the attestation is for this minter contract
         address destinationContract = AddressLib._bytes32ToAddress(spec.getDestinationContract());
         if (destinationContract != address(this)) {
-            revert InvalidAuthorizationDestinationContractAtIndex(index, destinationContract, address(this));
+            revert InvalidAttestationDestinationContractAtIndex(index, destinationContract, address(this));
         }
 
         // Ensure the destination token is supported
@@ -314,13 +315,13 @@ contract Mints is GatewayCommon {
             address sourceContract = AddressLib._bytes32ToAddress(spec.getSourceContract());
             address walletAddr = _counterpart();
             if (sourceContract != walletAddr) {
-                revert InvalidAuthorizationSourceContractAtIndex(index, sourceContract, walletAddr);
+                revert InvalidAttestationSourceContractAtIndex(index, sourceContract, walletAddr);
             }
 
             // Ensure the source and destination tokens are the same
             address sourceToken = AddressLib._bytes32ToAddress(spec.getSourceToken());
             if (sourceToken != destinationToken) {
-                revert InvalidAuthorizationTokenAtIndex(index, sourceToken, destinationToken);
+                revert InvalidAttestationTokenAtIndex(index, sourceToken, destinationToken);
             }
         }
     }
@@ -328,7 +329,7 @@ contract Mints is GatewayCommon {
     /// Executes a mint operation based on the provided `TransferSpec`. The function mints tokens through
     /// the designated mint authority and records the transfer spec hash to prevent replay attacks
     ///
-    /// @param spec   A `TypedMemView` reference to the `TransferSpec` from the mint authorization
+    /// @param spec   A `TypedMemView` reference to the `TransferSpec` from the attestation
     function _mint(bytes29 spec) internal {
         // Check for replay and mark this transfer spec hash as used
         bytes32 specHash = spec.getHash();
@@ -347,8 +348,8 @@ contract Mints is GatewayCommon {
         address minter = (mintAuthority == address(0)) ? token : mintAuthority;
         IMintToken(minter).mint(recipient, value);
 
-        // Emit an event with the mint authorization details
-        emit MintAuthorizationUsed(token, recipient, specHash, sourceDomain, depositorBytes, signerBytes, value);
+        // Emit an event with the attestation details
+        emit AttestationUsed(token, recipient, specHash, sourceDomain, depositorBytes, signerBytes, value);
     }
 }
 
@@ -358,12 +359,12 @@ contract Mints is GatewayCommon {
 library MintsStorage {
     /// @custom:storage-location erc7201:circle.gateway.Mints
     struct Data {
+        /// The address that may sign attestations to mint funds
+        address attestationSigner;
         /// Maps token addresses to their corresponding minter contract addresses. Absence of an entry means the token
         /// itself should be used as the minter. This contract must have permission to mint the associated token via
         /// the minter contract.
         mapping(address token => address tokenMintAuthority) tokenMintAuthorities;
-        /// The address of the operator that can sign mint authorizations
-        address mintAuthorizationSigner;
     }
 
     /// `keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Mints"))) - 1)) & ~bytes32(uint256(0xff))`

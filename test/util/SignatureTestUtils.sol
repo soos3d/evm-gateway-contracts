@@ -21,11 +21,11 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Test} from "forge-std/Test.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
-import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
-import {BurnAuthorization} from "src/lib/authorizations/BurnAuthorizations.sol";
-import {MintAuthorizationLib} from "src/lib/authorizations/MintAuthorizationLib.sol";
-import {MintAuthorization, MintAuthorizationSet} from "src/lib/authorizations/MintAuthorizations.sol";
-import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
+import {AttestationLib} from "src/lib/AttestationLib.sol";
+import {Attestation, AttestationSet} from "src/lib/Attestations.sol";
+import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
+import {BurnIntent} from "src/lib/BurnIntents.sol";
+import {TransferSpec} from "src/lib/TransferSpec.sol";
 
 contract SignatureTestUtils is Test {
     using MessageHashUtils for bytes32;
@@ -90,105 +90,104 @@ contract SignatureTestUtils is Test {
         (v, r, s) = vm.sign(privateKey, digest);
     }
 
-    function _signBurnAuthWithTransferSpec(TransferSpec memory transferSpec, GatewayWallet wallet, uint256 signerKey)
+    function _signBurnIntentWithTransferSpec(TransferSpec memory transferSpec, GatewayWallet wallet, uint256 signerKey)
         internal
         view
-        returns (bytes memory encodedAuth, bytes memory signature)
+        returns (bytes memory encodedIntent, bytes memory signature)
     {
-        BurnAuthorization[] memory auths = new BurnAuthorization[](1);
-        auths[0] = _createBurnAuth(transferSpec);
-        return _signBurnAuths(auths, wallet, signerKey);
+        BurnIntent[] memory intents = new BurnIntent[](1);
+        intents[0] = _createBurnIntent(transferSpec);
+        return _signBurnIntents(intents, wallet, signerKey);
     }
 
-    function _signBurnAuthSetWithTransferSpec(
+    function _signBurnIntentSetWithTransferSpec(
         TransferSpec[] memory transferSpecs,
         GatewayWallet wallet,
         uint256 signerKey
-    ) internal view returns (bytes memory encodedAuth, bytes memory signature) {
-        BurnAuthorization[] memory auths = new BurnAuthorization[](transferSpecs.length);
+    ) internal view returns (bytes memory encodedIntent, bytes memory signature) {
+        BurnIntent[] memory intents = new BurnIntent[](transferSpecs.length);
         for (uint256 i = 0; i < transferSpecs.length; i++) {
-            auths[i] = _createBurnAuth(transferSpecs[i]);
+            intents[i] = _createBurnIntent(transferSpecs[i]);
         }
-        return _signBurnAuths(auths, wallet, signerKey);
+        return _signBurnIntents(intents, wallet, signerKey);
     }
 
-    function _signMintAuthWithTransferSpec(TransferSpec memory transferSpec, uint256 signerKey)
+    function _signAttestationWithTransferSpec(TransferSpec memory transferSpec, uint256 signerKey)
         internal
         view
-        returns (bytes memory encodedAuth, bytes memory signature)
+        returns (bytes memory encodedAttestation, bytes memory signature)
     {
-        MintAuthorization[] memory auths = new MintAuthorization[](1);
-        auths[0] = _createMintAuth(transferSpec);
-        return _signMintAuths(auths, signerKey);
+        Attestation[] memory attestations = new Attestation[](1);
+        attestations[0] = _createAttestation(transferSpec);
+        return _signAttestations(attestations, signerKey);
     }
 
-    function _signMintAuthSetWithTransferSpec(TransferSpec[] memory transferSpecs, uint256 signerKey)
+    function _signAttestationSetWithTransferSpec(TransferSpec[] memory transferSpecs, uint256 signerKey)
         internal
         view
-        returns (bytes memory encodedAuth, bytes memory signature)
+        returns (bytes memory encodedAttestation, bytes memory signature)
     {
-        MintAuthorization[] memory auths = new MintAuthorization[](transferSpecs.length);
+        Attestation[] memory attestations = new Attestation[](transferSpecs.length);
         for (uint256 i = 0; i < transferSpecs.length; i++) {
-            auths[i] = _createMintAuth(transferSpecs[i]);
+            attestations[i] = _createAttestation(transferSpecs[i]);
         }
-        return _signMintAuths(auths, signerKey);
+        return _signAttestations(attestations, signerKey);
     }
 
-    function _signBurnAuthorizations(
-        bytes[] memory authorizations,
+    function _signBurnIntents(
+        bytes[] memory intents,
         bytes[] memory signatures,
         uint256[][] memory fees,
         uint256 signerKey
     ) internal pure returns (bytes memory burnerSignature) {
         // Generate a random address and key for the burn signer
-        bytes memory encodedCalldata = abi.encode(authorizations, signatures, fees);
+        bytes memory encodedCalldata = abi.encode(intents, signatures, fees);
 
         // Sign the calldata hash as the burn signer
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, keccak256(encodedCalldata).toEthSignedMessageHash());
         burnerSignature = abi.encodePacked(r, s, v);
     }
 
-    function _createBurnAuth(TransferSpec memory spec) internal view returns (BurnAuthorization memory) {
-        return BurnAuthorization({
+    function _createBurnIntent(TransferSpec memory spec) internal view returns (BurnIntent memory) {
+        return BurnIntent({
             maxBlockHeight: block.number + 5, // ~1 minute expiry
             maxFee: 1e6, // 1 USDC max fee
             spec: spec
         });
     }
 
-    function _createMintAuth(TransferSpec memory spec) private view returns (MintAuthorization memory) {
-        return MintAuthorization({
+    function _createAttestation(TransferSpec memory spec) private view returns (Attestation memory) {
+        return Attestation({
             maxBlockHeight: block.number + 5, // ~1 minute expiry
             spec: spec
         });
     }
 
-    function _signBurnAuths(BurnAuthorization[] memory auths, GatewayWallet wallet, uint256 signerKey)
+    function _signBurnIntents(BurnIntent[] memory intents, GatewayWallet wallet, uint256 signerKey)
         internal
         view
-        returns (bytes memory encodedAuth, bytes memory signature)
+        returns (bytes memory encodedIntent, bytes memory signature)
     {
-        encodedAuth =
-            auths.length == 1 ? wallet.encodeBurnAuthorization(auths[0]) : wallet.encodeBurnAuthorizations(auths);
+        encodedIntent = intents.length == 1 ? wallet.encodeBurnIntent(intents[0]) : wallet.encodeBurnIntents(intents);
         bytes32 domainSeparator = wallet.domainSeparator();
         bytes32 digest =
-            MessageHashUtils.toTypedDataHash(domainSeparator, BurnAuthorizationLib.getTypedDataHash(encodedAuth));
+            MessageHashUtils.toTypedDataHash(domainSeparator, BurnIntentLib.getTypedDataHash(encodedIntent));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, digest);
         signature = abi.encodePacked(r, s, v);
     }
 
-    function _signMintAuths(MintAuthorization[] memory auths, uint256 signerKey)
+    function _signAttestations(Attestation[] memory attestations, uint256 signerKey)
         private
         pure
-        returns (bytes memory encodedAuth, bytes memory signature)
+        returns (bytes memory encodedAttestation, bytes memory signature)
     {
-        if (auths.length == 1) {
-            encodedAuth = MintAuthorizationLib.encodeMintAuthorization(auths[0]);
+        if (attestations.length == 1) {
+            encodedAttestation = AttestationLib.encodeAttestation(attestations[0]);
         } else {
-            MintAuthorizationSet memory authSet = MintAuthorizationSet({authorizations: auths});
-            encodedAuth = MintAuthorizationLib.encodeMintAuthorizationSet(authSet);
+            AttestationSet memory attestationSet = AttestationSet({attestations: attestations});
+            encodedAttestation = AttestationLib.encodeAttestationSet(attestationSet);
         }
-        signature = _sign(signerKey, encodedAuth);
+        signature = _sign(signerKey, encodedAttestation);
     }
 
     function _sign(uint256 signerKey, bytes memory data) private pure returns (bytes memory signature) {

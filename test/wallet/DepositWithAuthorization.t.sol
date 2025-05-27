@@ -29,7 +29,7 @@ import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 
 /// Tests ERC-3009 authorization deposit functionality of GatewayWallet
-contract GatewayWalletDepositERC3009Test is DeployUtils, SignatureTestUtils {
+contract GatewayWalletDepositWithAuthorizationTest is DeployUtils, SignatureTestUtils {
     address private owner = makeAddr("owner");
     uint256 private depositorPrivateKey;
     address private depositor;

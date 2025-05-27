@@ -18,11 +18,11 @@
 pragma solidity ^0.8.29;
 
 import {Test} from "forge-std/Test.sol";
-import {GatewayWallet} from "../../src/GatewayWallet.sol";
-import {DeployUtils} from "../util/DeployUtils.sol";
-import {ForkTestUtils} from "../util/ForkTestUtils.sol";
+import {GatewayWallet} from "src/GatewayWallet.sol";
+import {DeployUtils} from "test/util/DeployUtils.sol";
+import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-contract EIP712DomainTest is Test, DeployUtils {
+contract GatewayWalletEIP712DomainTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     GatewayWallet private wallet;
 

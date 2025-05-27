@@ -23,12 +23,12 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {GatewayCommon} from "src/GatewayCommon.sol";
 import {IBurnToken} from "src/interfaces/IBurnToken.sol";
-import {AuthorizationCursor} from "src/lib/authorizations/AuthorizationCursor.sol";
-import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
-import {BurnAuthorization, BurnAuthorizationSet} from "src/lib/authorizations/BurnAuthorizations.sol";
-import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {AddressLib} from "src/lib/util/AddressLib.sol";
-import {EIP712Domain} from "src/lib/util/EIP712Domain.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
+import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
+import {BurnIntent, BurnIntentSet} from "src/lib/BurnIntents.sol";
+import {Cursor} from "src/lib/Cursor.sol";
+import {EIP712Domain} from "src/lib/EIP712Domain.sol";
+import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
 import {Balances} from "src/modules/wallet/Balances.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
 
@@ -37,8 +37,8 @@ import {Delegation} from "src/modules/wallet/Delegation.sol";
 /// @notice Manages burns for the `GatewayWallet` contract
 contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     using TransferSpecLib for bytes29;
-    using BurnAuthorizationLib for bytes29;
-    using BurnAuthorizationLib for AuthorizationCursor;
+    using BurnIntentLib for bytes29;
+    using BurnIntentLib for Cursor;
     using MessageHashUtils for bytes32;
     using SafeERC20 for IERC20;
 
@@ -47,7 +47,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// @param token                  The token that was burned
     /// @param depositor              The depositor who owned the balance
     /// @param transferSpecHash       The `keccak256` hash of the `TransferSpec`
-    /// @param destinationDomain      The domain the corresponding mint authorization was used on
+    /// @param destinationDomain      The domain the corresponding attestation was used on
     /// @param destinationRecipient   The recipient of the funds at the destination
     /// @param signer                 The address that authorized the transfer
     /// @param value                  The value that was burned
@@ -95,59 +95,59 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// @param newFeeRecipient   The new fee recipient address
     event FeeRecipientChanged(address indexed oldFeeRecipient, address indexed newFeeRecipient);
 
-    /// Thrown when a burn authorization set or batch is empty
-    error MustHaveAtLeastOneBurnAuthorization();
+    /// Thrown when a burn intent set or batch is empty
+    error MustHaveAtLeastOneBurnIntent();
 
-    /// Thrown when there is a mismatch between burn authorizations, signatures, or fees
+    /// Thrown when there is a mismatch between burn intents, signatures, or fees
     error MismatchedBurn();
 
-    /// Thrown when burn authorizations in a set are not all for the same token
+    /// Thrown when burn intents in a set are not all for the same token
     error NotAllSameToken();
 
     /// Thrown when the calldata for `gatewayBurn` is not signed by the `burnSigner`
     error InvalidBurnSigner();
 
-    /// Thrown when there are no burn authorizations that are relevant to the current domain
-    error NoRelevantBurnAuthorizations();
+    /// Thrown when there are no burn intents that are relevant to the current domain
+    error NoRelevantBurnIntents();
 
-    /// Thrown when a burn authorization's value is zero
+    /// Thrown when a burn intent's value is zero
     ///
-    /// @param index   The index of the burn authorization with the issue
-    error AuthorizationValueMustBePositiveAtIndex(uint32 index);
+    /// @param index   The index of the burn intent with the issue
+    error IntentValueMustBePositiveAtIndex(uint32 index);
 
-    /// Thrown when a burn authorization is expired
+    /// Thrown when a burn intent is expired
     ///
-    /// @param index            The index of the burn authorization with the issue
-    /// @param maxBlockHeight   The burn authorization's expiration block height
+    /// @param index            The index of the burn intent with the issue
+    /// @param maxBlockHeight   The burn intent's expiration block height
     /// @param currentBlock     The current block height
-    error AuthorizationExpiredAtIndex(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
+    error IntentExpiredAtIndex(uint32 index, uint256 maxBlockHeight, uint256 currentBlock);
 
     /// Thrown when the fee charged for a burn is too high
     ///
-    /// @param index       The index of the burn authorization with the issue
+    /// @param index       The index of the burn intent with the issue
     /// @param maxFee      The maximum fee that was allowed by the source signer
     /// @param actualFee   The fee that the operator attempted to charge
     error BurnFeeTooHighAtIndex(uint32 index, uint256 maxFee, uint256 actualFee);
 
-    /// Thrown when a burn authorization has the wrong source contract
+    /// Thrown when a burn intent has the wrong source contract
     ///
-    /// @param index              The index of the burn authorization with the issue
-    /// @param authContract       The source contract from the burn authorization
+    /// @param index              The index of the burn intent with the issue
+    /// @param intentContract     The source contract from the burn intent
     /// @param expectedContract   The address of this contract
-    error InvalidAuthorizationSourceContractAtIndex(uint32 index, address authContract, address expectedContract);
+    error InvalidIntentSourceContractAtIndex(uint32 index, address intentContract, address expectedContract);
 
-    /// Thrown when the source token in a burn authorization is not supported
+    /// Thrown when the source token in a burn intent is not supported
     ///
-    /// @param index         The index of the burn authorization with the issue
-    /// @param sourceToken   The source token from the burn authorization
+    /// @param index         The index of the burn intent with the issue
+    /// @param sourceToken   The source token from the burn intent
     error UnsupportedTokenAtIndex(uint32 index, address sourceToken);
 
-    /// Thrown when a burn authorization is not signed by the burn signer specified in the `TransferSpec`
+    /// Thrown when a burn intent is not signed by the burn signer specified in the `TransferSpec`
     ///
-    /// @param index          The index of the burn authorization with the issue
-    /// @param authSigner     The source signer from the burn authorization
+    /// @param index          The index of the burn intent with the issue
+    /// @param intentSigner   The source signer from the burn intent
     /// @param actualSigner   The signer that was recovered from the signature
-    error InvalidAuthorizationSourceSignerAtIndex(uint32 index, address authSigner, address actualSigner);
+    error InvalidIntentSourceSignerAtIndex(uint32 index, address intentSigner, address actualSigner);
 
     /// Initializes the `burnSigner` and `feeRecipient` roles
     ///
@@ -159,93 +159,87 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     }
 
     /// Called by the operator to debit the depositor's balance and burn tokens after an equivalent amount was minted on
-    /// another chain. Charges a fee for the burn (which may be at most each burn authorization's `maxFee`), and sends
+    /// another chain. Charges a fee for the burn (which may be at most each burn intent's `maxFee`), and sends
     /// it to the `feeRecipient`.
     ///
-    /// @dev The `calldataBytes` input must be ABI-encoded and contain three arrays: `authorizations`, `signatures`,
-    ///      and `fees`.
-    /// @dev `authorizations`, `signatures`, and `fees` encoded in the `calldataBytes` input must all be the same length.
-    /// @dev For a set of burn authorizations, authorizations from other domains and those inadvertently submitted for
-    ///      the same domain are ignored. The whole set is still needed to verify the signature.
-    /// @dev See `lib/authorizations/BurnAuthorizations.sol` for encoding details
+    /// @dev The `calldataBytes` input must be ABI-encoded and contain three arrays: `intents`, `signatures`, and `fees`
+    /// @dev `intents`, `signatures`, and `fees` encoded in the `calldataBytes` input must all be the same length.
+    /// @dev For a set of burn intents, intents from other domains are ignored. The whole set is still needed to verify
+    ///      the signature.
+    /// @dev See `lib/BurnIntents.sol` for encoding details
     ///
-    /// @param calldataBytes     ABI-encoded (authorizations[], signatures[], fees[][]) arrays
+    /// @param calldataBytes     ABI-encoded (intents[], signatures[], fees[][]) arrays
     /// @param burnerSignature   Signature from `burnSigner` on `calldataBytes`
     function gatewayBurn(bytes calldata calldataBytes, bytes calldata burnerSignature) external whenNotPaused {
         // Verify that the calldata was signed by the expected signer
         _verifyBurnerSignature(calldataBytes, burnerSignature);
 
-        // Decode the calldata into the authorizations, signatures, and fees arrays
-        (bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) =
+        // Decode the calldata into the intents, signatures, and fees arrays
+        (bytes[] memory intents, bytes[] memory signatures, uint256[][] memory fees) =
             abi.decode(calldataBytes, (bytes[], bytes[], uint256[][]));
 
-        // Process the burn authorizations
-        _gatewayBurn(authorizations, signatures, fees);
+        // Process the burn intents
+        _gatewayBurn(intents, signatures, fees);
     }
 
-    /// Returns the byte encoding of a single burn authorization
+    /// Returns the byte encoding of a single burn intent
     ///
-    /// @param authorization   The burn authorization to encode
-    /// @return                The byte-encoded burn authorization
-    function encodeBurnAuthorization(BurnAuthorization calldata authorization) external pure returns (bytes memory) {
-        return BurnAuthorizationLib.encodeBurnAuthorization(authorization);
+    /// @param intent   The burn intent to encode
+    /// @return         The byte-encoded burn intent
+    function encodeBurnIntent(BurnIntent calldata intent) external pure returns (bytes memory) {
+        return BurnIntentLib.encodeBurnIntent(intent);
     }
 
-    /// Returns the byte encoding of a set of burn authorizations
+    /// Returns the byte encoding of a set of burn intents
     ///
-    /// @param authorizations   The burn authorizations to encode
-    /// @return                 The byte-encoded burn authorization set
-    function encodeBurnAuthorizations(BurnAuthorization[] calldata authorizations)
-        external
-        pure
-        returns (bytes memory)
-    {
-        return BurnAuthorizationLib.encodeBurnAuthorizationSet(BurnAuthorizationSet({authorizations: authorizations}));
+    /// @param intents   The burn intents to encode
+    /// @return          The byte-encoded burn intent set
+    function encodeBurnIntents(BurnIntent[] calldata intents) external pure returns (bytes memory) {
+        return BurnIntentLib.encodeBurnIntentSet(BurnIntentSet({intents: intents}));
     }
 
-    /// Returns the `keccak256` hash of a burn authorization
+    /// Returns the `keccak256` hash of a burn intent
     ///
-    /// @param authorization   The burn authorization to hash
-    /// @return                The `keccak256` hash of the burn authorization
-    function getTypedDataHash(bytes calldata authorization) external view returns (bytes32) {
-        return BurnAuthorizationLib.getTypedDataHash(authorization);
+    /// @param intent   The burn intent to hash
+    /// @return         The `keccak256` hash of the burn intent
+    function getTypedDataHash(bytes calldata intent) external view returns (bytes32) {
+        return BurnIntentLib.getTypedDataHash(intent);
     }
 
-    /// Allows anyone to validate whether a set of burn authorizations would be valid if it were signed by the specified
+    /// Allows anyone to validate whether a set of burn intents would be valid if it were signed by the specified
     /// signer (which must match `sourceSigner` in the `TransferSpec`).
     ///
-    /// @dev See `BurnAuthorizations.sol` for encoding details
+    /// @dev See `BurnIntents.sol` for encoding details
     ///
-    /// @param authorization   A byte-encoded (set of) burn authorization(s)
-    /// @param signer          The address that will sign the burn authorization(s)
-    /// @return                `true` if the burn authorization(s) would be valid with the given signer, `false`
-    ///                        otherwise
-    function validateBurnAuthorizations(bytes calldata authorization, address signer) external view returns (bool) {
-        // Validate the burn authorization(s) and get an iteration cursor
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(authorization);
+    /// @param intents   A byte-encoded (set of) burn intent(s)
+    /// @param signer    The address that will sign the burn intent(s)
+    /// @return          `true` if the burn intent(s) would be valid with the given signer, `false` otherwise
+    function validateBurnIntents(bytes calldata intents, address signer) external view returns (bool) {
+        // Validate the burn intent(s) and get an iteration cursor
+        Cursor memory cursor = BurnIntentLib.cursor(intents);
 
-        // Ensure there is at least one burn authorization
-        if (cursor.numAuths == 0) {
-            revert MustHaveAtLeastOneBurnAuthorization();
+        // Ensure there is at least one burn intent
+        if (cursor.numElements == 0) {
+            revert MustHaveAtLeastOneBurnIntent();
         }
 
-        // Iterate over the burn authorizations, validating each one
-        bytes29 auth;
+        // Iterate over the burn intents, validating each one
+        bytes29 intent;
         address token;
         while (!cursor.done) {
-            // Get the next burn authorization
-            auth = cursor.next();
+            // Get the next burn intent
+            intent = cursor.next();
 
-            // Validate that everything about the burn authorization is as expected, and skip if it's not for this domain
-            bytes29 spec = auth.getTransferSpec();
+            // Validate that everything about the burn intent is as expected, and skip if it's not for this domain
+            bytes29 spec = intent.getTransferSpec();
             uint32 index = cursor.index - 1;
-            bool relevant = _validateBurnAuthorizationTransferSpec(spec, signer, index);
+            bool relevant = _validateBurnIntentTransferSpec(spec, signer, index);
             if (!relevant) {
                 continue;
             }
 
-            // Validate the block height and fee of the burn authorization
-            _validateBurnAuthorizationBlockHeightAndFee(auth, 0, index);
+            // Validate the block height and fee of the burn intent
+            _validateBurnIntentBlockHeightAndFee(intent, 0, index);
 
             // Ensure that each one we've seen so far is for the same token
             address _token = AddressLib._bytes32ToAddress(spec.getSourceToken());
@@ -258,20 +252,21 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
             }
         }
 
-        // If we get here, all burn authorizations are valid
+        // If we get here, all burn intents are valid
         return true;
     }
 
-    /// The address that may sign the calldata for burning tokens that have been minted on another domain
+    /// The address with the `burnSigner` role that may sign the calldata for burning tokens that have been minted using
+    /// the `GatewayMinter` contract
     ///
-    /// @return   The stored burn signer
+    /// @return   The address of the burn signer
     function burnSigner() public view returns (address) {
         return BurnsStorage.get().burnSigner;
     }
 
     /// The address that will receive the onchain fee for burns
     ///
-    /// @return   The stored fee recipient
+    /// @return   The address of the fee recipient
     function feeRecipient() public view returns (address) {
         return BurnsStorage.get().feeRecipient;
     }
@@ -306,7 +301,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
 
     /// Internal function to verify the signature of the `burnSigner` on the `calldataBytes` input
     ///
-    /// @param calldataBytes     Calldata that includes all of authorizations, signatures, and fees
+    /// @param calldataBytes     Calldata that includes all of intents, signatures, and fees
     /// @param burnerSignature   The signature from the `burnSigner` to verify
     function _verifyBurnerSignature(bytes calldata calldataBytes, bytes calldata burnerSignature) internal view {
         // Ensure that the signature is the expected length
@@ -321,69 +316,64 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         }
     }
 
-    /// Internal function that validates and processes burn authorizations.
+    /// Internal function that validates and processes burn intents
     ///
-    /// @param authorizations    A batch of byte-encoded burn authorizations or burn authorization sets
-    /// @param signatures        One signature for each burn authorization (set)
-    /// @param fees              The fees to be collected for each burn. Fees for burns on other domains are ignored and
-    ///                          may be passed as zero. Each fee must be no more than `maxFee` of the corresponding burn
-    ///                          authorization.
-    function _gatewayBurn(bytes[] memory authorizations, bytes[] memory signatures, uint256[][] memory fees) internal {
-        // Ensure there is at least one burn authorization
-        if (authorizations.length == 0) {
-            revert MustHaveAtLeastOneBurnAuthorization();
+    /// @param intents      A batch of byte-encoded burn intents or burn intent sets
+    /// @param signatures   One signature for each burn intent (set)
+    /// @param fees         The fees to be collected for each burn. Fees for burns on other domains are ignored and may
+    ///                     be passed as zero. Each fee must be no more than `maxFee` of the corresponding burn intent.
+    function _gatewayBurn(bytes[] memory intents, bytes[] memory signatures, uint256[][] memory fees) internal {
+        // Ensure there is at least one burn intent
+        if (intents.length == 0) {
+            revert MustHaveAtLeastOneBurnIntent();
         }
 
         // Ensure the top-level arrays are all of the same length. The nested arrays of fees will be checked later on.
-        if (signatures.length != authorizations.length || fees.length != authorizations.length) {
+        if (signatures.length != intents.length || fees.length != intents.length) {
             revert MismatchedBurn();
         }
 
-        // Process each burn authorization (set), validating and processing each one
-        for (uint256 i = 0; i < authorizations.length; i++) {
-            _validateAndProcessAuthorizationPayload(authorizations[i], signatures[i], fees[i]);
+        // Process each burn intent (set), validating and processing each one
+        for (uint256 i = 0; i < intents.length; i++) {
+            _validateAndProcessIntentPayload(intents[i], signatures[i], fees[i]);
         }
     }
 
-    /// Validates a single burn authorization (set), recovers the signer, and processes all relevant burns
+    /// Validates a single burn intent (set), recovers the signer, and processes all relevant burns
     ///
-    /// @param authorization   The byte-encoded burn authorization (set)
-    /// @param signature       The signature on the `keccak256` hash of `authorization`
-    /// @param fees            The fees to be charged, one for each individual burn authorization
-    function _validateAndProcessAuthorizationPayload(
-        bytes memory authorization,
-        bytes memory signature,
-        uint256[] memory fees
-    ) internal {
-        // Validate the burn authorization(s) and get an iteration cursor
-        AuthorizationCursor memory cursor = BurnAuthorizationLib.cursor(authorization);
-
-        // Ensure there is at least one burn authorization
-        if (cursor.numAuths == 0) {
-            revert MustHaveAtLeastOneBurnAuthorization();
-        }
-
-        // Ensure there are the same number of fees as burn authorizations
-        if (fees.length != cursor.numAuths) {
-            revert MismatchedBurn();
-        }
-
-        // Recover the signer of the burn authorization(s) and process each one
-        bytes32 digest = _hashTypedData(BurnAuthorizationLib.getTypedDataHash(authorization));
-        address signer = ECDSA.recover(digest, signature);
-        _processAuthorizationsAndBurn(cursor, signer, fees);
-    }
-
-    /// Iterates through a set of burn authorizations, validating and processing each relevant ones
-    ///
-    /// @param cursor   An initialized `AuthorizationCursor` pointing to the start of the authorization set
-    /// @param signer   The address that signed the entire burn authorization payload
-    /// @param fees     The fees to be charged, one for each individual burn authorization
-    function _processAuthorizationsAndBurn(AuthorizationCursor memory cursor, address signer, uint256[] memory fees)
+    /// @param intent      The byte-encoded burn intent (set)
+    /// @param signature   The signature on the `keccak256` hash of `intent`
+    /// @param fees        The fees to be charged, one for each individual burn intent
+    function _validateAndProcessIntentPayload(bytes memory intent, bytes memory signature, uint256[] memory fees)
         internal
     {
+        // Validate the burn intent(s) and get an iteration cursor
+        Cursor memory cursor = BurnIntentLib.cursor(intent);
+
+        // Ensure there is at least one burn intent
+        if (cursor.numElements == 0) {
+            revert MustHaveAtLeastOneBurnIntent();
+        }
+
+        // Ensure there are the same number of fees as burn intents
+        if (fees.length != cursor.numElements) {
+            revert MismatchedBurn();
+        }
+
+        // Recover the signer of the burn intent(s) and process each one
+        bytes32 digest = _hashTypedData(BurnIntentLib.getTypedDataHash(intent));
+        address signer = ECDSA.recover(digest, signature);
+        _processIntentsAndBurn(cursor, signer, fees);
+    }
+
+    /// Iterates through a set of burn intents, validating and processing each relevant ones
+    ///
+    /// @param cursor   An initialized `Cursor` pointing to the start of the intent set
+    /// @param signer   The address that signed the entire burn intent payload
+    /// @param fees     The fees to be charged, one for each individual burn intent
+    function _processIntentsAndBurn(Cursor memory cursor, address signer, uint256[] memory fees) internal {
         address token;
-        bytes29 auth;
+        bytes29 intent;
         uint32 index = 0;
         uint256 totalFee = 0;
         uint256 totalDeductedAmount = 0;
@@ -391,18 +381,18 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         while (!cursor.done) {
             index = cursor.index; // cursor.next() increments index, so get the current one first
 
-            // Get the next burn authorization and extract its transfer spec
-            auth = cursor.next();
-            bytes29 spec = auth.getTransferSpec();
+            // Get the next burn intent and extract its transfer spec
+            intent = cursor.next();
+            bytes29 spec = intent.getTransferSpec();
 
-            // Validate that everything about the burn authorization is as expected, skipping if it's not for this domain
-            bool relevant = _validateBurnAuthorizationTransferSpec(spec, signer, index);
+            // Validate that everything about the burn intent is as expected, skipping if it's not for this domain
+            bool relevant = _validateBurnIntentTransferSpec(spec, signer, index);
             if (!relevant) {
                 continue;
             }
 
-            // Validate the block height and fee of the burn authorization
-            _validateBurnAuthorizationBlockHeightAndFee(auth, fees[index], index);
+            // Validate the block height and fee of the burn intent
+            _validateBurnIntentBlockHeightAndFee(intent, fees[index], index);
 
             // Ensure that each one we've seen so far is for the same token
             address _token = AddressLib._bytes32ToAddress(spec.getSourceToken());
@@ -415,15 +405,14 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
             }
 
             // Reduce the balance of the depositor(s) and add to the total fee and burn amount
-            (uint256 deductedAmount, uint256 actualFeeCharged) =
-                _processSingleBurnAuthorization(spec, signer, fees[index]);
+            (uint256 deductedAmount, uint256 actualFeeCharged) = _processSingleBurnIntent(spec, signer, fees[index]);
             totalDeductedAmount += deductedAmount;
             totalFee += actualFeeCharged;
         }
 
-        // If there were no balance changes, it means none of the burn authorizations were relevant for this domain
+        // If there were no balance changes, it means none of the burn intents were relevant for this domain
         if (totalDeductedAmount == 0) {
-            revert NoRelevantBurnAuthorizations();
+            revert NoRelevantBurnIntents();
         }
 
         // Collect the fee
@@ -433,49 +422,49 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         IBurnToken(token).burn(totalDeductedAmount - totalFee);
     }
 
-    /// Validates the block height and fee of a burn authorization do not exceed limits
+    /// Validates that the block height and proposed fee for a burn intent do not exceed limits
     ///
     /// @dev Checks include: block height is within `maxBlockHeight` and fee is within `maxFee`.
     ///
-    /// @param auth        The `TypedMemView` reference to the encoded burn authorization to validate
-    /// @param fee         The fee proposed for this burn authorization
-    /// @param index       The index of this burn authorization within the original set (used for error messages)
-    function _validateBurnAuthorizationBlockHeightAndFee(bytes29 auth, uint256 fee, uint32 index) internal view {
-        // Ensure that the burn authorization is not expired
-        uint256 maxBlockHeight = auth.getMaxBlockHeight();
+    /// @param intent   The `TypedMemView` reference to the encoded burn intent to validate
+    /// @param fee      The fee proposed for this burn intent
+    /// @param index    The index of this burn intent within the original set (used for error messages)
+    function _validateBurnIntentBlockHeightAndFee(bytes29 intent, uint256 fee, uint32 index) internal view {
+        // Ensure that the burn intent is not expired
+        uint256 maxBlockHeight = intent.getMaxBlockHeight();
         if (maxBlockHeight < block.number) {
-            revert AuthorizationExpiredAtIndex(index, maxBlockHeight, block.number);
+            revert IntentExpiredAtIndex(index, maxBlockHeight, block.number);
         }
 
         // Ensure that the fee is within the allowed range
-        uint256 maxFee = auth.getMaxFee();
+        uint256 maxFee = intent.getMaxFee();
         if (maxFee < fee) {
             revert BurnFeeTooHighAtIndex(index, maxFee, fee);
         }
     }
 
-    /// Validates the contents of a single burn authorization's transfer spec
+    /// Validates the contents of a single burn intent's transfer spec
     ///
     /// @dev Checks include: non-zero value, source domain match, source contract address,
     ///      token support, and signer delegation
     ///
     /// @param spec        The `TypedMemView` reference to the encoded transfer spec to validate
-    /// @param signer      The address that signed the entire burn authorization payload
-    /// @param index       The index of this burn authorization within the original set (used for error messages)
-    /// @return relevant   `true` if the burn authorization is for the current domain, `false` otherwise
-    function _validateBurnAuthorizationTransferSpec(bytes29 spec, address signer, uint32 index)
+    /// @param signer      The address that signed the entire burn intent payload
+    /// @param index       The index of this burn intent within the original set (used for error messages)
+    /// @return relevant   `true` if the burn intent is for the current domain, `false` otherwise
+    function _validateBurnIntentTransferSpec(bytes29 spec, address signer, uint32 index)
         internal
         view
         returns (bool relevant)
     {
-        // If any burn authorizations are zero (even if they are for a different domain), refuse to continue so that
+        // If any burn intents are zero (even if they are for a different domain), refuse to continue so that
         // they all fail together across all source domains
         uint256 value = spec.getValue();
         if (value == 0) {
-            revert AuthorizationValueMustBePositiveAtIndex(index);
+            revert IntentValueMustBePositiveAtIndex(index);
         }
 
-        // If the burn authorization is for a different domain, perform no further checks and indicate that to the
+        // If the burn intent is for a different domain, perform no further checks and indicate that to the
         // caller so it can be skipped
         uint32 domain = spec.getSourceDomain();
         if (!_isCurrentDomain(domain)) {
@@ -485,7 +474,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         // Ensure that this is the correct source contract
         address sourceContract = AddressLib._bytes32ToAddress(spec.getSourceContract());
         if (sourceContract != address(this)) {
-            revert InvalidAuthorizationSourceContractAtIndex(index, sourceContract, address(this));
+            revert InvalidIntentSourceContractAtIndex(index, sourceContract, address(this));
         }
 
         // Ensure that the source token is supported
@@ -494,24 +483,24 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
             revert UnsupportedTokenAtIndex(index, sourceToken);
         }
 
-        // Ensure that the signer of the burn authorization matches what was provided in the `TransferSpec`
+        // Ensure that the signer of the burn intent matches what was provided in the `TransferSpec`
         address sourceSigner = AddressLib._bytes32ToAddress(spec.getSourceSigner());
         if (sourceSigner != signer) {
-            revert InvalidAuthorizationSourceSignerAtIndex(index, sourceSigner, signer);
+            revert InvalidIntentSourceSignerAtIndex(index, sourceSigner, signer);
         }
 
-        // Ensure that the signer of the burn authorization was at one point authorized for the balance being burned.
-        // Revoked authorizations are okay, to ensure that revocations cannot prevent burns
+        // Ensure that the signer of the burn intent was at one point authorized for the balance being burned.
+        // Revoked authorizations are okay, to ensure that revocations cannot prevent burns.
         address sourceDepositor = AddressLib._bytes32ToAddress(spec.getSourceDepositor());
         if (!_wasEverAuthorizedForBalance(sourceToken, sourceDepositor, signer)) {
             revert Delegation.NotAuthorized();
         }
 
-        // If we get here, the burn authorization is valid and relevant for this domain
+        // If we get here, the burn intent is valid and relevant for this domain
         return true;
     }
 
-    /// Processes a single valid burn authorization: marks the transfer spec hash, reduces balance, and emits an event
+    /// Processes a single valid burn intent: marks the transfer spec hash, reduces balance, and emits an event
     ///
     /// @dev Assumes the associated `TransferSpec` (`spec`) has already been validated for relevance to the current
     ///      domain and basic validity checks (e.g., non-zero value, expiry). It calculates the actual fee charged based
@@ -519,15 +508,15 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// @dev If the depositor has an insufficient balance to cover both the burn value and the fee, the burn value is
     ///      prioritized over the fee.
     ///
-    /// @param spec                The `TypedMemView` reference to the `TransferSpec` from the burn authorization
-    /// @param signer              The address that signed the entire burn authorization payload
-    /// @param fee                 The fee to be charged for this burn authorization
+    /// @param spec                The `TypedMemView` reference to the `TransferSpec` from the burn intent
+    /// @param signer              The address that signed the entire burn intent payload
+    /// @param fee                 The fee to be charged for this burn intent
     /// @return deductedAmount     The total amount actually deducted from the depositor's balances (the value from the
-    ///                            burn authorization plus the actual fee charged). May be less than `value + fee` if
+    ///                            burn intent plus the actual fee charged). May be less than `value + fee` if
     ///                            the depositor had an insufficient balance to cover both.
     /// @return actualFeeCharged   The fee to be collected. May be less than `fee` if the depositor had an insufficient
     ///                            balance to cover both the full value and the fee.
-    function _processSingleBurnAuthorization(bytes29 spec, address signer, uint256 fee)
+    function _processSingleBurnIntent(bytes29 spec, address signer, uint256 fee)
         internal
         returns (uint256 deductedAmount, uint256 actualFeeCharged)
     {
@@ -582,7 +571,8 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
 library BurnsStorage {
     /// @custom:storage-location erc7201:circle.gateway.Burns
     struct Data {
-        /// The address that may sign the calldata for burning tokens that have been minted on another chain
+        /// The address that may sign the calldata for burning tokens that have been minted using the `GatewayMinter`
+        /// contract
         address burnSigner;
         /// The address that will receive the onchain fee for burns
         address feeRecipient;

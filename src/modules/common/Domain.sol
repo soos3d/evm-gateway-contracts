@@ -30,7 +30,7 @@ contract Domain is Initializable {
         DomainStorage.get().domain = domain_;
     }
 
-    /// Returns the current domain
+    /// The domain assigned to the chain this contract is deployed on
     ///
     /// @return   The operator-issued identifier for the current chain
     function domain() public view returns (uint32) {

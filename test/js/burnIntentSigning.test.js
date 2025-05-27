@@ -16,32 +16,40 @@
  * limitations under the License.
  */
 
-import assert from "assert";
-import { ethers } from "ethers";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import assert from 'assert';
+import { ethers } from 'ethers';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import {
-  burnAuthorizationTypedData,
-  burnAuthorizationSetTypedData,
-  burnAuthorization1,
-  burnAuthorization2,
-} from "./eip712TestData.js";
+  burnIntentTypedData,
+  burnIntentSetTypedData,
+  burnIntent1,
+  burnIntent2
+} from './eip712TestData.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Constants
-const RPC_URL = "http://localhost:8545";
-const TEST_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; // Default anvil private key
+const RPC_URL = 'http://localhost:8545';
+const TEST_PRIVATE_KEY =
+  '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // Default anvil private key
 
 // Deploys the GatewayWallet contract
 async function deployGatewayWallet(deployer) {
-  const artifactPath = path.join(__dirname, "../../out/GatewayWallet.sol/GatewayWallet.json");
-  const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
+  const artifactPath = path.join(
+    __dirname,
+    '../../out/GatewayWallet.sol/GatewayWallet.json'
+  );
+  const artifact = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
 
-  const GatewayWalletFactory = new ethers.ContractFactory(artifact.abi, artifact.bytecode, deployer);
+  const GatewayWalletFactory = new ethers.ContractFactory(
+    artifact.abi,
+    artifact.bytecode,
+    deployer
+  );
   return await GatewayWalletFactory.deploy();
 }
 
@@ -56,7 +64,7 @@ function calculateDigest(domainSeparator, structHash) {
   );
 }
 
-describe("GatewayWallet Contract", function () {
+describe('GatewayWallet Contract', function () {
   let gatewayWallet;
   let provider;
   let signer;
@@ -75,45 +83,61 @@ describe("GatewayWallet Contract", function () {
     domainSeparator = await gatewayWallet.domainSeparator();
   });
 
-  describe("Single Burn Authorization", function() {
-    it("should sign and verify a single burn authorization", async function () {
+  describe('Single Burn Intent', function () {
+    it('should sign and verify a single burn intent', async function () {
       // Get signature from eth_signTypedData_v4
       const signatureFromEthSignTypedData = await provider.send(
-        "eth_signTypedData_v4",
-        [signer.address, JSON.stringify(burnAuthorizationTypedData)]
+        'eth_signTypedData_v4',
+        [signer.address, JSON.stringify(burnIntentTypedData)]
       );
 
       // Get signature from direct signing
-      const encodedBurnAuth = await gatewayWallet.encodeBurnAuthorization(burnAuthorization1);
-      const structHashFromGatewayWallet = await gatewayWallet.getTypedDataHash(encodedBurnAuth);
-      const digest = calculateDigest(domainSeparator, structHashFromGatewayWallet);
+      const encodedBurnIntent = await gatewayWallet.encodeBurnIntent(
+        burnIntent1
+      );
+      const structHashFromGatewayWallet = await gatewayWallet.getTypedDataHash(
+        encodedBurnIntent
+      );
+      const digest = calculateDigest(
+        domainSeparator,
+        structHashFromGatewayWallet
+      );
 
       const signingKey = new ethers.SigningKey(signer.privateKey);
-      const signatureFromGatewayWallet = signingKey.sign(ethers.getBytes(digest)).serialized;
+      const signatureFromGatewayWallet = signingKey.sign(
+        ethers.getBytes(digest)
+      ).serialized;
 
       // Verify signatures match
       assert.equal(signatureFromEthSignTypedData, signatureFromGatewayWallet);
     });
   });
 
-  describe("Burn Authorization Set", function() {
-    it("should sign and verify a burn authorization set", async function () {
+  describe('Burn Intent Set', function () {
+    it('should sign and verify a burn intent set', async function () {
       // Get signature from eth_signTypedData_v4
       const signatureFromEthSignTypedData = await provider.send(
-        "eth_signTypedData_v4",
-        [signer.address, JSON.stringify(burnAuthorizationSetTypedData)]
+        'eth_signTypedData_v4',
+        [signer.address, JSON.stringify(burnIntentSetTypedData)]
       );
 
       // Get signature from direct signing
-      const encodedBurnAuthSet = await gatewayWallet.encodeBurnAuthorizations([
-        burnAuthorization1,
-        burnAuthorization2
+      const encodedBurnIntentSet = await gatewayWallet.encodeBurnIntents([
+        burnIntent1,
+        burnIntent2
       ]);
-      const structHashFromGatewayWallet = await gatewayWallet.getTypedDataHash(encodedBurnAuthSet);
-      const digest = calculateDigest(domainSeparator, structHashFromGatewayWallet);
+      const structHashFromGatewayWallet = await gatewayWallet.getTypedDataHash(
+        encodedBurnIntentSet
+      );
+      const digest = calculateDigest(
+        domainSeparator,
+        structHashFromGatewayWallet
+      );
 
       const signingKey = new ethers.SigningKey(signer.privateKey);
-      const signatureFromGatewayWallet = signingKey.sign(ethers.getBytes(digest)).serialized;
+      const signatureFromGatewayWallet = signingKey.sign(
+        ethers.getBytes(digest)
+      ).serialized;
 
       // Verify signatures match
       assert.equal(signatureFromEthSignTypedData, signatureFromGatewayWallet);

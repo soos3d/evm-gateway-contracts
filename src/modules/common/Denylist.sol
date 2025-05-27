@@ -81,7 +81,7 @@ contract Denylist is Initializable, Ownable2StepUpgradeable {
         return DenylistStorage.get().denylistMapping[addr];
     }
 
-    /// The address with the denylister role that can modify the denylist
+    /// The address with the `denylister` role that can modify the denylist
     ///
     /// @return   The address of the denylister
     function denylister() public view returns (address) {

@@ -24,12 +24,13 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 ///
 /// @notice This contract implements EIP-712 domain separator functionality
 ///
-/// @dev Adapted from OpenZeppelin's EIP712 implementation (https://github.com/OpenZeppelin/openzeppelin-contracts/blob/acd4ff7/contracts/utils/cryptography/EIP712.sol)
+/// @dev Adapted from OpenZeppelin's EIP712 implementation
+///      (https://github.com/OpenZeppelin/openzeppelin-contracts/blob/acd4ff7/contracts/utils/cryptography/EIP712.sol)
 /// @dev This implementation intentionally deviates from the standard by omitting `chainId` and `verifyingContract`
-/// fields from the domain separator. This modification ensures burn authorizations can be verified across different
-/// chains and contract deployments.
+///      fields from the domain separator. This modification ensures burn intents can be verified across different
+///      chains and contract deployments.
 contract EIP712Domain is IERC5267 {
-    /// keccak256("EIP712Domain(string name,string version)");
+    /// `keccak256("EIP712Domain(string name,string version)")`;
     bytes32 public constant EIP712_DOMAIN_TYPE_HASH = 0xb03948446334eb9b2196d5eb166f69b9d49403eb4a12f36de8d3f9f3cb8e15c3;
 
     /// Constants for the domain name and version
@@ -49,13 +50,13 @@ contract EIP712Domain is IERC5267 {
     ///
     /// @dev See IERC5267 for more details (https://eips.ethereum.org/EIPS/eip-5267)
     ///
-    /// @return fields The EIP712 domain separator fields
-    /// @return name The name of the domain
-    /// @return version The version of the domain
-    /// @return chainId The chain id of the domain
-    /// @return verifyingContract The verifying contract of the domain
-    /// @return salt The salt of the domain
-    /// @return extensions The extensions of the domain
+    /// @return fields              The EIP-712 domain separator fields
+    /// @return name                The name of the domain
+    /// @return version             The version of the domain
+    /// @return chainId             The chain id of the domain
+    /// @return verifyingContract   The verifying contract of the domain
+    /// @return salt                The salt of the domain
+    /// @return extensions          The extensions of the domain
     function eip712Domain()
         public
         view
@@ -84,15 +85,20 @@ contract EIP712Domain is IERC5267 {
     /// Returns the hash of the fully encoded EIP712 message for this domain.
     ///
     /// ```solidity
-    /// bytes32 digest = _hashTypedData(keccak256(abi.encode(
-    ///     keccak256("Mail(address to,string contents)"),
-    ///     mailTo,
-    ///     keccak256(bytes(mailContents))
-    /// )));
+    /// bytes32 digest = _hashTypedData(
+    ///     keccak256(
+    ///         abi.encode(
+    ///             keccak256("Mail(address to,string contents)"),
+    ///             mailTo,
+    ///             keccak256(bytes(mailContents))
+    ///         )
+    ///     )
+    /// );
     /// address signer = ECDSA.recover(digest, signature);
     /// ```
-    /// @param structHash The hash of the struct to be hashed
-    /// @return The hash of the fully encoded EIP712 message for this domain
+    ///
+    /// @param structHash   The hash of the struct to be hashed
+    /// @return             The hash of the fully-encoded EIP-712 message for this domain
     function _hashTypedData(bytes32 structHash) internal view virtual returns (bytes32) {
         return MessageHashUtils.toTypedDataHash(domainSeparator(), structHash);
     }

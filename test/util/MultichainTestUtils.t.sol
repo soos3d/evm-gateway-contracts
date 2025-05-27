@@ -17,7 +17,7 @@
  */
 pragma solidity ^0.8.29;
 
-import {MultichainTestUtils} from "./MultichainTestUtils.sol";
+import {MultichainTestUtils} from "test/util/MultichainTestUtils.sol";
 
 contract MultichainTestUtilsTest is MultichainTestUtils {
     function test_forkSelectionReturnsExpectedFork() public {
@@ -40,7 +40,7 @@ contract MultichainTestUtilsTest is MultichainTestUtils {
 
         // Verify wallet configuration
         assertEq(setup.wallet.burnSigner(), vm.addr(setup.walletBurnSignerKey));
-        assertEq(setup.minter.mintAuthorizationSigner(), vm.addr(setup.minterMintSignerKey));
+        assertEq(setup.minter.attestationSigner(), vm.addr(setup.minterAttestationSignerKey));
         assertEq(setup.wallet.withdrawalDelay(), WITHDRAW_DELAY);
         assertEq(address(setup.wallet.minterContract()), address(setup.minter));
         assertEq(address(setup.minter.walletContract()), address(setup.wallet));

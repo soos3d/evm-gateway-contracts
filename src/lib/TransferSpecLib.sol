@@ -34,12 +34,12 @@ import {
     TRANSFER_SPEC_SOURCE_SIGNER_OFFSET,
     TRANSFER_SPEC_DESTINATION_CALLER_OFFSET,
     TRANSFER_SPEC_VALUE_OFFSET,
-    TRANSFER_SPEC_NONCE_OFFSET,
-    TRANSFER_SPEC_METADATA_LENGTH_OFFSET,
-    TRANSFER_SPEC_METADATA_OFFSET,
-    // solhint-disable-next-line no-unused-import
+    TRANSFER_SPEC_SALT_OFFSET,
+    TRANSFER_SPEC_HOOK_DATA_LENGTH_OFFSET,
+    TRANSFER_SPEC_HOOK_DATA_OFFSET,
+    // solhint-disable-next-line no-unused-import, only used in assembly
     TRANSFER_SPEC_TYPEHASH
-} from "./TransferSpec.sol";
+} from "src/lib/TransferSpec.sol";
 
 uint8 constant BYTES4_BYTES = 4;
 uint8 constant UINT32_BYTES = 4;
@@ -52,6 +52,8 @@ uint8 constant BYTES32_BYTES = 32;
 ///
 /// @dev Provides low-level access and manipulation functions for byte-encoded `TransferSpec` data, using `TypedMemView`
 ///      for efficient memory operations
+/// @dev The term "transfer payload" within this library refers to encoded `BurnIntent`s and `Attestation`s, which both
+///      contain a `TransferSpec`
 library TransferSpecLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
@@ -81,94 +83,96 @@ library TransferSpecLib {
     error InvalidTransferSpecVersion(uint32 actualVersion);
 
     /// Thrown when validating an encoded `TransferSpec` and the length of the data is different than what is implied by
-    /// the metadata length
+    /// the hook data length
     ///
     /// @param expectedTotalLength   The expected length of the data
     /// @param actualTotalLength     The actual length of the data
     error TransferSpecOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
 
-    /// Thrown when encoding a `TransferSpec` and the metadata length exceeds the maximum encodable length
+    /// Thrown when encoding a `TransferSpec` and the hook data length exceeds the maximum encodable length
     ///
-    /// @param actualLength   The actual length of the metadata
-    /// @param maxLength      The maximum encodable length of the metadata
-    error TransferSpecMetadataFieldTooLarge(uint256 actualLength, uint256 maxLength);
+    /// @param actualLength   The actual length of the hook data
+    /// @param maxLength      The maximum encodable length of the hook data
+    error TransferSpecHookDataFieldTooLarge(uint256 actualLength, uint256 maxLength);
 
-    /// Thrown when the metadata view matches the NULL value from `TypedMemView`
+    /// Thrown when the declared hook data length in the `TransferSpec` does not match the actual length of the hook
+    /// data
     ///
-    /// @param expectedMetadataLength   The expected metadata length declared in the metadata length field
+    /// @param expectedHookDataLength   The expected hook data length declared in the hook data length field
     /// @param transferSpecLength       The length of the transfer spec
-    error TransferSpecInvalidMetadata(uint256 expectedMetadataLength, uint256 transferSpecLength);
+    error TransferSpecInvalidHookData(uint256 expectedHookDataLength, uint256 transferSpecLength);
 
-    // --- Common Authorization errors ---------------------------------------------------------------------------------
+    // --- Common transfer payload errors ------------------------------------------------------------------------------
 
-    /// Thrown when casting data as an authorization or authorization set and the input is shorter than the expected
-    /// magic length
+    /// Thrown when casting data as a transfer payload or transfer payload set and the input is shorter than the
+    /// expected magic length
     ///
     /// @param expectedMinimumLength   The expected minimum length of the data
     /// @param actualLength            The actual length of the data
-    error AuthorizationDataTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+    error TransferPayloadDataTooShort(uint256 expectedMinimumLength, uint256 actualLength);
 
-    /// Thrown when casting data as an authorization or authorization set and the magic value is not an expected value
+    /// Thrown when casting data as a transfer payload or transfer payload set and the magic value is not an expected
+    /// value
     ///
     /// @param actualMagic   The magic value found in the data
-    error InvalidAuthorizationMagic(bytes4 actualMagic);
+    error InvalidTransferPayloadMagic(bytes4 actualMagic);
 
-    /// Thrown when validating an encoded authorization and the header is shorter than expected
+    /// Thrown when validating an encoded transfer payload and the header is shorter than expected
     ///
     /// @param expectedMinimumLength   The expected minimum length of the header
     /// @param actualLength            The actual length of the header
-    error AuthorizationHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+    error TransferPayloadHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
 
-    /// Thrown when validating an encoded authorization and the length of the data is different than what is implied by
-    /// the embedded `TransferSpec`
+    /// Thrown when validating an encoded transfer payload and the length of the data is different than what is implied
+    /// by the embedded `TransferSpec`
     ///
     /// @param expectedTotalLength   The expected length of the data
     /// @param actualTotalLength     The actual length of the data
-    error AuthorizationOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
+    error TransferPayloadOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
 
-    // --- Common AuthorizationSet errors ------------------------------------------------------------------------------
+    // --- Common transfer payload set errors --------------------------------------------------------------------------
 
-    /// Thrown when validating an encoded authorization set and the set header is shorter than expected
+    /// Thrown when validating an encoded transfer payload set and the set header is shorter than expected
     ///
     /// @param expectedMinimumLength   The expected minimum length of the header
     /// @param actualLength            The actual length of the header
-    error AuthorizationSetHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
+    error TransferPayloadSetHeaderTooShort(uint256 expectedMinimumLength, uint256 actualLength);
 
-    /// Thrown when validating an encoded authorization set and one of the elements' header is shorter than expected
+    /// Thrown when validating an encoded transfer payload set and one of the elements' header is shorter than expected
     ///
     /// @param index             The index of the element with the issue
     /// @param actualSetLength   The actual length of the encoded set
     /// @param requiredOffset    The expected offset of the element header
-    error AuthorizationSetElementHeaderTooShort(uint32 index, uint256 actualSetLength, uint256 requiredOffset);
+    error TransferPayloadSetElementHeaderTooShort(uint32 index, uint256 actualSetLength, uint256 requiredOffset);
 
-    /// Thrown when validating an encoded authorization set and one of the elements is shorter than expected
+    /// Thrown when validating an encoded transfer payload set and one of the elements is shorter than expected
     ///
     /// @param index             The index of the element with the issue
     /// @param actualSetLength   The actual length of the encoded set
     /// @param requiredOffset    The expected offset of the element header
-    error AuthorizationSetElementTooShort(uint32 index, uint256 actualSetLength, uint256 requiredOffset);
+    error TransferPayloadSetElementTooShort(uint32 index, uint256 actualSetLength, uint256 requiredOffset);
 
-    /// Thrown when validating an encoded authorization set and one of the elements has an unexpected magic value
+    /// Thrown when validating an encoded transfer payload set and one of the elements has an unexpected magic value
     ///
     /// @param index         The index of the element with the issue
     /// @param actualMagic   The magic value found in the element
-    error AuthorizationSetInvalidElementMagic(uint32 index, bytes4 actualMagic);
+    error TransferPayloadSetInvalidElementMagic(uint32 index, bytes4 actualMagic);
 
-    /// Thrown when validating an encoded authorization set and the length of the data is different than what is implied
-    /// by the authorizations themselves
+    /// Thrown when validating an encoded transfer payload set and the length of the data is different than what is
+    /// implied by the transfer payloads themselves
     ///
     /// @param expectedTotalLength   The expected length of the data
     /// @param actualTotalLength     The actual length of the data
-    error AuthorizationSetOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
+    error TransferPayloadSetOverallLengthMismatch(uint256 expectedTotalLength, uint256 actualTotalLength);
 
-    /// Thrown when encoding an authorization set and the number of elements exceeds the maximum encodable value
+    /// Thrown when encoding a transfer payload set and the number of elements exceeds the maximum encodable value
     ///
     /// @param maxElements   The maximum number of elements that is possible to encode
-    error AuthorizationSetTooManyElements(uint32 maxElements);
+    error TransferPayloadSetTooManyElements(uint32 maxElements);
 
     // --- Common iteration errors -------------------------------------------------------------------------------------
 
-    /// Thrown when iterating over an authorization or authorization set and `next()` is called on a cursor that is
+    /// Thrown when iterating over a transfer payload or transfer payload set and `next()` is called on a cursor that is
     /// already `done`
     error CursorOutOfBounds();
 
@@ -197,8 +201,8 @@ library TransferSpecLib {
     /// @param specView   The `TypedMemView` reference to the encoded `TransferSpec` to validate
     function _validateTransferSpecStructure(bytes29 specView) internal pure {
         // 1. Minimum header length check
-        if (specView.len() < TRANSFER_SPEC_METADATA_OFFSET) {
-            revert TransferSpecHeaderTooShort(TRANSFER_SPEC_METADATA_OFFSET, specView.len());
+        if (specView.len() < TRANSFER_SPEC_HOOK_DATA_OFFSET) {
+            revert TransferSpecHeaderTooShort(TRANSFER_SPEC_HOOK_DATA_OFFSET, specView.len());
         }
 
         // 2. Version check
@@ -208,9 +212,9 @@ library TransferSpecLib {
         }
 
         // 3. Total length consistency check
-        //    (Reads declared metadata length from the view and checks against view's total length)
-        uint32 metadataLength = getMetadataLength(specView);
-        uint256 expectedInternalSpecLength = TRANSFER_SPEC_METADATA_OFFSET + metadataLength;
+        //    (Reads declared hook data length from the view and checks against view's total length)
+        uint32 hookDataLength = getHookDataLength(specView);
+        uint256 expectedInternalSpecLength = TRANSFER_SPEC_HOOK_DATA_OFFSET + hookDataLength;
         if (specView.len() != expectedInternalSpecLength) {
             revert TransferSpecOverallLengthMismatch(expectedInternalSpecLength, specView.len());
         }
@@ -314,45 +318,44 @@ library TransferSpecLib {
         return ref.indexUint(TRANSFER_SPEC_VALUE_OFFSET, UINT256_BYTES);
     }
 
-    /// Extract the nonce from an encoded `TransferSpec`
+    /// Extract the salt from an encoded `TransferSpec`
     ///
     /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
-    /// @return      The `nonce` field
-    function getNonce(bytes29 ref) internal pure returns (bytes32) {
-        return ref.index(TRANSFER_SPEC_NONCE_OFFSET, BYTES32_BYTES);
+    /// @return      The `salt` field
+    function getSalt(bytes29 ref) internal pure returns (bytes32) {
+        return ref.index(TRANSFER_SPEC_SALT_OFFSET, BYTES32_BYTES);
     }
 
-    /// Extract the metadata length from an encoded `TransferSpec`
+    /// Extract the hook data length from an encoded `TransferSpec`
     ///
     /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
-    /// @return      The `metadata` length
-    function getMetadataLength(bytes29 ref) internal pure returns (uint32) {
-        return uint32(ref.indexUint(TRANSFER_SPEC_METADATA_LENGTH_OFFSET, UINT32_BYTES));
+    /// @return      The `hookData` length
+    function getHookDataLength(bytes29 ref) internal pure returns (uint32) {
+        return uint32(ref.indexUint(TRANSFER_SPEC_HOOK_DATA_LENGTH_OFFSET, UINT32_BYTES));
     }
 
-    /// Extract the metadata from an encoded `TransferSpec` as a memory view
+    /// Extract the hook data from an encoded `TransferSpec` as a memory view
     ///
     /// @param ref   The `TypedMemView` reference to the encoded `TransferSpec`
-    /// @return      The metadata as a `TypedMemView` reference
-    function getMetadata(bytes29 ref) internal pure returns (bytes29) {
-        uint32 metadataLength = getMetadataLength(ref);
-        bytes29 metadataView;
-        if (metadataLength > 0) {
-            metadataView = ref.slice(TRANSFER_SPEC_METADATA_OFFSET, metadataLength, 0);
+    /// @return      The hook data as a `TypedMemView` reference
+    function getHookData(bytes29 ref) internal pure returns (bytes29) {
+        uint32 hookDataLength = getHookDataLength(ref);
+        bytes29 hookDataView;
+        if (hookDataLength > 0) {
+            hookDataView = ref.slice(TRANSFER_SPEC_HOOK_DATA_OFFSET, hookDataLength, 0);
         } else {
             // Return an empty slice
-            metadataView = ref.slice(TRANSFER_SPEC_METADATA_OFFSET, 0, 0);
+            hookDataView = ref.slice(TRANSFER_SPEC_HOOK_DATA_OFFSET, 0, 0);
         }
 
-        // Verify metadata view is valid. A NULL view means the actual metadata length
-        // differs from the declared length in the metadata length field. This check should
-        // be unreachable since validation of transfer spec structure happens before
-        // calling this function, but included for completeness.
-        if (metadataView == TypedMemView.NULL) {
-            revert TransferSpecInvalidMetadata(metadataLength, ref.len());
+        // Verify hook data view is valid. A NULL view means the actual length differs from the declared length in the
+        // hook data length field and would overrun the allocated memory. This check should be unreachable since
+        // validation of transfer spec structure happens before calling this function, but included for completeness.
+        if (hookDataView == TypedMemView.NULL) {
+            revert TransferSpecInvalidHookData(hookDataLength, ref.len());
         }
 
-        return metadataView;
+        return hookDataView;
     }
 
     // --- Encoding ----------------------------------------------------------------------------------------------------
@@ -375,7 +378,7 @@ library TransferSpecLib {
             spec.sourceDepositor
         );
         bytes memory footer = _encodeTransferSpecFooter(
-            spec.destinationRecipient, spec.sourceSigner, spec.destinationCaller, spec.value, spec.nonce, spec.metadata
+            spec.destinationRecipient, spec.sourceSigner, spec.destinationCaller, spec.value, spec.salt, spec.hookData
         );
         return bytes.concat(header, footer);
     }
@@ -424,19 +427,19 @@ library TransferSpecLib {
     /// @param sourceSigner           The `sourceSigner` field
     /// @param destinationCaller      The `destinationCaller` field
     /// @param value                  The `value` field
-    /// @param nonce                  The `nonce` field
-    /// @param metadata               The `metadata` field
+    /// @param salt                   The `salt` field
+    /// @param hookData               The `hookData` field
     /// @return                       The encoded bytes
     function _encodeTransferSpecFooter(
         bytes32 destinationRecipient,
         bytes32 sourceSigner,
         bytes32 destinationCaller,
         uint256 value,
-        bytes32 nonce,
-        bytes memory metadata
+        bytes32 salt,
+        bytes memory hookData
     ) private pure returns (bytes memory) {
-        if (metadata.length > type(uint32).max) {
-            revert TransferSpecMetadataFieldTooLarge(metadata.length, type(uint32).max);
+        if (hookData.length > type(uint32).max) {
+            revert TransferSpecHookDataFieldTooLarge(hookData.length, type(uint32).max);
         }
 
         return abi.encodePacked(
@@ -444,9 +447,9 @@ library TransferSpecLib {
             sourceSigner,
             destinationCaller,
             value,
-            nonce,
-            uint32(metadata.length), // 4 bytes
-            metadata
+            salt,
+            uint32(hookData.length), // 4 bytes
+            hookData
         );
     }
 
@@ -466,13 +469,13 @@ library TransferSpecLib {
     ///      The resulting hash can be used with `eth_signTypedData` for secure message signing.
     ///      The hash includes all fields of the TransferSpec struct in a structured format.
     ///
-    /// @param spec         The `TypedMemView` reference to the encoded `TransferSpec`
-    /// @return structHash  The EIP-712 formatted hash of the TransferSpec for signing
+    /// @param spec          The `TypedMemView` reference to the encoded `TransferSpec`
+    /// @return structHash   The EIP-712 formatted hash of the TransferSpec for signing
     function getTypedDataHash(bytes29 spec) internal view returns (bytes32 structHash) {
         uint32 version = getVersion(spec);
         uint32 sourceDomain = getSourceDomain(spec);
         uint32 destinationDomain = getDestinationDomain(spec);
-        bytes32 metadataHash = getMetadata(spec).keccak();
+        bytes32 hookDataHash = getHookData(spec).keccak();
 
         uint96 footerStart = uint96(TRANSFER_SPEC_SOURCE_CONTRACT_OFFSET) + spec.loc();
         uint96 footerLen = uint96(BYTES32_BYTES) * 10;
@@ -495,24 +498,24 @@ library TransferSpecLib {
 
             // Copy 320 bytes (10 x 32 bytes) from footerStart to ptr+128 using staticcall
             // This efficiently copies the following TransferSpec fields in order:
-            // - sourceContract      (32 bytes) -> offset 128-160
-            // - destinationContract (32 bytes) -> offset 160-192
-            // - sourceToken         (32 bytes) -> offset 192-224
-            // - destinationToken    (32 bytes) -> offset 224-256
-            // - sourceDepositor     (32 bytes) -> offset 256-288
-            // - destinationRecipient(32 bytes) -> offset 288-320
-            // - sourceSigner        (32 bytes) -> offset 320-352
-            // - destinationCaller   (32 bytes) -> offset 352-384
-            // - value               (32 bytes) -> offset 384-416
-            // - nonce               (32 bytes) -> offset 416-448
+            // - sourceContract       (32 bytes) -> offset 128-160
+            // - destinationContract  (32 bytes) -> offset 160-192
+            // - sourceToken          (32 bytes) -> offset 192-224
+            // - destinationToken     (32 bytes) -> offset 224-256
+            // - sourceDepositor      (32 bytes) -> offset 256-288
+            // - destinationRecipient (32 bytes) -> offset 288-320
+            // - sourceSigner         (32 bytes) -> offset 320-352
+            // - destinationCaller    (32 bytes) -> offset 352-384
+            // - value                (32 bytes) -> offset 384-416
+            // - salt                 (32 bytes) -> offset 416-448
             //
             // Uses staticcall to memory address 4 (identity precompile) which efficiently
             // copies memory regions. This is more gas efficient than copying each field individually.
             // The pop() removes the success boolean returned by staticcall since we don't need it.
             pop(staticcall(gas(), 4, footerStart, footerLen, add(ptr, 128), footerLen))
 
-            // Store metadataHash at 0x1C0 (448-480 bytes)
-            mstore(add(ptr, 448), metadataHash)
+            // Store hookDataHash at 0x1C0 (448-480 bytes)
+            mstore(add(ptr, 448), hookDataHash)
 
             // Compute keccak256 hash of the entire struct (480 bytes total)
             structHash := keccak256(ptr, 480)

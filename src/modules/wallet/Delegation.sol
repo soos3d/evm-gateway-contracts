@@ -17,7 +17,7 @@
  */
 pragma solidity ^0.8.29;
 
-import {AddressLib} from "src/lib/util/AddressLib.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {Pausing} from "src/modules/common/Pausing.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
@@ -31,7 +31,7 @@ enum AuthorizationStatus {
     /// The delegate is currently authorized to act on behalf of the depositor for the token
     Authorized,
     /// The delegate was previously authorized, but the authorization has been revoked. This state is distinct from
-    /// `Unauthorized` to handle specific scenarios like signed burn authorizations.
+    /// `Unauthorized` to handle specific scenarios like signed burn intents.
     Revoked
 }
 
@@ -98,7 +98,7 @@ contract Delegation is Pausing, Denylist, TokenSupport {
     }
 
     /// Stop allowing `delegate` to withdraw or transfer the caller's `token` balance. This revocation is not respected
-    /// for burn authorizations that have been signed, so that burns cannot be prevented by removing the delegate.
+    /// for burn intents that have already been signed, so that burns cannot be prevented by removing the delegate.
     ///
     /// @param token      The token the delegate should no longer be authorized for
     /// @param delegate   The address that should no longer be authorized
@@ -121,14 +121,14 @@ contract Delegation is Pausing, Denylist, TokenSupport {
         }
 
         // Otherwise, mark the authorization as revoked and emit an event. The API will treat this the same as
-        // `Unauthorized` for the purpose of issuing mint authorizations, but the wallet contract will allow burn
-        // authorizations signed by revoked delegates in order to prevent a front-running attack where an authorization
+        // `Unauthorized` for the purpose of issuing attestations, but the wallet contract will allow burn
+        // intents signed by revoked delegates in order to prevent a front-running attack where an authorization
         // is revoked before the burn has a chance to happen.
         $.authorizedDelegates[token][msg.sender][delegate] = AuthorizationStatus.Revoked;
         emit DelegateRemoved(token, msg.sender, delegate);
     }
 
-    /// Check if an address is authorized to withdraw and transfer tokens on behalf of a depositor
+    /// Check if an address is currently authorized to withdraw and transfer tokens on behalf of a depositor
     ///
     /// @param token       The token to check
     /// @param depositor   The depositor to check

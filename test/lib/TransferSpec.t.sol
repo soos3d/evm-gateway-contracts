@@ -18,11 +18,11 @@
 pragma solidity ^0.8.29;
 
 import {TypedMemView} from "@memview-sol/TypedMemView.sol";
-import {TransferSpec, TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/authorizations/TransferSpec.sol";
-import {TransferSpecLib} from "src/lib/authorizations/TransferSpecLib.sol";
-import {AuthorizationTestUtils} from "./AuthorizationTestUtils.sol";
+import {TransferSpec, TRANSFER_SPEC_VERSION, TRANSFER_SPEC_MAGIC} from "src/lib/TransferSpec.sol";
+import {TransferSpecLib} from "src/lib/TransferSpecLib.sol";
+import {TransferPayloadTestUtils} from "test/util/TransferPayloadTestUtils.sol";
 
-contract TransferSpecTest is AuthorizationTestUtils {
+contract TransferSpecTest is TransferPayloadTestUtils {
     using TransferSpecLib for bytes;
     using TransferSpecLib for bytes29;
     using TypedMemView for bytes;
@@ -30,81 +30,81 @@ contract TransferSpecTest is AuthorizationTestUtils {
 
     // ===== Field Accessor Tests =====
 
-    function test_transferSpec_readAllFieldsEmptyMetadataFuzz(TransferSpec memory spec) public pure {
+    function test_transferSpec_readAllFieldsEmptyHookDataFuzz(TransferSpec memory spec) public pure {
         spec.version = TRANSFER_SPEC_VERSION;
-        spec.metadata = new bytes(0);
+        spec.hookData = new bytes(0);
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
         bytes29 ref = encodedSpec.ref(uint40(uint32(TRANSFER_SPEC_MAGIC)));
         _verifyTransferSpecFieldsFromView(ref, spec);
     }
 
-    function test_transferSpec_readAllFieldsShortMetadataFuzz(TransferSpec memory spec) public pure {
+    function test_transferSpec_readAllFieldsShortHookDataFuzz(TransferSpec memory spec) public pure {
         spec.version = TRANSFER_SPEC_VERSION;
-        spec.metadata = SHORT_METADATA;
+        spec.hookData = SHORT_HOOK_DATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
         bytes29 ref = encodedSpec.ref(uint40(uint32(TRANSFER_SPEC_MAGIC)));
         _verifyTransferSpecFieldsFromView(ref, spec);
     }
 
-    function test_transferSpec_readAllFieldsLongMetadataFuzz(TransferSpec memory spec) public pure {
+    function test_transferSpec_readAllFieldsLongHookDataFuzz(TransferSpec memory spec) public pure {
         spec.version = TRANSFER_SPEC_VERSION;
-        spec.metadata = LONG_METADATA;
+        spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
         bytes29 ref = encodedSpec.ref(uint40(uint32(TRANSFER_SPEC_MAGIC)));
         _verifyTransferSpecFieldsFromView(ref, spec);
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_transferSpec_readMetadata_revertsOnInvalidMetadataFuzz(TransferSpec memory spec) public {
+    function test_transferSpec_readHookData_revertsOnInvalidHookDataFuzz(TransferSpec memory spec) public {
         spec.version = TRANSFER_SPEC_VERSION;
-        spec.metadata = LONG_METADATA;
+        spec.hookData = LONG_HOOK_DATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
 
-        (bytes memory corruptedData, uint32 corruptedMetadataLength) =
-            _getCorruptedInnerSpecMetadataLengthData(encodedSpec, 0, uint32(LONG_METADATA.length), true);
+        (bytes memory corruptedData, uint32 corruptedHookDataLength) =
+            _getCorruptedInnerSpecHookDataLengthData(encodedSpec, 0, uint32(LONG_HOOK_DATA.length), true);
         bytes29 corruptedRef = corruptedData.ref(uint40(uint32(TRANSFER_SPEC_MAGIC)));
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                TransferSpecLib.TransferSpecInvalidMetadata.selector, corruptedMetadataLength, corruptedRef.len()
+                TransferSpecLib.TransferSpecInvalidHookData.selector, corruptedHookDataLength, corruptedRef.len()
             )
         );
-        TransferSpecLib.getMetadata(corruptedRef);
+        TransferSpecLib.getHookData(corruptedRef);
     }
 
     // ===== Hash Utility Tests =====
 
-    function test_getTransferSpecHash_withMetadataFuzz(TransferSpec memory spec) public pure {
+    function test_getTransferSpecHash_withHookDataFuzz(TransferSpec memory spec) public pure {
         spec.version = TRANSFER_SPEC_VERSION;
-        spec.metadata = SHORT_METADATA;
+        spec.hookData = SHORT_HOOK_DATA;
         bytes memory encodedSpec = TransferSpecLib.encodeTransferSpec(spec);
         bytes29 ref = encodedSpec.ref(uint40(uint32(TRANSFER_SPEC_MAGIC)));
 
         bytes32 expectedHash = keccak256(encodedSpec);
         bytes32 libHash = TransferSpecLib.getHash(ref);
 
-        assertEq(libHash, expectedHash, "Hash mismatch for non-empty metadata");
+        assertEq(libHash, expectedHash, "Hash mismatch for non-empty hook data");
     }
 
     // ===== Failure Tests =====
 
     /// forge-config: default.allow_internal_expect_revert = true
-    function test_encode_tooLongMetadata() public {
-        // Simulate metadata with a size of `type(uint32).max + 1`
-        bytes memory metadata = SHORT_METADATA;
+    function test_encode_tooLongHookData() public {
+        // Simulate hook data with a size of `type(uint32).max + 1`
+        bytes memory hookData = SHORT_HOOK_DATA;
         uint256 maxSize = uint256(type(uint32).max);
         assembly {
-            mstore(metadata, add(maxSize, 1))
+            mstore(hookData, add(maxSize, 1))
         }
 
-        // Create a transfer spec with the corrupted metadata
+        // Create a transfer spec with the corrupted hook data
         TransferSpec memory spec;
         spec.version = TRANSFER_SPEC_VERSION;
-        spec.metadata = metadata;
+        spec.hookData = hookData;
 
-        // Expect it to revert because the metadata is too long
+        // Expect it to revert because the hook data is too long
         vm.expectRevert(
-            abi.encodeWithSelector(TransferSpecLib.TransferSpecMetadataFieldTooLarge.selector, maxSize + 1, maxSize)
+            abi.encodeWithSelector(TransferSpecLib.TransferSpecHookDataFieldTooLarge.selector, maxSize + 1, maxSize)
         );
         TransferSpecLib.encodeTransferSpec(spec);
     }

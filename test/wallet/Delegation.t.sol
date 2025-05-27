@@ -20,15 +20,15 @@ pragma solidity ^0.8.29;
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {Test} from "forge-std/Test.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
-import {AddressLib} from "src/lib/util/AddressLib.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {Delegation} from "src/modules/wallet/Delegation.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-/// Tests mint authorization functionality
-contract MintAuthorizationTest is Test, DeployUtils {
+/// Tests delegation functionality
+contract GatewayWalletDelegationTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private usdc = makeAddr("usdc");
 

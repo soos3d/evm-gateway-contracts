@@ -17,18 +17,18 @@
  */
 pragma solidity ^0.8.29;
 
-/// @title AuthorizationCursor
+/// @title Cursor
 ///
-/// @notice Used to iterate over a single authorization or a set of authorizations in a uniform way
-struct AuthorizationCursor {
-    /// The view pointing to the start of the encoded single authorization or authorization set
-    bytes29 setOrAuthView;
-    /// The byte offset within the `setOrAuthView` data where the next authorization begins
+/// @notice Used to iterate over a single burn intent or attestation or a set of the same in a uniform way
+struct Cursor {
+    /// The `TypedMemView` reference pointing to the start of the encoded single burn intent, attestation, or set
+    bytes29 memView;
+    /// The byte offset within the `memView` data where the next burn intent or attestation begins
     uint256 offset;
-    /// The total number of authorizations contained within `setOrAuthView`. Always 1 for a single authorization.
-    uint32 numAuths;
-    /// The 0-based index of the next authorization
+    /// The total number of elements contained within `memView`. Always 1 for a single burn intent or attestation.
+    uint32 numElements;
+    /// The 0-based index of the next burn intent or attestation
     uint32 index;
-    /// A flag indicating whether iteration is complete (i.e., `index == numAuths`)
+    /// A flag indicating whether iteration is complete (i.e., `index == numElements`)
     bool done;
 }

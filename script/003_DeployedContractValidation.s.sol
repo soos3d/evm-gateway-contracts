@@ -18,10 +18,10 @@
 pragma solidity ^0.8.29;
 
 import {Script} from "forge-std/Script.sol";
-import {console} from "forge-std/console.sol";
-/// @title DeployedContractValidation
-/// @notice Script to verify deployed contract bytecode matches expected bytecode and contract state matches expected values
 
+/// @title DeployedContractValidation
+/// @notice Script to verify deployed contract bytecode matches expected bytecode and contract state matches expected
+///         values
 contract DeployedContractValidation is Script {
     /// @notice Verifies bytecode of a deployed contract against expected bytecode
     /// @param deployedAddress Address of the deployed contract to verify
@@ -126,7 +126,7 @@ contract DeployedContractValidation is Script {
         );
         verifyContractStateValue(minterProxyAddress, "domain()", "", abi.encode(vm.envUint("GATEWAYMINTER_DOMAIN")));
         verifyContractStateValue(
-            minterProxyAddress, "mintAuthorizationSigner()", "", abi.encode(vm.envAddress("GATEWAYMINTER_AUTH_SIGNER"))
+            minterProxyAddress, "attestationSigner()", "", abi.encode(vm.envAddress("GATEWAYMINTER_ATTESTATION_SIGNER"))
         );
         verifyContractStateValue(
             minterProxyAddress,

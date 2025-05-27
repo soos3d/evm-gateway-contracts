@@ -18,10 +18,10 @@
 pragma solidity ^0.8.29;
 
 import {CommonBase} from "forge-std/Base.sol";
-import {MasterMinter} from "../mock_fiattoken/contracts/minting/MasterMinter.sol";
-import {FiatTokenProxy} from "../mock_fiattoken/contracts/v1/FiatTokenProxy.sol";
-import {FiatTokenV2_2} from "../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
-import {DeployFiatToken} from "../mock_fiattoken/deploy-fiat-token.s.sol";
+import {MasterMinter} from "test/mock_fiattoken/contracts/minting/MasterMinter.sol";
+import {FiatTokenProxy} from "test/mock_fiattoken/contracts/v1/FiatTokenProxy.sol";
+import {FiatTokenV2_2} from "test/mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
+import {DeployFiatToken} from "test/mock_fiattoken/deploy-fiat-token.s.sol";
 
 // Contract to deploy mock FiatToken (USDC) contract for local testing. Copied with minor modification from @circlefin/stablecoin-evm/test/scripts/deploy/TestUtils.sol
 // solhint-disable-next-line max-states-count

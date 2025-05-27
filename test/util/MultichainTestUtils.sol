@@ -20,14 +20,14 @@ pragma solidity ^0.8.29;
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {GatewayMinter} from "src/GatewayMinter.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
-import {BurnAuthorizationLib} from "src/lib/authorizations/BurnAuthorizationLib.sol";
-import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
-import {AddressLib} from "src/lib/util/AddressLib.sol";
-import {MasterMinter} from "./../mock_fiattoken/contracts/minting/MasterMinter.sol";
-import {FiatTokenV2_2} from "./../mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
-import {DeployUtils} from "./DeployUtils.sol";
-import {ForkTestUtils} from "./ForkTestUtils.sol";
-import {SignatureTestUtils} from "./SignatureTestUtils.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
+import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
+import {TransferSpec} from "src/lib/TransferSpec.sol";
+import {MasterMinter} from "test/mock_fiattoken/contracts/minting/MasterMinter.sol";
+import {FiatTokenV2_2} from "test/mock_fiattoken/contracts/v2/FiatTokenV2_2.sol";
+import {DeployUtils} from "test/util/DeployUtils.sol";
+import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
+import {SignatureTestUtils} from "test/util/SignatureTestUtils.sol";
 
 contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
     using MessageHashUtils for bytes32;
@@ -37,7 +37,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
     uint256 public constant DEPOSIT_AMOUNT = 1000e6; // 1000 USDC
     uint256 public constant MINT_AMOUNT = 100e6; // 100 USDC
     uint256 public constant FEE_AMOUNT = 10000; // 0.01 USDC
-    bytes public constant METADATA = "Test metadata";
+    bytes public constant HOOK_DATA = "Test hook data";
 
     uint256 public depositorPrivateKey = 0x123;
     address public depositor = vm.addr(depositorPrivateKey);
@@ -52,7 +52,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         uint256 forkId;
         uint32 domain;
         uint256 walletBurnSignerKey;
-        uint256 minterMintSignerKey;
+        uint256 minterAttestationSignerKey;
         GatewayWallet wallet;
         GatewayMinter minter;
         FiatTokenV2_2 usdc;
@@ -74,7 +74,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         address owner = vm.addr(chainId + 1);
         address walletFeeRecipient = vm.addr(chainId + 2);
         (address walletBurnSigner, uint256 walletBurnSignerKey) = makeAddrAndKey(vm.toString(chainId + 3));
-        (address minterMintSigner, uint256 minterMintSignerKey) = makeAddrAndKey(vm.toString(chainId + 4));
+        (address minterAttestationSigner, uint256 minterAttestationSignerKey) = makeAddrAndKey(vm.toString(chainId + 4));
 
         // Deploy core contracts
         (GatewayWallet wallet, GatewayMinter minter) = deploy(owner, domain);
@@ -85,7 +85,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         {
             // Configure minter settings
             minter.addSupportedToken(address(usdc));
-            minter.updateMintAuthorizationSigner(minterMintSigner);
+            minter.updateAttestationSigner(minterAttestationSigner);
             minter.updateMintAuthority(address(usdc), address(usdc));
 
             // Configure wallet settings
@@ -116,7 +116,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
             forkId: forkId,
             domain: domain,
             walletBurnSignerKey: walletBurnSignerKey,
-            minterMintSignerKey: minterMintSignerKey,
+            minterAttestationSignerKey: minterAttestationSignerKey,
             wallet: wallet,
             minter: minter,
             usdc: usdc
@@ -132,7 +132,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
 
         fees = new uint256[][](n);
         for (uint256 i = 0; i < n; i++) {
-            uint256 m = BurnAuthorizationLib.cursor(encodedBurnAuths[i]).numAuths;
+            uint256 m = BurnIntentLib.cursor(encodedBurnAuths[i]).numElements;
             fees[i] = new uint256[](m);
             for (uint256 j = 0; j < m; j++) {
                 fees[i][j] = feeAmount;
@@ -162,8 +162,8 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
             sourceSigner: AddressLib._addressToBytes32(sourceSigner_),
             destinationCaller: AddressLib._addressToBytes32(destinationCaller_),
             value: amount,
-            nonce: keccak256(abi.encode(vm.randomUint())),
-            metadata: METADATA
+            salt: keccak256(abi.encode(vm.randomUint())),
+            hookData: HOOK_DATA
         });
     }
 
@@ -208,12 +208,12 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         uint256 depositorTotalBalanceBefore = chain.wallet.totalBalance(address(chain.usdc), depositor);
         uint256 feeRecipientBalanceBefore = chain.usdc.balanceOf(chain.wallet.feeRecipient());
 
-        // Prepare burn authorization parameters
+        // Prepare burn intent parameters
         uint256[][] memory fees = _createFees(encodedBurnAuths, FEE_AMOUNT);
 
         // Get burn signer signature and execute burn
         bytes memory burnSignerSignature =
-            _signBurnAuthorizations(encodedBurnAuths, burnSignatures, fees, chain.walletBurnSignerKey);
+            _signBurnIntents(encodedBurnAuths, burnSignatures, fees, chain.walletBurnSignerKey);
         chain.wallet.gatewayBurn(abi.encode(encodedBurnAuths, burnSignatures, fees), burnSignerSignature);
 
         // Verify state after burn
@@ -236,8 +236,8 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
 
     function _mintFromChain(
         ChainSetup memory chain,
-        bytes memory encodedMintAuth,
-        bytes memory mintSignature,
+        bytes memory encodedAttestation,
+        bytes memory attestationSignature,
         uint256 expectedTotalMinted
     ) internal {
         vm.selectFork(chain.forkId);
@@ -248,7 +248,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
 
         // Execute mint operation
         vm.prank(destinationCaller);
-        chain.minter.gatewayMint(encodedMintAuth, mintSignature);
+        chain.minter.gatewayMint(encodedAttestation, attestationSignature);
 
         // Verify state after mint
         assertEq(

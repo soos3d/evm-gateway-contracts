@@ -17,8 +17,8 @@
  */
 pragma solidity ^0.8.29;
 
-import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
-import {MultichainTestUtils} from "./../util/MultichainTestUtils.sol";
+import {TransferSpec} from "src/lib/TransferSpec.sol";
+import {MultichainTestUtils} from "test/util/MultichainTestUtils.sol";
 
 contract AttemptedDoubleSpendTest is MultichainTestUtils {
     ChainSetup private ethereum;
@@ -45,26 +45,28 @@ contract AttemptedDoubleSpendTest is MultichainTestUtils {
         assertEq(ethereum.wallet.withdrawingBalance(address(ethereum.usdc), depositor), DEPOSIT_AMOUNT);
         assertEq(ethereum.wallet.withdrawableBalance(address(ethereum.usdc), depositor), 0);
 
-        // Offchain: Generate burn authorization and validate
+        // Offchain: Generate burn intent and validate
         TransferSpec memory transferSpec =
             _createTransferSpec(ethereum, arbitrum, MINT_AMOUNT, depositor, recipient, depositor, address(0));
-        (bytes memory encodedBurnAuth, bytes memory burnSignature) =
-            _signBurnAuthWithTransferSpec(transferSpec, ethereum.wallet, depositorPrivateKey);
-        bool isValidBurnAuth = ethereum.wallet.validateBurnAuthorizations(encodedBurnAuth, depositor);
-        assertTrue(isValidBurnAuth);
+        (bytes memory encodedBurnIntent, bytes memory burnSignature) =
+            _signBurnIntentWithTransferSpec(transferSpec, ethereum.wallet, depositorPrivateKey);
+        bool isValidBurnIntent = ethereum.wallet.validateBurnIntents(encodedBurnIntent, depositor);
+        assertTrue(isValidBurnIntent);
 
-        // Offchain: Generate mint authorization given valid burn authorization
+        // Offchain: Generate attestation given valid burn intent
         vm.selectFork(arbitrum.forkId);
-        (bytes memory encodedMintAuth, bytes memory mintSignature) =
-            _signMintAuthWithTransferSpec(transferSpec, arbitrum.minterMintSignerKey);
+        (bytes memory encodedAttestation, bytes memory attestationSignature) =
+            _signAttestationWithTransferSpec(transferSpec, arbitrum.minterAttestationSignerKey);
 
-        // On Arbitrum: Mint using mint authorization
-        _mintFromChain(arbitrum, encodedMintAuth, mintSignature, MINT_AMOUNT /* expected total minted amount */ );
+        // On Arbitrum: Mint using attestation
+        _mintFromChain(
+            arbitrum, encodedAttestation, attestationSignature, MINT_AMOUNT /* expected total minted amount */
+        );
 
         // On Ethereum: Burn used amount
         _burnFromChain(
             ethereum,
-            encodedBurnAuth,
+            encodedBurnIntent,
             burnSignature,
             MINT_AMOUNT, /* expected total burnt amount */
             FEE_AMOUNT /* expected total fee amount */

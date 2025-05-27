@@ -20,7 +20,7 @@ pragma solidity ^0.8.29;
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Test} from "forge-std/Test.sol";
-import {TransferSpec} from "src/lib/authorizations/TransferSpec.sol";
+import {TransferSpec} from "src/lib/TransferSpec.sol";
 import {TransferSpecHashes} from "src/modules/common/TransferSpecHashes.sol";
 
 contract TransferSpecHashesHarness is TransferSpecHashes {
@@ -59,8 +59,8 @@ contract TransferSpecHashesTest is Test {
             sourceSigner: keccak256(abi.encode("sourceSigner", seed)),
             destinationCaller: keccak256(abi.encode("destinationCaller", seed)),
             value: seed,
-            nonce: keccak256(abi.encode("nonce", seed)),
-            metadata: abi.encode("metadata", seed)
+            salt: keccak256(abi.encode("salt", seed)),
+            hookData: abi.encode("hookData", seed)
         });
     }
 

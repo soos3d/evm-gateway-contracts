@@ -17,10 +17,9 @@
  */
 pragma solidity ^0.8.29;
 
-import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {EnvSelector, EnvConfig} from "./000_Constants.sol";
-import "./BaseBytecodeDeployScript.sol";
+import {EnvSelector, EnvConfig} from "script/000_Constants.sol";
+import {BaseBytecodeDeployScript} from "script/BaseBytecodeDeployScript.sol";
 
 /// @title DeployGatewayMinter
 /// @notice Deployment script for GatewayMinter implementation and proxy with initialization
@@ -45,7 +44,7 @@ contract DeployGatewayMinter is BaseBytecodeDeployScript {
         address[] memory supportedTokens = new address[](1);
         supportedTokens[0] = vm.envAddress("GATEWAYMINTER_SUPPORTED_TOKEN_1");
         uint32 domain = uint32(vm.envUint("GATEWAYMINTER_DOMAIN"));
-        address mintAuthSigner = vm.envAddress("GATEWAYMINTER_AUTH_SIGNER");
+        address attestationSigner = vm.envAddress("GATEWAYMINTER_ATTESTATION_SIGNER");
 
         address[] memory tokenAuthorities = new address[](1);
         tokenAuthorities[0] = vm.envAddress("GATEWAYMINTER_TOKEN_AUTH_1");
@@ -57,7 +56,7 @@ contract DeployGatewayMinter is BaseBytecodeDeployScript {
             gatewayMinterWallet,
             supportedTokens,
             domain,
-            mintAuthSigner,
+            attestationSigner,
             tokenAuthorities
         );
     }

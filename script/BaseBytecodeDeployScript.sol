@@ -18,7 +18,7 @@
 pragma solidity ^0.8.29;
 
 import {Script} from "forge-std/Script.sol";
-import {ICreate2Factory} from "./interface/ICreate2Factory.sol";
+import {ICreate2Factory} from "script/interface/ICreate2Factory.sol";
 
 /// @title BaseBytecodeDeployScript
 /// @notice Base contract for deploying contracts using CREATE2 factory with deterministic addresses
