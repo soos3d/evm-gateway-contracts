@@ -259,7 +259,7 @@ contract GatewayWalletBalanceTest is Test, DeployUtils {
         assertEq(balances[1], secondDepositorBalance);
     }
 
-    function test_balanceOfBatch_returnsZeroesForUnsupportedOrInvalidTokens() public {
+    function test_balanceOfBatch_returnsZeroesForInvalidBalanceTypesOrInvalidTokens() public {
         address unsupportedToken = makeAddr("unsupportedToken");
 
         address[] memory depositors = new address[](2);
