@@ -196,7 +196,7 @@ contract Mints is GatewayCommon {
         }
     }
 
-    /// The ddress with the `attestationSigner` role that may sign attestations to mint funds
+    /// The address with the `attestationSigner` role that may sign attestations to mint funds
     ///
     /// @return   The address of the attestation signer
     function attestationSigner() public view returns (address) {
@@ -359,7 +359,7 @@ contract Mints is GatewayCommon {
 library MintsStorage {
     /// @custom:storage-location erc7201:circle.gateway.Mints
     struct Data {
-        /// The ddress that may sign attestations to mint funds
+        /// The address that may sign attestations to mint funds
         address attestationSigner;
         /// Maps token addresses to their corresponding minter contract addresses. Absence of an entry means the token
         /// itself should be used as the minter. This contract must have permission to mint the associated token via
