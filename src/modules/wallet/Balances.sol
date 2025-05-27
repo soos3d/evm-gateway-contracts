@@ -35,11 +35,6 @@ enum BalanceType {
 ///
 /// @notice Manages balances for the `GatewayWallet` contract
 contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
-    /// Thrown when the ERC-1155 `balanceOf` function is called with an invalid `BalanceType`
-    ///
-    /// @param balanceType   The invalid `BalanceType` that was passed
-    error InvalidBalanceType(uint96 balanceType);
-
     /// Thrown when the ERC-1155 `balanceOfBatch` function is called with arrays of different lengths
     error InputArrayLengthMismatch();
 
@@ -97,50 +92,48 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
 
     /// The balance of a depositor for a particular token and balance type, compatible with ERC-1155
     ///
-    /// @dev The token `id` should be encoded as `uint256(abi.encodePacked(uint12(BALANCE_TYPE), address(token)))`,
+    /// @dev The "token" `id` is encoded as `uint256(bytes32(abi.encodePacked(uint96(BALANCE_TYPE), address(token))))`,
     ///      where `BALANCE_TYPE` is 0 for `Total`, 1 for `Available`, 2 for `Withdrawing`, and 3 for `Withdrawable`.
     ///
     /// @param depositor   The depositor of the requested balance
     /// @param id          The packed token and balance type
-    /// @return            The balance of the depositor for the token and balance type
-    function balanceOf(address depositor, uint256 id) public view override returns (uint256) {
-        // Ensure that the token is supported
+    /// @return balance    The balance of the depositor for the token and balance type
+    function balanceOf(address depositor, uint256 id) public view override returns (uint256 balance) {
         address token = address(uint160(id));
-        if (!isTokenSupported(token)) {
-            revert UnsupportedToken(token);
+        uint96 balanceTypeRaw = uint96(id >> 160);
+
+        // Return 0 for invalid balance types
+        if (balanceTypeRaw > uint96(type(BalanceType).max)) {
+            return 0;
         }
 
-        // Ensure that the balance type is valid
-        uint96 balanceType = uint96(id >> 160);
-        if (balanceType > uint96(type(BalanceType).max)) {
-            revert InvalidBalanceType(balanceType);
-        }
+        BalanceType balanceType = BalanceType(balanceTypeRaw);
 
         // Return the correct balance based on the balance type
-        if (BalanceType(balanceType) == BalanceType.Total) {
-            return totalBalance(token, depositor);
-        } else if (BalanceType(balanceType) == BalanceType.Available) {
-            return availableBalance(token, depositor);
-        } else if (BalanceType(balanceType) == BalanceType.Withdrawing) {
-            return withdrawingBalance(token, depositor);
-        } else {
-            // BalanceType(balanceType) == BalanceType.Withdrawable
-            return withdrawableBalance(token, depositor);
+        if (balanceType == BalanceType.Total) {
+            balance = totalBalance(token, depositor);
+        } else if (balanceType == BalanceType.Available) {
+            balance = availableBalance(token, depositor);
+        } else if (balanceType == BalanceType.Withdrawing) {
+            balance = withdrawingBalance(token, depositor);
+        } else if (balanceType == BalanceType.Withdrawable) {
+            balance = withdrawableBalance(token, depositor);
         }
     }
 
     /// The batch version of `balanceOf`, compatible with ERC-1155
     ///
     /// @dev `depositors` and `ids` must be the same length
+    /// @dev See the documentation for `balanceOf` for the format of `ids`
     ///
     /// @param depositors   The depositor of the requested balance
     /// @param ids          The packed token and balance type
-    /// @return             The balances of the depositors for the tokens and balance types
+    /// @return balances    The balances of the depositors for the tokens and balance types
     function balanceOfBatch(address[] calldata depositors, uint256[] calldata ids)
         external
         view
         override
-        returns (uint256[] memory)
+        returns (uint256[] memory balances)
     {
         // Ensure the arrays are the same length
         if (depositors.length != ids.length) {
@@ -148,12 +141,10 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
         }
 
         // Fill in and return the results by calling `balanceOf`
-        uint256[] memory batchBalances = new uint256[](depositors.length);
+        balances = new uint256[](depositors.length);
         for (uint256 i = 0; i < depositors.length; i++) {
-            batchBalances[i] = balanceOf(depositors[i], ids[i]);
+            balances[i] = balanceOf(depositors[i], ids[i]);
         }
-
-        return batchBalances;
     }
 
     /// Increases a depositor's available balance by a specified value
