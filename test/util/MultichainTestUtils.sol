@@ -39,14 +39,14 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
     uint256 public constant FEE_AMOUNT = 10000; // 0.01 USDC
     bytes public constant HOOK_DATA = "Test hook data";
 
-    uint256 public depositorPrivateKey = 0x123;
+    uint256 public depositorPrivateKey = 0xdc47ad9d59d92b5f9b7f2400a82623f0c45917250135166b5037bd860ea6090c;
     address public depositor = vm.addr(depositorPrivateKey);
 
-    uint256 public delegatePrivateKey = 0x234;
+    uint256 public delegatePrivateKey = 0xf0ef684ba0cb4d94fd0a47b889f8fcae344a804955618434e960a38505180d3a;
     address public delegate = vm.addr(delegatePrivateKey);
 
-    address public recipient = address(0x345);
-    address public destinationCaller = address(0x456);
+    address public recipient = vm.addr(0xb0950200e150e70cb83af4a6c04668c71a9bf162798f7bf4c9300d4acde150ff);
+    address public destinationCaller = vm.addr(0x503810cb8d7135c8775a09e90aef7f12682ab3702d2542e2b9f9c3c8123a5463);
 
     struct ChainSetup {
         uint256 forkId;

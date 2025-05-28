@@ -17,16 +17,13 @@
  */
 pragma solidity ^0.8.29;
 
-/// @title IMintToken
+/// @title IBlacklistableToken
 ///
-/// @notice Used to interact with a token that supports minting or a mint authority with the same interface
-interface IMintToken {
-    /// Mints tokens to an address
+/// @notice Used to interact with a token that supports blacklisting
+interface IBlacklistableToken {
+    /// Checks if an account is blacklisted
     ///
-    /// @dev The caller must be a minter and must not be blacklisted
-    ///
-    /// @param to       The address that will receive the minted tokens
-    /// @param amount   The amount of tokens to mint. Must be less than or equal to the minter allowance of the caller.
-    /// @return         `true` if the operation was successful, `false` otherwise
-    function mint(address to, uint256 amount) external returns (bool);
+    /// @param _account   The address to check
+    /// @return           `true` if the account is blacklisted, `false` otherwise
+    function isBlacklisted(address _account) external returns (bool);
 }
