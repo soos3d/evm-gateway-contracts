@@ -238,7 +238,7 @@ contract GatewayWalletDepositWithAuthorizationTest is DeployUtils, SignatureTest
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance);
         skip(activeTimeOffset);
         vm.expectEmit(true, true, false, true);
-        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance);
+        emit Deposits.Deposited(usdc, depositor, depositor, initialUsdcBalance);
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
@@ -249,7 +249,7 @@ contract GatewayWalletDepositWithAuthorizationTest is DeployUtils, SignatureTest
         (uint8 v, bytes32 r, bytes32 s) = _create3009AuthorizationSignature(initialUsdcBalance / 2);
         skip(activeTimeOffset);
         vm.expectEmit(true, true, false, true);
-        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
+        emit Deposits.Deposited(usdc, depositor, depositor, initialUsdcBalance / 2);
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance / 2, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, v, r, s
         );
@@ -418,7 +418,7 @@ contract GatewayWalletDepositWithAuthorizationTest is DeployUtils, SignatureTest
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance);
         skip(activeTimeOffset);
         vm.expectEmit(true, true, false, true);
-        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance);
+        emit Deposits.Deposited(usdc, depositor, depositor, initialUsdcBalance);
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );
@@ -435,7 +435,7 @@ contract GatewayWalletDepositWithAuthorizationTest is DeployUtils, SignatureTest
         skip(activeTimeOffset);
 
         vm.expectEmit(true, true, false, true);
-        emit Deposits.Deposited(usdc, depositorWalletAddress, initialUsdcBalance);
+        emit Deposits.Deposited(usdc, depositorWalletAddress, depositorWalletAddress, initialUsdcBalance);
         wallet.depositWithAuthorization(
             usdc,
             depositorWalletAddress,
@@ -452,7 +452,7 @@ contract GatewayWalletDepositWithAuthorizationTest is DeployUtils, SignatureTest
         bytes memory signature = _create7598AuthorizationSignatureBytes(initialUsdcBalance / 2);
         skip(activeTimeOffset);
         vm.expectEmit(true, true, false, true);
-        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
+        emit Deposits.Deposited(usdc, depositor, depositor, initialUsdcBalance / 2);
         wallet.depositWithAuthorization(
             usdc, depositor, initialUsdcBalance / 2, erc3009ValidAfter, erc3009ValidBefore, erc3009Nonce, signature
         );

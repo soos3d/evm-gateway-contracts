@@ -22,7 +22,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {GatewayCommon} from "src/GatewayCommon.sol";
-import {IBurnToken} from "src/interfaces/IBurnToken.sol";
+import {IBurnableToken} from "src/interfaces/IBurnableToken.sol";
 import {AddressLib} from "src/lib/AddressLib.sol";
 import {BurnIntentLib} from "src/lib/BurnIntentLib.sol";
 import {Cursor} from "src/lib/Cursor.sol";
@@ -352,7 +352,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         IERC20(token).safeTransfer(feeRecipient(), totalFee);
 
         // Burn everything else
-        IBurnToken(token).burn(totalDeductedAmount - totalFee);
+        IBurnableToken(token).burn(totalDeductedAmount - totalFee);
     }
 
     /// Validates that the block height and proposed fee for a burn intent do not exceed limits
