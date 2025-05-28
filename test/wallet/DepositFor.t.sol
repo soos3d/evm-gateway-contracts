@@ -24,10 +24,16 @@ import {Deposits} from "src/modules/wallet/Deposits.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 
-/// Tests basic deposit functionality of GatewayWallet
-contract GatewayWalletDepositTest is Test, DeployUtils {
+interface IBlacklistable {
+    function blacklister() external returns (address);
+    function blacklist(address _account) external;
+}
+
+/// Tests basic depositFor functionality of GatewayWallet
+contract GatewayWalletDepositForTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private depositor = makeAddr("gatewayWalletDepositor");
+    address private sender = makeAddr("gatewayWalletSender");
     address private usdc;
 
     uint256 private initialUsdcBalance = 1000 * 10 ** 6;
@@ -43,46 +49,59 @@ contract GatewayWalletDepositTest is Test, DeployUtils {
         usdc = ForkTestUtils.forkVars().usdc;
         vm.prank(owner);
         wallet.addSupportedToken(usdc);
-        // Mint initial USDC balance to depositor
-        deal(usdc, depositor, initialUsdcBalance);
+        // Mint initial USDC balance to sender
+        deal(usdc, sender, initialUsdcBalance);
     }
 
-    function test_deposit_revertIfWalletNotApproved() public {
-        vm.startPrank(depositor);
+    function test_depositFor_revertIfWalletNotApproved() public {
+        vm.startPrank(sender);
         vm.expectRevert(bytes(ERC20_TRANSFER_AMOUNT_EXCEEDS_ALLOWANCE));
-        wallet.deposit(usdc, initialUsdcBalance);
+        wallet.depositFor(usdc, depositor, initialUsdcBalance);
         vm.stopPrank();
     }
 
-    function test_deposit_revertIfValueNonPositive() public {
-        vm.startPrank(depositor);
+    function test_depositFor_revertIfValueNonPositive() public {
+        vm.startPrank(sender);
         vm.expectRevert(Deposits.DepositValueMustBePositive.selector);
-        wallet.deposit(usdc, 0);
+        wallet.depositFor(usdc, depositor, 0);
         vm.stopPrank();
     }
 
-    function test_deposit_revertIfValueMoreThanApproved() public {
-        vm.startPrank(depositor);
+    function test_depositFor_revertIfValueMoreThanApproved() public {
+        vm.startPrank(sender);
         IERC20(usdc).approve(address(wallet), initialUsdcBalance);
         vm.expectRevert(bytes(ERC20_TRANSFER_AMOUNT_EXCEEDS_ALLOWANCE));
-        wallet.deposit(usdc, 2 * initialUsdcBalance);
+        wallet.depositFor(usdc, depositor, 2 * initialUsdcBalance);
         vm.stopPrank();
     }
 
-    function test_deposit_availableBalanceUpdatedAfterTransfer() public {
-        vm.startPrank(depositor);
+    function test_depositFor_revertIfDepositorBlacklisted() public {
+        address blacklister = IBlacklistable(usdc).blacklister();
+        vm.prank(blacklister);
+        IBlacklistable(usdc).blacklist(depositor);
+        vm.stopPrank();
+
+        vm.startPrank(sender);
+        IERC20(usdc).approve(address(wallet), initialUsdcBalance);
+        vm.expectRevert(abi.encodeWithSelector(Deposits.DepositorIsBlacklisted.selector, depositor));
+        wallet.depositFor(usdc, depositor, initialUsdcBalance);
+        vm.stopPrank();
+    }
+
+    function test_depositFor_availableBalanceUpdatedAfterTransfer() public {
+        vm.startPrank(sender);
         IERC20(usdc).approve(address(wallet), initialUsdcBalance);
 
         // Deposit half of the allowance
-        vm.expectEmit(true, true, false, true);
-        emit Deposits.Deposited(usdc, depositor, depositor, initialUsdcBalance / 2);
-        wallet.deposit(usdc, initialUsdcBalance / 2);
+        vm.expectEmit(true, true, true, true);
+        emit Deposits.Deposited(usdc, depositor, sender, initialUsdcBalance / 2);
+        wallet.depositFor(usdc, depositor, initialUsdcBalance / 2);
         assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance / 2);
 
         // Deposit the other half
-        vm.expectEmit(true, true, false, true);
-        emit Deposits.Deposited(usdc, depositor, depositor, initialUsdcBalance / 2);
-        wallet.deposit(usdc, initialUsdcBalance / 2);
+        vm.expectEmit(true, true, true, true);
+        emit Deposits.Deposited(usdc, depositor, sender, initialUsdcBalance / 2);
+        wallet.depositFor(usdc, depositor, initialUsdcBalance / 2);
         assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance);
 
         vm.stopPrank();

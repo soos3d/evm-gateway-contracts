@@ -20,7 +20,7 @@ pragma solidity ^0.8.29;
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {GatewayCommon} from "src/GatewayCommon.sol";
-import {IMintToken} from "src/interfaces/IMintToken.sol";
+import {IMintableToken} from "src/interfaces/IMintableToken.sol";
 import {AddressLib} from "src/lib/AddressLib.sol";
 import {AttestationLib} from "src/lib/AttestationLib.sol";
 import {Cursor} from "src/lib/Cursor.sol";
@@ -346,7 +346,7 @@ contract Mints is GatewayCommon {
         // Mint to the recipient using the appropriate mint authority
         address mintAuthority = tokenMintAuthority(token);
         address minter = (mintAuthority == address(0)) ? token : mintAuthority;
-        IMintToken(minter).mint(recipient, value);
+        IMintableToken(minter).mint(recipient, value);
 
         // Emit an event with the attestation details
         emit AttestationUsed(token, recipient, specHash, sourceDomain, depositorBytes, signerBytes, value);

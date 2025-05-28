@@ -156,7 +156,7 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
     function test_depositWithPermit_with2612Interface_availableBalanceUpdatedAfterTransfer() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance);
         vm.expectEmit(true, true, false, true);
-        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance);
+        emit Deposits.Deposited(usdc, depositor, depositor, initialUsdcBalance);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, v, r, s);
         assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance);
     }
@@ -164,7 +164,7 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
     function test_depositWithPermit_with2612Interface_revertIfPermitReplayed() public {
         (uint8 v, bytes32 r, bytes32 s) = _create2612PermitSignature(initialUsdcBalance / 2);
         vm.expectEmit(true, true, false, true);
-        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
+        emit Deposits.Deposited(usdc, depositor, depositor, initialUsdcBalance / 2);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, v, r, s);
         assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance / 2);
 
@@ -257,7 +257,7 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
     function test_depositWithPermit_with7597Interface_withEOASignature_availableBalanceUpdatedAfterTransfer() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance);
         vm.expectEmit(true, true, false, true);
-        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance);
+        emit Deposits.Deposited(usdc, depositor, depositor, initialUsdcBalance);
 
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance, eip2612PermitDeadline, signature);
 
@@ -270,7 +270,7 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
         depositorWallet.setSignatureValid(true);
         bytes memory signature = abi.encodePacked("random");
         vm.expectEmit(true, true, false, true);
-        emit Deposits.Deposited(usdc, depositorWalletAddress, initialUsdcBalance);
+        emit Deposits.Deposited(usdc, depositorWalletAddress, depositorWalletAddress, initialUsdcBalance);
 
         wallet.depositWithPermit(usdc, depositorWalletAddress, initialUsdcBalance, eip2612PermitDeadline, signature);
 
@@ -280,7 +280,7 @@ contract GatewayWalletDepositWithPermitTest is DeployUtils, SignatureTestUtils {
     function test_depositWithPermit_with7597Interface_revertIfPermitReplayed() public {
         bytes memory signature = _create7597PermitEOASignature(initialUsdcBalance / 2);
         vm.expectEmit(true, true, false, true);
-        emit Deposits.Deposited(usdc, depositor, initialUsdcBalance / 2);
+        emit Deposits.Deposited(usdc, depositor, depositor, initialUsdcBalance / 2);
         wallet.depositWithPermit(usdc, depositor, initialUsdcBalance / 2, eip2612PermitDeadline, signature);
         assertEq(wallet.availableBalance(usdc, depositor), initialUsdcBalance / 2);
 
