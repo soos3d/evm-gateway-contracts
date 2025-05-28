@@ -44,17 +44,17 @@ library AttestationLib {
     using TypedMemView for bytes;
     using TypedMemView for bytes29;
 
-    /// Checks whether the provided `bytes29` reference is a `AttestationSet`
+    /// Checks whether the provided `bytes29` reference is an `AttestationSet`
     ///
     /// @param ref   The `TypedMemView` reference to the encoded `Attestation` or `AttestationSet`
-    /// @return      `true` if the provided `bytes29` reference is a `AttestationSet`, `false` otherwise
+    /// @return      `true` if the provided `bytes29` reference is an `AttestationSet`, `false` otherwise
     function _isSet(bytes29 ref) private pure returns (bool) {
         return ref.index(0, BYTES4_BYTES) == ATTESTATION_SET_MAGIC;
     }
 
     // --- Casting -----------------------------------------------------------------------------------------------------
 
-    /// Creates a typed memory view for a `Attestation` or `AttestationSet`
+    /// Creates a typed memory view for an `Attestation` or `AttestationSet`
     ///
     /// @dev Checks for either `Attestation` or `AttestationSet` magic
     /// @dev Reverts with `InvalidTransferPayloadMagic` if neither known magic number is present
@@ -87,7 +87,7 @@ library AttestationLib {
     ///   1. Minimum header length check
     ///   2. Total length consistency check (using declared `TransferSpec` length)
     ///
-    /// @dev Performs structural validation on a `Attestation` view, *excluding* recursive validation of the
+    /// @dev Performs structural validation on an `Attestation` view, *excluding* recursive validation of the
     ///      nested `TransferSpec` and its magic number. Reverts on failure. Assumes outer magic number check has passed
     ///      (via casting).
     ///
@@ -110,13 +110,13 @@ library AttestationLib {
         }
     }
 
-    /// Validates the full structural integrity of a `Attestation` view, including the nested `TransferSpec`
+    /// Validates the full structural integrity of an `Attestation` view, including the nested `TransferSpec`
     ///
     /// @notice Validation includes:
     ///   1. Wrapper structure validation (header length, total length consistency).
     ///   2. Full recursive validation of the nested `TransferSpec` structure.
     ///
-    /// @dev Performs structural validation on a `Attestation` view. Reverts on failure. Assumes the view has the
+    /// @dev Performs structural validation on an `Attestation` view. Reverts on failure. Assumes the view has the
     ///      correct `Attestation` magic number (e.g., validated by `_asAttestationOrSetView`).
     /// @dev Reverts with specific errors (e.g., `TransferPayloadHeaderTooShort`, `TransferPayloadOverallLengthMismatch`,
     ///      `InvalidTransferSpecMagic`, `TransferSpecHeaderTooShort`, `TransferSpecOverallLengthMismatch`) if the
@@ -141,7 +141,7 @@ library AttestationLib {
     ///      c. Performing full recursive validation on each attestation using `_validateAttestation`.
     ///   4. Final total length consistency check.
     ///
-    /// @dev Performs structural validation on a `AttestationSet` view. Reverts on failure. Assumes the view has
+    /// @dev Performs structural validation on an `AttestationSet` view. Reverts on failure. Assumes the view has
     ///      the correct `AttestationSet` magic number (e.g., checked via `_as...Set`).
     /// @dev Reverts with errors relating to set/element structure, bounds, magic numbers, and nested validation
     ///      (see `_validateAttestation`)
@@ -201,7 +201,7 @@ library AttestationLib {
         }
     }
 
-    /// Validates the structural integrity of either a `Attestation` or a `AttestationSet`
+    /// Validates the structural integrity of either an `Attestation` or an `AttestationSet`
     ///
     /// @dev First casts the data using `_asAttestationOrSetView`, then calls the appropriate specific validation function
     ///      (`_validateAttestation` or `_validateAttestationSet`). Reverts with specific errors if casting
@@ -223,7 +223,7 @@ library AttestationLib {
 
     /// Validates `data` and returns a cursor that can uniformly iterate over any attestations it contains
     ///
-    /// @dev For a single `Attestation`, the cursor will yield that single element. For a `AttestationSet`,
+    /// @dev For a single `Attestation`, the cursor will yield that single element. For an `AttestationSet`,
     ///      it iterates through each contained `Attestation`. Sets the 'done' flag immediately if the set
     ///      contains zero attestations.
     /// @dev Reverts with `TransferPayloadDataTooShort` or `InvalidTransferPayloadMagic` if casting fails
@@ -323,7 +323,7 @@ library AttestationLib {
 
     // --- Encoding ----------------------------------------------------------------------------------------------------
 
-    /// Encode a `Attestation` struct into bytes
+    /// Encode an `Attestation` struct into bytes
     ///
     /// @param attestation   The `Attestation` to encode
     /// @return              The encoded bytes
@@ -338,7 +338,7 @@ library AttestationLib {
         );
     }
 
-    /// Encode a `AttestationSet` struct into bytes
+    /// Encode an `AttestationSet` struct into bytes
     ///
     /// @param attestationSet   The `AttestationSet` to encode
     /// @return                 The encoded bytes
