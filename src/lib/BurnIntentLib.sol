@@ -435,7 +435,7 @@ library BurnIntentLib {
 
     /// Computes the EIP-712 typed data hash for a burn intent set
     ///
-    /// @param setView   A MemView reference to the encoded burn intent set
+    /// @param setView   A `TypedMemView` reference to the encoded burn intent set
     /// @return          The EIP-712 typed data hash of the burn intent set
     function _getBurnIntentSetTypedDataHash(bytes29 setView) private view returns (bytes32) {
         uint32 numIntents = getNumIntents(setView);

@@ -299,7 +299,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         _processIntentsAndBurn(cursor, signer, fees);
     }
 
-    /// Iterates through a set of burn intents, validating and processing each relevant ones
+    /// Iterates through a set of burn intents, validating and processing each relevant one
     ///
     /// @param cursor   An initialized `Cursor` pointing to the start of the intent set
     /// @param signer   The address that signed the entire burn intent payload

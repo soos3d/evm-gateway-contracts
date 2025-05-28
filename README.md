@@ -94,7 +94,7 @@ This command validates deployed contract bytecode matches expected bytecode and 
 
 #### Update Compiled Contract Artifacts
 
-Run the following command to generate new artifacts if `openzepplin-contracts` submodule is updated. Current commit hash is `acd4ff7`.
+Run the following command to generate new artifacts if `openzeppelin-contracts` submodule is updated. Current commit hash is `acd4ff7`.
 
 ```bash
 forge build lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol --force
