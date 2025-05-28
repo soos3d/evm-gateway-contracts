@@ -67,7 +67,7 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
     /// @return            The withdrawing balance of the depositor for the token
-    function withdrawingBalance(address token, address depositor) public view tokenSupported(token) returns (uint256) {
+    function withdrawingBalance(address token, address depositor) public view returns (uint256) {
         return BalancesStorage.get().withdrawingBalances[token][depositor];
     }
 
@@ -76,12 +76,7 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
     /// @return            The withdrawable balance of the depositor for the token
-    function withdrawableBalance(address token, address depositor)
-        public
-        view
-        tokenSupported(token)
-        returns (uint256)
-    {
+    function withdrawableBalance(address token, address depositor) public view returns (uint256) {
         uint256 balanceToWithdraw = BalancesStorage.get().withdrawingBalances[token][depositor];
         if (balanceToWithdraw == 0 || withdrawalBlock(token, depositor) > block.number) {
             return 0;
