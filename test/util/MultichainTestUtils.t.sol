@@ -40,7 +40,7 @@ contract MultichainTestUtilsTest is MultichainTestUtils {
 
         // Verify wallet configuration
         assertEq(setup.wallet.burnSigner(), vm.addr(setup.walletBurnSignerKey));
-        assertEq(setup.minter.attestationSigner(), vm.addr(setup.minterAttestationSignerKey));
+        assertTrue(setup.minter.isAttestationSigner(vm.addr(setup.minterAttestationSignerKey)));
         assertEq(setup.wallet.withdrawalDelay(), WITHDRAW_DELAY);
         assertEq(address(setup.wallet.minterContract()), address(setup.minter));
         assertEq(address(setup.minter.walletContract()), address(setup.wallet));

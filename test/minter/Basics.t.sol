@@ -140,49 +140,93 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         assertEq(minter.tokenMintAuthority(token), mintAuthority);
     }
 
-    function test_updateAttestationSigner_revertWhenNotOwner() public {
+    function test_addAttestationSigner_revertWhenNotOwner() public {
         address randomCaller = makeAddr("random");
         address newAttestationSigner = makeAddr("newAttestationSigner");
 
         vm.startPrank(randomCaller);
         vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, randomCaller));
-        minter.updateAttestationSigner(newAttestationSigner);
+        minter.addAttestationSigner(newAttestationSigner);
         vm.stopPrank();
     }
 
-    function test_updateAttestationSigner_revertWhenZeroAddress() public {
+    function test_removeAttestationSigner_revertWhenNotOwner() public {
+        address randomCaller = makeAddr("random");
+        address oldAttestationSigner = minter.owner(); // owner is the initial attestation signer
+
+        vm.startPrank(randomCaller);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, randomCaller));
+        minter.removeAttestationSigner(oldAttestationSigner);
+        vm.stopPrank();
+    }
+
+    function test_addAttestationSigner_revertWhenZeroAddress() public {
         vm.startPrank(owner);
         vm.expectRevert(AddressLib.InvalidAddress.selector);
-        minter.updateAttestationSigner(address(0));
+        minter.addAttestationSigner(address(0));
         vm.stopPrank();
     }
 
-    function test_updateAttestationSigner_success(address newAttestationSigner) public {
+    function test_removeAttestationSigner_revertWhenZeroAddress() public {
+        vm.startPrank(owner);
+        vm.expectRevert(AddressLib.InvalidAddress.selector);
+        minter.removeAttestationSigner(address(0));
+        vm.stopPrank();
+    }
+
+    function test_addAttestationSigner_success(address newAttestationSigner) public {
         vm.assume(newAttestationSigner != address(0));
 
-        address oldAttestationSigner = minter.attestationSigner();
-
-        vm.expectEmit(true, true, false, false, address(minter));
-        emit Mints.AttestationSignerChanged(oldAttestationSigner, newAttestationSigner);
+        vm.expectEmit(true, false, false, false, address(minter));
+        emit Mints.AttestationSignerAdded(newAttestationSigner);
 
         vm.startPrank(owner);
-        minter.updateAttestationSigner(newAttestationSigner);
+        minter.addAttestationSigner(newAttestationSigner);
         vm.stopPrank();
 
-        assertEq(minter.attestationSigner(), newAttestationSigner);
+        assertTrue(minter.isAttestationSigner(newAttestationSigner));
     }
 
-    function test_updateAttestationSigner_idempotent() public {
-        address newAttestationSigner = makeAddr("newAttestationSigner");
-        vm.startPrank(owner);
-        minter.updateAttestationSigner(newAttestationSigner); // first update
-        assertEq(minter.attestationSigner(), newAttestationSigner);
+    function test_removeAttestationSigner_success() public {
+        address oldAttestationSigner = minter.owner(); // owner is the initial attestation signer
 
-        vm.expectEmit(true, true, false, false, address(minter));
-        emit Mints.AttestationSignerChanged(newAttestationSigner, newAttestationSigner);
-        minter.updateAttestationSigner(newAttestationSigner); // second update
+        vm.expectEmit(true, false, false, false, address(minter));
+        emit Mints.AttestationSignerRemoved(oldAttestationSigner);
+
+        vm.startPrank(owner);
+        minter.removeAttestationSigner(oldAttestationSigner);
         vm.stopPrank();
 
-        assertEq(minter.attestationSigner(), newAttestationSigner);
+        assertFalse(minter.isAttestationSigner(oldAttestationSigner));
+    }
+
+    function test_addAttestationSigner_idempotent() public {
+        address newAttestationSigner = makeAddr("newAttestationSigner");
+
+        vm.startPrank(owner);
+        minter.addAttestationSigner(newAttestationSigner); // first update
+        assertTrue(minter.isAttestationSigner(newAttestationSigner));
+
+        vm.expectEmit(true, false, false, false, address(minter));
+        emit Mints.AttestationSignerAdded(newAttestationSigner);
+        minter.addAttestationSigner(newAttestationSigner); // second update
+        vm.stopPrank();
+
+        assertTrue(minter.isAttestationSigner(newAttestationSigner));
+    }
+
+    function test_removeAttestationSigner_idempotent() public {
+        address oldAttestationSigner = minter.owner(); // owner is the initial attestation signer
+
+        vm.startPrank(owner);
+        minter.removeAttestationSigner(oldAttestationSigner); // first update
+        assertFalse(minter.isAttestationSigner(oldAttestationSigner));
+
+        vm.expectEmit(true, false, false, false, address(minter));
+        emit Mints.AttestationSignerRemoved(oldAttestationSigner);
+        minter.removeAttestationSigner(oldAttestationSigner); // second update
+        vm.stopPrank();
+
+        assertFalse(minter.isAttestationSigner(oldAttestationSigner));
     }
 }

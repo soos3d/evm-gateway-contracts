@@ -86,7 +86,7 @@ contract GatewayMinterMintsTest is Test, DeployUtils {
             minter.addSupportedToken(address(usdc));
             minter.addSupportedToken(address(mockToken));
             minter.updateDenylister(owner);
-            minter.updateAttestationSigner(attestationSigner);
+            minter.addAttestationSigner(attestationSigner);
             minter.updateMintAuthority(address(usdc), address(usdc));
         }
         vm.stopPrank();
