@@ -47,7 +47,7 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
     /// @return            The total balance of the depositor for the token
-    function totalBalance(address token, address depositor) public view tokenSupported(token) returns (uint256) {
+    function totalBalance(address token, address depositor) public view returns (uint256) {
         BalancesStorage.Data storage $ = BalancesStorage.get();
         return $.availableBalances[token][depositor] + $.withdrawingBalances[token][depositor];
     }
@@ -58,7 +58,7 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
     /// @return            The available balance of the depositor for the token
-    function availableBalance(address token, address depositor) public view tokenSupported(token) returns (uint256) {
+    function availableBalance(address token, address depositor) public view returns (uint256) {
         return BalancesStorage.get().availableBalances[token][depositor];
     }
 
@@ -67,7 +67,7 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     /// @param token       The token of the requested balance
     /// @param depositor   The depositor of the requested balance
     /// @return            The withdrawing balance of the depositor for the token
-    function withdrawingBalance(address token, address depositor) public view tokenSupported(token) returns (uint256) {
+    function withdrawingBalance(address token, address depositor) public view returns (uint256) {
         return BalancesStorage.get().withdrawingBalances[token][depositor];
     }
 
@@ -79,7 +79,6 @@ contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
     function withdrawableBalance(address token, address depositor)
         public
         view
-        tokenSupported(token)
         returns (uint256)
     {
         uint256 balanceToWithdraw = BalancesStorage.get().withdrawingBalances[token][depositor];

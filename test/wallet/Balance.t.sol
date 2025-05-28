@@ -87,18 +87,6 @@ contract GatewayWalletBalanceTest is Test, DeployUtils {
         );
     }
 
-    function test_totalBalance_revertsForUnsupportedToken() public {
-        address unsupportedToken = makeAddr("unsupportedToken");
-        vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
-        wallet.totalBalance(unsupportedToken, depositor);
-    }
-
-    function test_availableBalance_revertsForUnsupportedToken() public {
-        address unsupportedToken = makeAddr("unsupportedToken");
-        vm.expectRevert(abi.encodeWithSelector(TokenSupport.UnsupportedToken.selector, unsupportedToken));
-        wallet.availableBalance(unsupportedToken, depositor);
-    }
-
     function test_balanceOf_returnsAvailableBalance() public view {
         uint256 balanceId = _createBalanceId(usdc, BalanceType.Available);
         assertEq(wallet.balanceOf(depositor, balanceId), initialUsdcBalance);
