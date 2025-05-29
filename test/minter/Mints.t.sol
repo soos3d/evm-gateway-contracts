@@ -449,38 +449,73 @@ contract GatewayMinterMintsTest is Test, DeployUtils {
         _callGatewayMintSignedBy(encodedAttestations, attestationSignerKey);
     }
 
-    function test_gatewayMint_revertIfSameChainInvalidSourceContract() public {
+    function test_gatewayMint_successIfSameChainOtherSourceContract() public {
         Attestation memory attestation = sameChainBaseAttestation;
-        address invalidSourceContract = makeAddr("invalidSourceContract");
-        attestation.spec.sourceContract = AddressLib._addressToBytes32(invalidSourceContract); // Set wrong source contract
+        address otherSourceContract = makeAddr("otherSourceContract");
+        attestation.spec.sourceContract = AddressLib._addressToBytes32(otherSourceContract); // Set other source contract
         bytes memory encodedAttestation = AttestationLib.encodeAttestation(attestation);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Mints.InvalidAttestationSourceContractAtIndex.selector, 0, invalidSourceContract, address(wallet)
-            )
+        assertEq(usdc.balanceOf(recipient), 0);
+
+        vm.expectEmit(true, true, true, true);
+        emit Mints.AttestationUsed(
+            address(usdc),
+            AddressLib._bytes32ToAddress(attestation.spec.destinationRecipient),
+            keccak256(TransferSpecLib.encodeTransferSpec(attestation.spec)),
+            attestation.spec.sourceDomain,
+            attestation.spec.sourceDepositor,
+            attestation.spec.sourceSigner,
+            attestation.spec.value
         );
         _callGatewayMintSignedBy(encodedAttestation, attestationSignerKey);
+
+        assertEq(usdc.balanceOf(recipient), mintValue);
     }
 
-    function test_gatewayMint_revertIfSameChainInvalidSourceContractAttestationSet() public {
-        Attestation memory invalidSourceAttestation = sameChainBaseAttestation;
-        address invalidSourceContract = makeAddr("invalidSourceContract");
-        invalidSourceAttestation.spec.sourceContract = AddressLib._addressToBytes32(invalidSourceContract); // Set wrong source contract
+    function test_gatewayMint_successIfSameChainOtherSourceContractAttestationSet() public {
+        Attestation memory attestation1 = sameChainBaseAttestation;
+        Attestation memory attestation2 = sameChainBaseAttestation;
+
+        address otherSourceContract = makeAddr("otherSourceContract");
+
+        // Set the other source contract for both
+        attestation1.spec.sourceContract = AddressLib._addressToBytes32(otherSourceContract);
+        attestation2.spec.sourceContract = AddressLib._addressToBytes32(otherSourceContract);
+
+        // Set different salts for both to avoid duplicate transfer spec hashes
+        attestation1.spec.salt = keccak256("saltSameChain1");
+        attestation2.spec.salt = keccak256("saltSameChain2");
 
         Attestation[] memory attestations = new Attestation[](2);
-        attestations[0] = sameChainBaseAttestation;
-        attestations[1] = invalidSourceAttestation;
+        attestations[0] = attestation1;
+        attestations[1] = attestation2;
 
         AttestationSet memory attestationSet = AttestationSet({attestations: attestations});
         bytes memory encodedAttestations = AttestationLib.encodeAttestationSet(attestationSet);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Mints.InvalidAttestationSourceContractAtIndex.selector, 1, invalidSourceContract, address(wallet)
-            )
+        vm.expectEmit(true, true, true, true);
+        emit Mints.AttestationUsed(
+            address(usdc),
+            AddressLib._bytes32ToAddress(attestations[0].spec.destinationRecipient),
+            keccak256(TransferSpecLib.encodeTransferSpec(attestations[0].spec)),
+            attestations[0].spec.sourceDomain,
+            attestations[0].spec.sourceDepositor,
+            attestations[0].spec.sourceSigner,
+            attestations[0].spec.value
+        );
+        vm.expectEmit(true, true, true, true);
+        emit Mints.AttestationUsed(
+            address(usdc),
+            AddressLib._bytes32ToAddress(attestations[1].spec.destinationRecipient),
+            keccak256(TransferSpecLib.encodeTransferSpec(attestations[1].spec)),
+            attestations[1].spec.sourceDomain,
+            attestations[1].spec.sourceDepositor,
+            attestations[1].spec.sourceSigner,
+            attestations[1].spec.value
         );
         _callGatewayMintSignedBy(encodedAttestations, attestationSignerKey);
+
+        assertEq(usdc.balanceOf(recipient), mintValue * 2);
     }
 
     function test_gatewayMint_revertIfSameChainInvalidToken() public {
