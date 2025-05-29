@@ -85,12 +85,12 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
         {
             // Configure minter settings
             minter.addSupportedToken(address(usdc));
-            minter.updateAttestationSigner(minterAttestationSigner);
+            minter.addAttestationSigner(minterAttestationSigner);
             minter.updateMintAuthority(address(usdc), address(usdc));
 
             // Configure wallet settings
             wallet.addSupportedToken(address(usdc));
-            wallet.updateBurnSigner(walletBurnSigner);
+            wallet.addBurnSigner(walletBurnSigner);
             wallet.updateFeeRecipient(walletFeeRecipient);
             wallet.updateWithdrawalDelay(WITHDRAW_DELAY);
         }

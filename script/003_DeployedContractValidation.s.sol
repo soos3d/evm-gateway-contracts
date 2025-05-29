@@ -126,7 +126,10 @@ contract DeployedContractValidation is Script {
         );
         verifyContractStateValue(minterProxyAddress, "domain()", "", abi.encode(vm.envUint("GATEWAYMINTER_DOMAIN")));
         verifyContractStateValue(
-            minterProxyAddress, "attestationSigner()", "", abi.encode(vm.envAddress("GATEWAYMINTER_ATTESTATION_SIGNER"))
+            minterProxyAddress,
+            "isAttestationSigner(address)",
+            abi.encode(vm.envAddress("GATEWAYMINTER_ATTESTATION_SIGNER")),
+            abi.encode(true)
         );
         verifyContractStateValue(
             minterProxyAddress,
@@ -173,7 +176,10 @@ contract DeployedContractValidation is Script {
             walletProxyAddress, "withdrawalDelay()", "", abi.encode(vm.envUint("GATEWAYWALLET_WITHDRAWAL_DELAY"))
         );
         verifyContractStateValue(
-            walletProxyAddress, "burnSigner()", "", abi.encode(vm.envAddress("GATEWAYWALLET_BURNSIGNER_ADDRESS"))
+            walletProxyAddress,
+            "isBurnSigner(address)",
+            abi.encode(vm.envAddress("GATEWAYWALLET_BURNSIGNER_ADDRESS")),
+            abi.encode(true)
         );
         verifyContractStateValue(
             walletProxyAddress, "feeRecipient()", "", abi.encode(vm.envAddress("GATEWAYWALLET_FEERECIPIENT_ADDRESS"))

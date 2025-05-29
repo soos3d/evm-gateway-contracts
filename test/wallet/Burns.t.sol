@@ -18,6 +18,7 @@
 pragma solidity ^0.8.29;
 
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 import {AddressLib} from "src/lib/AddressLib.sol";
@@ -105,7 +106,7 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
             wallet.addSupportedToken(address(usdc));
             wallet.addSupportedToken(otherToken);
             wallet.updateDenylister(owner);
-            wallet.updateBurnSigner(burnSigner);
+            wallet.addBurnSigner(burnSigner);
             wallet.updateFeeRecipient(feeRecipient);
         }
         vm.stopPrank();
@@ -252,9 +253,8 @@ contract GatewayWalletBurnsTest is SignatureTestUtils, DeployUtils {
     }
 
     function test_gatewayBurn_randomArgs_wrongSignatureLength() public {
-        (bytes[] memory intents, bytes[] memory signatures, uint256[][] memory fees) = _randomArgs();
-        vm.expectRevert(Burns.InvalidBurnSigner.selector);
-        wallet.gatewayBurn(abi.encode(intents, signatures, fees), bytes(hex"aaaa"));
+        vm.expectRevert(abi.encodeWithSelector(ECDSA.ECDSAInvalidSignatureLength.selector, 2));
+        wallet.gatewayBurn(new bytes(0), hex"aaaa");
     }
 
     // ===== Intent Structural Validation Tests =====
