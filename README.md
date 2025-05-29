@@ -54,11 +54,11 @@ _Only needed for local and SMOKEBOX deployment_
 Run the following command to deploy a test instance of the Create2Factory contract:
 
 ```bash
-forge create Create2Factory -r http://127.0.0.1:8545 --broadcast --private-key $DEPLOYER_PRIVATE_KEY --constructor-args $CREATE2FACTORY_OWNER
+forge create Create2Factory -r http://127.0.0.1:8545 --broadcast --private-key $DEPLOYER_PRIVATE_KEY --constructor-args $DEPLOYER_ADDRESS
 ```
 
 - `DEPLOYER_PRIVATE_KEY`: Any key from anvil pre-funded addresses.
-- `CREATE2FACTORY_OWNER`: This address should match the $DEPLOYER_ADDRESS in `.env`
+- `DEPLOYER_ADDRESS`: This address should match the $DEPLOYER_ADDRESS in `.env`
 
 Add the deployed Create2Factory contract address to your `.env` file under the variable `CREATE2_FACTORY_ADDRESS`.
 
