@@ -20,7 +20,6 @@ pragma solidity ^0.8.29;
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {Counterpart} from "src/modules/common/Counterpart.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {Domain} from "src/modules/common/Domain.sol";
 import {Pausing} from "src/modules/common/Pausing.sol";
@@ -36,7 +35,6 @@ contract GatewayCommon is
     Ownable2StepUpgradeable,
     Pausing,
     Denylist,
-    Counterpart,
     TokenSupport,
     TransferSpecHashes,
     Domain
@@ -54,19 +52,16 @@ contract GatewayCommon is
     ///
     /// @param pauser_            The address to initialize the pauser role
     /// @param denylister_        The address to initialize the denylister role
-    /// @param counterpart_       The address of the counterpart contract (either `GatewayWallet` or `GatewayMinter`)
     /// @param supportedTokens_   The list of tokens to support initially
     /// @param domain_            The operator-issued identifier for this chain
     function __GatewayCommon_init(
         address pauser_,
         address denylister_,
-        address counterpart_,
         address[] calldata supportedTokens_,
         uint32 domain_
     ) internal onlyInitializing {
         __Pausing_init(pauser_);
         __Denylist_init(denylister_);
-        __Counterpart_init(counterpart_);
         __TokenSupport_init(supportedTokens_);
         __Domain_init(domain_);
     }

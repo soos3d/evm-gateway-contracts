@@ -18,7 +18,6 @@
 pragma solidity ^0.8.29;
 
 import {GatewayCommon} from "src/GatewayCommon.sol";
-import {GatewayWallet} from "src/GatewayWallet.sol";
 import {Mints} from "src/modules/minter/Mints.sol";
 
 /// @title GatewayMinter
@@ -43,7 +42,6 @@ contract GatewayMinter is GatewayCommon, Mints {
     ///
     /// @param pauser_                 The address to initialize the `pauser` role
     /// @param denylister_             The address to initialize the `denylister` role
-    /// @param wallet_                 The address of the `GatewayWallet` contract for this domain
     /// @param supportedTokens_        The list of tokens to support initially
     /// @param domain_                 The operator-issued identifier for this chain
     /// @param attestationSigner_      The address to initialize the `attestationSigner` role
@@ -51,7 +49,6 @@ contract GatewayMinter is GatewayCommon, Mints {
     function initialize(
         address pauser_,
         address denylister_,
-        address wallet_,
         address[] calldata supportedTokens_,
         uint32 domain_,
         address attestationSigner_,
@@ -61,14 +58,7 @@ contract GatewayMinter is GatewayCommon, Mints {
             revert MismatchedLengthTokenAndTokenMintAuthorities();
         }
 
-        __GatewayCommon_init(pauser_, denylister_, wallet_, supportedTokens_, domain_);
+        __GatewayCommon_init(pauser_, denylister_, supportedTokens_, domain_);
         __Mints_init(attestationSigner_, supportedTokens_, tokenMintAuthorities_);
-    }
-
-    /// The address of the corresponding wallet contract on the same domain
-    ///
-    /// @return   The `GatewayWallet` contract address
-    function walletContract() external view returns (GatewayWallet) {
-        return GatewayWallet(_counterpart());
     }
 }

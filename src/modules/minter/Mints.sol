@@ -120,14 +120,6 @@ contract Mints is GatewayCommon {
     /// @param destinationToken   The destination token from the attestation
     error UnsupportedTokenAtIndex(uint32 index, address destinationToken);
 
-    /// Thrown when an attestation is for the same domain as the source but has a source contract that does not
-    /// match the expected counterpart wallet contract address
-    ///
-    /// @param index                 The index of the attestation with the issue
-    /// @param attestationContract   The source contract from the attestation
-    /// @param expectedContract      The address of the wallet contract on the same domain
-    error InvalidAttestationSourceContractAtIndex(uint32 index, address attestationContract, address expectedContract);
-
     /// Thrown when an attestation is for the same domain as the source but has a source token that does not
     /// match the destination token
     ///
@@ -326,13 +318,6 @@ contract Mints is GatewayCommon {
         // If the source and destinations match, perform additional validations
         uint32 sourceDomain = spec.getSourceDomain();
         if (sourceDomain == destinationDomain) {
-            // Ensure the source contract is the wallet contract on the same domain
-            address sourceContract = AddressLib._bytes32ToAddress(spec.getSourceContract());
-            address walletAddr = _counterpart();
-            if (sourceContract != walletAddr) {
-                revert InvalidAttestationSourceContractAtIndex(index, sourceContract, walletAddr);
-            }
-
             // Ensure the source and destination tokens are the same
             address sourceToken = AddressLib._bytes32ToAddress(spec.getSourceToken());
             if (sourceToken != destinationToken) {

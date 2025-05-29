@@ -34,15 +34,11 @@ abstract contract DeployUtils is CommonBase {
         GatewayWallet walletImpl = new GatewayWallet();
         GatewayMinter minterImpl = new GatewayMinter();
 
-        // Upgrade both placeholders and tell them about each other
+        // Upgrade both placeholders
         vm.prank(owner);
-        walletProxy.upgradeToAndCall(
-            address(walletImpl), _walletInitializationCall(owner, address(minterProxy), domain)
-        );
+        walletProxy.upgradeToAndCall(address(walletImpl), _walletInitializationCall(owner, domain));
         vm.prank(owner);
-        minterProxy.upgradeToAndCall(
-            address(minterImpl), _minterInitializationCall(owner, address(walletProxy), domain)
-        );
+        minterProxy.upgradeToAndCall(address(minterImpl), _minterInitializationCall(owner, domain));
         vm.stopPrank();
 
         // Return the upgraded proxies
@@ -55,7 +51,7 @@ abstract contract DeployUtils is CommonBase {
         UpgradeablePlaceholder walletProxy = deployPlaceholder(owner);
         GatewayWallet walletImpl = new GatewayWallet();
         vm.prank(owner);
-        walletProxy.upgradeToAndCall(address(walletImpl), _walletInitializationCall(owner, address(0), domain));
+        walletProxy.upgradeToAndCall(address(walletImpl), _walletInitializationCall(owner, domain));
         return GatewayWallet(address(walletProxy));
     }
 
@@ -63,7 +59,7 @@ abstract contract DeployUtils is CommonBase {
         UpgradeablePlaceholder minterProxy = deployPlaceholder(owner);
         GatewayMinter minterImpl = new GatewayMinter();
         vm.prank(owner);
-        minterProxy.upgradeToAndCall(address(minterImpl), _minterInitializationCall(owner, address(0), domain));
+        minterProxy.upgradeToAndCall(address(minterImpl), _minterInitializationCall(owner, domain));
         return GatewayMinter(address(minterProxy));
     }
 
@@ -81,17 +77,12 @@ abstract contract DeployUtils is CommonBase {
         return UpgradeablePlaceholder(address(proxy));
     }
 
-    function _walletInitializationCall(address owner, address minter, uint32 domain)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function _walletInitializationCall(address owner, uint32 domain) internal pure returns (bytes memory) {
         return abi.encodeCall(
             GatewayWallet.initialize,
             (
                 owner, // pauser
                 owner, // denylister
-                minter, // minter contract
                 _initiallySupportedTokens(), // supported tokens
                 domain, // domain
                 0, // withdrawal delay
@@ -101,17 +92,12 @@ abstract contract DeployUtils is CommonBase {
         );
     }
 
-    function _minterInitializationCall(address owner, address wallet, uint32 domain)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function _minterInitializationCall(address owner, uint32 domain) internal pure returns (bytes memory) {
         return abi.encodeCall(
             GatewayMinter.initialize,
             (
                 owner, // pauser
                 owner, // denylister
-                wallet, // wallet contract
                 _initiallySupportedTokens(), // supported tokens
                 domain, // domain
                 owner, // attestation signer

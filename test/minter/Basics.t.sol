@@ -47,7 +47,7 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
     function test_initialize_revertWhenReinitialized() public {
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(Initializable.InvalidInitialization.selector));
-        minter.initialize(address(0), address(0), address(0), new address[](0), uint32(0), address(0), new address[](0));
+        minter.initialize(address(0), address(0), new address[](0), uint32(0), address(0), new address[](0));
     }
 
     function test_initialize_revertWhenTokenAndAuthorityLengthMismatch() public {
@@ -69,7 +69,7 @@ contract GatewayMinterBasicsTest is OwnershipTest, DeployUtils {
         // Prepare the calldata for the initialize function
         // Using 'owner' for the various addresses, since they don't matter for this test
         bytes memory initializeCalldata = abi.encodeCall(
-            GatewayMinter.initialize, (owner, owner, owner, supportedTokens, domain, owner, tokenMintAuthorities)
+            GatewayMinter.initialize, (owner, owner, supportedTokens, domain, owner, tokenMintAuthorities)
         );
 
         vm.startPrank(owner);

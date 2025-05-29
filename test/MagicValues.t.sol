@@ -26,7 +26,6 @@ import {
     BURN_INTENT_SET_TYPEHASH
 } from "src/lib/BurnIntents.sol";
 import {TRANSFER_SPEC_TYPEHASH} from "src/lib/TransferSpec.sol";
-import {CounterpartStorage} from "src/modules/common/Counterpart.sol";
 import {DenylistStorage} from "src/modules/common/Denylist.sol";
 import {DomainStorage} from "src/modules/common/Domain.sol";
 import {PausingStorage} from "src/modules/common/Pausing.sol";
@@ -54,13 +53,6 @@ contract TestMagicValues is Test {
 
     function test_attestation_set() external pure {
         assertEq(ATTESTATION_SET_MAGIC, bytes4(keccak256("circle.gateway.AttestationSet")));
-    }
-
-    function test_CounterpartStorage_slot() external pure {
-        assertEq(
-            CounterpartStorage.SLOT,
-            keccak256(abi.encode(uint256(keccak256(bytes("circle.gateway.Counterpart"))) - 1)) & ~bytes32(uint256(0xff))
-        );
     }
 
     function test_DenylistStorage_slot() external pure {
