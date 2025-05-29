@@ -40,7 +40,6 @@ contract DeployGatewayWallet is BaseBytecodeDeployScript {
     function prepareInitData() internal view returns (bytes memory) {
         address gatewayWalletPauser = vm.envAddress("GATEWAYWALLET_PAUSER_ADDRESS");
         address gatewayWalletDenylister = vm.envAddress("GATEWAYWALLET_DENYLISTER_ADDRESS");
-        address gatewayWalletMinter = vm.envAddress("GATEWAYWALLET_MINTER_ADDRESS");
         address[] memory supportedTokens = new address[](1);
         supportedTokens[0] = vm.envAddress("GATEWAYWALLET_SUPPORTED_TOKEN_1");
         uint32 domain = uint32(vm.envUint("GATEWAYWALLET_DOMAIN"));
@@ -50,10 +49,9 @@ contract DeployGatewayWallet is BaseBytecodeDeployScript {
 
         // Encode initialization call with all parameters
         return abi.encodeWithSignature(
-            "initialize(address,address,address,address[],uint32,uint256,address,address)",
+            "initialize(address,address,address[],uint32,uint256,address,address)",
             gatewayWalletPauser,
             gatewayWalletDenylister,
-            gatewayWalletMinter,
             supportedTokens,
             domain,
             withdrawalDelay,

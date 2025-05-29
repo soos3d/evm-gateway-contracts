@@ -40,7 +40,6 @@ contract DeployGatewayMinter is BaseBytecodeDeployScript {
     function prepareInitData() internal view returns (bytes memory) {
         address gatewayMinterPauser = vm.envAddress("GATEWAYMINTER_PAUSER_ADDRESS");
         address gatewayMinterDenylister = vm.envAddress("GATEWAYMINTER_DENYLISTER_ADDRESS");
-        address gatewayMinterWallet = vm.envAddress("GATEWAYMINTER_WALLET_ADDRESS");
         address[] memory supportedTokens = new address[](1);
         supportedTokens[0] = vm.envAddress("GATEWAYMINTER_SUPPORTED_TOKEN_1");
         uint32 domain = uint32(vm.envUint("GATEWAYMINTER_DOMAIN"));
@@ -50,10 +49,9 @@ contract DeployGatewayMinter is BaseBytecodeDeployScript {
         tokenAuthorities[0] = vm.envAddress("GATEWAYMINTER_TOKEN_AUTH_1");
 
         return abi.encodeWithSignature(
-            "initialize(address,address,address,address[],uint32,address,address[])",
+            "initialize(address,address,address[],uint32,address,address[])",
             gatewayMinterPauser,
             gatewayMinterDenylister,
-            gatewayMinterWallet,
             supportedTokens,
             domain,
             attestationSigner,
