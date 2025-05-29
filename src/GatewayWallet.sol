@@ -18,7 +18,6 @@
 pragma solidity ^0.8.29;
 
 import {GatewayCommon} from "src/GatewayCommon.sol";
-import {GatewayMinter} from "src/GatewayMinter.sol";
 import {Burns} from "src/modules/wallet/Burns.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
 import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
@@ -64,7 +63,6 @@ contract GatewayWallet is GatewayCommon, Deposits, Withdrawals, Burns {
     ///
     /// @param pauser_            The address to initialize the `pauser` role
     /// @param denylister_        The address to initialize the `denylister` role
-    /// @param minter_            The address of the `GatewayMinter` contract for this domain
     /// @param supportedTokens_   The list of tokens to support initially
     /// @param domain_            The operator-issued identifier for this chain
     /// @param withdrawalDelay_   The initial value for `withdrawalDelay`, in blocks
@@ -73,22 +71,14 @@ contract GatewayWallet is GatewayCommon, Deposits, Withdrawals, Burns {
     function initialize(
         address pauser_,
         address denylister_,
-        address minter_,
         address[] calldata supportedTokens_,
         uint32 domain_,
         uint256 withdrawalDelay_,
         address burnSigner_,
         address feeRecipient_
     ) external reinitializer(2) {
-        __GatewayCommon_init(pauser_, denylister_, minter_, supportedTokens_, domain_);
+        __GatewayCommon_init(pauser_, denylister_, supportedTokens_, domain_);
         __Withdrawals_init(withdrawalDelay_);
         __Burns_init(burnSigner_, feeRecipient_);
-    }
-
-    /// The address of the corresponding minter contract on the same domain
-    ///
-    /// @return   The `GatewayMinter` contract address
-    function minterContract() external view returns (GatewayMinter) {
-        return GatewayMinter(_counterpart());
     }
 }

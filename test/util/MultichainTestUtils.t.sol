@@ -42,8 +42,6 @@ contract MultichainTestUtilsTest is MultichainTestUtils {
         assertTrue(setup.wallet.isBurnSigner(vm.addr(setup.walletBurnSignerKey)));
         assertTrue(setup.minter.isAttestationSigner(vm.addr(setup.minterAttestationSignerKey)));
         assertEq(setup.wallet.withdrawalDelay(), WITHDRAW_DELAY);
-        assertEq(address(setup.wallet.minterContract()), address(setup.minter));
-        assertEq(address(setup.minter.walletContract()), address(setup.wallet));
         assertTrue(setup.wallet.isTokenSupported(address(setup.usdc)));
         assertTrue(setup.minter.isTokenSupported(address(setup.usdc)));
         assertEq(setup.minter.tokenMintAuthority(address(setup.usdc)), address(setup.usdc));

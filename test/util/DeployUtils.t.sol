@@ -36,8 +36,6 @@ contract TestDeployUtils is Test, DeployUtils {
         assertEq(minter.owner(), owner);
         assert(!wallet.paused());
         assert(!minter.paused());
-        assertEq(address(wallet.minterContract()), address(minter));
-        assertEq(address(minter.walletContract()), address(wallet));
         assertEq(wallet.domain(), domain);
         assertEq(minter.domain(), domain);
     }
@@ -48,7 +46,6 @@ contract TestDeployUtils is Test, DeployUtils {
         assertNotEq(address(wallet), address(0));
         assertEq(wallet.owner(), owner);
         assert(!wallet.paused());
-        assertEq(address(wallet.minterContract()), address(0));
         assertEq(wallet.domain(), domain);
     }
 
@@ -58,7 +55,6 @@ contract TestDeployUtils is Test, DeployUtils {
         assertNotEq(address(minter), address(0));
         assertEq(minter.owner(), owner);
         assert(!minter.paused());
-        assertEq(address(minter.walletContract()), address(0));
         assertEq(minter.domain(), domain);
     }
 
