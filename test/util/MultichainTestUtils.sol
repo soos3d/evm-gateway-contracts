@@ -90,7 +90,7 @@ contract MultichainTestUtils is DeployUtils, SignatureTestUtils {
 
             // Configure wallet settings
             wallet.addSupportedToken(address(usdc));
-            wallet.updateBurnSigner(walletBurnSigner);
+            wallet.addBurnSigner(walletBurnSigner);
             wallet.updateFeeRecipient(walletFeeRecipient);
             wallet.updateWithdrawalDelay(WITHDRAW_DELAY);
         }

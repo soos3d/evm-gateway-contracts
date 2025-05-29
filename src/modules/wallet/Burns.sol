@@ -82,11 +82,15 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         uint256 withdrawingBalance
     );
 
-    /// Emitted when the `burnSigner` role is updated
+    /// Emitted when a burn signer is added
     ///
-    /// @param oldBurnSigner   The previous burn signer address
-    /// @param newBurnSigner   The new burn signer address
-    event BurnSignerChanged(address indexed oldBurnSigner, address indexed newBurnSigner);
+    /// @param signer   The burn signer address that was added
+    event BurnSignerAdded(address indexed signer);
+
+    /// Emitted when a burn signer is removed
+    ///
+    /// @param signer   The burn signer address that was removed
+    event BurnSignerRemoved(address indexed signer);
 
     /// Emitted when the `feeRecipient` role is updated
     ///
@@ -103,7 +107,7 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// Thrown when burn intents in a set are not all for the same token
     error NotAllSameToken();
 
-    /// Thrown when the calldata for `gatewayBurn` is not signed by the `burnSigner`
+    /// Thrown when the calldata for `gatewayBurn` is not signed by a valid burn signer
     error InvalidBurnSigner();
 
     /// Thrown when there are no burn intents that are relevant to the current domain
@@ -148,12 +152,12 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     /// @param actualSigner   The signer that was recovered from the signature
     error InvalidIntentSourceSignerAtIndex(uint32 index, address intentSigner, address actualSigner);
 
-    /// Initializes the `burnSigner` and `feeRecipient` roles
+    /// Initializes a burn signer and the `feeRecipient` role
     ///
     /// @param burnSigner_     The address to initialize the `burnSigner` role
     /// @param feeRecipient_   The address to initialize the `feeRecipient` role
     function __Burns_init(address burnSigner_, address feeRecipient_) internal onlyInitializing {
-        updateBurnSigner(burnSigner_);
+        addBurnSigner(burnSigner_);
         updateFeeRecipient(feeRecipient_);
     }
 
@@ -167,11 +171,11 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
     ///      the signature.
     /// @dev See `lib/BurnIntents.sol` for encoding details
     ///
-    /// @param calldataBytes     ABI-encoded (intents[], signatures[], fees[][]) arrays
-    /// @param burnerSignature   Signature from `burnSigner` on `calldataBytes`
-    function gatewayBurn(bytes calldata calldataBytes, bytes calldata burnerSignature) external whenNotPaused {
-        // Verify that the calldata was signed by the expected signer
-        _verifyBurnerSignature(calldataBytes, burnerSignature);
+    /// @param calldataBytes   ABI-encoded (intents[], signatures[], fees[][]) arrays
+    /// @param signature       The signature from a valid burn signer on `calldataBytes`
+    function gatewayBurn(bytes calldata calldataBytes, bytes calldata signature) external whenNotPaused {
+        // Verify that the calldata was signed by a valid burn signer
+        _verifyBurnSignerSignature(calldataBytes, signature);
 
         // Decode the calldata into the intents, signatures, and fees arrays
         (bytes[] memory intents, bytes[] memory signatures, uint256[][] memory fees) =
@@ -189,12 +193,13 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         return BurnIntentLib.getTypedDataHash(intent);
     }
 
-    /// The address with the `burnSigner` role that may sign the calldata for burning tokens that have been minted using
-    /// the `GatewayMinter` contract
+    /// Whether or not an address is a valid burn signer that may sign the calldata for burning tokens that have been
+    /// minted using the `GatewayMinter` contract
     ///
-    /// @return   The address of the burn signer
-    function burnSigner() public view returns (address) {
-        return BurnsStorage.get().burnSigner;
+    /// @param signer   The address to check
+    /// @return         `true` if the address is a valid burn signer, `false` otherwise
+    function isBurnSigner(address signer) public view returns (bool) {
+        return BurnsStorage.get().burnSigners[signer];
     }
 
     /// The address that will receive the onchain fee for burns
@@ -204,18 +209,28 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         return BurnsStorage.get().feeRecipient;
     }
 
-    /// Sets the address that may call `gatewayBurn`
+    /// Adds an address that may sign the calldata for `gatewayBurn`
     ///
     /// @dev May only be called by the `owner` role
     ///
-    /// @param newBurnSigner   The new burn caller address
-    function updateBurnSigner(address newBurnSigner) public onlyOwner {
-        AddressLib._checkNotZeroAddress(newBurnSigner);
+    /// @param signer   The burn signer address to add
+    function addBurnSigner(address signer) public onlyOwner {
+        AddressLib._checkNotZeroAddress(signer);
 
-        BurnsStorage.Data storage $ = BurnsStorage.get();
-        address oldBurnSigner = $.burnSigner;
-        $.burnSigner = newBurnSigner;
-        emit BurnSignerChanged(oldBurnSigner, newBurnSigner);
+        BurnsStorage.get().burnSigners[signer] = true;
+        emit BurnSignerAdded(signer);
+    }
+
+    /// Removes an address from the set of valid burn signers
+    ///
+    /// @dev May only be called by the `owner` role
+    ///
+    /// @param signer   The burn signer address to remove
+    function removeBurnSigner(address signer) public onlyOwner {
+        AddressLib._checkNotZeroAddress(signer);
+
+        BurnsStorage.get().burnSigners[signer] = false;
+        emit BurnSignerRemoved(signer);
     }
 
     /// Sets the address that will receive the fee for burns
@@ -232,19 +247,15 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
         emit FeeRecipientChanged(oldFeeRecipient, newFeeRecipient);
     }
 
-    /// Internal function to verify the signature of the `burnSigner` on the `calldataBytes` input
+    /// Verifies the signature for the calldata of `gatewayBurn`
     ///
-    /// @param calldataBytes     Calldata that includes all of intents, signatures, and fees
-    /// @param burnerSignature   The signature from the `burnSigner` to verify
-    function _verifyBurnerSignature(bytes calldata calldataBytes, bytes calldata burnerSignature) internal view {
-        // Ensure that the signature is the expected length
-        if (burnerSignature.length != 65) {
-            revert InvalidBurnSigner();
-        }
-
-        // Verify the signature and revert if it's invalid
-        address recoveredSigner = ECDSA.recover(keccak256(calldataBytes).toEthSignedMessageHash(), burnerSignature);
-        if (recoveredSigner != BurnsStorage.get().burnSigner) {
+    /// @dev Recovers the signer from the signature and ensures it is a valid burn signer
+    ///
+    /// @param calldataBytes   Calldata that includes all of intents, signatures, and fees
+    /// @param signature       The signature on the `calldataBytes` from a valid burn signer
+    function _verifyBurnSignerSignature(bytes calldata calldataBytes, bytes calldata signature) internal view {
+        address recoveredSigner = ECDSA.recover(keccak256(calldataBytes).toEthSignedMessageHash(), signature);
+        if (!isBurnSigner(recoveredSigner)) {
             revert InvalidBurnSigner();
         }
     }
@@ -504,9 +515,8 @@ contract Burns is GatewayCommon, Balances, Delegation, EIP712Domain {
 library BurnsStorage {
     /// @custom:storage-location erc7201:circle.gateway.Burns
     struct Data {
-        /// The address that may sign the calldata for burning tokens that have been minted using the `GatewayMinter`
-        /// contract
-        address burnSigner;
+        /// The addresses that may sign the calldata for burning tokens that were minted by the `GatewayMinter` contract
+        mapping(address signer => bool valid) burnSigners;
         /// The address that will receive the onchain fee for burns
         address feeRecipient;
     }
