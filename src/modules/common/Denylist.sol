@@ -100,7 +100,7 @@ contract Denylist is Initializable, Ownable2StepUpgradeable {
 
     /// Allows a previously-denylisted address to interact with the contract again
     ///
-    /// @dev May only be called by the `owner` role
+    /// @dev May only be called by the `denylister` role
     ///
     /// @param addr   The address to be allowed
     function unDenylist(address addr) external onlyDenylister {
