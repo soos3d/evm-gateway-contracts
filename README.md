@@ -35,7 +35,9 @@ Before deploying the contracts, ensure you have:
 
 1. Create a `.env` file from `.env.example` and set up environment variables in `.env` file.
 
-2. Verified you have sufficient funds in the deployer account for the target network
+2. Run `source .env` to load the environment variables in your shell.
+
+3. Verified you have sufficient funds in the deployer account for the target network
 
 ### Deploying Contracts
 
