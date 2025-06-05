@@ -23,30 +23,32 @@ import {Script} from "forge-std/Script.sol";
 /**
  * @title Constants
  * @notice Library containing environment-specific constants for deployment
- * @dev Defines constants for three environments: SMOKEBOX, SANDBOX and PROD
+ * @dev Defines constants for three environments: TESTNET_STAGING, TESTNET_PROD and MAINNET_PROD
  */
 library Constants {
-    // Smokebox environment constants
-    bytes32 internal constant SMOKEBOX_WALLET_SALT = bytes32(uint256(0));
-    bytes32 internal constant SMOKEBOX_MINTER_SALT = bytes32(uint256(1));
-    bytes32 internal constant SMOKEBOX_WALLET_PROXY_SALT = bytes32(uint256(0));
-    bytes32 internal constant SMOKEBOX_MINTER_PROXY_SALT = bytes32(uint256(1));
+    // Testnet staging environment constants
+    bytes32 internal constant TESTNET_STAGING_WALLET_SALT = bytes32(uint256(0));
+    bytes32 internal constant TESTNET_STAGING_MINTER_SALT = bytes32(uint256(1));
+    bytes32 internal constant TESTNET_STAGING_WALLET_PROXY_SALT = bytes32(uint256(0));
+    bytes32 internal constant TESTNET_STAGING_MINTER_PROXY_SALT = bytes32(uint256(1));
+    address internal constant TESTNET_STAGING_CREATE2FACTORY_ADDRESS = 0x643151056F7cCCD36030d6507a8C07Ed4a46E8D2;
+    address internal constant TESTNET_STAGING_DEPLOYER_ADDRESS = 0xD1e4098de8667a491Eb2Bf5acf09ED7F67260BCA;
 
-    // Sandbox environment constants
-    bytes32 internal constant SANDBOX_WALLET_SALT = bytes32(uint256(0));
-    bytes32 internal constant SANDBOX_MINTER_SALT = bytes32(uint256(1));
-    bytes32 internal constant SANDBOX_WALLET_PROXY_SALT = bytes32(uint256(0));
-    bytes32 internal constant SANDBOX_MINTER_PROXY_SALT = bytes32(uint256(1));
-    address internal constant SANDBOX_CREATE2FACTORY_ADDRESS = 0x643151056F7cCCD36030d6507a8C07Ed4a46E8D2;
-    address internal constant SANDBOX_DEPLOYER_ADDRESS = 0xD1e4098de8667a491Eb2Bf5acf09ED7F67260BCA;
+    // Testnet prod environment constants
+    bytes32 internal constant TESTNET_PROD_WALLET_SALT = bytes32(uint256(2));
+    bytes32 internal constant TESTNET_PROD_MINTER_SALT = bytes32(uint256(3));
+    bytes32 internal constant TESTNET_PROD_WALLET_PROXY_SALT = bytes32(uint256(2));
+    bytes32 internal constant TESTNET_PROD_MINTER_PROXY_SALT = bytes32(uint256(3));
+    address internal constant TESTNET_PROD_CREATE2FACTORY_ADDRESS = 0x643151056F7cCCD36030d6507a8C07Ed4a46E8D2;
+    address internal constant TESTNET_PROD_DEPLOYER_ADDRESS = 0xD1e4098de8667a491Eb2Bf5acf09ED7F67260BCA;
 
-    // Production environment constants
-    bytes32 internal constant PROD_WALLET_SALT = bytes32(uint256(0));
-    bytes32 internal constant PROD_MINTER_SALT = bytes32(uint256(1));
-    bytes32 internal constant PROD_WALLET_PROXY_SALT = bytes32(uint256(0));
-    bytes32 internal constant PROD_MINTER_PROXY_SALT = bytes32(uint256(1));
-    address internal constant PROD_CREATE2FACTORY_ADDRESS = 0xe7b84D8846c96Bb83155Da5537625c75e42d6E42;
-    address internal constant PROD_DEPLOYER_ADDRESS = 0xadB384F7fa7486422051D2a896417EAAb9E5A9D1;
+    // Mainnet prod environment constants
+    bytes32 internal constant MAINNET_PROD_WALLET_SALT = bytes32(uint256(4));
+    bytes32 internal constant MAINNET_PROD_MINTER_SALT = bytes32(uint256(5));
+    bytes32 internal constant MAINNET_PROD_WALLET_PROXY_SALT = bytes32(uint256(4));
+    bytes32 internal constant MAINNET_PROD_MINTER_PROXY_SALT = bytes32(uint256(5));
+    address internal constant MAINNET_PROD_CREATE2FACTORY_ADDRESS = 0xe7b84D8846c96Bb83155Da5537625c75e42d6E42;
+    address internal constant MAINNET_PROD_DEPLOYER_ADDRESS = 0xadB384F7fa7486422051D2a896417EAAb9E5A9D1;
 }
 
 /**
@@ -72,9 +74,9 @@ struct EnvConfig {
 /**
  * @title EnvSelector
  * @notice Helper contract to select environment configuration based on ENV variable
- * @dev Provides configuration for different deployment environments (SMOKEBOX, SANDBOX, PROD)
+ * @dev Provides configuration for different deployment environments (TESTNET_STAGING, TESTNET_PROD, MAINNET_PROD)
  *      The environment is selected by setting the ENV environment variable before running the script
- *      Default environment is SMOKEBOX if ENV is not specified
+ *      Default environment is TESTNET_STAGING if ENV is not specified
  */
 contract EnvSelector is Script {
     /**
@@ -84,52 +86,52 @@ contract EnvSelector is Script {
      */
     function getEnvironmentConfig() public view returns (EnvConfig memory) {
         // Read environment from forge environment variable, default to SMOKEBOX
-        string memory env = vm.envOr("ENV", string("SMOKEBOX"));
+        string memory env = vm.envOr("ENV", string("TESTNET_STAGING"));
         console.log("Selected environment:", env);
 
         // Select environment configuration based on ENV value
-        if (keccak256(bytes(env)) == keccak256(bytes("PROD"))) {
-            return getProdConfig();
-        } else if (keccak256(bytes(env)) == keccak256(bytes("SANDBOX"))) {
-            return getSandboxConfig();
+        if (keccak256(bytes(env)) == keccak256(bytes("MAINNET_PROD"))) {
+            return getMainnetProdConfig();
+        } else if (keccak256(bytes(env)) == keccak256(bytes("TESTNET_PROD"))) {
+            return getTestnetProdConfig();
         } else {
-            return getSmokeboxConfig();
+            return getTestnetStagingConfig();
         }
     }
 
     /**
-     * @notice Get configuration for the SMOKEBOX environment
-     * @dev Salt value for SMOKEBOX is 0, addresses read from environment variables
-     * @return EnvConfig with SMOKEBOX-specific values
+     * @notice Get configuration for the TESTNET_STAGING environment
+     * @dev Salt value for TESTNET_STAGING is 0, addresses read from environment variables
+     * @return EnvConfig with TESTNET_STAGING-specific values
      */
-    function getSmokeboxConfig() public view returns (EnvConfig memory) {
-        // Read SMOKEBOX specific addresses from environment variables
+    function getTestnetStagingConfig() public view returns (EnvConfig memory) {
+        // Read TESTNET_STAGING specific addresses from environment variables
         address create2Factory = vm.envAddress("CREATE2_FACTORY_ADDRESS");
         address deployer = vm.envAddress("DEPLOYER_ADDRESS");
 
         return EnvConfig({
-            walletSalt: Constants.SMOKEBOX_WALLET_SALT,
-            minterSalt: Constants.SMOKEBOX_MINTER_SALT,
-            walletProxySalt: Constants.SMOKEBOX_WALLET_PROXY_SALT,
-            minterProxySalt: Constants.SMOKEBOX_MINTER_PROXY_SALT,
-            factoryAddress: create2Factory,
-            deployerAddress: deployer
+            walletSalt: Constants.TESTNET_STAGING_WALLET_SALT,
+            minterSalt: Constants.TESTNET_STAGING_MINTER_SALT,
+            walletProxySalt: Constants.TESTNET_STAGING_WALLET_PROXY_SALT,
+            minterProxySalt: Constants.TESTNET_STAGING_MINTER_PROXY_SALT,
+            factoryAddress: Constants.TESTNET_STAGING_CREATE2FACTORY_ADDRESS,
+            deployerAddress: Constants.TESTNET_STAGING_DEPLOYER_ADDRESS
         });
     }
 
     /**
-     * @notice Get configuration for the SANDBOX environment
-     * @dev Salt value for SANDBOX is 1
-     * @return EnvConfig with SANDBOX-specific values
+     * @notice Get configuration for the TESTNET_PROD environment
+     * @dev Salt value for TESTNET_PROD is 1
+     * @return EnvConfig with TESTNET_PROD-specific values
      */
-    function getSandboxConfig() public pure returns (EnvConfig memory) {
+    function getTestnetProdConfig() public pure returns (EnvConfig memory) {
         return EnvConfig({
-            walletSalt: Constants.SANDBOX_WALLET_SALT,
-            minterSalt: Constants.SANDBOX_MINTER_SALT,
-            walletProxySalt: Constants.SANDBOX_WALLET_PROXY_SALT,
-            minterProxySalt: Constants.SANDBOX_MINTER_PROXY_SALT,
-            factoryAddress: Constants.SANDBOX_CREATE2FACTORY_ADDRESS,
-            deployerAddress: Constants.SANDBOX_DEPLOYER_ADDRESS
+            walletSalt: Constants.TESTNET_PROD_WALLET_SALT,
+            minterSalt: Constants.TESTNET_PROD_MINTER_SALT,
+            walletProxySalt: Constants.TESTNET_PROD_WALLET_PROXY_SALT,
+            minterProxySalt: Constants.TESTNET_PROD_MINTER_PROXY_SALT,
+            factoryAddress: Constants.TESTNET_PROD_CREATE2FACTORY_ADDRESS,
+            deployerAddress: Constants.TESTNET_PROD_DEPLOYER_ADDRESS
         });
     }
 
@@ -138,14 +140,14 @@ contract EnvSelector is Script {
      * @dev Salt value for PROD is 2
      * @return EnvConfig with PROD-specific values
      */
-    function getProdConfig() public pure returns (EnvConfig memory) {
+    function getMainnetProdConfig() public pure returns (EnvConfig memory) {
         return EnvConfig({
-            walletSalt: Constants.PROD_WALLET_SALT,
-            minterSalt: Constants.PROD_MINTER_SALT,
-            walletProxySalt: Constants.PROD_WALLET_PROXY_SALT,
-            minterProxySalt: Constants.PROD_MINTER_PROXY_SALT,
-            factoryAddress: Constants.PROD_CREATE2FACTORY_ADDRESS,
-            deployerAddress: Constants.PROD_DEPLOYER_ADDRESS
+            walletSalt: Constants.MAINNET_PROD_WALLET_SALT,
+            minterSalt: Constants.MAINNET_PROD_MINTER_SALT,
+            walletProxySalt: Constants.MAINNET_PROD_WALLET_PROXY_SALT,
+            minterProxySalt: Constants.MAINNET_PROD_MINTER_PROXY_SALT,
+            factoryAddress: Constants.MAINNET_PROD_CREATE2FACTORY_ADDRESS,
+            deployerAddress: Constants.MAINNET_PROD_DEPLOYER_ADDRESS
         });
     }
 }
