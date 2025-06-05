@@ -26,15 +26,15 @@ contract DeployGatewayWalletTest is Test {
 
     function setUp() public {
         // Setup test environment variables
-        vm.setEnv("ENV", "SMOKEBOX");
+        vm.setEnv("ENV", "TESTNET_STAGING");
 
         // Create a factory for deterministic deployments
         address deployerAddress = makeAddr("deployer");
         Create2Factory factory = new Create2Factory(deployerAddress);
 
         // Set required environment variables
-        vm.setEnv("CREATE2_FACTORY_ADDRESS", vm.toString(address(factory)));
-        vm.setEnv("DEPLOYER_ADDRESS", vm.toString(deployerAddress));
+        vm.setEnv("TEST_ONLY_CREATE2_FACTORY_ADDRESS", vm.toString(address(factory)));
+        vm.setEnv("TEST_ONLY_DEPLOYER_ADDRESS", vm.toString(deployerAddress));
         vm.setEnv("GATEWAYWALLET_OWNER_ADDRESS", vm.toString(makeAddr("walletOwner")));
         vm.setEnv("GATEWAYWALLET_PAUSER_ADDRESS", vm.toString(makeAddr("walletPauser")));
         vm.setEnv("GATEWAYWALLET_DENYLISTER_ADDRESS", vm.toString(makeAddr("walletDenylister")));

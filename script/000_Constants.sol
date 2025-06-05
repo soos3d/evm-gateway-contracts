@@ -105,17 +105,19 @@ contract EnvSelector is Script {
      * @return EnvConfig with TESTNET_STAGING-specific values
      */
     function getTestnetStagingConfig() public view returns (EnvConfig memory) {
-        // Read TESTNET_STAGING specific addresses from environment variables
-        address create2Factory = vm.envAddress("CREATE2_FACTORY_ADDRESS");
-        address deployer = vm.envAddress("DEPLOYER_ADDRESS");
+        // For testing purposes, we must override the factory address and deployer address
+        address testCreate2Factory = vm.envAddress("TEST_ONLY_CREATE2_FACTORY_ADDRESS");
+        address testDeployer = vm.envAddress("TEST_ONLY_DEPLOYER_ADDRESS");
 
         return EnvConfig({
             walletSalt: Constants.TESTNET_STAGING_WALLET_SALT,
             minterSalt: Constants.TESTNET_STAGING_MINTER_SALT,
             walletProxySalt: Constants.TESTNET_STAGING_WALLET_PROXY_SALT,
             minterProxySalt: Constants.TESTNET_STAGING_MINTER_PROXY_SALT,
-            factoryAddress: Constants.TESTNET_STAGING_CREATE2FACTORY_ADDRESS,
-            deployerAddress: Constants.TESTNET_STAGING_DEPLOYER_ADDRESS
+            factoryAddress: testCreate2Factory != address(0)
+                ? testCreate2Factory
+                : Constants.TESTNET_STAGING_CREATE2FACTORY_ADDRESS,
+            deployerAddress: testDeployer != address(0) ? testDeployer : Constants.TESTNET_STAGING_DEPLOYER_ADDRESS
         });
     }
 
