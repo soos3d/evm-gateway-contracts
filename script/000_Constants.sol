@@ -37,16 +37,16 @@ library Constants {
     // Testnet prod environment constants
     bytes32 internal constant TESTNET_PROD_WALLET_SALT = bytes32(uint256(2));
     bytes32 internal constant TESTNET_PROD_MINTER_SALT = bytes32(uint256(3));
-    bytes32 internal constant TESTNET_PROD_WALLET_PROXY_SALT = bytes32(uint256(2));
-    bytes32 internal constant TESTNET_PROD_MINTER_PROXY_SALT = bytes32(uint256(3));
+    bytes32 internal constant TESTNET_PROD_WALLET_PROXY_SALT = 0x7efdbac0d0f7f84f61aa3346e0f4dc7bd37c577155f1e01a47fcfaeefd53f894;
+    bytes32 internal constant TESTNET_PROD_MINTER_PROXY_SALT = 0x0bd456b1e61318ffe54f825a932d3297e9dcfc397d204ad32b6aa9b02f0a642d;
     address internal constant TESTNET_PROD_CREATE2FACTORY_ADDRESS = 0x643151056F7cCCD36030d6507a8C07Ed4a46E8D2;
     address internal constant TESTNET_PROD_DEPLOYER_ADDRESS = 0xD1e4098de8667a491Eb2Bf5acf09ED7F67260BCA;
 
     // Mainnet prod environment constants
     bytes32 internal constant MAINNET_PROD_WALLET_SALT = bytes32(uint256(4));
     bytes32 internal constant MAINNET_PROD_MINTER_SALT = bytes32(uint256(5));
-    bytes32 internal constant MAINNET_PROD_WALLET_PROXY_SALT = bytes32(uint256(4));
-    bytes32 internal constant MAINNET_PROD_MINTER_PROXY_SALT = bytes32(uint256(5));
+    bytes32 internal constant MAINNET_PROD_WALLET_PROXY_SALT = 0x7ca52db4fc3f0e0f1f0af08e43e70f149bfbe314de9a1ab13acbe1fc122e8238;
+    bytes32 internal constant MAINNET_PROD_MINTER_PROXY_SALT = 0x6df87339f2bf63538063427ae112ca61dad04e4d35f7f4984fa3f924f7207d67;
     address internal constant MAINNET_PROD_CREATE2FACTORY_ADDRESS = 0xe7b84D8846c96Bb83155Da5537625c75e42d6E42;
     address internal constant MAINNET_PROD_DEPLOYER_ADDRESS = 0xadB384F7fa7486422051D2a896417EAAb9E5A9D1;
 }
@@ -60,7 +60,7 @@ library Constants {
  * @param walletProxySalt The salt value used for GatewayWallet proxy deployment
  * @param minterProxySalt The salt value used for GatewayMinter proxy deployment
  * @param factoryAddress The CREATE2 factory address for deterministic deployment
- * @param deployerAddress The address that will deploy the contracts
+* @param deployerAddress The address that will deploy the contracts
  */
 struct EnvConfig {
     bytes32 walletSalt;

@@ -17,7 +17,8 @@
     "lint:fix": "yarn lint:src --fix && yarn lint:test --fix && yarn lint:script --fix",
     "sizes": "forge build --sizes; ./scripts/contract_sizes.sh",
     "ci": "yarn format && yarn lint && yarn sizes && yarn test:all && echo 'Local CI passed!'",
-    "coverage": "./scripts/coverage.sh"
+    "coverage": "./scripts/coverage.sh",
+    "mine-salts": "./scripts/mine_deployment_salts.sh"
   },
   "license": "Apache-2.0",
   "type": "module",

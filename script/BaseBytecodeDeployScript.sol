@@ -19,6 +19,7 @@ pragma solidity ^0.8.29;
 
 import {Script} from "forge-std/Script.sol";
 import {ICreate2Factory} from "script/interface/ICreate2Factory.sol";
+import {console} from "forge-std/Test.sol";
 
 /// @title BaseBytecodeDeployScript
 /// @notice Base contract for deploying contracts using CREATE2 factory with deterministic addresses
@@ -53,6 +54,11 @@ abstract contract BaseBytecodeDeployScript is Script {
 
         // Deploy contract and execute post-deployment calls using CREATE2 factory
         addr = ICreate2Factory(factory).deployAndMultiCall(0, salt, bytecode, data);
+
+        if (keccak256(bytes(contractFileName)) == keccak256(bytes("ERC1967Proxy.json"))) {
+            console.log("initCodeHash for proxy address", addr, "below:");
+            console.logBytes32(keccak256(bytecode));
+        }
     }
 
     /// @notice Deploys a contract without any post-deployment initialization calls
