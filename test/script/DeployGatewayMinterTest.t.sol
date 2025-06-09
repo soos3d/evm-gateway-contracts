@@ -26,7 +26,7 @@ contract DeployGatewayMinterTest is Test {
 
     function setUp() public {
         // Setup test environment variables
-        vm.setEnv("ENV", "TESTNET_STAGING");
+        vm.setEnv("ENV", "LOCAL");
 
         // Create a factory for deterministic deployments
         address deployerAddress = makeAddr("deployer");
@@ -53,6 +53,6 @@ contract DeployGatewayMinterTest is Test {
         (address placeholderAddress, address implAddress, address proxyAddress) = deployer.run();
         assertEq(placeholderAddress, 0xe47499CE5cAC6230F0131C908322A8f7Cae2a6e2);
         assertEq(implAddress, 0xE391D0A7a8b5A1ACe170BA6Bc901dba115Db6917);
-        assertEq(proxyAddress, 0x8FF0d0665abfFC91452bbf6CE142E3c9E6b0A0c1);
+        assertEq(proxyAddress, 0x67aE3137a870DB22eE541da92EA724C283d8e2CF);
     }
 }

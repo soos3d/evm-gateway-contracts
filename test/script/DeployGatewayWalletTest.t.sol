@@ -26,7 +26,7 @@ contract DeployGatewayWalletTest is Test {
 
     function setUp() public {
         // Setup test environment variables
-        vm.setEnv("ENV", "TESTNET_STAGING");
+        vm.setEnv("ENV", "LOCAL");
 
         // Create a factory for deterministic deployments
         address deployerAddress = makeAddr("deployer");
@@ -54,6 +54,6 @@ contract DeployGatewayWalletTest is Test {
         (address placeholderAddress, address implAddress, address proxyAddress) = deployer.run();
         assertEq(placeholderAddress, 0x6D42049947A98EEde4893117C3dC7B043D002d64);
         assertEq(implAddress, 0x48420F30077A431a721b1E0A0D5aaae3755b8dcD);
-        assertEq(proxyAddress, 0x483e6Cc03E5c6a85d6C1Cb0C6833110e23226EcB);
+        assertEq(proxyAddress, 0xf5e9f2D308db7a134621Dcc3c603A28506605263);
     }
 }
