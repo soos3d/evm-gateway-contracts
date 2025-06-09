@@ -14,15 +14,34 @@ if [ -z "$MINTER_PROXY_INIT_CODE_HASH" ]; then
   exit 1
 fi
 
+# Select prefixes based on environment
+WALLET_PREFIX=""
+MINTER_PREFIX=""
+
+if [[ $ENV == "MAINNET_PROD" ]]
+then
+  WALLET_PREFIX="7777777"
+  MINTER_PREFIX="2222222"
+elif [[ $ENV == "TESTNET_PROD" ]]
+then
+  WALLET_PREFIX="0077777"
+  MINTER_PREFIX="0022222"
+elif [[ $ENV == "TESTNET_STAGING" ]]
+then
+  # 5 = "S" for Staging
+  WALLET_PREFIX="5577777"
+  MINTER_PREFIX="5522222"
+fi
+
 
 # Mine Wallet Proxy salt
 echo "****** Mining salt for GatewayWallet proxy... ******"
 
-cast create2 --starts-with "7777777" --deployer $SALT_MINE_CREATE2_FACTORY_ADDRESS --init-code-hash $WALLET_PROXY_INIT_CODE_HASH
+cast create2 --starts-with "$WALLET_PREFIX" --deployer $SALT_MINE_CREATE2_FACTORY_ADDRESS --init-code-hash $WALLET_PROXY_INIT_CODE_HASH
 
 
 # Mine Minter Proxy salt
 echo -e "\n--------------------------------------------------------------------------------------------------------\n"
 echo "****** Mining salt for GatewayMinter proxy... ******"
 
-cast create2 --starts-with "2222222" --deployer $SALT_MINE_CREATE2_FACTORY_ADDRESS --init-code-hash $MINTER_PROXY_INIT_CODE_HASH
+cast create2 --starts-with "$MINTER_PREFIX" --deployer $SALT_MINE_CREATE2_FACTORY_ADDRESS --init-code-hash $MINTER_PROXY_INIT_CODE_HASH

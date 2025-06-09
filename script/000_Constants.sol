@@ -29,8 +29,10 @@ library Constants {
     // Testnet staging environment constants
     bytes32 internal constant TESTNET_STAGING_WALLET_SALT = bytes32(uint256(0));
     bytes32 internal constant TESTNET_STAGING_MINTER_SALT = bytes32(uint256(1));
-    bytes32 internal constant TESTNET_STAGING_WALLET_PROXY_SALT = bytes32(uint256(0));
-    bytes32 internal constant TESTNET_STAGING_MINTER_PROXY_SALT = bytes32(uint256(1));
+    bytes32 internal constant TESTNET_STAGING_WALLET_PROXY_SALT =
+        0x9cbda7e0f6d60dec396dc2343f58a33bf719a7ea38821e529c66dd5dbfe97323;
+    bytes32 internal constant TESTNET_STAGING_MINTER_PROXY_SALT =
+        0xdd1b1b4c40f09a6d41d3ed71ce3dd136b2e261a5a032ede31264165084c36760;
     address internal constant TESTNET_STAGING_CREATE2FACTORY_ADDRESS = 0x643151056F7cCCD36030d6507a8C07Ed4a46E8D2;
     address internal constant TESTNET_STAGING_DEPLOYER_ADDRESS = 0xD1e4098de8667a491Eb2Bf5acf09ED7F67260BCA;
 
@@ -38,9 +40,9 @@ library Constants {
     bytes32 internal constant TESTNET_PROD_WALLET_SALT = bytes32(uint256(2));
     bytes32 internal constant TESTNET_PROD_MINTER_SALT = bytes32(uint256(3));
     bytes32 internal constant TESTNET_PROD_WALLET_PROXY_SALT =
-        0x7efdbac0d0f7f84f61aa3346e0f4dc7bd37c577155f1e01a47fcfaeefd53f894;
+        0x21bb75deb372a377707a6372a4c1137cec94e9425f0562e95f94eeb0763f7ee6;
     bytes32 internal constant TESTNET_PROD_MINTER_PROXY_SALT =
-        0x0bd456b1e61318ffe54f825a932d3297e9dcfc397d204ad32b6aa9b02f0a642d;
+        0xa7aec328d70f1bf388addc85467318c00d67f2387dd11b7e29404091c4bcb51b;
     address internal constant TESTNET_PROD_CREATE2FACTORY_ADDRESS = 0x643151056F7cCCD36030d6507a8C07Ed4a46E8D2;
     address internal constant TESTNET_PROD_DEPLOYER_ADDRESS = 0xD1e4098de8667a491Eb2Bf5acf09ED7F67260BCA;
 
@@ -98,17 +100,19 @@ contract EnvSelector is Script {
             return getMainnetProdConfig();
         } else if (keccak256(bytes(env)) == keccak256(bytes("TESTNET_PROD"))) {
             return getTestnetProdConfig();
-        } else {
+        } else if (keccak256(bytes(env)) == keccak256(bytes("TESTNET_STAGING"))) {
             return getTestnetStagingConfig();
+        } else {
+            return getLocalConfig();
         }
     }
 
     /**
-     * @notice Get configuration for the TESTNET_STAGING environment
-     * @dev Salt value for TESTNET_STAGING is 0, addresses read from environment variables
-     * @return EnvConfig with TESTNET_STAGING-specific values
+     * @notice Get configuration for the local environment
+     * @dev Addresses read from environment variables
+     * @return EnvConfig with local development values
      */
-    function getTestnetStagingConfig() public view returns (EnvConfig memory) {
+    function getLocalConfig() public view returns (EnvConfig memory) {
         // For testing purposes, we must override the factory address and deployer address
         address testCreate2Factory = vm.envAddress("TEST_ONLY_CREATE2_FACTORY_ADDRESS");
         address testDeployer = vm.envAddress("TEST_ONLY_DEPLOYER_ADDRESS");
@@ -122,6 +126,22 @@ contract EnvSelector is Script {
                 ? testCreate2Factory
                 : Constants.TESTNET_STAGING_CREATE2FACTORY_ADDRESS,
             deployerAddress: testDeployer != address(0) ? testDeployer : Constants.TESTNET_STAGING_DEPLOYER_ADDRESS
+        });
+    }
+
+    /**
+     * @notice Get configuration for the TESTNET_STAGING environment
+     * @dev Salt value for TESTNET_STAGING is 0
+     * @return EnvConfig with TESTNET_STAGING-specific values
+     */
+    function getTestnetStagingConfig() public pure returns (EnvConfig memory) {
+        return EnvConfig({
+            walletSalt: Constants.TESTNET_STAGING_WALLET_SALT,
+            minterSalt: Constants.TESTNET_STAGING_MINTER_SALT,
+            walletProxySalt: Constants.TESTNET_STAGING_WALLET_PROXY_SALT,
+            minterProxySalt: Constants.TESTNET_STAGING_MINTER_PROXY_SALT,
+            factoryAddress: Constants.TESTNET_STAGING_CREATE2FACTORY_ADDRESS,
+            deployerAddress: Constants.TESTNET_STAGING_DEPLOYER_ADDRESS
         });
     }
 

@@ -129,8 +129,12 @@ cast create2 --starts-with $ADDRESS_PREFIX --deployer $DEPLOYER> --init-code-has
 - `INIT_CODE_HASH` is keccak256 hash of initcode + abi-encoded constuctor argument.
 
 We have chosen the following prefixes for our top-level contracts:
-- `GatewayWallet` proxy: `7777777`
-- `GatewayMinter` proxy: `2222222`
+
+| Environment | Network Type | Wallet Prefix | Minter Prefix | Notes |
+|:------------------------:|:------------------------:|:------------------------:|:------------------------:|:------------------------:|
+| Production | Mainnet | 0x7777777 | 0x2222222 |  |
+| Production | Testnet | 0x0077777 | 0x0022222 | Add zero byte to mainnet addresses |
+| Staging | Testnet | 0x5577777 | 0x5522222 | 5 = "S" for Staging |
 
 To find and verify salts for the Wallet and Minter contracts, correctly set the `ENV` and `RPC_URL` environment variables (and possible `TEST_ONLY_CREATE2_FACTORY_ADDRESS` depending on your environment). Use any values for all of the other variables, as they do not matter here.
 
@@ -148,6 +152,7 @@ export SALT_MINE_CREATE2_FACTORY_ADDRESS=
 export WALLET_PROXY_INIT_CODE_HASH=
 export MINTER_PROXY_INIT_CODE_HASH=
 
+# Make sure ENV has been set before calling this command (see .env file)
 yarn mine-salts
 ```
 
