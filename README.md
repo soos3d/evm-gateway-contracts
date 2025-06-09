@@ -49,7 +49,7 @@ Start a local RPC node at http://127.0.0.1:8485 by running `anvil`.
 
 #### Step 2: Deploy Create2Factory Contract
 
-_Only needed for local and SMOKEBOX deployment_
+_Only needed for local deployment_
 
 ##### Local Deployment
 
@@ -62,11 +62,11 @@ forge create Create2Factory -r http://127.0.0.1:8545 --broadcast --private-key $
 - `DEPLOYER_PRIVATE_KEY`: Any key from anvil pre-funded addresses.
 - `DEPLOYER_ADDRESS`: This address should match the $DEPLOYER_ADDRESS in `.env`
 
-Add the deployed Create2Factory contract address to your `.env` file under the variable `CREATE2_FACTORY_ADDRESS`.
+Add the deployed Create2Factory contract address to your `.env` file under the variable `LOCAL_CREATE2_FACTORY_ADDRESS`.
 
-##### SMOKEBOX deployment
+##### Local deployment
 
-Follow the instructions in evm-cctp-contracts-private README to deploy Create2Factory. Update `DEPLOYER_ADDRESS` and `CREATE2_FACTORY_ADDRESS` in `.env`.
+Follow the instructions in evm-cctp-contracts-private README to deploy Create2Factory. Update `LOCAL_DEPLOYER_ADDRESS` and `LOCAL_CREATE2_FACTORY_ADDRESS` in `.env`.
 
 #### Step3: Generate Deployment Transactions for `GatewayWallet` and `GatewayMinter`.
 
@@ -77,7 +77,7 @@ ENV=$ENV forge script script/001_DeployGatewayWallet.sol --rpc-url $RPC_URL -vvv
 ENV=$ENV forge script script/001_DeployGatewayMinter.sol --rpc-url $RPC_URL -vvvv --slow --force
 ```
 
-- `ENV`: Use `SMOKEBOX` for local and SMOKEBOX deployment. Or choose from `SANDBOX` and `PROD`.
+- `ENV`: Use `LOCAL` for local deployment. Or choose from `TESTNET_STAGING`, `TESTNET_PROD`, and `MAINNET_PROD`.
 - `RPC_URL`: The rpc url for the targeted blockchain. use `http://127.0.0.1:8485` for local deployment.
 
 The generated transaction data will be available in the `broadcast/` directory and can be used for signing.
@@ -136,7 +136,7 @@ We have chosen the following prefixes for our top-level contracts:
 | Production | Testnet | 0x0077777 | 0x0022222 | Add zero byte to mainnet addresses |
 | Staging | Testnet | 0x5577777 | 0x5522222 | 5 = "S" for Staging |
 
-To find and verify salts for the Wallet and Minter contracts, correctly set the `ENV` and `RPC_URL` environment variables (and possible `TEST_ONLY_CREATE2_FACTORY_ADDRESS` depending on your environment). Use any values for all of the other variables, as they do not matter here.
+To find and verify salts for the Wallet and Minter contracts, correctly set the `ENV` and `RPC_URL` environment variables (and possible `LOCAL_CREATE2_FACTORY_ADDRESS` depending on your environment). Use any values for all of the other variables, as they do not matter here.
 
 Simulate the deployments by running the below commands and note down the values initCodeHash from the logs of each command
 1. `ENV=$ENV forge script script/001_DeployGatewayWallet.sol --rpc-url $RPC_URL -vv`
@@ -145,7 +145,7 @@ Simulate the deployments by running the below commands and note down the values 
 Then, run the following command:
 
 ```shell
-# Use the same value specified in the 000_Constants.sol or `TEST_ONLY_CREATE2_FACTORY_ADDRESS` (depending on your environment)  
+# Use the same value specified in the 000_Constants.sol or `LOCAL_CREATE2_FACTORY_ADDRESS` (depending on your environment)  
 export SALT_MINE_CREATE2_FACTORY_ADDRESS=
 
 # Use values of previous step's logs
