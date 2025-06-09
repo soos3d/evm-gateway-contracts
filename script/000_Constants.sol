@@ -26,6 +26,12 @@ import {Script} from "forge-std/Script.sol";
  * @dev Defines constants for three environments: TESTNET_STAGING, TESTNET_PROD and MAINNET_PROD
  */
 library Constants {
+    // Local environment constants
+    bytes32 internal constant LOCAL_WALLET_SALT = bytes32(uint256(0));
+    bytes32 internal constant LOCAL_MINTER_SALT = bytes32(uint256(1));
+    bytes32 internal constant LOCAL_WALLET_PROXY_SALT = bytes32(uint256(0));
+    bytes32 internal constant LOCAL_MINTER_PROXY_SALT = bytes32(uint256(1));
+
     // Testnet staging environment constants
     bytes32 internal constant TESTNET_STAGING_WALLET_SALT = bytes32(uint256(0));
     bytes32 internal constant TESTNET_STAGING_MINTER_SALT = bytes32(uint256(1));
@@ -74,9 +80,9 @@ struct EnvConfig {
 /**
  * @title EnvSelector
  * @notice Helper contract to select environment configuration based on ENV variable
- * @dev Provides configuration for different deployment environments (TESTNET_STAGING, TESTNET_PROD, MAINNET_PROD)
+ * @dev Provides configuration for different deployment environments (LOCAL, TESTNET_STAGING, TESTNET_PROD, MAINNET_PROD)
  *      The environment is selected by setting the ENV environment variable before running the script
- *      Default environment is TESTNET_STAGING if ENV is not specified
+ *      Default environment is LOCAL if ENV is not specified
  */
 contract EnvSelector is Script {
     /**
@@ -85,18 +91,39 @@ contract EnvSelector is Script {
      * @return EnvConfig struct containing environment-specific parameters
      */
     function getEnvironmentConfig() public view returns (EnvConfig memory) {
-        // Read environment from forge environment variable, default to SMOKEBOX
-        string memory env = vm.envOr("ENV", string("TESTNET_STAGING"));
+        // Read environment from forge environment variable, default to LOCAL
+        string memory env = vm.envOr("ENV", string("LOCAL"));
         console.log("Selected environment:", env);
 
         // Select environment configuration based on ENV value
-        if (keccak256(bytes(env)) == keccak256(bytes("MAINNET_PROD"))) {
-            return getMainnetProdConfig();
+        if (keccak256(bytes(env)) == keccak256(bytes("LOCAL"))) {
+            return getLocalConfig();
+        } else if (keccak256(bytes(env)) == keccak256(bytes("TESTNET_STAGING"))) {
+            return getTestnetStagingConfig();
         } else if (keccak256(bytes(env)) == keccak256(bytes("TESTNET_PROD"))) {
             return getTestnetProdConfig();
-        } else {
-            return getTestnetStagingConfig();
+        } else if (keccak256(bytes(env)) == keccak256(bytes("MAINNET_PROD"))) {
+            return getMainnetProdConfig();
         }
+    }
+
+    /**
+     * @notice Get configuration for the LOCAL environment
+     * @dev Salt values for LOCAL development environment
+     * @return EnvConfig with LOCAL-specific values
+     */
+    function getLocalConfig() public view returns (EnvConfig memory) {
+        address localCreate2Factory = vm.envAddress("LOCAL_CREATE2_FACTORY_ADDRESS");
+        address localDeployer = vm.envAddress("LOCAL_DEPLOYER_ADDRESS");
+
+        return EnvConfig({
+            walletSalt: Constants.LOCAL_WALLET_SALT,
+            minterSalt: Constants.LOCAL_MINTER_SALT,
+            walletProxySalt: Constants.LOCAL_WALLET_PROXY_SALT,
+            minterProxySalt: Constants.LOCAL_MINTER_PROXY_SALT,
+            factoryAddress: localCreate2Factory,
+            deployerAddress: localDeployer
+        });
     }
 
     /**
@@ -105,19 +132,13 @@ contract EnvSelector is Script {
      * @return EnvConfig with TESTNET_STAGING-specific values
      */
     function getTestnetStagingConfig() public view returns (EnvConfig memory) {
-        // For testing purposes, we must override the factory address and deployer address
-        address testCreate2Factory = vm.envAddress("TEST_ONLY_CREATE2_FACTORY_ADDRESS");
-        address testDeployer = vm.envAddress("TEST_ONLY_DEPLOYER_ADDRESS");
-
         return EnvConfig({
             walletSalt: Constants.TESTNET_STAGING_WALLET_SALT,
             minterSalt: Constants.TESTNET_STAGING_MINTER_SALT,
             walletProxySalt: Constants.TESTNET_STAGING_WALLET_PROXY_SALT,
             minterProxySalt: Constants.TESTNET_STAGING_MINTER_PROXY_SALT,
-            factoryAddress: testCreate2Factory != address(0)
-                ? testCreate2Factory
-                : Constants.TESTNET_STAGING_CREATE2FACTORY_ADDRESS,
-            deployerAddress: testDeployer != address(0) ? testDeployer : Constants.TESTNET_STAGING_DEPLOYER_ADDRESS
+            factoryAddress: Constants.TESTNET_STAGING_CREATE2FACTORY_ADDRESS,
+            deployerAddress: Constants.TESTNET_STAGING_DEPLOYER_ADDRESS
         });
     }
 
