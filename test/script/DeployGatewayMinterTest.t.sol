@@ -26,15 +26,15 @@ contract DeployGatewayMinterTest is Test {
 
     function setUp() public {
         // Setup test environment variables
-        vm.setEnv("ENV", "SMOKEBOX");
+        vm.setEnv("ENV", "LOCAL");
 
         // Create a factory for deterministic deployments
         address deployerAddress = makeAddr("deployer");
         Create2Factory factory = new Create2Factory(deployerAddress);
 
         // Set required environment variables
-        vm.setEnv("CREATE2_FACTORY_ADDRESS", vm.toString(address(factory)));
-        vm.setEnv("DEPLOYER_ADDRESS", vm.toString(deployerAddress));
+        vm.setEnv("LOCAL_CREATE2_FACTORY_ADDRESS", vm.toString(address(factory)));
+        vm.setEnv("LOCAL_DEPLOYER_ADDRESS", vm.toString(deployerAddress));
         vm.setEnv("GATEWAYMINTER_OWNER_ADDRESS", vm.toString(makeAddr("minterOwner")));
         vm.setEnv("GATEWAYMINTER_PAUSER_ADDRESS", vm.toString(makeAddr("minterPauser")));
         vm.setEnv("GATEWAYMINTER_DENYLISTER_ADDRESS", vm.toString(makeAddr("minterDenylister")));
