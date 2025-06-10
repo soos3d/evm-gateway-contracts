@@ -35,24 +35,30 @@ library Constants {
     // Testnet staging environment constants
     bytes32 internal constant TESTNET_STAGING_WALLET_SALT = bytes32(uint256(0));
     bytes32 internal constant TESTNET_STAGING_MINTER_SALT = bytes32(uint256(1));
-    bytes32 internal constant TESTNET_STAGING_WALLET_PROXY_SALT = bytes32(uint256(0));
-    bytes32 internal constant TESTNET_STAGING_MINTER_PROXY_SALT = bytes32(uint256(1));
+    bytes32 internal constant TESTNET_STAGING_WALLET_PROXY_SALT =
+        0x9cbda7e0f6d60dec396dc2343f58a33bf719a7ea38821e529c66dd5dbfe97323;
+    bytes32 internal constant TESTNET_STAGING_MINTER_PROXY_SALT =
+        0xdd1b1b4c40f09a6d41d3ed71ce3dd136b2e261a5a032ede31264165084c36760;
     address internal constant TESTNET_STAGING_CREATE2FACTORY_ADDRESS = 0x643151056F7cCCD36030d6507a8C07Ed4a46E8D2;
     address internal constant TESTNET_STAGING_DEPLOYER_ADDRESS = 0xD1e4098de8667a491Eb2Bf5acf09ED7F67260BCA;
 
     // Testnet prod environment constants
     bytes32 internal constant TESTNET_PROD_WALLET_SALT = bytes32(uint256(2));
     bytes32 internal constant TESTNET_PROD_MINTER_SALT = bytes32(uint256(3));
-    bytes32 internal constant TESTNET_PROD_WALLET_PROXY_SALT = bytes32(uint256(2));
-    bytes32 internal constant TESTNET_PROD_MINTER_PROXY_SALT = bytes32(uint256(3));
+    bytes32 internal constant TESTNET_PROD_WALLET_PROXY_SALT =
+        0x21bb75deb372a377707a6372a4c1137cec94e9425f0562e95f94eeb0763f7ee6;
+    bytes32 internal constant TESTNET_PROD_MINTER_PROXY_SALT =
+        0xa7aec328d70f1bf388addc85467318c00d67f2387dd11b7e29404091c4bcb51b;
     address internal constant TESTNET_PROD_CREATE2FACTORY_ADDRESS = 0x643151056F7cCCD36030d6507a8C07Ed4a46E8D2;
     address internal constant TESTNET_PROD_DEPLOYER_ADDRESS = 0xD1e4098de8667a491Eb2Bf5acf09ED7F67260BCA;
 
     // Mainnet prod environment constants
     bytes32 internal constant MAINNET_PROD_WALLET_SALT = bytes32(uint256(4));
     bytes32 internal constant MAINNET_PROD_MINTER_SALT = bytes32(uint256(5));
-    bytes32 internal constant MAINNET_PROD_WALLET_PROXY_SALT = bytes32(uint256(4));
-    bytes32 internal constant MAINNET_PROD_MINTER_PROXY_SALT = bytes32(uint256(5));
+    bytes32 internal constant MAINNET_PROD_WALLET_PROXY_SALT =
+        0x7ca52db4fc3f0e0f1f0af08e43e70f149bfbe314de9a1ab13acbe1fc122e8238;
+    bytes32 internal constant MAINNET_PROD_MINTER_PROXY_SALT =
+        0x6df87339f2bf63538063427ae112ca61dad04e4d35f7f4984fa3f924f7207d67;
     address internal constant MAINNET_PROD_CREATE2FACTORY_ADDRESS = 0xe7b84D8846c96Bb83155Da5537625c75e42d6E42;
     address internal constant MAINNET_PROD_DEPLOYER_ADDRESS = 0xadB384F7fa7486422051D2a896417EAAb9E5A9D1;
 }
@@ -128,7 +134,7 @@ contract EnvSelector is Script {
 
     /**
      * @notice Get configuration for the TESTNET_STAGING environment
-     * @dev Salt value for TESTNET_STAGING is 0, addresses read from environment variables
+     * @dev Salt value for TESTNET_STAGING is 0
      * @return EnvConfig with TESTNET_STAGING-specific values
      */
     function getTestnetStagingConfig() public view returns (EnvConfig memory) {

@@ -128,6 +128,36 @@ cast create2 --starts-with $ADDRESS_PREFIX --deployer $DEPLOYER> --init-code-has
 - `DEPLOYER` is the address of Create2Factory.
 - `INIT_CODE_HASH` is keccak256 hash of initcode + abi-encoded constuctor argument.
 
+We have chosen the following prefixes for our top-level contracts:
+
+| Environment | Network Type | Wallet Prefix | Minter Prefix | Notes |
+|:------------------------:|:------------------------:|:------------------------:|:------------------------:|:------------------------:|
+| Production | Mainnet | 0x7777777 | 0x2222222 |  |
+| Production | Testnet | 0x0077777 | 0x0022222 | Add zero byte to mainnet addresses |
+| Staging | Testnet | 0x5577777 | 0x5522222 | 5 = "S" for Staging |
+
+To find and verify salts for the Wallet and Minter contracts, correctly set the `ENV` and `RPC_URL` environment variables (and possible `LOCAL_CREATE2_FACTORY_ADDRESS` depending on your environment). Use any values for all of the other variables, as they do not matter here.
+
+Simulate the deployments by running the below commands and note down the values initCodeHash from the logs of each command
+1. `ENV=$ENV forge script script/001_DeployGatewayWallet.sol --rpc-url $RPC_URL -vv`
+2. `ENV=$ENV forge script script/002_DeployGatewayMinter.sol --rpc-url $RPC_URL -vv`
+
+Then, run the following command:
+
+```shell
+# Use the same value specified in the 000_Constants.sol or `LOCAL_CREATE2_FACTORY_ADDRESS` (depending on your environment)  
+export SALT_MINE_CREATE2_FACTORY_ADDRESS=
+
+# Use values of previous step's logs
+export WALLET_PROXY_INIT_CODE_HASH=
+export MINTER_PROXY_INIT_CODE_HASH=
+
+# Make sure ENV has been set before calling this command (see .env file)
+yarn mine-salts
+```
+
+Update the salts in `000_Constants.sol` and re-simulate the deployments to verify that the proxy addresses have been updated to the expected prefixes.
+
 ## Test
 
 ### Unit Tests and Fork Tests (Foundry)
