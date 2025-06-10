@@ -46,7 +46,7 @@ contract DeployGatewayMinter is BaseBytecodeDeployScript {
         address attestationSigner = vm.envAddress("GATEWAYMINTER_ATTESTATION_SIGNER");
 
         address[] memory tokenAuthorities = new address[](1);
-        tokenAuthorities[0] = vm.envAddress("GATEWAYMINTER_TOKEN_AUTH_1");
+        tokenAuthorities[0] = vm.envOr("GATEWAYMINTER_TOKEN_AUTH_1", address(0));
 
         return abi.encodeWithSignature(
             "initialize(address,address,address[],uint32,address,address[])",
