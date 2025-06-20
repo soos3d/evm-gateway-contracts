@@ -21,7 +21,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
 import {Balances} from "src/modules/wallet/Balances.sol";
-import {Delegation} from "src/modules/wallet/Delegation.sol";
 import {WithdrawalDelay} from "src/modules/wallet/WithdrawalDelay.sol";
 import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
@@ -31,19 +30,13 @@ import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
 contract GatewayWalletWithdrawalTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private depositor = makeAddr("depositor");
-    address private delegate = makeAddr("delegate");
+    address private otherUser = makeAddr("otherUser");
+    address private unauthorizedUser = makeAddr("unauthorizedUser");
     address private usdc;
 
     uint256 private initialUsdcBalance = 1000 * 10 ** 6;
     uint256 private initialWithdrawalDelay = 100;
     GatewayWallet private wallet;
-
-    enum WithdrawalType {
-        Direct,
-        Authorized
-    }
-
-    WithdrawalType private withdrawalType;
 
     function setUp() public {
         wallet = deployWalletOnly(owner, ForkTestUtils.forkVars().domain);
@@ -63,22 +56,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    // Modifier to run tests for both direct and authorized withdrawals
-    modifier testWithdrawalTypes() {
-        // Run test for direct withdrawal
-        withdrawalType = WithdrawalType.Direct;
-        _;
-
-        // Run test for authorized withdrawal with a different depositor to prevent state pollution
-        depositor = makeAddr("secondDepositor");
-        setUp();
-        withdrawalType = WithdrawalType.Authorized;
-        vm.startPrank(depositor);
-        wallet.addDelegate(usdc, delegate);
-        vm.stopPrank();
-        _;
-    }
-
     // ===== Helper Functions =====
 
     // Helper function to verify initial state for a depositor
@@ -93,8 +70,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
 
     // Helper function to verify state after withdrawal initiation for a depositor
     function _initiateWithdrawalAndVerifyState(
-        WithdrawalType withdrawalType_,
-        address actor,
         address depositorAddress,
         uint256 withdrawalAmount,
         uint256 expectedAvailableBalance,
@@ -102,23 +77,18 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         uint256 expectedWithdrawableBalance,
         uint256 expectedWithdrawalBlock
     ) internal {
-        vm.startPrank(actor);
+        vm.startPrank(depositorAddress);
         vm.expectEmit(true, true, false, true);
         emit Withdrawals.WithdrawalInitiated(
             usdc,
             depositorAddress,
-            actor,
             withdrawalAmount,
             expectedAvailableBalance,
             expectedWithdrawingBalance,
             expectedWithdrawalBlock
         );
 
-        if (withdrawalType_ == WithdrawalType.Direct) {
-            wallet.initiateWithdrawal(usdc, withdrawalAmount);
-        } else {
-            wallet.initiateWithdrawal(usdc, depositorAddress, withdrawalAmount);
-        }
+        wallet.initiateWithdrawal(usdc, withdrawalAmount);
         vm.stopPrank();
 
         assertEq(wallet.availableBalance(usdc, depositorAddress), expectedAvailableBalance);
@@ -130,21 +100,15 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
 
     // Helper function to verify state after withdrawal completion for a depositor
     function _completeWithdrawalAndVerifyState(
-        WithdrawalType withdrawalType_,
-        address actor,
         address depositorAddress,
-        address recipient,
         uint256 expectedWithdrawalAmount,
         uint256 expectedAvailableBalance
     ) internal {
-        vm.startPrank(actor);
-        vm.expectEmit(true, true, true, true);
-        emit Withdrawals.WithdrawalCompleted(usdc, depositorAddress, recipient, actor, expectedWithdrawalAmount);
-        if (withdrawalType_ == WithdrawalType.Direct) {
-            wallet.withdraw(usdc);
-        } else {
-            wallet.withdraw(usdc, depositorAddress, recipient);
-        }
+        vm.startPrank(depositorAddress);
+        vm.expectEmit(true, true, false, true);
+        emit Withdrawals.WithdrawalCompleted(usdc, depositorAddress, expectedWithdrawalAmount);
+
+        wallet.withdraw(usdc);
         vm.stopPrank();
 
         assertEq(wallet.availableBalance(usdc, depositorAddress), expectedAvailableBalance);
@@ -163,17 +127,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    function test_authorizedInitiateWithdrawal_revertIfValueIsZero() public {
-        vm.startPrank(depositor);
-        wallet.addDelegate(usdc, delegate);
-        vm.stopPrank();
-
-        vm.startPrank(delegate);
-        vm.expectRevert(Withdrawals.WithdrawalValueMustBePositive.selector);
-        wallet.initiateWithdrawal(usdc, depositor, 0);
-        vm.stopPrank();
-    }
-
     function test_directInitiateWithdrawal_revertIfValueExceedsAvailableBalance() public {
         vm.startPrank(depositor);
         vm.expectRevert(Withdrawals.WithdrawalValueExceedsAvailableBalance.selector);
@@ -181,41 +134,7 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    function test_authorizedInitiateWithdrawal_revertIfValueExceedsAvailableBalance() public {
-        vm.startPrank(depositor);
-        wallet.addDelegate(usdc, delegate);
-        vm.stopPrank();
-
-        vm.startPrank(delegate);
-        vm.expectRevert(Withdrawals.WithdrawalValueExceedsAvailableBalance.selector);
-        wallet.initiateWithdrawal(usdc, depositor, 2 * initialUsdcBalance);
-        vm.stopPrank();
-    }
-
-    function test_initiateWithdrawal_revertIfNotAuthorized() public {
-        address unauthorized = makeAddr("unauthorized");
-        vm.startPrank(unauthorized);
-        vm.expectRevert(Delegation.NotAuthorized.selector);
-        wallet.initiateWithdrawal(usdc, depositor, initialUsdcBalance / 4);
-        vm.stopPrank();
-    }
-
     // ===== Basic Error Tests - Withdrawal Completion =====
-
-    function test_withdrawal_revertIfNotAuthorized() public {
-        // First initiate withdrawal as depositor
-        uint256 withdrawalAmount = initialUsdcBalance / 4;
-        vm.startPrank(depositor);
-        wallet.initiateWithdrawal(usdc, withdrawalAmount);
-        vm.stopPrank();
-
-        // Try to complete withdrawal as unauthorized delegate
-        address unauthorized = makeAddr("unauthorized");
-        vm.startPrank(unauthorized);
-        vm.expectRevert(Delegation.NotAuthorized.selector);
-        wallet.withdraw(usdc, depositor, unauthorized);
-        vm.stopPrank();
-    }
 
     function test_directWithdrawal_revertIfNoWithdrawingBalance() public {
         vm.startPrank(depositor);
@@ -224,15 +143,66 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    function test_authorizedWithdrawal_revertIfNoWithdrawingBalance() public {
-        vm.startPrank(depositor);
-        wallet.addDelegate(usdc, delegate);
+    // ===== Authorization Tests =====
+
+    /// Tests that only the depositor can initiate withdrawals (not other users)
+    function test_initiateWithdrawal_revertIfNotDepositor() public {
+        _assertInitialState(depositor);
+
+        uint256 withdrawalAmount = initialUsdcBalance / 4;
+
+        // Try to initiate withdrawal as otherUser - should fail
+        vm.startPrank(otherUser);
+        vm.expectRevert(Withdrawals.WithdrawalValueExceedsAvailableBalance.selector);
+        wallet.initiateWithdrawal(usdc, withdrawalAmount);
         vm.stopPrank();
 
-        vm.startPrank(delegate);
-        vm.expectRevert(Balances.NoWithdrawingBalance.selector);
-        wallet.withdraw(usdc, depositor, delegate);
+        // Try to initiate withdrawal as unauthorizedUser - should fail
+        vm.startPrank(unauthorizedUser);
+        vm.expectRevert(Withdrawals.WithdrawalValueExceedsAvailableBalance.selector);
+        wallet.initiateWithdrawal(usdc, withdrawalAmount);
         vm.stopPrank();
+
+        // Verify depositor can still initiate withdrawal
+        vm.startPrank(depositor);
+        wallet.initiateWithdrawal(usdc, withdrawalAmount);
+        vm.stopPrank();
+    }
+
+    /// Tests that only the depositor can complete withdrawals (not other users)
+    function test_withdraw_revertIfNotDepositor() public {
+        _assertInitialState(depositor);
+
+        uint256 withdrawalAmount = initialUsdcBalance / 4;
+
+        // Depositor initiates withdrawal
+        vm.startPrank(depositor);
+        wallet.initiateWithdrawal(usdc, withdrawalAmount);
+        vm.stopPrank();
+
+        // Fast forward past withdrawal delay
+        vm.roll(vm.getBlockNumber() + wallet.withdrawalDelay());
+
+        // Try to complete withdrawal as otherUser - should fail (no withdrawing balance)
+        vm.startPrank(otherUser);
+        vm.expectRevert(Balances.NoWithdrawingBalance.selector);
+        wallet.withdraw(usdc);
+        vm.stopPrank();
+
+        // Try to complete withdrawal as unauthorizedUser - should fail (no withdrawing balance)
+        vm.startPrank(unauthorizedUser);
+        vm.expectRevert(Balances.NoWithdrawingBalance.selector);
+        wallet.withdraw(usdc);
+        vm.stopPrank();
+
+        // Verify depositor can complete withdrawal
+        uint256 depositorBalanceBefore = IERC20(usdc).balanceOf(depositor);
+        vm.startPrank(depositor);
+        wallet.withdraw(usdc);
+        vm.stopPrank();
+
+        // Verify funds went to the depositor
+        assertEq(IERC20(usdc).balanceOf(depositor), depositorBalanceBefore + withdrawalAmount);
     }
 
     // ===== Full Withdrawal Flow Tests =====
@@ -246,7 +216,7 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 3. Attempt immediate withdrawal -> reverts with WithdrawalNotYetAvailable
     /// 4. Attempt withdrawal one block before delay -> reverts with WithdrawalNotYetAvailable
-    function test_withdrawal_revertIfWithdrawalNotYetAvailable() public testWithdrawalTypes {
+    function test_withdrawal_revertIfWithdrawalNotYetAvailable() public {
         _assertInitialState(depositor);
 
         uint256 withdrawalAmount = initialUsdcBalance / 4;
@@ -255,8 +225,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
         _initiateWithdrawalAndVerifyState(
-            withdrawalType,
-            withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             withdrawalAmount,
             expectedAvailableBalance,
@@ -266,27 +234,18 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         );
 
         // Attempt to withdraw immediately
-        address actor = withdrawalType == WithdrawalType.Direct ? depositor : delegate;
-        vm.startPrank(actor);
+        vm.startPrank(depositor);
         vm.expectRevert(WithdrawalDelay.WithdrawalNotYetAvailable.selector);
-        if (withdrawalType == WithdrawalType.Direct) {
-            wallet.withdraw(usdc);
-        } else {
-            wallet.withdraw(usdc, depositor, actor);
-        }
+        wallet.withdraw(usdc);
         vm.stopPrank();
 
         // Jump to one block before the withdrawal is available
         vm.roll(expectedBlockHeightWhenWithdrawable - 1);
 
         // Attempt to withdraw again
-        vm.startPrank(actor);
+        vm.startPrank(depositor);
         vm.expectRevert(WithdrawalDelay.WithdrawalNotYetAvailable.selector);
-        if (withdrawalType == WithdrawalType.Direct) {
-            wallet.withdraw(usdc);
-        } else {
-            wallet.withdraw(usdc, depositor, actor);
-        }
+        wallet.withdraw(usdc);
         vm.stopPrank();
     }
 
@@ -298,9 +257,9 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
     ///    - withdrawing balance increases by withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 3. After delay:
-    ///    - withdrawing balance transfers to actor (depositor for direct, delegate for authorized)
+    ///    - withdrawing balance transfers to depositor
     ///    - withdrawing balance and withdrawal block reset to 0
-    function test_withdrawal_balancesUpdatedAfterSimpleWithdrawal() public testWithdrawalTypes {
+    function test_withdrawal_balancesUpdatedAfterSimpleWithdrawal() public {
         _assertInitialState(depositor);
         uint256 withdrawalAmount = initialUsdcBalance / 4;
         uint256 expectedAvailableBalance = initialUsdcBalance - withdrawalAmount;
@@ -308,8 +267,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
         _initiateWithdrawalAndVerifyState(
-            withdrawalType,
-            withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             withdrawalAmount,
             expectedAvailableBalance,
@@ -321,11 +278,8 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         // Jump to block height when the withdrawal should be withdrawable
         vm.roll(expectedBlockHeightWhenWithdrawable);
 
-        address actor = withdrawalType == WithdrawalType.Direct ? depositor : delegate;
-        _completeWithdrawalAndVerifyState(
-            withdrawalType, actor, depositor, actor, withdrawalAmount, expectedAvailableBalance
-        );
-        assertEq(IERC20(usdc).balanceOf(actor), withdrawalAmount);
+        _completeWithdrawalAndVerifyState(depositor, withdrawalAmount, expectedAvailableBalance);
+        assertEq(IERC20(usdc).balanceOf(depositor), withdrawalAmount);
     }
 
     // ===== Multiple Withdrawals Tests =====
@@ -343,12 +297,9 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
     ///    - withdrawing balance increases by second withdrawal amount
     ///    - withdrawal block resets to current block + withdrawalDelay (new delay starts from this point)
     /// 4. After delay:
-    ///    - total withdrawing balance transfers to actor (depositor for direct, delegate for authorized)
+    ///    - total withdrawing balance transfers to depositor
     ///    - withdrawing balance and withdrawal block reset to 0
-    function test_withdrawal_secondWithdrawalBeforeFirstWithdrawalIsReadyUpdatesBalancesAndResetsTimer()
-        public
-        testWithdrawalTypes
-    {
+    function test_withdrawal_secondWithdrawalBeforeFirstWithdrawalIsReadyUpdatesBalancesAndResetsTimer() public {
         _assertInitialState(depositor);
 
         // Initiate first withdrawal
@@ -358,8 +309,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedFirstBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
         _initiateWithdrawalAndVerifyState(
-            withdrawalType,
-            withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             firstWithdrawalAmount,
             expectedAvailableBalance,
@@ -378,8 +327,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         expectedWithdrawableBalance = 0;
         uint256 expectedSecondBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
         _initiateWithdrawalAndVerifyState(
-            withdrawalType,
-            withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             secondWithdrawalAmount,
             expectedAvailableBalance,
@@ -391,19 +338,13 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         // Jump to block height when the second withdrawal should be withdrawable
         vm.roll(expectedSecondBlockHeightWhenWithdrawable);
 
-        address actor = withdrawalType == WithdrawalType.Direct ? depositor : delegate;
         _completeWithdrawalAndVerifyState(
-            withdrawalType,
-            actor,
-            depositor,
-            actor,
-            firstWithdrawalAmount + secondWithdrawalAmount,
-            expectedAvailableBalance
+            depositor, firstWithdrawalAmount + secondWithdrawalAmount, expectedAvailableBalance
         );
-        assertEq(IERC20(usdc).balanceOf(actor), firstWithdrawalAmount + secondWithdrawalAmount);
+        assertEq(IERC20(usdc).balanceOf(depositor), firstWithdrawalAmount + secondWithdrawalAmount);
     }
 
-    /// Tests initiating a second withdrawal after first withdrawal is ready
+    /// Tests initiating a second withdrawal after first withdrawal is ready but before completion
     /// State transitions:
     /// 1. Initial state: depositor has initialUsdcBalance in available balance
     /// 2. Initiate first withdrawal of 1/4 initialUsdcBalance:
@@ -416,12 +357,9 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
     ///    - withdrawing balance increases by second withdrawal amount
     ///    - withdrawal block set to current block + withdrawalDelay
     /// 4. After second delay:
-    ///    - total withdrawing balance transfers to actor (depositor for direct, delegate for authorized)
+    ///    - total withdrawing balance transfers to depositor
     ///    - withdrawing balance and withdrawal block reset to 0
-    function test_withdrawal_secondWithdrawalAfterFirstWithdrawalIsReadyUpdatesBalancesAndResetsTimer()
-        public
-        testWithdrawalTypes
-    {
+    function test_withdrawal_secondWithdrawalAfterFirstWithdrawalIsReadyUpdatesBalancesAndResetsTimer() public {
         _assertInitialState(depositor);
 
         // Initiate first withdrawal
@@ -431,8 +369,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedFirstBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
         _initiateWithdrawalAndVerifyState(
-            withdrawalType,
-            withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             firstWithdrawalAmount,
             expectedAvailableBalance,
@@ -451,8 +387,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         expectedWithdrawableBalance = 0;
         uint256 expectedSecondBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
         _initiateWithdrawalAndVerifyState(
-            withdrawalType,
-            withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             secondWithdrawalAmount,
             expectedAvailableBalance,
@@ -464,16 +398,10 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         // Jump to block height when the second withdrawal should be withdrawable
         vm.roll(expectedSecondBlockHeightWhenWithdrawable);
 
-        address actor = withdrawalType == WithdrawalType.Direct ? depositor : delegate;
         _completeWithdrawalAndVerifyState(
-            withdrawalType,
-            actor,
-            depositor,
-            actor,
-            firstWithdrawalAmount + secondWithdrawalAmount,
-            expectedAvailableBalance
+            depositor, firstWithdrawalAmount + secondWithdrawalAmount, expectedAvailableBalance
         );
-        assertEq(IERC20(usdc).balanceOf(actor), firstWithdrawalAmount + secondWithdrawalAmount);
+        assertEq(IERC20(usdc).balanceOf(depositor), firstWithdrawalAmount + secondWithdrawalAmount);
     }
 
     /// Tests two concurrent withdrawals initiated at the same time
@@ -488,9 +416,9 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
     ///    - withdrawing balance increases by second withdrawal amount
     ///    - withdrawal block remains at current block + withdrawalDelay (both withdrawals share same delay)
     /// 4. After delay:
-    ///    - total withdrawing balance transfers to actor (depositor for direct, delegate for authorized)
+    ///    - total withdrawing balance transfers to depositor
     ///    - withdrawing balance and withdrawal block reset to 0
-    function test_withdrawal_twoConcurrentWithdrawalsUpdatesBalances() public testWithdrawalTypes {
+    function test_withdrawal_twoConcurrentWithdrawalsUpdatesBalances() public {
         _assertInitialState(depositor);
 
         // Initiate first withdrawal
@@ -500,8 +428,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedFirstBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
         _initiateWithdrawalAndVerifyState(
-            withdrawalType,
-            withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             firstWithdrawalAmount,
             expectedAvailableBalance,
@@ -516,8 +442,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
         expectedWithdrawableBalance = 0;
         _initiateWithdrawalAndVerifyState(
-            withdrawalType,
-            withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             secondWithdrawalAmount,
             expectedAvailableBalance,
@@ -529,16 +453,10 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         // Jump to when both withdrawals are ready
         vm.roll(expectedFirstBlockHeightWhenWithdrawable);
 
-        address actor = withdrawalType == WithdrawalType.Direct ? depositor : delegate;
         _completeWithdrawalAndVerifyState(
-            withdrawalType,
-            actor,
-            depositor,
-            actor,
-            firstWithdrawalAmount + secondWithdrawalAmount,
-            expectedAvailableBalance
+            depositor, firstWithdrawalAmount + secondWithdrawalAmount, expectedAvailableBalance
         );
-        assertEq(IERC20(usdc).balanceOf(actor), firstWithdrawalAmount + secondWithdrawalAmount);
+        assertEq(IERC20(usdc).balanceOf(depositor), firstWithdrawalAmount + secondWithdrawalAmount);
     }
 
     /// Tests updating withdrawal delay and initiating a new withdrawal
@@ -555,12 +473,9 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
     ///    - withdrawing balance increases by second withdrawal amount
     ///    - withdrawal block set to current block + new withdrawalDelay (uses updated delay)
     /// 5. After delay:
-    ///    - total withdrawing balance transfers to actor (depositor for direct, delegate for authorized)
+    ///    - total withdrawing balance transfers to depositor
     ///    - withdrawing balance and withdrawal block reset to 0
-    function test_withdrawal_updateWithdrawalDelayToShorterDelayThenInitiateWithdrawalAgain()
-        public
-        testWithdrawalTypes
-    {
+    function test_withdrawal_updateWithdrawalDelayToShorterDelayThenInitiateWithdrawalAgain() public {
         _assertInitialState(depositor);
 
         // Initiate first withdrawal
@@ -570,8 +485,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         uint256 expectedWithdrawableBalance = 0;
         uint256 expectedFirstBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
         _initiateWithdrawalAndVerifyState(
-            withdrawalType,
-            withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             firstWithdrawalAmount,
             expectedAvailableBalance,
@@ -592,8 +505,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         expectedWithdrawableBalance = 0;
         uint256 expectedSecondBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
         _initiateWithdrawalAndVerifyState(
-            withdrawalType,
-            withdrawalType == WithdrawalType.Direct ? depositor : delegate,
             depositor,
             secondWithdrawalAmount,
             expectedAvailableBalance,
@@ -605,418 +516,9 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         // Jump to when both withdrawals are ready
         vm.roll(expectedSecondBlockHeightWhenWithdrawable);
 
-        address actor = withdrawalType == WithdrawalType.Direct ? depositor : delegate;
         _completeWithdrawalAndVerifyState(
-            withdrawalType,
-            actor,
-            depositor,
-            actor,
-            firstWithdrawalAmount + secondWithdrawalAmount,
-            expectedAvailableBalance
+            depositor, firstWithdrawalAmount + secondWithdrawalAmount, expectedAvailableBalance
         );
-        assertEq(IERC20(usdc).balanceOf(actor), firstWithdrawalAmount + secondWithdrawalAmount);
-    }
-
-    // ===== Multiple Actor Interaction Tests =====
-
-    /// Tests direct withdrawal initiation followed by authorized completion
-    /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in available balance
-    /// 2. Depositor initiates withdrawal:
-    ///    - available balance decreases by withdrawal amount
-    ///    - withdrawing balance increases by withdrawal amount
-    ///    - withdrawal block set to current block + withdrawalDelay
-    /// 3. After delay:
-    ///    - authorized delegate completes withdrawal and receives funds
-    ///    - withdrawing balance and withdrawal block reset to 0
-    ///    - depositor receives nothing
-    function test_withdrawal_directInitiationAuthorizedCompletion() public {
-        _assertInitialState(depositor);
-
-        // Add delegate authorization
-        vm.startPrank(depositor);
-        wallet.addDelegate(usdc, delegate);
-        vm.stopPrank();
-
-        // Depositor initiates withdrawal directly
-        uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedAvailableBalance = initialUsdcBalance - withdrawalAmount;
-        uint256 expectedWithdrawingBalance = withdrawalAmount;
-        uint256 expectedWithdrawableBalance = 0;
-        uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
-
-        _initiateWithdrawalAndVerifyState(
-            WithdrawalType.Direct,
-            depositor,
-            depositor,
-            withdrawalAmount,
-            expectedAvailableBalance,
-            expectedWithdrawingBalance,
-            expectedWithdrawableBalance,
-            expectedBlockHeightWhenWithdrawable
-        );
-
-        // Jump to block height when the withdrawal should be withdrawable
-        vm.roll(expectedBlockHeightWhenWithdrawable);
-
-        // Authorized delegate completes the withdrawal. Delegate designates themselves as the recipient so they receive the funds, not the depositor
-        _completeWithdrawalAndVerifyState(
-            WithdrawalType.Authorized, // Authorized withdrawal completion by delegate
-            delegate,
-            depositor,
-            delegate,
-            withdrawalAmount,
-            expectedAvailableBalance
-        );
-        assertEq(IERC20(usdc).balanceOf(delegate), withdrawalAmount);
-
-        // Verify the depositor has no balance
-        assertEq(IERC20(usdc).balanceOf(depositor), 0);
-    }
-
-    /// Tests authorized withdrawal initiation followed by direct completion
-    /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in available balance
-    /// 2. Authorized delegate initiates withdrawal:
-    ///    - available balance decreases by withdrawal amount
-    ///    - withdrawing balance increases by withdrawal amount
-    ///    - withdrawal block set to current block + withdrawalDelay
-    /// 3. After delay:
-    ///    - depositor completes withdrawal and receives funds
-    ///    - withdrawing balance and withdrawal block reset to 0
-    ///    - delegate receives nothing
-    function test_withdrawal_authorizedInitiationDirectCompletion() public {
-        _assertInitialState(depositor);
-
-        // Add delegate authorization
-        vm.startPrank(depositor);
-        wallet.addDelegate(usdc, delegate);
-        vm.stopPrank();
-
-        // Delegate initiates withdrawal on behalf of depositor
-        uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedAvailableBalance = initialUsdcBalance - withdrawalAmount;
-        uint256 expectedWithdrawingBalance = withdrawalAmount;
-        uint256 expectedWithdrawableBalance = 0;
-        uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
-
-        _initiateWithdrawalAndVerifyState(
-            WithdrawalType.Authorized,
-            delegate,
-            depositor,
-            withdrawalAmount,
-            expectedAvailableBalance,
-            expectedWithdrawingBalance,
-            expectedWithdrawableBalance,
-            expectedBlockHeightWhenWithdrawable
-        );
-
-        // Jump to block height when the withdrawal should be withdrawable
-        vm.roll(expectedBlockHeightWhenWithdrawable);
-
-        // Depositor completes the withdrawal. Depositor receives the funds, not the delegate
-        _completeWithdrawalAndVerifyState(
-            WithdrawalType.Direct, depositor, depositor, depositor, withdrawalAmount, expectedAvailableBalance
-        );
-        assertEq(IERC20(usdc).balanceOf(depositor), withdrawalAmount);
-
-        // Verify the delegate has no balance
-        assertEq(IERC20(usdc).balanceOf(delegate), 0);
-    }
-
-    /// Tests withdrawal after delegate authorization is revoked
-    /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in available balance
-    /// 2. Authorized delegate initiates withdrawal:
-    ///    - available balance decreases by withdrawal amount
-    ///    - withdrawing balance increases by withdrawal amount
-    ///    - withdrawal block set to current block + withdrawalDelay
-    /// 3. Depositor revokes delegate authorization
-    /// 4. After delay:
-    ///    - delegate's attempt to withdraw fails with NotAuthorized error
-    ///    - depositor completes withdrawal and receives funds
-    ///    - withdrawing balance and withdrawal block reset to 0
-    function test_withdrawal_revokedDelegateAuthorizationDuringWithdrawal() public {
-        _assertInitialState(depositor);
-
-        // Add delegate authorization
-        vm.startPrank(depositor);
-        wallet.addDelegate(usdc, delegate);
-        vm.stopPrank();
-
-        // Delegate initiates withdrawal on behalf of depositor
-        uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedAvailableBalance = initialUsdcBalance - withdrawalAmount;
-        uint256 expectedWithdrawingBalance = withdrawalAmount;
-        uint256 expectedWithdrawableBalance = 0;
-        uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
-
-        _initiateWithdrawalAndVerifyState(
-            WithdrawalType.Authorized,
-            delegate,
-            depositor,
-            withdrawalAmount,
-            expectedAvailableBalance,
-            expectedWithdrawingBalance,
-            expectedWithdrawableBalance,
-            expectedBlockHeightWhenWithdrawable
-        );
-
-        // Depositor revokes delegate's authorization
-        vm.startPrank(depositor);
-        wallet.removeDelegate(usdc, delegate);
-        vm.stopPrank();
-
-        // Jump to block height when the withdrawal should be withdrawable
-        vm.roll(expectedBlockHeightWhenWithdrawable);
-
-        // Delegate tries to complete the withdrawal but should fail
-        vm.startPrank(delegate);
-        vm.expectRevert(Delegation.NotAuthorized.selector);
-        wallet.withdraw(usdc, depositor, delegate);
-        vm.stopPrank();
-
-        // Depositor completes the withdrawal and succeeds
-        _completeWithdrawalAndVerifyState(
-            WithdrawalType.Direct, depositor, depositor, depositor, withdrawalAmount, expectedAvailableBalance
-        );
-        assertEq(IERC20(usdc).balanceOf(depositor), withdrawalAmount);
-
-        // Verify the delegate has no balance
-        assertEq(IERC20(usdc).balanceOf(delegate), 0);
-    }
-
-    /// Tests multiple delegate initiating and completing withdrawals for same depositor
-    /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in available balance
-    /// 2. First delegate initiates withdrawal:
-    ///    - available balance decreases by first withdrawal amount
-    ///    - withdrawing balance increases by first withdrawal amount
-    ///    - withdrawal block set to current block + withdrawalDelay
-    /// 3. Second delegate initiates withdrawal:
-    ///    - available balance decreases by second withdrawal amount
-    ///    - withdrawing balance increases by second withdrawal amount
-    ///    - withdrawal block remains unchanged (both withdrawals share same delay)
-    /// 4. After delay:
-    ///    - first delegate completes withdrawal and receives ENTIRE withdrawing balance
-    ///    - withdrawing balance and withdrawal block reset to 0
-    ///    - second delegate's attempt to withdraw fails (NoWithdrawingBalance) as nothing is left
-    function test_withdrawal_multipleDelegatesForSameDepositor() public {
-        _assertInitialState(depositor);
-
-        // Create a second delegate
-        address delegate2 = makeAddr("delegate2");
-
-        // Add both delegates as authorized
-        vm.startPrank(depositor);
-        wallet.addDelegate(usdc, delegate);
-        wallet.addDelegate(usdc, delegate2);
-        vm.stopPrank();
-
-        // First delegate initiates withdrawal
-        uint256 firstWithdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedAvailableBalance = initialUsdcBalance - firstWithdrawalAmount;
-        uint256 expectedWithdrawingBalance = firstWithdrawalAmount;
-        uint256 expectedWithdrawableBalance = 0;
-        uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
-
-        _initiateWithdrawalAndVerifyState(
-            WithdrawalType.Authorized,
-            delegate,
-            depositor,
-            firstWithdrawalAmount,
-            expectedAvailableBalance,
-            expectedWithdrawingBalance,
-            expectedWithdrawableBalance,
-            expectedBlockHeightWhenWithdrawable
-        );
-
-        // Second delegate initiates withdrawal
-        uint256 secondWithdrawalAmount = initialUsdcBalance / 3;
-        expectedAvailableBalance = initialUsdcBalance - firstWithdrawalAmount - secondWithdrawalAmount;
-        expectedWithdrawingBalance = firstWithdrawalAmount + secondWithdrawalAmount;
-
-        _initiateWithdrawalAndVerifyState(
-            WithdrawalType.Authorized,
-            delegate2,
-            depositor,
-            secondWithdrawalAmount,
-            expectedAvailableBalance,
-            expectedWithdrawingBalance,
-            expectedWithdrawableBalance,
-            expectedBlockHeightWhenWithdrawable // Both withdrawals are ready at the same time
-        );
-
-        // Jump to block height when the withdrawals should be withdrawable
-        vm.roll(expectedBlockHeightWhenWithdrawable);
-
-        // First delegate completes the withdrawal and gets the ENTIRE withdrawing balance
-        _completeWithdrawalAndVerifyState(
-            WithdrawalType.Authorized,
-            delegate,
-            depositor,
-            delegate,
-            firstWithdrawalAmount + secondWithdrawalAmount,
-            expectedAvailableBalance
-        );
-        assertEq(IERC20(usdc).balanceOf(delegate), firstWithdrawalAmount + secondWithdrawalAmount);
-
-        // Second delegate tries to complete their withdrawal but should fail because nothing is left
-        vm.startPrank(delegate2);
-        vm.expectRevert(Balances.NoWithdrawingBalance.selector);
-        wallet.withdraw(usdc, depositor, delegate2);
-        vm.stopPrank();
-
-        // Verify second delegate got nothing
-        assertEq(IERC20(usdc).balanceOf(delegate2), 0);
-
-        // Verify the depositor still has no balance
-        assertEq(IERC20(usdc).balanceOf(depositor), 0);
-    }
-
-    /// Tests same delegate initiating withdrawals for multiple depositors
-    /// State transitions:
-    /// 1. Initial state: multiple depositors each have initialUsdcBalance in available balance
-    /// 2. Delegate initiates withdrawal for first depositor:
-    ///    - first depositor's available balance decreases by withdrawal amount
-    ///    - first depositor's withdrawing balance increases by withdrawal amount
-    ///    - first depositor's withdrawal block set to current block + withdrawalDelay
-    /// 3. Delegate initiates withdrawal for second depositor:
-    ///    - second depositor's available balance decreases by withdrawal amount
-    ///    - second depositor's withdrawing balance increases by withdrawal amount
-    ///    - second depositor's withdrawal block set to current block + withdrawalDelay
-    /// 4. After delay:
-    ///    - delegate completes withdrawal for first depositor and receives those funds
-    ///    - delegate completes withdrawal for second depositor and receives those funds
-    ///    - both depositors' withdrawing balances and withdrawal blocks reset to 0
-    function test_withdrawal_sameDelegateForMultipleDepositors() public {
-        // Setup a second depositor with the same initial balance
-        address depositor2 = makeAddr("depositor2");
-        deal(usdc, depositor2, initialUsdcBalance);
-
-        // Have both depositors deposit funds
-        vm.startPrank(depositor2);
-        IERC20(usdc).approve(address(wallet), initialUsdcBalance);
-        wallet.deposit(usdc, initialUsdcBalance);
-        vm.stopPrank();
-
-        // Verify initial state for both depositors
-        _assertInitialState(depositor);
-        _assertInitialState(depositor2);
-
-        // Add delegate authorization for both depositors
-        vm.startPrank(depositor);
-        wallet.addDelegate(usdc, delegate);
-        vm.stopPrank();
-
-        vm.startPrank(depositor2);
-        wallet.addDelegate(usdc, delegate);
-        vm.stopPrank();
-
-        // Delegate initiates withdrawal for first depositor
-        uint256 withdrawalAmount1 = initialUsdcBalance / 3;
-        uint256 expectedAvailableBalance1 = initialUsdcBalance - withdrawalAmount1;
-        uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
-
-        _initiateWithdrawalAndVerifyState(
-            WithdrawalType.Authorized,
-            delegate,
-            depositor,
-            withdrawalAmount1,
-            expectedAvailableBalance1,
-            withdrawalAmount1,
-            0,
-            expectedBlockHeightWhenWithdrawable
-        );
-
-        // Delegate initiates withdrawal for second depositor
-        uint256 withdrawalAmount2 = initialUsdcBalance / 2;
-        uint256 expectedAvailableBalance2 = initialUsdcBalance - withdrawalAmount2;
-
-        _initiateWithdrawalAndVerifyState(
-            WithdrawalType.Authorized,
-            delegate,
-            depositor2,
-            withdrawalAmount2,
-            expectedAvailableBalance2,
-            withdrawalAmount2,
-            0,
-            expectedBlockHeightWhenWithdrawable
-        );
-
-        // Jump to block height when the withdrawals should be withdrawable
-        vm.roll(expectedBlockHeightWhenWithdrawable);
-
-        // Complete first withdrawal and check balance
-        _completeWithdrawalAndVerifyState(
-            WithdrawalType.Authorized, delegate, depositor, delegate, withdrawalAmount1, expectedAvailableBalance1
-        );
-        assertEq(IERC20(usdc).balanceOf(delegate), withdrawalAmount1);
-
-        // Complete second withdrawal and check balance
-        _completeWithdrawalAndVerifyState(
-            WithdrawalType.Authorized, delegate, depositor2, delegate, withdrawalAmount2, expectedAvailableBalance2
-        );
-        assertEq(IERC20(usdc).balanceOf(delegate), withdrawalAmount1 + withdrawalAmount2);
-
-        // Verify both depositors still have no balance
-        assertEq(IERC20(usdc).balanceOf(depositor), 0);
-        assertEq(IERC20(usdc).balanceOf(depositor2), 0);
-    }
-
-    /// Tests that authorized withdrawals can send funds to a different recipient
-    /// State transitions:
-    /// 1. Initial state: depositor has initialUsdcBalance in available balance
-    /// 2. Authorized delegate initiates withdrawal:
-    ///    - available balance decreases by withdrawal amount
-    ///    - withdrawing balance increases by withdrawal amount
-    ///    - withdrawal block set to current block + withdrawalDelay
-    /// 3. After delay:
-    ///    - delegate completes withdrawal and sends funds to a different recipient
-    ///    - withdrawing balance and withdrawal block reset to 0
-    ///    - recipient receives the funds, not the delegate or depositor
-    function test_withdrawal_authorizedWithdrawalToDifferentRecipient() public {
-        _assertInitialState(depositor);
-
-        // Add delegate authorization
-        vm.startPrank(depositor);
-        wallet.addDelegate(usdc, delegate);
-        vm.stopPrank();
-
-        // Create a recipient address
-        address recipient = makeAddr("recipient");
-
-        // Delegate initiates withdrawal on behalf of depositor
-        uint256 withdrawalAmount = initialUsdcBalance / 4;
-        uint256 expectedAvailableBalance = initialUsdcBalance - withdrawalAmount;
-        uint256 expectedWithdrawingBalance = withdrawalAmount;
-        uint256 expectedWithdrawableBalance = 0;
-        uint256 expectedBlockHeightWhenWithdrawable = vm.getBlockNumber() + wallet.withdrawalDelay();
-
-        _initiateWithdrawalAndVerifyState(
-            WithdrawalType.Authorized,
-            delegate,
-            depositor,
-            withdrawalAmount,
-            expectedAvailableBalance,
-            expectedWithdrawingBalance,
-            expectedWithdrawableBalance,
-            expectedBlockHeightWhenWithdrawable
-        );
-
-        // Jump to block height when the withdrawal should be withdrawable
-        vm.roll(expectedBlockHeightWhenWithdrawable);
-
-        // Delegate completes the withdrawal and sends funds to recipient
-        _completeWithdrawalAndVerifyState(
-            WithdrawalType.Authorized, delegate, depositor, recipient, withdrawalAmount, expectedAvailableBalance
-        );
-
-        // Verify recipient received the funds
-        assertEq(IERC20(usdc).balanceOf(recipient), withdrawalAmount);
-        // Verify delegate got nothing
-        assertEq(IERC20(usdc).balanceOf(delegate), 0);
-        // Verify depositor got nothing
-        assertEq(IERC20(usdc).balanceOf(depositor), 0);
+        assertEq(IERC20(usdc).balanceOf(depositor), firstWithdrawalAmount + secondWithdrawalAmount);
     }
 }
