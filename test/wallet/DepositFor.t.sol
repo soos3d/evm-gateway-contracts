@@ -20,6 +20,7 @@ pragma solidity ^0.8.29;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Test} from "forge-std/Test.sol";
 import {GatewayWallet} from "src/GatewayWallet.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
 import {Deposits} from "src/modules/wallet/Deposits.sol";
 import {DeployUtils} from "test/util/DeployUtils.sol";
 import {ForkTestUtils} from "test/util/ForkTestUtils.sol";
@@ -91,7 +92,7 @@ contract GatewayWalletDepositForTest is Test, DeployUtils {
     function test_depositFor_revertIfDepositorZeroAddress() public {
         vm.startPrank(sender);
         IERC20(usdc).approve(address(wallet), initialUsdcBalance);
-        vm.expectRevert(Deposits.DepositorCannotBeZeroAddress.selector);
+        vm.expectRevert(AddressLib.InvalidAddress.selector);
         wallet.depositFor(usdc, address(0), initialUsdcBalance);
         vm.stopPrank();
     }

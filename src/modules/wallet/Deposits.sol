@@ -22,6 +22,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IBlacklistableToken} from "src/interfaces/IBlacklistableToken.sol";
 import {IERC7597} from "src/interfaces/IERC7597.sol";
 import {IERC7598} from "src/interfaces/IERC7598.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {Pausing} from "src/modules/common/Pausing.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
@@ -50,9 +51,6 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
     ///
     /// @param depositor   The depositor who is blacklisted and cannot receive a deposit
     error DepositorIsBlacklisted(address depositor);
-
-    /// Thrown when the depositor address is the zero address
-    error DepositorCannotBeZeroAddress();
 
     /// Deposit tokens after approving this contract for the token
     ///
@@ -86,9 +84,7 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         tokenSupported(token)
     {
         // Ensure that the depositor is not the zero address
-        if (depositor == address(0)) {
-            revert DepositorCannotBeZeroAddress();
-        }
+        AddressLib._checkNotZeroAddress(depositor);
 
         // Ensure that the depositor is not blacklisted
         if (IBlacklistableToken(token).isBlacklisted(depositor)) {
