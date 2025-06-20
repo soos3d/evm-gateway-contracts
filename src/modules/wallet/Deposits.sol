@@ -51,6 +51,9 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
     /// @param depositor   The depositor who is blacklisted and cannot receive a deposit
     error DepositorIsBlacklisted(address depositor);
 
+    /// Thrown when the depositor address is the zero address
+    error DepositorCannotBeZeroAddress();
+
     /// Deposit tokens after approving this contract for the token
     ///
     /// @dev The resulting balance in this contract belongs to `msg.sender`
@@ -82,6 +85,11 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         notDenylisted(depositor)
         tokenSupported(token)
     {
+        // Ensure that the depositor is not the zero address
+        if (depositor == address(0)) {
+            revert DepositorCannotBeZeroAddress();
+        }
+
         // Ensure that the depositor is not blacklisted
         if (IBlacklistableToken(token).isBlacklisted(depositor)) {
             revert DepositorIsBlacklisted(depositor);
@@ -193,7 +201,7 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         _depositWithAuthorization(token, from, value, validAfter, validBefore, nonce, signature);
     }
 
-    /// Internal implementation for depositing tokens acter approving this contract for the token
+    /// Internal implementation for depositing tokens after approving this contract for the token
     ///
     /// @param token       The token to deposit
     /// @param depositor   The address that should own the resulting balance

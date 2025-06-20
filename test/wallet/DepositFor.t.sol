@@ -88,6 +88,14 @@ contract GatewayWalletDepositForTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
+    function test_depositFor_revertIfDepositorZeroAddress() public {
+        vm.startPrank(sender);
+        IERC20(usdc).approve(address(wallet), initialUsdcBalance);
+        vm.expectRevert(Deposits.DepositorCannotBeZeroAddress.selector);
+        wallet.depositFor(usdc, address(0), initialUsdcBalance);
+        vm.stopPrank();
+    }
+
     function test_depositFor_availableBalanceUpdatedAfterTransfer() public {
         vm.startPrank(sender);
         IERC20(usdc).approve(address(wallet), initialUsdcBalance);
