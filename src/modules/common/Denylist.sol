@@ -98,11 +98,11 @@ contract Denylist is Initializable, Ownable2StepUpgradeable {
         emit Denylisted(addr);
     }
 
-    /// Allows a previously-denylisted address to interact with the contract again
+    /// Removes a previously-denylisted address from the denylist, allowing it to interact with the contract again
     ///
     /// @dev May only be called by the `denylister` role
     ///
-    /// @param addr   The address to be allowed
+    /// @param addr   The address to be removed from the denylist
     function unDenylist(address addr) external onlyDenylister {
         _denylist(addr, false);
         emit UnDenylisted(addr);
