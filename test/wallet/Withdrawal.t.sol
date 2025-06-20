@@ -31,7 +31,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
     address private owner = makeAddr("owner");
     address private depositor = makeAddr("depositor");
     address private otherUser = makeAddr("otherUser");
-    address private unauthorizedUser = makeAddr("unauthorizedUser");
     address private usdc;
 
     uint256 private initialUsdcBalance = 1000 * 10 ** 6;
@@ -49,7 +48,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         wallet.addSupportedToken(usdc);
         wallet.updateWithdrawalDelay(initialWithdrawalDelay);
         vm.stopPrank();
-
         vm.startPrank(depositor);
         IERC20(usdc).approve(address(wallet), initialUsdcBalance);
         wallet.deposit(usdc, initialUsdcBalance);
@@ -120,45 +118,28 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
 
     // ===== Basic Error Tests - Withdrawal Initiation =====
 
-    function test_directInitiateWithdrawal_revertIfValueIsZero() public {
+    function test_initiateWithdrawal_revertIfValueIsZero() public {
         vm.startPrank(depositor);
         vm.expectRevert(Withdrawals.WithdrawalValueMustBePositive.selector);
         wallet.initiateWithdrawal(usdc, 0);
         vm.stopPrank();
     }
 
-    function test_directInitiateWithdrawal_revertIfValueExceedsAvailableBalance() public {
+    function test_initiateWithdrawal_revertIfValueExceedsAvailableBalance() public {
         vm.startPrank(depositor);
         vm.expectRevert(Withdrawals.WithdrawalValueExceedsAvailableBalance.selector);
         wallet.initiateWithdrawal(usdc, 2 * initialUsdcBalance);
         vm.stopPrank();
     }
 
-    // ===== Basic Error Tests - Withdrawal Completion =====
-
-    function test_directWithdrawal_revertIfNoWithdrawingBalance() public {
-        vm.startPrank(depositor);
-        vm.expectRevert(Balances.NoWithdrawingBalance.selector);
-        wallet.withdraw(usdc);
-        vm.stopPrank();
-    }
-
-    // ===== Authorization Tests =====
-
-    /// Tests that only the depositor can initiate withdrawals (not other users)
-    function test_initiateWithdrawal_revertIfNotDepositor() public {
+    /// Tests that users without a balance cannot initiate withdrawals
+    function test_initiateWithdrawal_revertIfUserHasNoBalance() public {
         _assertInitialState(depositor);
 
         uint256 withdrawalAmount = initialUsdcBalance / 4;
 
-        // Try to initiate withdrawal as otherUser - should fail
+        // Try to initiate withdrawal as otherUser who has no deposited balance - should fail
         vm.startPrank(otherUser);
-        vm.expectRevert(Withdrawals.WithdrawalValueExceedsAvailableBalance.selector);
-        wallet.initiateWithdrawal(usdc, withdrawalAmount);
-        vm.stopPrank();
-
-        // Try to initiate withdrawal as unauthorizedUser - should fail
-        vm.startPrank(unauthorizedUser);
         vm.expectRevert(Withdrawals.WithdrawalValueExceedsAvailableBalance.selector);
         wallet.initiateWithdrawal(usdc, withdrawalAmount);
         vm.stopPrank();
@@ -169,8 +150,17 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         vm.stopPrank();
     }
 
-    /// Tests that only the depositor can complete withdrawals (not other users)
-    function test_withdraw_revertIfNotDepositor() public {
+    // ===== Basic Error Tests - Withdrawal Completion =====
+
+    function test_withdraw_revertIfNoWithdrawingBalance() public {
+        vm.startPrank(depositor);
+        vm.expectRevert(Balances.NoWithdrawingBalance.selector);
+        wallet.withdraw(usdc);
+        vm.stopPrank();
+    }
+
+    /// Tests that users without a withdrawing balance cannot complete withdrawals
+    function test_withdraw_revertIfUserHasNoWithdrawingBalance() public {
         _assertInitialState(depositor);
 
         uint256 withdrawalAmount = initialUsdcBalance / 4;
@@ -185,12 +175,6 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
 
         // Try to complete withdrawal as otherUser - should fail (no withdrawing balance)
         vm.startPrank(otherUser);
-        vm.expectRevert(Balances.NoWithdrawingBalance.selector);
-        wallet.withdraw(usdc);
-        vm.stopPrank();
-
-        // Try to complete withdrawal as unauthorizedUser - should fail (no withdrawing balance)
-        vm.startPrank(unauthorizedUser);
         vm.expectRevert(Balances.NoWithdrawingBalance.selector);
         wallet.withdraw(usdc);
         vm.stopPrank();
@@ -344,7 +328,7 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
         assertEq(IERC20(usdc).balanceOf(depositor), firstWithdrawalAmount + secondWithdrawalAmount);
     }
 
-    /// Tests initiating a second withdrawal after first withdrawal is ready but before completion
+    /// Tests initiating a second withdrawal after first withdrawal is ready
     /// State transitions:
     /// 1. Initial state: depositor has initialUsdcBalance in available balance
     /// 2. Initiate first withdrawal of 1/4 initialUsdcBalance:

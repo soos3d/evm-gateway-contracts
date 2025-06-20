@@ -74,8 +74,25 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances {
     /// @param token   The token to initiate a withdrawal for
     /// @param value   The amount to be withdrawn
     function initiateWithdrawal(address token, uint256 value) external whenNotPaused tokenSupported(token) {
-        address depositor = msg.sender;
-        _initiateWithdrawal(token, depositor, value);
+        // Ensure that the withdrawal value is non-zero
+        if (value == 0) {
+            revert WithdrawalValueMustBePositive();
+        }
+
+        // Ensure that the depositor has enough available balance to cover the withdrawal
+        if (value > availableBalance(token, msg.sender)) {
+            revert WithdrawalValueExceedsAvailableBalance();
+        }
+
+        // Move the specified amount from the depositor's available balance to their in-progress withdrawal balance
+        (uint256 remainingAvailable, uint256 totalWithdrawing) = _moveBalanceToWithdrawing(token, msg.sender, value);
+
+        // Calculate and set the block height at which the withdrawal may be completed
+        uint256 withdrawalBlock = block.number + withdrawalDelay();
+        _setWithdrawalBlock(token, msg.sender, withdrawalBlock);
+
+        // Emit an event to signal the withdrawal initiation
+        emit WithdrawalInitiated(token, msg.sender, value, remainingAvailable, totalWithdrawing, withdrawalBlock);
     }
 
     /// Completes a withdrawal that was initiated at least `withdrawalDelay` blocks ago. The funds are sent to
@@ -85,53 +102,17 @@ contract Withdrawals is Pausing, TokenSupport, WithdrawalDelay, Balances {
     ///
     /// @param token   The token to withdraw
     function withdraw(address token) external whenNotPaused tokenSupported(token) {
-        address depositor = msg.sender;
-        _withdraw(token, depositor);
-    }
-
-    /// Internal helper function to initiate a withdrawal
-    ///
-    /// @param token        The token to initiate a withdrawal for
-    /// @param depositor    The owner of the balance from which the withdrawal should come
-    /// @param value        The amount to be withdrawn
-    function _initiateWithdrawal(address token, address depositor, uint256 value) internal {
-        // Ensure that the withdrawal value is non-zero
-        if (value == 0) {
-            revert WithdrawalValueMustBePositive();
-        }
-
-        // Ensure that the depositor has enough available balance to cover the withdrawal
-        if (value > availableBalance(token, depositor)) {
-            revert WithdrawalValueExceedsAvailableBalance();
-        }
-
-        // Move the specified amount from the depositor's available balance to their in-progress withdrawal balance
-        (uint256 remainingAvailable, uint256 totalWithdrawing) = _moveBalanceToWithdrawing(token, depositor, value);
-
-        // Calculate and set the block height at which the withdrawal may be completed
-        uint256 withdrawalBlock = block.number + withdrawalDelay();
-        _setWithdrawalBlock(token, depositor, withdrawalBlock);
-
-        // Emit an event to signal the withdrawal initiation
-        emit WithdrawalInitiated(token, depositor, value, remainingAvailable, totalWithdrawing, withdrawalBlock);
-    }
-
-    /// Internal helper function to complete a withdrawal
-    ///
-    /// @param token        The token to withdraw
-    /// @param depositor    The owner of the balance from which the withdrawal should come
-    function _withdraw(address token, address depositor) internal {
         // Ensure that the withdrawal was initiated at least `withdrawalDelay` blocks ago
-        _ensureWithdrawable(token, depositor);
+        _ensureWithdrawable(token, msg.sender);
 
         // Empty the depositor's in-progress withdrawal balance and reset the withdrawal block
-        uint256 balanceToWithdraw = _emptyWithdrawingBalance(token, depositor);
-        _setWithdrawalBlock(token, depositor, 0);
+        uint256 balanceToWithdraw = _emptyWithdrawingBalance(token, msg.sender);
+        _setWithdrawalBlock(token, msg.sender, 0);
 
         // Transfer the funds to the depositor
-        IERC20(token).safeTransfer(depositor, balanceToWithdraw);
+        IERC20(token).safeTransfer(msg.sender, balanceToWithdraw);
 
         // Emit an event to signal the withdrawal completion
-        emit WithdrawalCompleted(token, depositor, balanceToWithdraw);
+        emit WithdrawalCompleted(token, msg.sender, balanceToWithdraw);
     }
 }
