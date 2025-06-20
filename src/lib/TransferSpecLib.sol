@@ -511,8 +511,12 @@ library TransferSpecLib {
             //
             // Uses staticcall to memory address 4 (identity precompile) which efficiently
             // copies memory regions. This is more gas efficient than copying each field individually.
-            // The pop() removes the success boolean returned by staticcall since we don't need it.
-            pop(staticcall(gas(), 4, footerStart, footerLen, add(ptr, 128), footerLen))
+            // We check the success return value to ensure the precompile call succeeded.
+            let success := staticcall(gas(), 4, footerStart, footerLen, add(ptr, 128), footerLen)
+            if iszero(success) {
+                // Revert if the identity precompile call failed
+                revert(0, 0)
+            }
 
             // Store hookDataHash at 0x1C0 (448-480 bytes)
             mstore(add(ptr, 448), hookDataHash)
