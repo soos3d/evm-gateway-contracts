@@ -40,7 +40,9 @@ import {Withdrawals} from "src/modules/wallet/Withdrawals.sol";
 ///
 /// @notice For same-chain withdrawals, users can obtain an attestation from the API similar to cross-chain mints. They
 /// then call `gatewayMint` on the `GatewayMinter` contract to receive their funds at their specified address, while
-/// their original deposit in the `GatewayWallet` contract is subsequently burned.
+/// their original deposit in the `GatewayWallet` contract is subsequently burned. A fee is deducted from the user's
+/// balance within the `GatewayWallet` contract in addition to the requested amount, since Circle incurs gas costs
+/// for the burn operation.
 ///
 /// @notice To ensure funds are withdrawable even if the API is unavailable, users may withdraw permissionlessly using a
 /// two-step process. First, the user must call `initiateWithdrawal` with the desired withdrawal amount. After a delay,
