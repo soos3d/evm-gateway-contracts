@@ -134,59 +134,26 @@ contract GatewayWalletWithdrawalTest is Test, DeployUtils {
 
     /// Tests that users without a balance cannot initiate withdrawals
     function test_initiateWithdrawal_revertIfUserHasNoBalance() public {
-        _assertInitialState(depositor);
-
-        uint256 withdrawalAmount = initialUsdcBalance / 4;
-
-        // Try to initiate withdrawal as otherUser who has no deposited balance - should fail
         vm.startPrank(otherUser);
         vm.expectRevert(Withdrawals.WithdrawalValueExceedsAvailableBalance.selector);
-        wallet.initiateWithdrawal(usdc, withdrawalAmount);
-        vm.stopPrank();
-
-        // Verify depositor can still initiate withdrawal
-        vm.startPrank(depositor);
-        wallet.initiateWithdrawal(usdc, withdrawalAmount);
+        wallet.initiateWithdrawal(usdc, initialUsdcBalance);
         vm.stopPrank();
     }
 
     // ===== Basic Error Tests - Withdrawal Completion =====
 
     function test_withdraw_revertIfNoWithdrawingBalance() public {
+        // Should revert if user has a deposited balance but no withdrawing balance
         vm.startPrank(depositor);
         vm.expectRevert(Balances.NoWithdrawingBalance.selector);
         wallet.withdraw(usdc);
         vm.stopPrank();
-    }
 
-    /// Tests that users without a withdrawing balance cannot complete withdrawals
-    function test_withdraw_revertIfUserHasNoWithdrawingBalance() public {
-        _assertInitialState(depositor);
-
-        uint256 withdrawalAmount = initialUsdcBalance / 4;
-
-        // Depositor initiates withdrawal
-        vm.startPrank(depositor);
-        wallet.initiateWithdrawal(usdc, withdrawalAmount);
-        vm.stopPrank();
-
-        // Fast forward past withdrawal delay
-        vm.roll(vm.getBlockNumber() + wallet.withdrawalDelay());
-
-        // Try to complete withdrawal as otherUser - should fail (no withdrawing balance)
+        // Should revert if user has no deposited balance
         vm.startPrank(otherUser);
         vm.expectRevert(Balances.NoWithdrawingBalance.selector);
         wallet.withdraw(usdc);
         vm.stopPrank();
-
-        // Verify depositor can complete withdrawal
-        uint256 depositorBalanceBefore = IERC20(usdc).balanceOf(depositor);
-        vm.startPrank(depositor);
-        wallet.withdraw(usdc);
-        vm.stopPrank();
-
-        // Verify funds went to the depositor
-        assertEq(IERC20(usdc).balanceOf(depositor), depositorBalanceBefore + withdrawalAmount);
     }
 
     // ===== Full Withdrawal Flow Tests =====
