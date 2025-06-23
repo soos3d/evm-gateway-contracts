@@ -18,7 +18,6 @@
 pragma solidity ^0.8.29;
 
 import {IERC1155Balance} from "src/interfaces/IERC1155Balance.sol";
-import {TokenSupport} from "src/modules/common/TokenSupport.sol";
 import {WithdrawalDelay} from "src/modules/wallet/WithdrawalDelay.sol";
 
 /// @title BalanceType
@@ -34,7 +33,7 @@ enum BalanceType {
 /// @title Balances
 ///
 /// @notice Manages balances for the `GatewayWallet` contract
-contract Balances is TokenSupport, WithdrawalDelay, IERC1155Balance {
+contract Balances is WithdrawalDelay, IERC1155Balance {
     /// Thrown when the ERC-1155 `balanceOfBatch` function is called with arrays of different lengths
     error InputArrayLengthMismatch();
 
