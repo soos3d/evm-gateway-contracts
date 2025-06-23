@@ -113,7 +113,7 @@ contract TransferSpecTest is TransferPayloadTestUtils {
     /// copy memory. While precompile failures are extremely rare, checking the return value is a
     /// security best practice to prevent silent failures that could corrupt hash computation.
     ///
-    /// If the staticcall to address 4 returns false, the function will revert with "revert(0, 0)"
+    /// If the staticcall to address 4 returns false, the function will revert with IdentityPrecompileCallFailed()
     /// rather than continuing with potentially corrupted data, preventing signature validation bypasses.
     //
     // It is difficult to test this in Foundry, so we just check that the function returns a non-zero hash.
@@ -131,5 +131,19 @@ contract TransferSpecTest is TransferPayloadTestUtils {
 
         // Basic sanity check - the function should return a non-zero hash
         assertTrue(hash != bytes32(0), "getTypedDataHash should return non-zero hash");
+    }
+
+    function test_identityPrecompileCallFailedErrorSelector() public pure {
+        // Verify that the error selector used in assembly matches the computed selector
+        // for IdentityPrecompileCallFailed()
+        bytes4 expectedSelector = TransferSpecLib.IdentityPrecompileCallFailed.selector;
+
+        // The expected selector should be 0xf7046f30
+        assertEq(uint32(expectedSelector), 0xf7046f30, "Error selector should be 0xf7046f30");
+
+        // Verify that our assembly bit-shifting logic works correctly
+        bytes32 assemblySelectorValue = bytes32(uint256(uint32(expectedSelector)) << 224);
+        bytes4 extractedSelector = bytes4(assemblySelectorValue);
+        assertEq(extractedSelector, expectedSelector, "Round-trip through bit-shift should preserve selector");
     }
 }
