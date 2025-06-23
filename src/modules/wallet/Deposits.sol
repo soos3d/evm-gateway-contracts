@@ -208,7 +208,7 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         // Increase the depositor's available balance
         _increaseAvailableBalance(token, depositor, value);
 
-        // Transfer the tokens from the depositor to this contract
+        // Transfer the tokens from the sender to this contract
         IERC20(token).safeTransferFrom(sender, address(this), value);
 
         // Emit an event to signal the deposit
