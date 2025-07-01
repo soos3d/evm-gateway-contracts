@@ -135,7 +135,7 @@ contract DeployedContractValidation is Script {
             minterProxyAddress,
             "tokenMintAuthority(address)",
             abi.encode(vm.envAddress("GATEWAYMINTER_SUPPORTED_TOKEN_1")),
-            abi.encode(vm.envAddress("GATEWAYMINTER_TOKEN_AUTH_1"))
+            abi.encode(vm.envOr("GATEWAYMINTER_TOKEN_AUTH_1", address(0)))
         );
     }
 

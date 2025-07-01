@@ -35,7 +35,9 @@ Before deploying the contracts, ensure you have:
 
 1. Create a `.env` file from `.env.example` and set up environment variables in `.env` file.
 
-2. Verified you have sufficient funds in the deployer account for the target network
+2. Run `source .env` to load the environment variables in your shell.
+
+3. Verified you have sufficient funds in the deployer account for the target network
 
 ### Deploying Contracts
 
@@ -47,7 +49,7 @@ Start a local RPC node at http://127.0.0.1:8485 by running `anvil`.
 
 #### Step 2: Deploy Create2Factory Contract
 
-_Only needed for local and SMOKEBOX deployment_
+_Only needed for local deployment_
 
 ##### Local Deployment
 
@@ -60,11 +62,11 @@ forge create Create2Factory -r http://127.0.0.1:8545 --broadcast --private-key $
 - `DEPLOYER_PRIVATE_KEY`: Any key from anvil pre-funded addresses.
 - `DEPLOYER_ADDRESS`: This address should match the $DEPLOYER_ADDRESS in `.env`
 
-Add the deployed Create2Factory contract address to your `.env` file under the variable `CREATE2_FACTORY_ADDRESS`.
+Add the deployed Create2Factory contract address to your `.env` file under the variable `LOCAL_CREATE2_FACTORY_ADDRESS`.
 
-##### SMOKEBOX deployment
+##### Local deployment
 
-Follow the instructions in evm-cctp-contracts-private README to deploy Create2Factory. Update `DEPLOYER_ADDRESS` and `CREATE2_FACTORY_ADDRESS` in `.env`.
+Follow the instructions in evm-cctp-contracts-private README to deploy Create2Factory. Update `LOCAL_DEPLOYER_ADDRESS` and `LOCAL_CREATE2_FACTORY_ADDRESS` in `.env`.
 
 #### Step3: Generate Deployment Transactions for `GatewayWallet` and `GatewayMinter`.
 
@@ -75,7 +77,7 @@ ENV=$ENV forge script script/001_DeployGatewayWallet.sol --rpc-url $RPC_URL -vvv
 ENV=$ENV forge script script/001_DeployGatewayMinter.sol --rpc-url $RPC_URL -vvvv --slow --force
 ```
 
-- `ENV`: Use `SMOKEBOX` for local and SMOKEBOX deployment. Or choose from `SANDBOX` and `PROD`.
+- `ENV`: Use `LOCAL` for local deployment. Or choose from `TESTNET_STAGING`, `TESTNET_PROD`, and `MAINNET_PROD`.
 - `RPC_URL`: The rpc url for the targeted blockchain. use `http://127.0.0.1:8485` for local deployment.
 
 The generated transaction data will be available in the `broadcast/` directory and can be used for signing.
@@ -125,6 +127,36 @@ cast create2 --starts-with $ADDRESS_PREFIX --deployer $DEPLOYER> --init-code-has
 - `ADDRESS_PREFIX` is the prefix of the address we want to find. Usually set to `00000000` for a gas-efficient address.
 - `DEPLOYER` is the address of Create2Factory.
 - `INIT_CODE_HASH` is keccak256 hash of initcode + abi-encoded constuctor argument.
+
+We have chosen the following prefixes for our top-level contracts:
+
+| Environment | Network Type | Wallet Prefix | Minter Prefix | Notes |
+|:------------------------:|:------------------------:|:------------------------:|:------------------------:|:------------------------:|
+| Production | Mainnet | 0x7777777 | 0x2222222 |  |
+| Production | Testnet | 0x0077777 | 0x0022222 | Add zero byte to mainnet addresses |
+| Staging | Testnet | 0x5577777 | 0x5522222 | 5 = "S" for Staging |
+
+To find and verify salts for the Wallet and Minter contracts, correctly set the `ENV` and `RPC_URL` environment variables (and possible `LOCAL_CREATE2_FACTORY_ADDRESS` depending on your environment). Use any values for all of the other variables, as they do not matter here.
+
+Simulate the deployments by running the below commands and note down the values initCodeHash from the logs of each command
+1. `ENV=$ENV forge script script/001_DeployGatewayWallet.sol --rpc-url $RPC_URL -vv`
+2. `ENV=$ENV forge script script/002_DeployGatewayMinter.sol --rpc-url $RPC_URL -vv`
+
+Then, run the following command:
+
+```shell
+# Use the same value specified in the 000_Constants.sol or `LOCAL_CREATE2_FACTORY_ADDRESS` (depending on your environment)  
+export SALT_MINE_CREATE2_FACTORY_ADDRESS=
+
+# Use values of previous step's logs
+export WALLET_PROXY_INIT_CODE_HASH=
+export MINTER_PROXY_INIT_CODE_HASH=
+
+# Make sure ENV has been set before calling this command (see .env file)
+yarn mine-salts
+```
+
+Update the salts in `000_Constants.sol` and re-simulate the deployments to verify that the proxy addresses have been updated to the expected prefixes.
 
 ## Test
 

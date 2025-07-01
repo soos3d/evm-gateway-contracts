@@ -22,6 +22,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IBlacklistableToken} from "src/interfaces/IBlacklistableToken.sol";
 import {IERC7597} from "src/interfaces/IERC7597.sol";
 import {IERC7598} from "src/interfaces/IERC7598.sol";
+import {AddressLib} from "src/lib/AddressLib.sol";
 import {Denylist} from "src/modules/common/Denylist.sol";
 import {Pausing} from "src/modules/common/Pausing.sol";
 import {TokenSupport} from "src/modules/common/TokenSupport.sol";
@@ -82,6 +83,9 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         notDenylisted(depositor)
         tokenSupported(token)
     {
+        // Ensure that the depositor is not the zero address
+        AddressLib._checkNotZeroAddress(depositor);
+
         // Ensure that the depositor is not blacklisted
         if (IBlacklistableToken(token).isBlacklisted(depositor)) {
             revert DepositorIsBlacklisted(depositor);
@@ -193,7 +197,7 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         _depositWithAuthorization(token, from, value, validAfter, validBefore, nonce, signature);
     }
 
-    /// Internal implementation for depositing tokens acter approving this contract for the token
+    /// Internal implementation for depositing tokens after approving this contract for the token
     ///
     /// @param token       The token to deposit
     /// @param depositor   The address that should own the resulting balance
@@ -208,7 +212,7 @@ contract Deposits is Pausing, Denylist, TokenSupport, Balances {
         // Increase the depositor's available balance
         _increaseAvailableBalance(token, depositor, value);
 
-        // Transfer the tokens from the depositor to this contract
+        // Transfer the tokens from the sender to this contract
         IERC20(token).safeTransferFrom(sender, address(this), value);
 
         // Emit an event to signal the deposit

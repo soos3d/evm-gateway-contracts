@@ -102,6 +102,9 @@ library TransferSpecLib {
     /// @param transferSpecLength       The length of the transfer spec
     error TransferSpecInvalidHookData(uint256 expectedHookDataLength, uint256 transferSpecLength);
 
+    /// Thrown when the identity precompile call fails during typed data hash computation
+    error IdentityPrecompileCallFailed();
+
     // --- Common transfer payload errors ------------------------------------------------------------------------------
 
     /// Thrown when casting data as a transfer payload or transfer payload set and the input is shorter than the
@@ -511,8 +514,17 @@ library TransferSpecLib {
             //
             // Uses staticcall to memory address 4 (identity precompile) which efficiently
             // copies memory regions. This is more gas efficient than copying each field individually.
-            // The pop() removes the success boolean returned by staticcall since we don't need it.
-            pop(staticcall(gas(), 4, footerStart, footerLen, add(ptr, 128), footerLen))
+            // We check the success return value to ensure the precompile call succeeded.
+            let success := staticcall(gas(), 4, footerStart, footerLen, add(ptr, 128), footerLen)
+            if iszero(success) {
+                // Revert with custom error if the identity precompile call failed
+                // IdentityPrecompileCallFailed() selector is keccak256("IdentityPrecompileCallFailed()")[0:4]
+                // = 0xf7046f30 (verifiable with: cast sig "IdentityPrecompileCallFailed()")
+                // Shift left by 224 bits to position selector at most significant bytes for revert(0x00, 0x04)
+                let selector := shl(224, 0xf7046f30)
+                mstore(0x00, selector)
+                revert(0x00, 0x04)
+            }
 
             // Store hookDataHash at 0x1C0 (448-480 bytes)
             mstore(add(ptr, 448), hookDataHash)

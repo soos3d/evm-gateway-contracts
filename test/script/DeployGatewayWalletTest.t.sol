@@ -26,15 +26,15 @@ contract DeployGatewayWalletTest is Test {
 
     function setUp() public {
         // Setup test environment variables
-        vm.setEnv("ENV", "SMOKEBOX");
+        vm.setEnv("ENV", "LOCAL");
 
         // Create a factory for deterministic deployments
         address deployerAddress = makeAddr("deployer");
         Create2Factory factory = new Create2Factory(deployerAddress);
 
         // Set required environment variables
-        vm.setEnv("CREATE2_FACTORY_ADDRESS", vm.toString(address(factory)));
-        vm.setEnv("DEPLOYER_ADDRESS", vm.toString(deployerAddress));
+        vm.setEnv("LOCAL_CREATE2_FACTORY_ADDRESS", vm.toString(address(factory)));
+        vm.setEnv("LOCAL_DEPLOYER_ADDRESS", vm.toString(deployerAddress));
         vm.setEnv("GATEWAYWALLET_OWNER_ADDRESS", vm.toString(makeAddr("walletOwner")));
         vm.setEnv("GATEWAYWALLET_PAUSER_ADDRESS", vm.toString(makeAddr("walletPauser")));
         vm.setEnv("GATEWAYWALLET_DENYLISTER_ADDRESS", vm.toString(makeAddr("walletDenylister")));
@@ -53,7 +53,7 @@ contract DeployGatewayWalletTest is Test {
         // Execute the deployment script and verify the addresses.
         (address placeholderAddress, address implAddress, address proxyAddress) = deployer.run();
         assertEq(placeholderAddress, 0x6D42049947A98EEde4893117C3dC7B043D002d64);
-        assertEq(implAddress, 0x48420F30077A431a721b1E0A0D5aaae3755b8dcD);
+        assertEq(implAddress, 0x9237211f765Eba42441eA2ab5Fa78bfF8AA661f1);
         assertEq(proxyAddress, 0x483e6Cc03E5c6a85d6C1Cb0C6833110e23226EcB);
     }
 }
