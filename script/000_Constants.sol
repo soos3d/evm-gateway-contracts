@@ -94,22 +94,22 @@ contract EnvSelector is Script {
     /**
      * @notice Get configuration for the selected environment
      * @dev Reads ENV environment variable and returns the appropriate configuration
-     * @return EnvConfig struct containing environment-specific parameters
+     * @return config EnvConfig struct containing environment-specific parameters
      */
-    function getEnvironmentConfig() public view returns (EnvConfig memory) {
+    function getEnvironmentConfig() public view returns (EnvConfig memory config) {
         // Read environment from forge environment variable, default to LOCAL
         string memory env = vm.envOr("ENV", string("LOCAL"));
         console.log("Selected environment:", env);
 
         // Select environment configuration based on ENV value
         if (keccak256(bytes(env)) == keccak256(bytes("LOCAL"))) {
-            return getLocalConfig();
+            config = getLocalConfig();
         } else if (keccak256(bytes(env)) == keccak256(bytes("TESTNET_STAGING"))) {
-            return getTestnetStagingConfig();
+            config = getTestnetStagingConfig();
         } else if (keccak256(bytes(env)) == keccak256(bytes("TESTNET_PROD"))) {
-            return getTestnetProdConfig();
+            config = getTestnetProdConfig();
         } else if (keccak256(bytes(env)) == keccak256(bytes("MAINNET_PROD"))) {
-            return getMainnetProdConfig();
+            config = getMainnetProdConfig();
         }
     }
 
@@ -137,7 +137,7 @@ contract EnvSelector is Script {
      * @dev Salt value for TESTNET_STAGING is 0
      * @return EnvConfig with TESTNET_STAGING-specific values
      */
-    function getTestnetStagingConfig() public view returns (EnvConfig memory) {
+    function getTestnetStagingConfig() public pure returns (EnvConfig memory) {
         return EnvConfig({
             walletSalt: Constants.TESTNET_STAGING_WALLET_SALT,
             minterSalt: Constants.TESTNET_STAGING_MINTER_SALT,
