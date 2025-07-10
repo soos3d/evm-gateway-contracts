@@ -96,24 +96,10 @@ This command validates deployed contract bytecode matches expected bytecode and 
 
 #### Update Compiled Contract Artifacts
 
-Run the following command to generate new artifacts if `openzeppelin-contracts` submodule is updated. Current commit hash is `acd4ff7`.
+Run the following command to generate new artifacts for deployment:
 
 ```bash
-forge build lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol --force
-cp out/ERC1967Proxy.sol/ERC1967Proxy.json script/compiled-contract-artifacts/ERC1967Proxy.json
-```
-
-Run the following command to generate new artifacts for Gateway smart contracts.
-
-```bash
-forge build src/UpgradeablePlaceholder.sol --force
-cp out/UpgradeablePlaceholder.sol/UpgradeablePlaceholder.json script/compiled-contract-artifacts/UpgradeablePlaceholder.json
-
-forge build src/GatewayMinter.sol --force
-cp out/GatewayMinter.sol/GatewayMinter.json script/compiled-contract-artifacts/GatewayMinter.json
-
-forge build src/GatewayWallet.sol --force
-cp out/GatewayWallet.sol/GatewayWallet.json script/compiled-contract-artifacts/GatewayWallet.json
+yarn artifacts
 ```
 
 #### Find New Salts

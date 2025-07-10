@@ -38,6 +38,14 @@ jobs:
       - name: Lint
         run: yarn lint
 
+      - name: Ensure artifacts haven't changed
+        run: |
+          yarn artifacts
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Artifacts have changed, please commit the changes.";
+            exit 1;
+          fi
+
       - name: Check contract sizes
         run: yarn sizes
 
