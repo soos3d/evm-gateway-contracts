@@ -33,22 +33,22 @@ library Constants {
     bytes32 internal constant LOCAL_MINTER_PROXY_SALT = bytes32(uint256(1));
 
     // Testnet staging environment constants
-    bytes32 internal constant TESTNET_STAGING_WALLET_SALT = bytes32(uint256(0));
-    bytes32 internal constant TESTNET_STAGING_MINTER_SALT = bytes32(uint256(1));
+    bytes32 internal constant TESTNET_STAGING_WALLET_SALT = bytes32(uint256(10));
+    bytes32 internal constant TESTNET_STAGING_MINTER_SALT = bytes32(uint256(20));
     bytes32 internal constant TESTNET_STAGING_WALLET_PROXY_SALT =
-        0x9cbda7e0f6d60dec396dc2343f58a33bf719a7ea38821e529c66dd5dbfe97323;
+        0x3d21bf46d1a413d4915423a85add52e6df8923c76ec13fbc0a664cfe8d7f2304;
     bytes32 internal constant TESTNET_STAGING_MINTER_PROXY_SALT =
-        0xdd1b1b4c40f09a6d41d3ed71ce3dd136b2e261a5a032ede31264165084c36760;
+        0x7474fa96ff71c561dd1e5cb33805fa64a03b7bed60c04f53ad67b2cb19f8f433;
     address internal constant TESTNET_STAGING_CREATE2FACTORY_ADDRESS = 0x643151056F7cCCD36030d6507a8C07Ed4a46E8D2;
     address internal constant TESTNET_STAGING_DEPLOYER_ADDRESS = 0xD1e4098de8667a491Eb2Bf5acf09ED7F67260BCA;
 
     // Testnet prod environment constants
-    bytes32 internal constant TESTNET_PROD_WALLET_SALT = bytes32(uint256(2));
-    bytes32 internal constant TESTNET_PROD_MINTER_SALT = bytes32(uint256(3));
+    bytes32 internal constant TESTNET_PROD_WALLET_SALT = bytes32(uint256(30));
+    bytes32 internal constant TESTNET_PROD_MINTER_SALT = bytes32(uint256(40));
     bytes32 internal constant TESTNET_PROD_WALLET_PROXY_SALT =
-        0x21bb75deb372a377707a6372a4c1137cec94e9425f0562e95f94eeb0763f7ee6;
+        0x2773766c22eb359b605cbfffc7491bab3abe5c6d8ef9c3193e7226605a809ae1;
     bytes32 internal constant TESTNET_PROD_MINTER_PROXY_SALT =
-        0xa7aec328d70f1bf388addc85467318c00d67f2387dd11b7e29404091c4bcb51b;
+        0x28e5e07be0c6c7ee178fca3ce72763253a5ddacdd2542cd38507d48c49a616f0;
     address internal constant TESTNET_PROD_CREATE2FACTORY_ADDRESS = 0x643151056F7cCCD36030d6507a8C07Ed4a46E8D2;
     address internal constant TESTNET_PROD_DEPLOYER_ADDRESS = 0xD1e4098de8667a491Eb2Bf5acf09ED7F67260BCA;
 
