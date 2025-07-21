@@ -15,7 +15,9 @@ fs_permissions = [{ access = "read", path = "./script/compiled-contract-artifact
 [rpc_endpoints]
 ethereum = "https://ethereum-rpc.publicnode.com"
 ethereum_sepolia = "https://ethereum-sepolia-rpc.publicnode.com"
-arbitrum = "https://arb1.arbitrum.io/rpc"
-arbitrum_sepolia = "https://sepolia-rollup.arbitrum.io/rpc"
 base = "https://mainnet.base.org"
 base_sepolia = "https://sepolia.base.org"
+avalanche_fuji = "https://avalanche-fuji-c-chain-rpc.publicnode.com"
+avalanche_mainnet = "https://avalanche-c-chain-rpc.publicnode.com"
+arbitrum = "https://arb1.arbitrum.io/rpc"
+arbitrum_sepolia = "https://sepolia-rollup.arbitrum.io/rpc"
