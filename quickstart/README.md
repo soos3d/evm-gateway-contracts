@@ -24,7 +24,7 @@ you'll need to fund it with USDC from the [Circle Faucet](https://faucet.circle.
 each chain.
 
 ```bash
-node 1-deposit.js
+node deposit.js
 ```
 
 Once USDC has been deposited, the transactions need to be finalized on each chain before they will be available for use
@@ -35,5 +35,5 @@ Once the deposits are finalized, you can transfer USDC from your Gateway balance
 script:
 
 ```bash
-node 2-transfer.js
+node transfer.js
 ```
