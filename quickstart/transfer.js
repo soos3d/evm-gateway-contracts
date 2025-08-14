@@ -36,13 +36,15 @@ for (const domain of info.domains) {
 
 // Check the account's balances with the Gateway API
 console.log(`Checking balances...`);
-const { balances } = await gatewayClient.balances("USDC", account.address);
+// Use the appropriate account address (smart account or EOA)
+const accountAddress = ethereum.accountAddress;
+const { balances } = await gatewayClient.balances("USDC", accountAddress);
 for (const balance of balances) {
   console.log(`  - ${GatewayClient.CHAINS[balance.domain]}:`, `${balance.balance} USDC`);
 }
 
 // These are the amounts we intent on transferring from each chain we deposited on
-const fromEthereumAmount = 2;
+const fromEthereumAmount = 4;
 const fromAvalancheAmount = 3;
 
 // Check to see if Gateway has picked up the Avalanche deposit yet
@@ -73,14 +75,14 @@ const burnIntents = [
     from: ethereum,
     to: base,
     amount: fromEthereumAmount,
-    recipient: account.address,
+    recipient: accountAddress,
   }),
   burnIntent({
     account,
     from: avalanche,
     to: base,
     amount: fromAvalancheAmount,
-    recipient: account.address,
+    recipient: accountAddress,
   }),
 ];
 
@@ -108,7 +110,7 @@ console.log("Received attestation from Gateway API in", (end - start).toFixed(2)
 // Mint the funds on Base
 console.log("Minting funds on Base...");
 const { attestation, signature } = response;
-const mintTx = await base.gatewayMinter.write.gatewayMint([attestation, signature]);
+const mintTx = await base.gatewayMinterWrite.write.gatewayMint([attestation, signature]);
 await base.client.waitForTransactionReceipt({ hash: mintTx });
 console.log("Done! Transaction hash:", mintTx);
 process.exit(0);

@@ -1,6 +1,7 @@
 {
   "type": "module",
   "dependencies": {
+    "@particle-network/aa": "^2.0.2",
     "dotenv": "^16.5.0",
     "viem": "^2.30.5"
   }

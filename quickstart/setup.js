@@ -17,11 +17,15 @@
  */
 
 import "dotenv/config";
-import { createPublicClient, getContract, http, erc20Abi } from "viem";
+import { createPublicClient, createWalletClient, getContract, http, erc20Abi, custom } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import * as chains from "viem/chains";
 import { GatewayClient } from "./gateway-client.js";
 import { gatewayWalletAbi, gatewayMinterAbi } from "./abis.js";
+import { createSmartAccount, createAAWalletClient, getSmartAccountAddress } from "./aa-config.js";
+
+// Configuration
+const USE_SMART_ACCOUNT = process.env.USE_SMART_ACCOUNT === 'true';
 
 // Addresses that are needed across networks
 const gatewayWalletAddress = "0x0077777d7EBA4688BDeF3E311b846F25870A19B9";
@@ -33,31 +37,107 @@ const usdcAddresses = {
 };
 
 // Sets up a client and contracts for the given chain and account
-function setup(chainName, account) {
+async function setup(chainName, account) {
   const chain = chains[chainName];
-  const client = createPublicClient({
-    chain,
-    account,
-    // Use the flashblocks-aware RPC for Base Sepolia, otherwise use the default RPC
-    transport: chainName === "baseSepolia" ? http("https://sepolia-preconf.base.org") : http(),
-  });
+  
+  let client, walletClient, smartAccount, accountAddress;
+  
+  if (USE_SMART_ACCOUNT) {
+    // Create EOA provider for the smart account
+    const chainId = chain.id;
+    const eoaProvider = {
+      request: async ({ method, params }) => {
+        if (method === 'eth_accounts') {
+          return [account.address];
+        }
+        if (method === 'eth_requestAccounts') {
+          return [account.address];
+        }
+        if (method === 'eth_chainId') {
+          return `0x${chainId.toString(16)}`;
+        }
+        if (method === 'net_version') {
+          return chainId.toString();
+        }
+        if (method === 'personal_sign') {
+          const [message, address] = params;
+          return await account.signMessage({ message });
+        }
+        if (method === 'eth_signTypedData_v4') {
+          const [address, typedData] = params;
+          return await account.signTypedData(JSON.parse(typedData));
+        }
+        if (method === 'eth_sign') {
+          const [address, message] = params;
+          return await account.signMessage({ message });
+        }
+        console.warn(`⚠️  Unsupported method: ${method}, returning null`);
+        return null;
+      }
+    };
+    
+    // Create smart account and AA wallet client
+    smartAccount = createSmartAccount(eoaProvider, chainName);
+    const aaSetup = createAAWalletClient(smartAccount, chain);
+    accountAddress = await getSmartAccountAddress(smartAccount);
+    
+    // Create viem wallet client with AA provider as transport
+    walletClient = createWalletClient({
+      account: {
+        address: accountAddress,
+        type: 'json-rpc'
+      },
+      chain,
+      transport: custom({
+        request: async ({ method, params }) => {
+          return await aaSetup.aaProvider.request({ method, params });
+        }
+      })
+    });
+    
+    // Create public client for reading
+    client = createPublicClient({
+      chain,
+      transport: chainName === "baseSepolia" ? http("https://sepolia-preconf.base.org") : http(),
+    });
+    
+    console.log(`Using Smart Account: ${accountAddress} (owner: ${account.address})`);
+  } else {
+    // Original EOA setup
+    client = createPublicClient({
+      chain,
+      account,
+      transport: chainName === "baseSepolia" ? http("https://sepolia-preconf.base.org") : http(),
+    });
+    walletClient = client;
+    accountAddress = account.address;
+    console.log(`Using EOA: ${accountAddress}`);
+  }
 
   return {
     client,
+    walletClient,
+    smartAccount,
+    accountAddress,
     name: chain.name,
     domain: GatewayClient.DOMAINS[chainName],
     currency: chain.nativeCurrency.symbol,
     usdc: getContract({ address: usdcAddresses[chainName], abi: erc20Abi, client }),
     gatewayWallet: getContract({ address: gatewayWalletAddress, abi: gatewayWalletAbi, client }),
     gatewayMinter: getContract({ address: gatewayMinterAddress, abi: gatewayMinterAbi, client }),
+    // Write contracts use the wallet client (either EOA or AA)
+    usdcWrite: getContract({ address: usdcAddresses[chainName], abi: erc20Abi, client: walletClient }),
+    gatewayWalletWrite: getContract({ address: gatewayWalletAddress, abi: gatewayWalletAbi, client: walletClient }),
+    gatewayMinterWrite: getContract({ address: gatewayMinterAddress, abi: gatewayMinterAbi, client: walletClient }),
   };
 }
 
 // Create an account from the private key set in .env
 export const account = privateKeyToAccount(process.env.PRIVATE_KEY);
 console.log(`Using account: ${account.address}`);
+console.log(`Smart Account mode: ${USE_SMART_ACCOUNT ? 'ENABLED' : 'DISABLED'}`);
 
-// Set up clients and contracts for each chain
-export const ethereum = setup("sepolia", account);
-export const base = setup("baseSepolia", account);
-export const avalanche = setup("avalancheFuji", account);
+// Set up clients and contracts for each chain (now async)
+export const ethereum = await setup("sepolia", account);
+export const base = await setup("baseSepolia", account);
+export const avalanche = await setup("avalancheFuji", account);

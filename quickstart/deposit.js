@@ -17,15 +17,23 @@
  */
 
 import { account, ethereum, base, avalanche } from "./setup.js";
+import { deploySmartAccountIfNeeded } from "./aa-config.js";
 
-const DEPOSIT_AMOUNT = 10_000000n; // 10 USDC
+const decimals = 6; // USDC has 6 decimal places
+const DEPOSIT_AMOUNT = 5_000000n; // 5 USDC
 
 // Deposit into the GatewayWallet contract on all chains
 for (const chain of [ethereum, base, avalanche]) {
+  // Deploy smart account if needed
+  if (chain.smartAccount) {
+    await deploySmartAccountIfNeeded(chain.smartAccount);
+  }
+
   // Get the wallet's current USDC balance
   console.log(`Checking USDC balance on ${chain.name}...`);
-  const balance = await chain.usdc.read.balanceOf([account.address]);
-
+  const balance = await chain.usdc.read.balanceOf([chain.accountAddress]);
+  const readableBalance = Number(balance) / 10 ** decimals;
+  console.log("Current USDC balance:", readableBalance);
   // Ensure the balance is sufficient for the deposit
   if (balance < DEPOSIT_AMOUNT) {
     console.error(`Insufficient USDC balance on ${chain.name}!`);
@@ -34,21 +42,21 @@ for (const chain of [ethereum, base, avalanche]) {
   }
 
   // Attempt to approve and deposit USDC into the GatewayWallet contract, and
-  // handle the error if the waallet does not have enough funds to pay for gas
+  // handle the error if the wallet does not have enough funds to pay for gas
   try {
     // Approve the GatewayWallet contract for the wallet's USDC
     console.log("Approving the GatewayWallet contract for USDC...");
-    const approvalTx = await chain.usdc.write.approve([chain.gatewayWallet.address, DEPOSIT_AMOUNT]);
+    const approvalTx = await chain.usdcWrite.write.approve([chain.gatewayWallet.address, DEPOSIT_AMOUNT]);
     await chain.client.waitForTransactionReceipt({ hash: approvalTx });
     console.log("Done! Transaction hash:", approvalTx);
 
     // Deposit USDC into the GatewayWallet contract
     console.log("Depositing USDC into the GatewayWallet contract...");
-    const depositTx = await chain.gatewayWallet.write.deposit([chain.usdc.address, DEPOSIT_AMOUNT]);
+    const depositTx = await chain.gatewayWalletWrite.write.deposit([chain.usdc.address, DEPOSIT_AMOUNT]);
     await chain.client.waitForTransactionReceipt({ hash: depositTx });
     console.log("Done! Transaction hash:", depositTx);
   } catch (error) {
-    if (error.details.includes("insufficient funds")) {
+    if (error.details && error.details.includes("insufficient funds")) {
       // If there wasn't enough for gas, log an error message and exit
       console.error(`The wallet does not have enough ${chain.currency} to pay for gas on ${chain.name}!`);
       console.error(`Please top up using a faucet.`);
