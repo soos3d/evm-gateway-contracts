@@ -73,6 +73,13 @@ node deposit.js
 node transfer.js
 ```
 
+or
+
+```bash
+USE_SMART_ACCOUNT=true node deposit.js
+USE_SMART_ACCOUNT=true node transfer.js
+```
+
 ## How It Works
 
 ### Architecture
@@ -95,77 +102,3 @@ Private Key → EOA → Smart Account → UserOperation → Bundler → Blockcha
                 ↓
             Paymaster (gasless)
 ```
-
-### Key Features
-
-- **Gasless Transactions**: All testnet transactions are sponsored automatically
-- **Automatic Deployment**: Smart accounts deploy on first transaction
-- **Seamless Integration**: Same API as EOA mode, just with different underlying mechanics
-- **Dual Address Support**: Tracks both EOA address (owner) and smart account address
-
-## Files Modified
-
-- **`aa-config.js`**: New configuration module for Particle AA SDK
-- **`setup.js`**: Enhanced to support both EOA and AA modes
-- **`deposit.js`**: Updated to work with smart accounts and handle deployment
-- **`transfer.js`**: Modified to use correct account addresses for balances and recipients
-- **`.env.example`**: Added Particle Network configuration variables
-
-## Smart Account Benefits
-
-1. **Gasless Experience**: Users don't need native tokens for gas on testnets
-2. **Batch Transactions**: Multiple operations in a single UserOperation
-3. **Advanced Security**: Programmable validation logic
-4. **Recovery Options**: Social recovery and other advanced features
-5. **Sponsored Transactions**: Dapps can sponsor user transactions
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Missing Particle Credentials**: Ensure all three Particle variables are set in `.env`
-2. **Network Mismatch**: Verify chain IDs match between Particle dashboard and code
-3. **Deployment Failures**: Smart accounts auto-deploy, but check gas availability for EOA
-4. **Balance Checks**: Smart account addresses differ from EOA addresses
-
-### Debug Mode
-
-Add logging to see which mode is active:
-
-```javascript
-console.log(`Smart Account mode: ${USE_SMART_ACCOUNT ? 'ENABLED' : 'DISABLED'}`);
-console.log(`Account address: ${chain.accountAddress}`);
-console.log(`EOA address: ${account.address}`);
-```
-
-## Advanced Configuration
-
-### Custom Smart Account Types
-
-Modify `aa-config.js` to use different smart account implementations:
-
-```javascript
-accountContracts: {
-  SIMPLE: [{ version: '1.0.0', chainIds: [chainId] }],
-  LIGHT: [{ version: '1.0.2', chainIds: [chainId] }],
-  COINBASE: [{ version: '1.0.0', chainIds: [chainId] }]
-}
-```
-
-### Custom Paymaster
-
-For mainnet usage, configure custom paymasters:
-
-```javascript
-paymasterApiKeys: [{
-  chainId: 1,
-  apiKey: 'your-biconomy-paymaster-key'
-}]
-```
-
-## Next Steps
-
-- Explore batch transactions for multiple operations
-- Implement session keys for enhanced UX
-- Add social recovery features
-- Integrate with other AA infrastructure providers
