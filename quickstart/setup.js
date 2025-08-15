@@ -61,15 +61,31 @@ async function setup(chainName, account) {
         }
         if (method === 'personal_sign') {
           const [message, address] = params;
-          return await account.signMessage({ message });
+          // Ensure message is properly formatted for signing
+          const signature = await account.signMessage({ 
+            message: typeof message === 'string' && message.startsWith('0x') 
+              ? { raw: message } 
+              : message 
+          });
+          return signature;
         }
         if (method === 'eth_signTypedData_v4') {
           const [address, typedData] = params;
-          return await account.signTypedData(JSON.parse(typedData));
+          const parsedData = typeof typedData === 'string' ? JSON.parse(typedData) : typedData;
+          return await account.signTypedData(parsedData);
         }
         if (method === 'eth_sign') {
           const [address, message] = params;
-          return await account.signMessage({ message });
+          // Handle raw message signing for AA compatibility
+          const signature = await account.signMessage({ 
+            message: { raw: message }
+          });
+          return signature;
+        }
+        if (method === 'eth_sendTransaction') {
+          // Let the AA provider handle transaction sending
+          console.log(`🔄 Delegating eth_sendTransaction to AA provider`);
+          return null;
         }
         console.warn(`⚠️  Unsupported method: ${method}, returning null`);
         return null;

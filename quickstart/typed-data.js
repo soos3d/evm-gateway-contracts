@@ -58,7 +58,7 @@ function addressToBytes32(address) {
   return pad(address.toLowerCase(), { size: 32 });
 }
 
-export function burnIntent({ account, from, to, amount, recipient }) {
+export function burnIntent({ account, from, to, amount, recipient, depositor }) {
   return {
     // Needs to be at least 7 days in the future
     maxBlockHeight: maxUint256,
@@ -73,7 +73,7 @@ export function burnIntent({ account, from, to, amount, recipient }) {
       destinationContract: to.gatewayMinter.address,
       sourceToken: from.usdc.address,
       destinationToken: to.usdc.address,
-      sourceDepositor: account.address,
+      sourceDepositor: depositor || account.address,
       destinationRecipient: recipient || account.address,
       sourceSigner: account.address,
       destinationCaller: zeroAddress, // Anyone can use the attestation

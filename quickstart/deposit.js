@@ -20,13 +20,18 @@ import { account, ethereum, base, avalanche } from "./setup.js";
 import { deploySmartAccountIfNeeded } from "./aa-config.js";
 
 const decimals = 6; // USDC has 6 decimal places
-const DEPOSIT_AMOUNT = 5_000000n; // 5 USDC
+const DEPOSIT_AMOUNT = 1_000000n; // 2 USDC
 
 // Deposit into the GatewayWallet contract on all chains
 for (const chain of [ethereum, base, avalanche]) {
-  // Deploy smart account if needed
+  // Deploy smart account if needed (before any transactions)
   if (chain.smartAccount) {
-    await deploySmartAccountIfNeeded(chain.smartAccount);
+    try {
+      await deploySmartAccountIfNeeded(chain.smartAccount);
+    } catch (error) {
+      console.log(`⚠️  Smart account deployment failed on ${chain.name}, but continuing with transactions...`);
+      console.log(`Error: ${error.message}`);
+    }
   }
 
   // Get the wallet's current USDC balance

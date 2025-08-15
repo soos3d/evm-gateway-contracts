@@ -19,6 +19,19 @@
 import { account, ethereum, base, avalanche } from "./setup.js";
 import { GatewayClient } from "./gateway-client.js";
 import { burnIntent, burnIntentTypedData } from "./typed-data.js";
+import { deploySmartAccountIfNeeded } from "./aa-config.js";
+
+// Deploy smart accounts if needed (before any operations)
+for (const chain of [ethereum, base, avalanche]) {
+  if (chain.smartAccount) {
+    try {
+      await deploySmartAccountIfNeeded(chain.smartAccount);
+    } catch (error) {
+      console.log(`⚠️  Smart account deployment failed on ${chain.name}, but continuing...`);
+      console.log(`Error: ${error.message}`);
+    }
+  }
+}
 
 // Initialize a lightweight API client for interacting with Gateway
 const gatewayClient = new GatewayClient();
@@ -38,14 +51,16 @@ for (const domain of info.domains) {
 console.log(`Checking balances...`);
 // Use the appropriate account address (smart account or EOA)
 const accountAddress = ethereum.accountAddress;
+console.log(`🔍 Using account address for balance check: ${accountAddress}`);
+console.log(`🔍 EOA address: ${account.address}`);
 const { balances } = await gatewayClient.balances("USDC", accountAddress);
 for (const balance of balances) {
   console.log(`  - ${GatewayClient.CHAINS[balance.domain]}:`, `${balance.balance} USDC`);
 }
 
 // These are the amounts we intent on transferring from each chain we deposited on
-const fromEthereumAmount = 4;
-const fromAvalancheAmount = 3;
+const fromEthereumAmount = 1;
+const fromAvalancheAmount = 2;
 
 // Check to see if Gateway has picked up the Avalanche deposit yet
 // Since Avalanche has instant finality, this should be quick
@@ -69,29 +84,78 @@ if (parseFloat(ethereumBalance) < fromEthereumAmount) {
 
 // Construct the burn intents
 console.log("Constructing burn intent set...");
+console.log(`🔍 Creating burn intents with:`);
+console.log(`   - EOA signer: ${account.address}`);
+console.log(`   - Smart account depositor: ${accountAddress}`);
+console.log(`   - Recipient: ${accountAddress}`);
 const burnIntents = [
   burnIntent({
-    account,
+    account, // EOA for signing
     from: ethereum,
     to: base,
     amount: fromEthereumAmount,
     recipient: accountAddress,
+    depositor: accountAddress, // Smart account that made the deposit
   }),
   burnIntent({
-    account,
+    account, // EOA for signing  
     from: avalanche,
     to: base,
     amount: fromAvalancheAmount,
     recipient: accountAddress,
+    depositor: accountAddress, // Smart account that made the deposit
   }),
 ];
+
+// Log the burn intent details
+console.log(`🔍 Burn intent details:`);
+burnIntents.forEach((intent, i) => {
+  console.log(`   Intent ${i + 1}:`);
+  console.log(`     - sourceDepositor: ${intent.spec.sourceDepositor}`);
+  console.log(`     - sourceSigner: ${intent.spec.sourceSigner}`);
+  console.log(`     - destinationRecipient: ${intent.spec.destinationRecipient}`);
+  console.log(`     - amount: ${intent.spec.value}`);
+});
 
 // Sign the burn intents
 console.log("Signing burn intents...");
 const request = await Promise.all(
-  burnIntents.map(async (intent) => {
+  burnIntents.map(async (intent, i) => {
     const typedData = burnIntentTypedData(intent);
-    const signature = await account.signTypedData(typedData);
+    console.log(`🔍 Signing intent ${i + 1} with smart account: ${accountAddress}`);
+    
+    let signature;
+    if (ethereum.smartAccount) {
+      // For AA, use the AA provider to sign with the smart account
+      console.log(`🔍 Using AA provider for signing...`);
+      try {
+        // Convert BigInt values to strings for JSON serialization
+        const serializableTypedData = {
+          ...typedData,
+          message: {
+            ...typedData.message,
+            maxBlockHeight: typedData.message.maxBlockHeight.toString(),
+            maxFee: typedData.message.maxFee.toString(),
+            spec: {
+              ...typedData.message.spec,
+              value: typedData.message.spec.value.toString()
+            }
+          }
+        };
+        
+        signature = await ethereum.walletClient.transport.request({
+          method: 'eth_signTypedData_v4',
+          params: [accountAddress, JSON.stringify(serializableTypedData)]
+        });
+      } catch (error) {
+        console.log(`⚠️  AA signing failed, falling back to EOA: ${error.message}`);
+        signature = await account.signTypedData(typedData);
+      }
+    } else {
+      signature = await account.signTypedData(typedData);
+    }
+    
+    console.log(`✅ Signature generated: ${signature.slice(0, 10)}...`);
     return { burnIntent: typedData.message, signature };
   })
 );
