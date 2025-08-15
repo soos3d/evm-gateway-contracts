@@ -62,8 +62,8 @@ export function burnIntent({ account, from, to, amount, recipient, depositor }) 
   return {
     // Needs to be at least 7 days in the future
     maxBlockHeight: maxUint256,
-    // 1.01 USDC will cover the fee for any chain. In the future, there will be an estimation endpoint for this purpose.
-    maxFee: 1_010000n,
+    // 2.1 USDC will cover the fee for any chain. In the future, there will be an estimation endpoint for this purpose.
+    maxFee: 2_100000n,
     // The details of the transfer
     spec: {
       version: 1,

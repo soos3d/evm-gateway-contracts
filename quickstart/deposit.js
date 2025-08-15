@@ -20,7 +20,7 @@ import { account, ethereum, base, avalanche } from "./setup.js";
 import { deploySmartAccountIfNeeded } from "./aa-config.js";
 
 const decimals = 6; // USDC has 6 decimal places
-const DEPOSIT_AMOUNT = 1_000000n; // 2 USDC
+const DEPOSIT_AMOUNT = 1_000000n; // 4 USDC
 
 // Deposit into the GatewayWallet contract on all chains
 for (const chain of [ethereum, base, avalanche]) {

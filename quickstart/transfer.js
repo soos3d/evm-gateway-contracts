@@ -53,6 +53,7 @@ console.log(`Checking balances...`);
 const accountAddress = ethereum.accountAddress;
 console.log(`🔍 Using account address for balance check: ${accountAddress}`);
 console.log(`🔍 EOA address: ${account.address}`);
+
 const { balances } = await gatewayClient.balances("USDC", accountAddress);
 for (const balance of balances) {
   console.log(`  - ${GatewayClient.CHAINS[balance.domain]}:`, `${balance.balance} USDC`);
@@ -82,6 +83,54 @@ if (parseFloat(ethereumBalance) < fromEthereumAmount) {
   console.error("Gateway deposit picked up on Ethereum!");
 }
 
+// Add EOA as delegate for smart account on source chains only (required for AA transfers)
+if (ethereum.smartAccount) {
+  console.log("🔗 Checking delegation status for Account Abstraction...");
+  
+  // Check if delegation is already set up
+  const delegationNeeded = [];
+  for (const chain of [ethereum, avalanche]) {
+    try {
+      const isAuthorized = await chain.gatewayWallet.read.isAuthorizedForBalance([
+        chain.usdc.address,
+        accountAddress, // smart account as depositor
+        account.address  // EOA as delegate
+      ]);
+      
+      if (isAuthorized) {
+        console.log(`✅ ${chain.name}: EOA already authorized for smart account`);
+      } else {
+        console.log(`❌ ${chain.name}: EOA not authorized, delegation needed`);
+        delegationNeeded.push(chain);
+      }
+    } catch (error) {
+      console.log(`⚠️  Failed to check authorization on ${chain.name}: ${error.message}`);
+      delegationNeeded.push(chain); // Add to delegation needed if we can't check
+    }
+  }
+  
+  // Only add delegates where needed
+  if (delegationNeeded.length > 0) {
+    console.log("🔗 Setting up missing delegates...");
+    for (const chain of delegationNeeded) {
+      try {
+        console.log(`Adding EOA ${account.address} as delegate on ${chain.name}...`);
+        const delegateTx = await chain.gatewayWalletWrite.write.addDelegate([chain.usdc.address, account.address]);
+        await chain.client.waitForTransactionReceipt({ hash: delegateTx });
+        console.log(`✅ Delegate added on ${chain.name}! Transaction hash: ${delegateTx}`);
+      } catch (error) {
+        console.log(`⚠️  Failed to add delegate on ${chain.name}: ${error.message}`);
+      }
+    }
+    
+    // Wait for the Gateway API to recognize the new delegation
+    console.log("⏳ Waiting for Gateway API to recognize delegation...");
+    await new Promise(resolve => setTimeout(resolve, 5000));
+  } else {
+    console.log("✅ All delegations already in place!");
+  }
+}
+
 // Construct the burn intents
 console.log("Constructing burn intent set...");
 console.log(`🔍 Creating burn intents with:`);
@@ -98,7 +147,7 @@ const burnIntents = [
     depositor: accountAddress, // Smart account that made the deposit
   }),
   burnIntent({
-    account, // EOA for signing  
+    account, // EOA for signing
     from: avalanche,
     to: base,
     amount: fromAvalancheAmount,
