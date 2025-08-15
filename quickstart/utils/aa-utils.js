@@ -31,19 +31,23 @@
 export async function executeWithRetry(contract, functionName, args, options = {}) {
   const maxRetries = options.maxRetries || 3;
   const retryDelay = options.retryDelay || 2000; // 2 seconds
+  const silent = options.silent || false;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`🔄 Attempt ${attempt}/${maxRetries}: Executing ${functionName}...`);
-      
-      // Add a small delay between attempts to allow nonce to sync
-      if (attempt > 1) {
-        console.log(`⏳ Waiting ${retryDelay}ms before retry...`);
+      // Only show attempt info if it's a retry or not silent
+      if (attempt > 1 && !silent) {
+        console.log(`🔄 Retrying ${functionName} (attempt ${attempt}/${maxRetries})...`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
       
       const txHash = await contract.write[functionName](args);
-      console.log(`✅ Transaction successful on attempt ${attempt}: ${txHash}`);
+      
+      // Only show success message if it took multiple attempts or not silent
+      if ((attempt > 1 || !silent) && options.showSuccess !== false) {
+        console.log(`✅ ${txHash}`);
+      }
+      
       return txHash;
       
     } catch (error) {
@@ -54,14 +58,16 @@ export async function executeWithRetry(contract, functionName, args, options = {
       const isLastAttempt = attempt === maxRetries;
       
       if (isNonceError && !isLastAttempt) {
-        console.log(`⚠️  Nonce error on attempt ${attempt}, retrying...`);
-        console.log(`Error: ${error.message}`);
+        if (!silent) {
+          console.log(`⚠️  Nonce issue, retrying...`);
+        }
         continue;
       }
       
       // If it's not a nonce error or we've exhausted retries, throw the error
-      console.error(`❌ Transaction failed on attempt ${attempt}:`);
-      console.error(`Error: ${error.message}`);
+      if (!silent) {
+        console.error(`❌ Transaction failed: ${error.message}`);
+      }
       throw error;
     }
   }
@@ -72,10 +78,15 @@ export async function executeWithRetry(contract, functionName, args, options = {
  * @param {Object} client - The viem client
  * @param {string} hash - Transaction hash
  * @param {number} timeout - Timeout in milliseconds (default 60s)
+ * @param {Object} options - Additional options
  * @returns {Promise<Object>} Transaction receipt
  */
-export async function waitForTransactionWithTimeout(client, hash, timeout = 60000) {
-  console.log(`⏳ Waiting for transaction receipt: ${hash}`);
+export async function waitForTransactionWithTimeout(client, hash, timeout = 60000, options = {}) {
+  const silent = options.silent || false;
+  
+  if (!silent) {
+    console.log(`⏳ Confirming transaction...`);
+  }
   
   const timeoutPromise = new Promise((_, reject) => {
     setTimeout(() => reject(new Error('Transaction receipt timeout')), timeout);
@@ -87,11 +98,12 @@ export async function waitForTransactionWithTimeout(client, hash, timeout = 6000
       timeoutPromise
     ]);
     
-    console.log(`✅ Transaction confirmed: ${hash}`);
     return receipt;
   } catch (error) {
     if (error.message === 'Transaction receipt timeout') {
-      console.log(`⚠️  Transaction receipt timeout for ${hash}, but transaction may still be processing`);
+      if (!silent) {
+        console.log(`⚠️  Transaction timeout, but may still be processing`);
+      }
       throw error;
     }
     throw error;
@@ -109,15 +121,20 @@ export async function waitForTransactionWithTimeout(client, hash, timeout = 6000
  */
 export async function executeContractWithRetry(contract, client, functionName, args, options = {}) {
   const txHash = await executeWithRetry(contract, functionName, args, options);
-  const receipt = await waitForTransactionWithTimeout(client, txHash, options.timeout);
+  const receipt = await waitForTransactionWithTimeout(client, txHash, options.timeout, options);
   return receipt;
 }
 
 /**
  * Adds a delay between transactions to help with nonce synchronization
  * @param {number} ms - Milliseconds to wait
+ * @param {Object} options - Additional options
  */
-export async function addTransactionDelay(ms = 1000) {
-  console.log(`⏳ Adding ${ms}ms delay for nonce synchronization...`);
+export async function addTransactionDelay(ms = 1000, options = {}) {
+  const silent = options.silent || false;
+  
+  if (!silent) {
+    console.log(`⏳ Syncing...`);
+  }
   await new Promise(resolve => setTimeout(resolve, ms));
 }

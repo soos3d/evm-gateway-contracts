@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-import { account, ethereum, base, avalanche } from "./setup.js";
-import { GatewayClient } from "./gateway-client.js";
-import { burnIntent, burnIntentTypedData } from "./typed-data.js";
-import { deploySmartAccountIfNeeded } from "./aa-config.js";
+import { account, ethereum, base, avalanche } from "./lib/setup.js";
+import { GatewayClient } from "./lib/gateway-client.js";
+import { burnIntent, burnIntentTypedData } from "./lib/typed-data.js";
+import { deploySmartAccountIfNeeded } from "./config/aa-config.js";
 
 // Deploy smart accounts if needed (before any operations)
 for (const chain of [ethereum, base, avalanche]) {
@@ -36,23 +36,9 @@ for (const chain of [ethereum, base, avalanche]) {
 // Initialize a lightweight API client for interacting with Gateway
 const gatewayClient = new GatewayClient();
 
-// Check the info endpoint to confirm which chains are supported
-// Not necessary for the transfer, but useful information
-console.log("Fetching Gateway API info...");
-const info = await gatewayClient.info();
-for (const domain of info.domains) {
-  console.log(
-    `  - ${domain.chain} ${domain.network}`,
-    `(wallet: ${"walletContract" in domain}, minter: ${"minterContract" in domain})`
-  );
-}
-
 // Check the account's balances with the Gateway API
-console.log(`Checking balances...`);
-// Use the appropriate account address (smart account or EOA)
+console.log("Checking balances...");
 const accountAddress = ethereum.accountAddress;
-console.log(`🔍 Using account address for balance check: ${accountAddress}`);
-console.log(`🔍 EOA address: ${account.address}`);
 
 const { balances } = await gatewayClient.balances("USDC", accountAddress);
 for (const balance of balances) {
@@ -63,25 +49,21 @@ for (const balance of balances) {
 const fromEthereumAmount = 1;
 const fromAvalancheAmount = 1;
 
-// Check to see if Gateway has picked up the Avalanche deposit yet
-// Since Avalanche has instant finality, this should be quick
+// Validate sufficient balances for transfer
 const avalancheBalance = balances.find((b) => b.domain === GatewayClient.DOMAINS.avalanche).balance;
+const ethereumBalance = balances.find((b) => b.domain === GatewayClient.DOMAINS.ethereum).balance;
+
 if (parseFloat(avalancheBalance) < fromAvalancheAmount) {
-  console.error("Gateway deposit not yet picked up on Avalanche, wait until finalization");
+  console.error("Insufficient Avalanche balance - wait for deposit finalization");
   process.exit(1);
-} else {
-  console.error("Gateway deposit picked up on Avalanche!");
 }
 
-// Check to see if Gateway has picked up the Ethereum deposit yet
-// Ethereum takes about 20 minutes to finalize blocks, so you may need to wait a bit
-const ethereumBalance = balances.find((b) => b.domain === GatewayClient.DOMAINS.ethereum).balance;
 if (parseFloat(ethereumBalance) < fromEthereumAmount) {
-  console.error("Gateway deposit not yet picked up on Ethereum, wait until finalization");
+  console.error("Insufficient Ethereum balance - wait for deposit finalization");
   process.exit(1);
-} else {
-  console.error("Gateway deposit picked up on Ethereum!");
 }
+
+console.log("✅ Sufficient balances confirmed for transfer");
 
 // Add EOA as delegate for smart account on source chains only (required for AA transfers)
 if (ethereum.smartAccount) {
@@ -132,11 +114,7 @@ if (ethereum.smartAccount) {
 }
 
 // Construct the burn intents
-console.log("Constructing burn intent set...");
-console.log(`🔍 Creating burn intents with:`);
-console.log(`   - EOA signer: ${account.address}`);
-console.log(`   - Smart account depositor: ${accountAddress}`);
-console.log(`   - Recipient: ${accountAddress}`);
+console.log("Creating burn intents for cross-chain transfer...");
 const burnIntents = [
   burnIntent({
     account, // EOA for signing
@@ -156,35 +134,13 @@ const burnIntents = [
   }),
 ];
 
-// Log the burn intent details
-console.log(`🔍 Burn intent details:`);
-burnIntents.forEach((intent, i) => {
-  console.log(`   Intent ${i + 1}:`);
-  console.log(`     - sourceDepositor: ${intent.spec.sourceDepositor}`);
-  console.log(`     - sourceSigner: ${intent.spec.sourceSigner}`);
-  console.log(`     - destinationRecipient: ${intent.spec.destinationRecipient}`);
-  console.log(`     - amount: ${intent.spec.value}`);
-});
-
 // Sign the burn intents
 console.log("Signing burn intents...");
 const request = await Promise.all(
-  burnIntents.map(async (intent, i) => {
+  burnIntents.map(async (intent) => {
     const typedData = burnIntentTypedData(intent);
-    console.log(`🔍 Signing intent ${i + 1} with smart account: ${accountAddress}`);
-    
-    let signature;
-    if (ethereum.smartAccount) {
-      console.log(`🔍 AA mode detected, but using EOA signing for Gateway compatibility...`);
-      // In AA mode, the EOA (owner) signs on behalf of the smart account
-      // The Gateway API expects the signature to come from the sourceSigner (EOA)
-      signature = await account.signTypedData(typedData);
-    } else {
-      console.log(`🔍 Using standard EOA signing...`);
-      signature = await account.signTypedData(typedData);
-    }
-    
-    console.log(`✅ Signature generated: ${signature.slice(0, 10)}...`);
+    // EOA signs for both EOA and AA modes (Gateway API requirement)
+    const signature = await account.signTypedData(typedData);
     return { burnIntent: typedData.message, signature };
   })
 );

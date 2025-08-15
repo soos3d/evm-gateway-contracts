@@ -16,15 +16,26 @@
  * limitations under the License.
  */
 
-import { account, ethereum, base, avalanche } from "./setup.js";
-import { deploySmartAccountIfNeeded } from "./aa-config.js";
-import { executeContractWithRetry, addTransactionDelay } from "./aa-utils.js";
+import { account, ethereum, base, avalanche } from "./lib/setup.js";
+import { deploySmartAccountIfNeeded } from "./config/aa-config.js";
+import { executeContractWithRetry, addTransactionDelay } from "./utils/aa-utils.js";
 
 const decimals = 6; // USDC has 6 decimal places
-const DEPOSIT_AMOUNT = 1_000000n; // 4 USDC
+const DEPOSIT_AMOUNT = 2000000n; // 2 USDC
+
+console.log("🚀 Starting USDC deposits across all chains...\n");
 
 // Deposit into the GatewayWallet contract on all chains
-for (const chain of [ethereum, base, avalanche]) {
+const chains = [ethereum, base, avalanche];
+for (let i = 0; i < chains.length; i++) {
+  const chain = chains[i];
+  
+  // Add chain header with divider
+  console.log(`${"=".repeat(50)}`);
+  console.log(`📍 ${chain.name.toUpperCase()}`);
+  console.log(`${"=".repeat(50)}`);
+  console.log(`Account: ${chain.accountAddress}`);
+  console.log("");
   // Deploy smart account if needed (before any transactions)
   if (chain.smartAccount) {
     try {
@@ -36,14 +47,16 @@ for (const chain of [ethereum, base, avalanche]) {
   }
 
   // Get the wallet's current USDC balance
-  console.log(`Checking USDC balance on ${chain.name}...`);
+  console.log(`💰 Checking USDC balance...`);
   const balance = await chain.usdc.read.balanceOf([chain.accountAddress]);
   const readableBalance = Number(balance) / 10 ** decimals;
-  console.log("Current USDC balance:", readableBalance);
+  console.log(`   Balance: ${readableBalance} USDC`);
+  console.log("");
+
   // Ensure the balance is sufficient for the deposit
   if (balance < DEPOSIT_AMOUNT) {
-    console.error(`Insufficient USDC balance on ${chain.name}!`);
-    console.error("Please top up at https://faucet.circle.com.");
+    console.error(`❌ Insufficient USDC balance on ${chain.name}!`);
+    console.error("   Please top up at https://faucet.circle.com.");
     process.exit(1);
   }
 
@@ -51,7 +64,7 @@ for (const chain of [ethereum, base, avalanche]) {
   // handle the error if the wallet does not have enough funds to pay for gas
   try {
     // Approve the GatewayWallet contract for the wallet's USDC
-    console.log("Approving the GatewayWallet contract for USDC...");
+    console.log("🔐 Approving Gateway Wallet for USDC...");
     if (chain.smartAccount) {
       // Use retry logic for AA transactions
       await executeContractWithRetry(
@@ -65,7 +78,7 @@ for (const chain of [ethereum, base, avalanche]) {
       // Standard EOA transaction
       const approvalTx = await chain.usdcWrite.write.approve([chain.gatewayWallet.address, DEPOSIT_AMOUNT]);
       await chain.client.waitForTransactionReceipt({ hash: approvalTx });
-      console.log("Done! Transaction hash:", approvalTx);
+      console.log(`✅ ${approvalTx}`);
     }
 
     // Add delay between transactions for AA nonce synchronization
@@ -74,7 +87,7 @@ for (const chain of [ethereum, base, avalanche]) {
     }
 
     // Deposit USDC into the GatewayWallet contract
-    console.log("Depositing USDC into the GatewayWallet contract...");
+    console.log("💸 Depositing 0.5 USDC into Gateway Wallet...");
     if (chain.smartAccount) {
       // Use retry logic for AA transactions
       await executeContractWithRetry(
@@ -88,17 +101,27 @@ for (const chain of [ethereum, base, avalanche]) {
       // Standard EOA transaction
       const depositTx = await chain.gatewayWalletWrite.write.deposit([chain.usdc.address, DEPOSIT_AMOUNT]);
       await chain.client.waitForTransactionReceipt({ hash: depositTx });
-      console.log("Done! Transaction hash:", depositTx);
+      console.log(`✅ ${depositTx}`);
     }
+
+    console.log(`✅ ${chain.name} deposit completed successfully!`);
+    
+    // Add spacing between chains (except for the last one)
+    if (i < chains.length - 1) {
+      console.log("\n");
+    }
+
   } catch (error) {
     if (error.details && error.details.includes("insufficient funds")) {
       // If there wasn't enough for gas, log an error message and exit
-      console.error(`The wallet does not have enough ${chain.currency} to pay for gas on ${chain.name}!`);
-      console.error(`Please top up using a faucet.`);
+      console.error(`❌ Insufficient ${chain.currency} for gas on ${chain.name}!`);
+      console.error(`   Please top up using a faucet.`);
     } else {
       // Log any other errors for debugging
-      console.error(error);
+      console.error(`❌ Error on ${chain.name}:`, error.message);
     }
     process.exit(1);
   }
 }
+
+console.log("\n🎉 All deposits completed successfully!");

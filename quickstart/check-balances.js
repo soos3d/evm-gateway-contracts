@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-import { account, ethereum, base, avalanche } from "./setup.js";
-import { GatewayClient } from "./gateway-client.js";
+import { account, ethereum, base, avalanche } from "./lib/setup.js";
+import { GatewayClient } from "./lib/gateway-client.js";
 
 console.log("🔍 Balance Verification Script");
 console.log("=" .repeat(50));
