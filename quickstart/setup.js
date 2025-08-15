@@ -16,6 +16,24 @@
  * limitations under the License.
  */
 
+/**
+ * @fileoverview Circle Gateway Setup with Dual Account Support (EOA + Account Abstraction)
+ * 
+ * This module provides unified setup for Circle Gateway contracts supporting both traditional 
+ * EOA and Account Abstraction modes via Particle Network + Biconomy smart accounts.
+ * 
+ * For detailed architecture documentation, usage examples, and implementation details,
+ * see README-AA.md in this directory.
+ * 
+ * @example
+ * // EOA Mode
+ * USE_SMART_ACCOUNT=false node deposit.js
+ * 
+ * @example  
+ * // AA Mode (gasless)
+ * USE_SMART_ACCOUNT=true node deposit.js
+ */
+
 import "dotenv/config";
 import { createPublicClient, createWalletClient, getContract, http, erc20Abi, custom } from "viem";
 import { privateKeyToAccount } from "viem/accounts";

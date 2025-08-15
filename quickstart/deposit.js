@@ -18,6 +18,7 @@
 
 import { account, ethereum, base, avalanche } from "./setup.js";
 import { deploySmartAccountIfNeeded } from "./aa-config.js";
+import { executeContractWithRetry, addTransactionDelay } from "./aa-utils.js";
 
 const decimals = 6; // USDC has 6 decimal places
 const DEPOSIT_AMOUNT = 1_000000n; // 4 USDC
@@ -51,15 +52,44 @@ for (const chain of [ethereum, base, avalanche]) {
   try {
     // Approve the GatewayWallet contract for the wallet's USDC
     console.log("Approving the GatewayWallet contract for USDC...");
-    const approvalTx = await chain.usdcWrite.write.approve([chain.gatewayWallet.address, DEPOSIT_AMOUNT]);
-    await chain.client.waitForTransactionReceipt({ hash: approvalTx });
-    console.log("Done! Transaction hash:", approvalTx);
+    if (chain.smartAccount) {
+      // Use retry logic for AA transactions
+      await executeContractWithRetry(
+        chain.usdcWrite, 
+        chain.client, 
+        'approve', 
+        [chain.gatewayWallet.address, DEPOSIT_AMOUNT],
+        { maxRetries: 3, retryDelay: 2000 }
+      );
+    } else {
+      // Standard EOA transaction
+      const approvalTx = await chain.usdcWrite.write.approve([chain.gatewayWallet.address, DEPOSIT_AMOUNT]);
+      await chain.client.waitForTransactionReceipt({ hash: approvalTx });
+      console.log("Done! Transaction hash:", approvalTx);
+    }
+
+    // Add delay between transactions for AA nonce synchronization
+    if (chain.smartAccount) {
+      await addTransactionDelay(2000);
+    }
 
     // Deposit USDC into the GatewayWallet contract
     console.log("Depositing USDC into the GatewayWallet contract...");
-    const depositTx = await chain.gatewayWalletWrite.write.deposit([chain.usdc.address, DEPOSIT_AMOUNT]);
-    await chain.client.waitForTransactionReceipt({ hash: depositTx });
-    console.log("Done! Transaction hash:", depositTx);
+    if (chain.smartAccount) {
+      // Use retry logic for AA transactions
+      await executeContractWithRetry(
+        chain.gatewayWalletWrite, 
+        chain.client, 
+        'deposit', 
+        [chain.usdc.address, DEPOSIT_AMOUNT],
+        { maxRetries: 3, retryDelay: 2000 }
+      );
+    } else {
+      // Standard EOA transaction
+      const depositTx = await chain.gatewayWalletWrite.write.deposit([chain.usdc.address, DEPOSIT_AMOUNT]);
+      await chain.client.waitForTransactionReceipt({ hash: depositTx });
+      console.log("Done! Transaction hash:", depositTx);
+    }
   } catch (error) {
     if (error.details && error.details.includes("insufficient funds")) {
       // If there wasn't enough for gas, log an error message and exit
