@@ -60,7 +60,7 @@ for (const balance of balances) {
 
 // These are the amounts we intent on transferring from each chain we deposited on
 const fromEthereumAmount = 1;
-const fromAvalancheAmount = 2;
+const fromAvalancheAmount = 1;
 
 // Check to see if Gateway has picked up the Avalanche deposit yet
 // Since Avalanche has instant finality, this should be quick
@@ -126,32 +126,12 @@ const request = await Promise.all(
     
     let signature;
     if (ethereum.smartAccount) {
-      // For AA, use the AA provider to sign with the smart account
-      console.log(`🔍 Using AA provider for signing...`);
-      try {
-        // Convert BigInt values to strings for JSON serialization
-        const serializableTypedData = {
-          ...typedData,
-          message: {
-            ...typedData.message,
-            maxBlockHeight: typedData.message.maxBlockHeight.toString(),
-            maxFee: typedData.message.maxFee.toString(),
-            spec: {
-              ...typedData.message.spec,
-              value: typedData.message.spec.value.toString()
-            }
-          }
-        };
-        
-        signature = await ethereum.walletClient.transport.request({
-          method: 'eth_signTypedData_v4',
-          params: [accountAddress, JSON.stringify(serializableTypedData)]
-        });
-      } catch (error) {
-        console.log(`⚠️  AA signing failed, falling back to EOA: ${error.message}`);
-        signature = await account.signTypedData(typedData);
-      }
+      console.log(`🔍 AA mode detected, but using EOA signing for Gateway compatibility...`);
+      // In AA mode, the EOA (owner) signs on behalf of the smart account
+      // The Gateway API expects the signature to come from the sourceSigner (EOA)
+      signature = await account.signTypedData(typedData);
     } else {
+      console.log(`🔍 Using standard EOA signing...`);
       signature = await account.signTypedData(typedData);
     }
     
