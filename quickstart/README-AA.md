@@ -89,6 +89,76 @@ USE_SMART_ACCOUNT=true node transfer.js
 3. **AA Wrap Provider**: Particle's EIP-1193 compatible provider that routes transactions through AA
 4. **Viem Integration**: Seamless integration with viem's wallet client
 
+### Signer Instantiation
+
+#### EOA Mode (Traditional)
+```javascript
+// Simple setup - account is the signer
+client = createPublicClient({ chain, account, transport: http() });
+walletClient = client;
+accountAddress = account.address;
+```
+
+#### AA Mode (Smart Account)
+```javascript
+// 1. Create EOA provider that wraps the private key account
+const eoaProvider = {
+  request: async ({ method, params }) => {
+    // Handles signing methods but delegates transactions
+  }
+};
+
+// 2. Create smart account with EOA as owner
+smartAccount = createSmartAccount(eoaProvider, chainName);
+const aaSetup = createAAWalletClient(smartAccount, chain);
+accountAddress = await getSmartAccountAddress(smartAccount);
+
+// 3. Create viem wallet client with AA provider as transport
+walletClient = createWalletClient({
+  account: { address: accountAddress, type: 'json-rpc' },
+  chain,
+  transport: custom({
+    request: async ({ method, params }) => {
+      return await aaSetup.aaProvider.request({ method, params });
+    }
+  })
+});
+```
+
+### Transaction Signing Differences
+
+#### EOA Mode
+- **Signer**: EOA directly signs and sends transactions
+- **Gas**: User pays gas fees
+- **Flow**: `EOA → RPC → Blockchain`
+
+#### AA Mode
+- **Signer**: EOA signs, but Smart Account executes
+- **Gas**: Gasless via Particle Network (on testnet)
+- **Flow**: `EOA signs → AA Provider → Bundler → Smart Account → Blockchain`
+
+### Key Implementation Details
+
+#### EOA Provider Bridge
+The `eoaProvider` acts as a bridge between your EOA and the AA system:
+- **Signing methods** (`personal_sign`, `eth_signTypedData_v4`): Handled by EOA
+- **Transaction methods** (`eth_sendTransaction`): Delegated to AA provider
+- **Account queries**: Returns smart account address
+
+#### Dual Client Architecture
+```javascript
+// Reading (both modes use public client)
+client = createPublicClient({ chain, transport: http() });
+
+// Writing differs:
+// EOA: walletClient = client (same instance)
+// AA: walletClient = custom client with AA transport
+```
+
+#### Address Handling
+- **EOA Mode**: `accountAddress = account.address` (EOA address)
+- **AA Mode**: `accountAddress = await getSmartAccountAddress(smartAccount)` (Smart Account address)
+
 ### Transaction Flow
 
 **EOA Mode:**
@@ -102,3 +172,13 @@ Private Key → EOA → Smart Account → UserOperation → Bundler → Blockcha
                 ↓
             Paymaster (gasless)
 ```
+
+### AA Transaction Flow in Detail
+
+1. **Contract Call**: `chain.usdcWrite.write.approve([...])`
+2. **Viem**: Formats as `eth_sendTransaction`
+3. **AA Transport**: Routes to `aaSetup.aaProvider.request()`
+4. **Particle AA**: Bundles transaction for gasless execution
+5. **Smart Account**: Executes on behalf of EOA owner
+
+This architecture allows seamless switching between EOA and AA modes while maintaining the same contract interaction API through viem.
